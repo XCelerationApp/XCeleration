@@ -54,6 +54,7 @@ class _SignInScreenState extends State<SignInScreen>
   bool _busy = false;
   String? _emailError;
   String? _passwordError;
+  String? _authError;
 
   late final AnimationController _shakeController;
   late final Animation<Offset> _shakeAnimation;
@@ -125,9 +126,8 @@ class _SignInScreenState extends State<SignInScreen>
     final syncService = context.read<ISyncService>();
     if (!await _connectivity.isOnline()) {
       if (!mounted) return;
-      DialogUtils.showMessageDialog(context,
-          title: 'No internet connection',
-          message: 'Please check your connection and try again.');
+      setState(() => _authError =
+          'No internet connection. Please check your connection and try again.');
       return;
     }
     setState(() => _busy = true);
@@ -164,12 +164,15 @@ class _SignInScreenState extends State<SignInScreen>
         }
       }
     } catch (e) {
-      if (e is gotrue.AuthApiException && e.code == 'user_already_exists') {
-        if (mounted) setState(() => _isLogin = true);
-      }
       if (!mounted) return;
-      DialogUtils.showMessageDialog(context,
-          title: 'Error', message: _formatAuthError(e));
+      if (e is gotrue.AuthApiException && e.code == 'user_already_exists') {
+        setState(() {
+          _isLogin = true;
+          _authError = _formatAuthError(e);
+        });
+      } else {
+        setState(() => _authError = _formatAuthError(e));
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -249,6 +252,7 @@ class _SignInScreenState extends State<SignInScreen>
         _isLogin = !_isLogin;
         _emailError = null;
         _passwordError = null;
+        _authError = null;
       });
 
   @override
@@ -277,16 +281,23 @@ class _SignInScreenState extends State<SignInScreen>
                       passwordFocus: _passwordFocus,
                       emailError: _emailError,
                       passwordError: _passwordError,
+                      authError: _authError,
                       obscure: _obscure,
                       busy: _busy,
                       onEmailChanged: (_) {
-                        if (_emailError != null) {
-                          setState(() => _emailError = null);
+                        if (_emailError != null || _authError != null) {
+                          setState(() {
+                            _emailError = null;
+                            _authError = null;
+                          });
                         }
                       },
                       onPasswordChanged: (_) {
-                        if (_passwordError != null) {
-                          setState(() => _passwordError = null);
+                        if (_passwordError != null || _authError != null) {
+                          setState(() {
+                            _passwordError = null;
+                            _authError = null;
+                          });
                         }
                       },
                       onToggleObscure: () =>
@@ -371,6 +382,7 @@ class _FormBody extends StatefulWidget {
     required this.passwordFocus,
     required this.emailError,
     required this.passwordError,
+    required this.authError,
     required this.obscure,
     required this.busy,
     required this.onEmailChanged,
@@ -388,6 +400,7 @@ class _FormBody extends StatefulWidget {
   final FocusNode passwordFocus;
   final String? emailError;
   final String? passwordError;
+  final String? authError;
   final bool obscure;
   final bool busy;
   final ValueChanged<String> onEmailChanged;
@@ -481,6 +494,23 @@ class _FormBodyState extends State<_FormBody> {
               ),
             ),
           ],
+          AnimatedSize(
+            duration: AppAnimations.fast,
+            curve: AppAnimations.enter,
+            child: widget.authError != null
+                ? Padding(
+                    padding: const EdgeInsets.only(top: AppSpacing.md),
+                    child: Text(
+                      widget.authError!,
+                      style: AppTypography.smallCaption.copyWith(
+                        color: AppColors.redColor,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  )
+                : const SizedBox.shrink(),
+          ),
           SizedBox(height: widget.isLogin ? AppSpacing.xl : AppSpacing.xxl),
           ListenableBuilder(
             listenable: _buttonListenable,

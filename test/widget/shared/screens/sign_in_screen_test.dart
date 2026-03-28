@@ -219,7 +219,7 @@ void main() {
 
   group('XCE-189 connectivity pre-check', () {
     testWidgets(
-        'when offline: shows no-internet dialog and does not call auth service',
+        'when offline: shows inline no-internet error and does not call auth service',
         (tester) async {
       await tester.pumpWidget(_wrap(
         SignInScreen(
@@ -230,9 +230,9 @@ void main() {
 
       await _fillAndSubmit(tester);
 
-      expect(find.text('No internet connection'), findsOneWidget);
       expect(
-        find.text('Please check your connection and try again.'),
+        find.text(
+            'No internet connection. Please check your connection and try again.'),
         findsOneWidget,
       );
       verifyNever(mockAuth.signInWithEmailPassword(any, any));
@@ -255,7 +255,7 @@ void main() {
     });
 
     testWidgets(
-        'when offline in create account mode: shows dialog without calling sign-up',
+        'when offline in create account mode: shows inline error without calling sign-up',
         (tester) async {
       await tester.pumpWidget(_wrap(
         SignInScreen(
@@ -269,7 +269,11 @@ void main() {
 
       await _fillAndSubmit(tester, isLogin: false);
 
-      expect(find.text('No internet connection'), findsOneWidget);
+      expect(
+        find.text(
+            'No internet connection. Please check your connection and try again.'),
+        findsOneWidget,
+      );
       verifyNever(mockAuth.signUpWithEmailPassword(any, any));
     });
   });
@@ -280,7 +284,7 @@ void main() {
 
   group('XCE-187 auth error formatting', () {
     testWidgets(
-        'AuthException with SocketException in message shows friendly error',
+        'AuthException with SocketException in message shows inline friendly error',
         (tester) async {
       when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
         gotrue.AuthException(
@@ -296,7 +300,7 @@ void main() {
 
       await _fillAndSubmit(tester);
 
-      expect(find.text('Error'), findsOneWidget);
+      expect(find.text('Error'), findsNothing);
       expect(
         find.text(
             'No internet connection. Please check your connection and try again.'),
@@ -305,7 +309,7 @@ void main() {
     });
 
     testWidgets(
-        'AuthException with ClientException in message shows friendly error',
+        'AuthException with ClientException in message shows inline friendly error',
         (tester) async {
       when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
         gotrue.AuthException('ClientException: failed to connect'),
@@ -320,7 +324,7 @@ void main() {
 
       await _fillAndSubmit(tester);
 
-      expect(find.text('Error'), findsOneWidget);
+      expect(find.text('Error'), findsNothing);
       expect(
         find.text(
             'No internet connection. Please check your connection and try again.'),
@@ -328,7 +332,7 @@ void main() {
       );
     });
 
-    testWidgets('invalid_credentials error shows correct message',
+    testWidgets('invalid_credentials error shows inline error message',
         (tester) async {
       when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
         gotrue.AuthApiException('Invalid credentials',
@@ -344,7 +348,7 @@ void main() {
 
       await _fillAndSubmit(tester);
 
-      expect(find.text('Error'), findsOneWidget);
+      expect(find.text('Error'), findsNothing);
       expect(
         find.text('Incorrect email or password. Please try again.'),
         findsOneWidget,
@@ -352,7 +356,7 @@ void main() {
     });
 
     testWidgets(
-        'user_already_exists error shows correct message and switches to sign-in mode',
+        'user_already_exists error shows inline message and switches to sign-in mode',
         (tester) async {
       when(mockAuth.signUpWithEmailPassword(any, any)).thenThrow(
         gotrue.AuthApiException('User already registered',
@@ -372,21 +376,17 @@ void main() {
 
       await _fillAndSubmit(tester, isLogin: false);
 
-      expect(find.text('Error'), findsOneWidget);
+      expect(find.text('Error'), findsNothing);
       expect(
         find.text(
             'An account with this email already exists. Please sign in instead.'),
         findsOneWidget,
       );
-
-      // Dismiss dialog — mode should have switched back to sign-in
-      await tester.tap(find.text('OK'));
-      await tester.pump();
-
+      // Mode should have switched back to sign-in immediately (no dialog to dismiss)
       expect(find.text('Forgot password?'), findsOneWidget);
     });
 
-    testWidgets('AuthWeakPasswordException shows weak password reasons',
+    testWidgets('AuthWeakPasswordException shows inline weak password message',
         (tester) async {
       when(mockAuth.signUpWithEmailPassword(any, any)).thenThrow(
         gotrue.AuthWeakPasswordException(
@@ -408,14 +408,15 @@ void main() {
 
       await _fillAndSubmit(tester, isLogin: false);
 
-      expect(find.text('Error'), findsOneWidget);
+      expect(find.text('Error'), findsNothing);
       expect(
         find.text('Password too weak: too short, no uppercase'),
         findsOneWidget,
       );
     });
 
-    testWidgets('unknown error shows generic fallback message', (tester) async {
+    testWidgets('unknown error shows inline generic fallback message',
+        (tester) async {
       when(mockAuth.signInWithEmailPassword(any, any))
           .thenThrow(Exception('Unexpected failure'));
 
@@ -428,11 +429,61 @@ void main() {
 
       await _fillAndSubmit(tester);
 
-      expect(find.text('Error'), findsOneWidget);
+      expect(find.text('Error'), findsNothing);
       expect(
         find.text('Something went wrong. Please try again.'),
         findsOneWidget,
       );
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // XCE-511: Inline auth error clears on input
+  // -------------------------------------------------------------------------
+
+  group('XCE-511 inline auth error clears on input', () {
+    testWidgets('error clears when user types in email field', (tester) async {
+      when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
+        gotrue.AuthApiException('Invalid credentials',
+            statusCode: '400', code: 'invalid_credentials'),
+      );
+
+      await tester.pumpWidget(_wrap(
+        SignInScreen(
+            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
+        syncService: mockSync,
+      ));
+      await tester.pump();
+
+      await _fillAndSubmit(tester);
+      expect(find.text('Incorrect email or password. Please try again.'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField).first, 'new@test.com');
+      await tester.pump();
+
+      expect(find.text('Incorrect email or password. Please try again.'), findsNothing);
+    });
+
+    testWidgets('error clears when user types in password field', (tester) async {
+      when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
+        gotrue.AuthApiException('Invalid credentials',
+            statusCode: '400', code: 'invalid_credentials'),
+      );
+
+      await tester.pumpWidget(_wrap(
+        SignInScreen(
+            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
+        syncService: mockSync,
+      ));
+      await tester.pump();
+
+      await _fillAndSubmit(tester);
+      expect(find.text('Incorrect email or password. Please try again.'), findsOneWidget);
+
+      await tester.enterText(find.byType(TextField).last, 'newpassword');
+      await tester.pump();
+
+      expect(find.text('Incorrect email or password. Please try again.'), findsNothing);
     });
   });
 
