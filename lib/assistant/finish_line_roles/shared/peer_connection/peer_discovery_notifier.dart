@@ -134,16 +134,17 @@ class PeerDiscoveryNotifier extends ChangeNotifier {
 
     switch (event.state) {
       case SessionState.notConnected:
-        if (prev == PeerStatus.connected || prev == PeerStatus.found) {
-          // Peer was known — it has gone offline.
+        if (prev == PeerStatus.connected) {
+          // Peer was connected and has now dropped — mark offline.
           _statuses[event.role] = PeerStatus.offline;
           changed = true;
-        } else {
+        } else if (prev != PeerStatus.found) {
           // First contact — mark as found (P2PSessionService handles inviting).
           _statuses[event.role] = PeerStatus.found;
           _deviceNames[event.role] = event.deviceName;
           changed = true;
         }
+        // prev == found: notConnected during handshake — keep status unchanged.
       case SessionState.connecting:
         if (prev != PeerStatus.found && prev != PeerStatus.connected) {
           _statuses[event.role] = PeerStatus.found;
