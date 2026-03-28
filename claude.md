@@ -77,6 +77,10 @@ See `skills/GIT_WORKFLOW_SKILL.md` and `skills/LINEAR_WORKFLOW_SKILL.md` for ful
 
 ---
 
+## Web Search
+
+When the user asks you to look something up, research a library, find documentation, or says anything like "go search…" / "find out how to…" / "look up…", use the `/search` skill immediately. Do not attempt to answer from memory alone for questions about external APIs, packages, or anything that may have changed — search first.
+
 ## When Unsure — Ask First
 
 If a request is unclear, ambiguous, or could be interpreted multiple ways, always ask (using the AskUserQuestion tool) for clarification before starting. Do not make assumptions and proceed. A short question upfront is better than work that needs to be redone.
