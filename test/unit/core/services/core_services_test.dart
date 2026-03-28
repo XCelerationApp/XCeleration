@@ -3,33 +3,190 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/services/google_service.dart';
+import 'package:xceleration/core/services/i_remote_api_client.dart';
+import 'package:xceleration/core/services/parent_link_service.dart';
+import 'package:xceleration/core/services/profile_service.dart';
 
-@GenerateMocks([ConnectivityService, GoogleSignIn, GoogleSignInAccount, GoogleSignInAuthentication])
-import 'google_service_test.mocks.dart';
+@GenerateMocks([
+  IRemoteApiClient,
+  IAuthService,
+  ConnectivityService,
+  GoogleSignIn,
+  GoogleSignInAccount,
+  GoogleSignInAuthentication,
+])
+import 'core_services_test.mocks.dart';
 
 void main() {
-  TestWidgetsFlutterBinding.ensureInitialized();
+  // ===========================================================================
+  // AuthService
+  // ===========================================================================
+  group('AuthService', () {
+    late AuthService service;
+    late MockIRemoteApiClient mockRemote;
 
-  late MockConnectivityService mockConnectivity;
-  late MockGoogleSignIn mockGoogleSignIn;
+    setUp(() {
+      mockRemote = MockIRemoteApiClient();
+      service = AuthService(remoteApi: mockRemote);
+    });
 
-  setUp(() {
-    mockConnectivity = MockConnectivityService();
-    mockGoogleSignIn = MockGoogleSignIn();
-    SharedPreferences.setMockInitialValues({});
+    group('deleteCurrentUserAccount', () {
+      test('throws when remote is not initialized', () async {
+        when(mockRemote.init()).thenAnswer((_) async {});
+        when(mockRemote.isInitialized).thenReturn(false);
+
+        await expectLater(
+          service.deleteCurrentUserAccount(),
+          throwsA(isA<Exception>().having(
+            (e) => e.toString(),
+            'message',
+            contains('Remote service not configured'),
+          )),
+        );
+      });
+    });
   });
 
-  GoogleService buildService({bool online = true}) {
-    when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
-    return GoogleService(
-      connectivity: mockConnectivity,
-      googleSignIn: mockGoogleSignIn,
-    );
-  }
+  // ===========================================================================
+  // ProfileService
+  // ===========================================================================
+  group('ProfileService', () {
+    late ProfileService service;
+    late MockIRemoteApiClient mockRemote;
+    late MockIAuthService mockAuth;
 
+    setUp(() {
+      mockRemote = MockIRemoteApiClient();
+      mockAuth = MockIAuthService();
+      service = ProfileService(remoteApi: mockRemote, auth: mockAuth);
+    });
+
+    group('ensureProfileUpsert', () {
+      test('returns without calling client when userId is null', () async {
+        when(mockAuth.currentUserId).thenReturn(null);
+        when(mockAuth.currentEmail).thenReturn('user@example.com');
+
+        await service.ensureProfileUpsert();
+
+        verifyNever(mockRemote.client);
+      });
+
+      test('returns without calling client when email is null', () async {
+        when(mockAuth.currentUserId).thenReturn('uid-123');
+        when(mockAuth.currentEmail).thenReturn(null);
+
+        await service.ensureProfileUpsert();
+
+        verifyNever(mockRemote.client);
+      });
+
+      test('swallows exception thrown by remoteApi.client', () async {
+        when(mockAuth.currentUserId).thenReturn('uid-123');
+        when(mockAuth.currentEmail).thenReturn('user@example.com');
+        when(mockRemote.client).thenThrow(Exception('db error'));
+
+        await expectLater(service.ensureProfileUpsert(), completes);
+      });
+    });
+  });
+
+  // ===========================================================================
+  // ParentLinkService
+  // ===========================================================================
+  group('ParentLinkService', () {
+    late ParentLinkService service;
+    late MockIRemoteApiClient mockRemote;
+    late MockIAuthService mockAuth;
+
+    setUp(() {
+      mockRemote = MockIRemoteApiClient();
+      mockAuth = MockIAuthService();
+      service = ParentLinkService(remoteApi: mockRemote, auth: mockAuth);
+    });
+
+    group('listLinkedCoaches', () {
+      test('returns empty list when userId is null', () async {
+        when(mockAuth.currentUserId).thenReturn(null);
+
+        final result = await service.listLinkedCoaches();
+
+        expect(result, isEmpty);
+        verifyNever(mockRemote.client);
+      });
+
+      test('returns empty list when client throws', () async {
+        when(mockAuth.currentUserId).thenReturn('uid-123');
+        when(mockRemote.client).thenThrow(Exception('network error'));
+
+        final result = await service.listLinkedCoaches();
+
+        expect(result, isEmpty);
+      });
+    });
+
+    group('linkCoachByEmail', () {
+      test('returns false when userId is null', () async {
+        when(mockAuth.currentUserId).thenReturn(null);
+
+        final result = await service.linkCoachByEmail('coach@example.com');
+
+        expect(result, isFalse);
+        verifyNever(mockRemote.client);
+      });
+
+      test('returns false when client throws', () async {
+        when(mockAuth.currentUserId).thenReturn('uid-123');
+        when(mockRemote.client).thenThrow(Exception('network error'));
+
+        final result = await service.linkCoachByEmail('coach@example.com');
+
+        expect(result, isFalse);
+      });
+    });
+
+    group('unlinkCoach', () {
+      test('returns normally when userId is null', () async {
+        when(mockAuth.currentUserId).thenReturn(null);
+
+        await expectLater(service.unlinkCoach('coach-user-id'), completes);
+        verifyNever(mockRemote.client);
+      });
+
+      test('swallows exception thrown by client', () async {
+        when(mockAuth.currentUserId).thenReturn('uid-123');
+        when(mockRemote.client).thenThrow(Exception('network error'));
+
+        await expectLater(service.unlinkCoach('coach-user-id'), completes);
+      });
+    });
+  });
+
+  // ===========================================================================
+  // GoogleService
+  // ===========================================================================
   group('GoogleService', () {
+    TestWidgetsFlutterBinding.ensureInitialized();
+
+    late MockConnectivityService mockConnectivity;
+    late MockGoogleSignIn mockGoogleSignIn;
+
+    setUp(() {
+      mockConnectivity = MockConnectivityService();
+      mockGoogleSignIn = MockGoogleSignIn();
+      SharedPreferences.setMockInitialValues({});
+    });
+
+    GoogleService buildService({bool online = true}) {
+      when(mockConnectivity.isOnline()).thenAnswer((_) async => online);
+      return GoogleService(
+        connectivity: mockConnectivity,
+        googleSignIn: mockGoogleSignIn,
+      );
+    }
+
     group('isSignedIn', () {
       test('returns false when no user is set', () {
         final service = buildService();
