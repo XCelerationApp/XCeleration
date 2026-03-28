@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   app_links
   audioplayers_windows
   connectivity_plus
+  desktop_webview_window
   flutter_inappwebview_windows
   flutter_sound
   geolocator_windows
