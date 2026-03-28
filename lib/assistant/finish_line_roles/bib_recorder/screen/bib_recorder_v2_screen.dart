@@ -169,6 +169,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
                           role: Role.bibRecorderV2,
                           raceId: _controller.selectedRace!.raceId,
                           raceName: _controller.selectedRace!.name,
+                          notifier: _peerNotifier!,
                           onReady: _onConnectionReady,
                           onSkip: _onConnectionSkip,
                           onLeave: _onConnectionLeave,

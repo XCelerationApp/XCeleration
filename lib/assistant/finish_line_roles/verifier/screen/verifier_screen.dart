@@ -153,6 +153,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
                       role: Role.verifier,
                       raceId: _peerNotifier!.raceId,
                       raceName: _selectedRaceName ?? 'Race #${_peerNotifier!.raceId}',
+                      notifier: _peerNotifier!,
                       onReady: _onConnectionReady,
                       onSkip: _onConnectionSkip,
                       onLeave: _onConnectionLeave,

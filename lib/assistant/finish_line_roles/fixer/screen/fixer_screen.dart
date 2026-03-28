@@ -160,6 +160,7 @@ class _FixerScreenState extends State<FixerScreen> {
                       role: Role.fixer,
                       raceId: _peerNotifier!.raceId,
                       raceName: _selectedRaceName ?? 'Race #${_peerNotifier!.raceId}',
+                      notifier: _peerNotifier!,
                       onReady: _onConnectionReady,
                       onSkip: _onConnectionSkip,
                       onLeave: _onConnectionLeave,

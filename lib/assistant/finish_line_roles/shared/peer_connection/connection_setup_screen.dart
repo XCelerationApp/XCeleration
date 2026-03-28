@@ -13,12 +13,13 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 /// Displays live peer discovery status for the two peers this role connects to.
 /// Calls [onReady] when the user taps Start (at least one peer connected),
 /// [onSkip] to start fully offline, or [onLeave] to go back.
-class ConnectionSetupScreen extends StatefulWidget {
+class ConnectionSetupScreen extends StatelessWidget {
   const ConnectionSetupScreen({
     super.key,
     required this.role,
     required this.raceId,
     required this.raceName,
+    required this.notifier,
     required this.onReady,
     required this.onSkip,
     required this.onLeave,
@@ -27,48 +28,31 @@ class ConnectionSetupScreen extends StatefulWidget {
   final Role role;
   final int raceId;
   final String raceName;
+
+  /// The caller owns this notifier's lifecycle — [ConnectionSetupScreen] will
+  /// not dispose it. Pass the same notifier that will be kept alive as the
+  /// [PeerStatusStrip] source after the race starts.
+  final PeerDiscoveryNotifier notifier;
+
   final VoidCallback onReady;
   final VoidCallback onSkip;
   final VoidCallback onLeave;
 
-  @override
-  State<ConnectionSetupScreen> createState() => _ConnectionSetupScreenState();
-}
-
-class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
-  late final PeerDiscoveryNotifier _notifier;
-
   String get _raceCode {
-    final s = widget.raceId.toString().padLeft(4, '0');
+    final s = raceId.toString().padLeft(4, '0');
     return s.length > 4 ? s.substring(s.length - 4) : s;
   }
 
   @override
-  void initState() {
-    super.initState();
-    _notifier = PeerDiscoveryNotifier(
-      role: widget.role,
-      raceId: widget.raceId,
-    );
-    _notifier.startDiscovery(); // fire-and-forget; errors are handled internally
-  }
-
-  @override
-  void dispose() {
-    _notifier.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final peers = kPeerConfig[widget.role] ?? [];
+    final peers = kPeerConfig[role] ?? [];
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         top: false,
         child: Column(
           children: [
-            _BackButton(onTap: widget.onLeave),
+            _BackButton(onTap: onLeave),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(
@@ -81,33 +65,33 @@ class _ConnectionSetupScreenState extends State<ConnectionSetupScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _RaceHeader(
-                      raceName: widget.raceName,
+                      raceName: raceName,
                       raceCode: _raceCode,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
                     ListenableBuilder(
-                      listenable: _notifier,
+                      listenable: notifier,
                       builder: (_, __) => Column(
                         children: peers
                             .map((p) => _PeerCard(
                                   config: p,
-                                  status: _notifier.statusFor(p.role),
-                                  deviceName: _notifier.deviceNameFor(p.role),
+                                  status: notifier.statusFor(p.role),
+                                  deviceName: notifier.deviceNameFor(p.role),
                                 ))
                             .toList(),
                       ),
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    _HintBox(raceName: widget.raceName),
+                    _HintBox(raceName: raceName),
                     const SizedBox(height: AppSpacing.xxl),
                   ],
                 ),
               ),
             ),
             _BottomActions(
-              notifier: _notifier,
-              onReady: widget.onReady,
-              onSkip: widget.onSkip,
+              notifier: notifier,
+              onReady: onReady,
+              onSkip: onSkip,
             ),
           ],
         ),
