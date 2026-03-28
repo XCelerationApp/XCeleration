@@ -4,7 +4,7 @@ publish_to: "none"
 version: 1.0.2+2
 
 environment:
-  sdk: ^3.5.4
+  sdk: ^3.10.0
 
 dependencies:
   flutter:
@@ -23,14 +23,14 @@ dependencies:
 
   # Database & Storage
   sqflite: ^2.2.8+4
-  shared_preferences: ^2.2.2
+  shared_preferences: ^2.5.5
 
   # Networking & APIs
   http: ^1.2.0
   googleapis: ^16.0.0
   google_sign_in: ^7.2.0
   supabase_flutter: ^2.5.7
-  gotrue: ^2.13.0
+  gotrue: ^2.19.0
   connectivity_plus: ^7.0.0
 
   # Utilities & Formatting
@@ -58,16 +58,19 @@ dependencies:
   barcode_scan2: ^4.1.0
 
   # Document Generation
-  pdf: ^3.10.7
+  pdf: ^3.12.0
 
   # Web & External Content
   webview_flutter: ^4.13.0
+  flutter_inappwebview: ^6.1.5
+  app_links: ^6.4.0
+  flutter_web_auth_2: ^3.0.0
 
   # User Feedback & Notifications
   fluttertoast: ^9.0.0
 
   # Monitoring & Analytics
-  sentry_flutter: ^9.14.0
+  sentry_flutter: ^9.16.0
   package_info_plus: ^9.0.0
 
   # Configuration
@@ -77,7 +80,7 @@ dependencies:
   flutter_native_splash: ^2.4.4
 
   # Voice Recognition
-  sherpa_onnx: ^1.12.29
+  sherpa_onnx: ^1.12.34
   flutter_sound: ^9.0.0
   logger: ^2.7.0
 

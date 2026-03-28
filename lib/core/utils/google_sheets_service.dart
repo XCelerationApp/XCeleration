@@ -204,12 +204,6 @@ class GoogleSheetsService implements IGoogleSheetsService {
         return null;
       }
 
-      // Ensure we're signed in
-      if (!await _authService.signIn()) {
-        Logger.d('Failed to sign in to download sheet');
-        return null;
-      }
-
       final accessToken = await _authService.iosAccessToken;
       if (accessToken == null) {
         Logger.d('Failed to get access token');
@@ -232,7 +226,8 @@ class GoogleSheetsService implements IGoogleSheetsService {
 
       // Save the CSV content to a file
       final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/$fileName.csv');
+      final safeFileName = fileName.replaceAll(RegExp(r'[/\\:*?"<>|]'), '-');
+      final file = File('${directory.path}/$safeFileName.csv');
       await file.writeAsString(response.body);
 
       Logger.d('Google Sheet successfully exported to CSV: ${file.path}');
