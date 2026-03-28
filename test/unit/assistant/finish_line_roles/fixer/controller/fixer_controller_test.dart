@@ -189,6 +189,42 @@ void main() {
 
         expect(controller.queue, isEmpty);
       });
+
+      test('malformed verifierFlag payload is dropped and stream listener remains alive', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        // Malformed: missing required fields — fromJson will throw.
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope(
+            type: MessageType.verifierFlag,
+            version: messageSchemaVersion,
+            payload: const {'bad_field': 'garbage'},
+          ),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.queue, isEmpty);
+
+        // Subsequent valid message is still processed — listener still alive.
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.wrongName,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.queue.length, 1);
+        expect(controller.queue.first.bib, 101);
+      });
     });
 
     group('resolveWithRunner', () {

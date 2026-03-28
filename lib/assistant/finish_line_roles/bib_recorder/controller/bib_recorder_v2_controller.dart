@@ -537,7 +537,11 @@ class BibRecorderV2Controller extends ChangeNotifier {
   void _onSessionMessage((Role, MessageEnvelope) event) {
     final (_, envelope) = event;
     if (envelope.type != MessageType.fixerCorrection) return;
-    _applyCorrection(envelope.decode() as FixerCorrectionMessage);
+    try {
+      _applyCorrection(envelope.decode() as FixerCorrectionMessage);
+    } catch (e) {
+      Logger.e('[BibRecorderV2Controller._onSessionMessage] Malformed message dropped: $e');
+    }
   }
 
   void _applyCorrection(FixerCorrectionMessage msg) {
@@ -560,6 +564,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _bibSub?.cancel();
     _transcriptSub?.cancel();
     _sessionSub?.cancel();
+    _session?.dispose();
     _voice.dispose();
     super.dispose();
   }

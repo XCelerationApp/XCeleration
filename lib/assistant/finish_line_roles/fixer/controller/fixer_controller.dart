@@ -319,7 +319,11 @@ class FixerController extends ChangeNotifier {
   void _onSessionMessage((Role, MessageEnvelope) event) {
     final (_, envelope) = event;
     if (envelope.type != MessageType.verifierFlag) return;
-    _addEntryFromFlag(envelope.decode() as VerifierFlagMessage);
+    try {
+      _addEntryFromFlag(envelope.decode() as VerifierFlagMessage);
+    } catch (e) {
+      Logger.e('[FixerController._onSessionMessage] Malformed message dropped: $e');
+    }
   }
 
   void _addEntryFromFlag(VerifierFlagMessage msg) {
@@ -346,6 +350,7 @@ class FixerController extends ChangeNotifier {
   @override
   void dispose() {
     _sessionSub?.cancel();
+    _session?.dispose();
     super.dispose();
   }
 

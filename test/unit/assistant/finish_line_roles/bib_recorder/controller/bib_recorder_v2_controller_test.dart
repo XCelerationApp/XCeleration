@@ -227,6 +227,41 @@ void main() {
       });
     });
 
+    group('incoming FixerCorrectionMessage', () {
+      test('malformed payload is dropped and stream listener remains alive', () async {
+        final controller = await makeInitializedController();
+        controller.addBib(101); // position 1
+
+        // Malformed: missing required fields — fromJson will throw.
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope(
+            type: MessageType.fixerCorrection,
+            version: messageSchemaVersion,
+            payload: const {'bad_field': 'garbage'},
+          ),
+        ));
+        await Future.microtask(() {});
+
+        // Entry unchanged — malformed message was dropped.
+        expect(controller.entries.first.correctedTo, isNull);
+
+        // Subsequent valid message is still processed — listener still alive.
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.entries.first.correctedTo, 114);
+      });
+    });
+
     group('applyCorrection', () {
       test('sets correctedTo on matching entry and notifies listeners', () async {
         final controller = await makeInitializedController();
