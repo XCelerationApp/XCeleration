@@ -4,14 +4,17 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
-import 'dart:ui' as _i10;
+import 'dart:ui' as _i12;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i8;
-import 'package:xceleration/coach/race_results/model/team_record.dart' as _i9;
+import 'package:xceleration/coach/race_results/model/results_record.dart'
+    as _i9;
+import 'package:xceleration/coach/race_results/model/team_record.dart' as _i11;
 import 'package:xceleration/core/result.dart' as _i6;
 import 'package:xceleration/shared/models/database/base_models.dart' as _i2;
 import 'package:xceleration/shared/models/database/master_race.dart' as _i7;
+import 'package:xceleration/shared/models/database/race_result.dart' as _i10;
 import 'package:xceleration/shared/services/i_race_results_service.dart' as _i4;
 import 'package:xceleration/shared/services/race_results_service.dart' as _i3;
 
@@ -77,6 +80,24 @@ class MockIRaceResultsService extends _i1.Mock
           ),
         )),
       ) as _i5.Future<_i6.Result<_i3.RaceResultsData>>);
+
+  @override
+  List<_i9.ResultsRecord> convertToResultsRecords(
+    List<_i10.RaceResult>? raceResults, {
+    double? raceDistance,
+    String? distanceUnit,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #convertToResultsRecords,
+          [raceResults],
+          {
+            #raceDistance: raceDistance,
+            #distanceUnit: distanceUnit,
+          },
+        ),
+        returnValue: <_i9.ResultsRecord>[],
+      ) as List<_i9.ResultsRecord>);
 }
 
 /// A class which mocks [MasterRace].
@@ -139,16 +160,18 @@ class MockMasterRace extends _i1.Mock implements _i7.MasterRace {
       ) as _i5.Future<Map<_i2.Team, List<_i2.RaceRunner>>>);
 
   @override
-  _i5.Future<List<_i2.RaceResult>> get results => (super.noSuchMethod(
+  _i5.Future<List<_i10.RaceResult>> get results => (super.noSuchMethod(
         Invocation.getter(#results),
-        returnValue: _i5.Future<List<_i2.RaceResult>>.value(<_i2.RaceResult>[]),
-      ) as _i5.Future<List<_i2.RaceResult>>);
+        returnValue:
+            _i5.Future<List<_i10.RaceResult>>.value(<_i10.RaceResult>[]),
+      ) as _i5.Future<List<_i10.RaceResult>>);
 
   @override
-  _i5.Future<List<_i9.TeamRecord>> get teamStandings => (super.noSuchMethod(
+  _i5.Future<List<_i11.TeamRecord>> get teamStandings => (super.noSuchMethod(
         Invocation.getter(#teamStandings),
-        returnValue: _i5.Future<List<_i9.TeamRecord>>.value(<_i9.TeamRecord>[]),
-      ) as _i5.Future<List<_i9.TeamRecord>>);
+        returnValue:
+            _i5.Future<List<_i11.TeamRecord>>.value(<_i11.TeamRecord>[]),
+      ) as _i5.Future<List<_i11.TeamRecord>>);
 
   @override
   _i5.Future<_i3.RaceResultsData> get raceResultsData => (super.noSuchMethod(
@@ -268,7 +291,7 @@ class MockMasterRace extends _i1.Mock implements _i7.MasterRace {
       ) as _i5.Future<void>);
 
   @override
-  _i5.Future<void> addResult(_i2.RaceResult? result) => (super.noSuchMethod(
+  _i5.Future<void> addResult(_i10.RaceResult? result) => (super.noSuchMethod(
         Invocation.method(
           #addResult,
           [result],
@@ -278,7 +301,7 @@ class MockMasterRace extends _i1.Mock implements _i7.MasterRace {
       ) as _i5.Future<void>);
 
   @override
-  _i5.Future<void> saveResults(List<_i2.RaceResult>? results) =>
+  _i5.Future<void> saveResults(List<_i10.RaceResult>? results) =>
       (super.noSuchMethod(
         Invocation.method(
           #saveResults,
@@ -379,7 +402,7 @@ class MockMasterRace extends _i1.Mock implements _i7.MasterRace {
       );
 
   @override
-  void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i12.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -388,7 +411,7 @@ class MockMasterRace extends _i1.Mock implements _i7.MasterRace {
       );
 
   @override
-  void removeListener(_i10.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i12.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],
