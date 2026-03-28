@@ -1,9 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
-import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/xce_peer_name.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 /// A BibRecorder session discovered during the lobby browse phase.
@@ -48,7 +47,7 @@ class LobbyScanner extends ChangeNotifier {
 
     await service.init(
       serviceType: kXceServiceType,
-      deviceName: 'xce|${_roleCode(localRole)}|0|${Platform.localHostname}',
+      deviceName: 'xce|${xceRoleCode(localRole)}|0|',
       strategy: Strategy.P2P_CLUSTER,
       callback: (isRunning) async {
         if (isRunning == true) {
@@ -87,10 +86,3 @@ class LobbyScanner extends ChangeNotifier {
     super.dispose();
   }
 }
-
-String _roleCode(Role role) => switch (role) {
-      Role.bibRecorderV2 => 'BIB',
-      Role.verifier => 'VFR',
-      Role.fixer => 'FIX',
-      _ => 'UNK',
-    };

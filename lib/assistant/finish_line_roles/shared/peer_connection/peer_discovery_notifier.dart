@@ -1,8 +1,8 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 // ── Direction ─────────────────────────────────────────────────────────────────
@@ -77,64 +77,27 @@ const Map<Role, List<PeerConfig>> kPeerConfig = {
 
 enum PeerStatus { searching, found, connected, offline }
 
-// ── Service type ──────────────────────────────────────────────────────────────
-
-/// Fixed Bonjour service type (≤ 15 chars) declared in ios/Runner/Info.plist
-/// under NSBonjourServices as `_xce-finline._tcp`.
-const kXceServiceType = 'xce-finline';
-
-// ── Role encoding ─────────────────────────────────────────────────────────────
-
-String _roleCode(Role role) => switch (role) {
-      Role.bibRecorderV2 => 'BIB',
-      Role.verifier => 'VFR',
-      Role.fixer => 'FIX',
-      _ => 'UNK',
-    };
-
-Role? _roleFromCode(String code) => switch (code) {
-      'BIB' => Role.bibRecorderV2,
-      'VFR' => Role.verifier,
-      'FIX' => Role.fixer,
-      _ => null,
-    };
-
-/// Builds the advertised device name, encoding role and race ID so peers can
-/// identify each other without an extra handshake message.
-///
-/// Format: `xce|<ROLE_CODE>|<RACE_ID>|<HOSTNAME>`
-String buildXceAdvertisedName(Role role, int raceId) =>
-    'xce|${_roleCode(role)}|$raceId|${Platform.localHostname}';
-
-/// Parses a device name built by [buildXceAdvertisedName].
-/// Returns `(role, raceId, humanName)` or `null` for non-XCeleration devices.
-(Role, int, String)? parseXceDeviceName(String deviceName) {
-  final parts = deviceName.split('|');
-  if (parts.length < 4 || parts[0] != 'xce') return null;
-  final peerRole = _roleFromCode(parts[1]);
-  if (peerRole == null) return null;
-  final peerRaceId = int.tryParse(parts[2]);
-  if (peerRaceId == null) return null;
-  // Rejoin remaining parts in case the hostname itself contains '|'.
-  final humanName = parts.sublist(3).join('|');
-  return (peerRole, peerRaceId, humanName);
-}
-
 // ── Notifier ──────────────────────────────────────────────────────────────────
 
-/// Discovers nearby finish-line peers using [flutter_nearby_connections].
+/// Adapts [P2PSessionService] peer connection events into [PeerStatus] UI state.
 ///
-/// Call [startDiscovery] once after construction. The notifier advertises this
-/// device's role and race ID, browses for peers sharing the same race ID, and
-/// auto-invites them on first contact.
+/// Subscribes to [P2PSessionService.peerStateEvents] rather than running its
+/// own Nearby Connections session, ensuring the "connected" status shown in
+/// [ConnectionSetupScreen] and [PeerStatusStrip] reflects whether P2P messages
+/// can actually flow — not a parallel discovery session.
 ///
 /// The [ChangeNotifier] API (statusFor, deviceNameFor, etc.) is unchanged from
-/// the stub so existing callers require no updates.
+/// the previous implementation so existing callers require no updates.
 class PeerDiscoveryNotifier extends ChangeNotifier {
-  PeerDiscoveryNotifier({required this.role, required this.raceId}) {
+  PeerDiscoveryNotifier({
+    required this.role,
+    required this.raceId,
+    required P2PSessionService session,
+  }) {
     for (final p in (kPeerConfig[role] ?? [])) {
       _statuses[p.role] = PeerStatus.searching;
     }
+    _sub = session.peerStateEvents.listen(_onPeerStateEvent);
   }
 
   final Role role;
@@ -145,11 +108,7 @@ class PeerDiscoveryNotifier extends ChangeNotifier {
   /// Real device hostnames keyed by peer role, populated once a peer is found.
   final Map<Role, String> _deviceNames = {};
 
-  /// NearbyService device IDs keyed by peer role, used for disconnect on dispose.
-  final Map<Role, String> _deviceIds = {};
-
-  NearbyService? _nearbyService;
-  StreamSubscription? _stateSubscription;
+  StreamSubscription<PeerStateEvent>? _sub;
 
   PeerStatus statusFor(Role peerRole) =>
       _statuses[peerRole] ?? PeerStatus.searching;
@@ -165,82 +124,38 @@ class PeerDiscoveryNotifier extends ChangeNotifier {
 
   bool get anyConnected => connectedCount > 0;
 
-  /// Starts real peer discovery. Call once after construction.
-  ///
-  /// Advertises this device's role and race ID over [_kServiceType] (Bonjour /
-  /// Nearby Connections), then browses for peer devices. Discovered peers with
-  /// a matching race ID are auto-invited; state changes are mapped to
-  /// [PeerStatus] and broadcast via [notifyListeners].
-  Future<void> startDiscovery() async {
-    final service = NearbyService();
-    _nearbyService = service;
-
-    await service.init(
-      serviceType: kXceServiceType,
-      deviceName: buildXceAdvertisedName(role, raceId),
-      strategy: Strategy.P2P_CLUSTER,
-      callback: (isRunning) async {
-        if (isRunning == true) {
-          await service.stopAdvertisingPeer();
-          await service.stopBrowsingForPeers();
-          await Future.delayed(const Duration(milliseconds: 200));
-          await service.startAdvertisingPeer();
-          await service.startBrowsingForPeers();
-        }
-      },
-    );
-
-    _stateSubscription = service.stateChangedSubscription(
-      callback: _onStateChanged,
-    );
-  }
-
-  void _onStateChanged(List<Device> devices) {
+  void _onPeerStateEvent(PeerStateEvent event) {
     final expectedRoles =
         (kPeerConfig[role] ?? []).map((p) => p.role).toSet();
+    if (!expectedRoles.contains(event.role)) return;
+
+    final prev = _statuses[event.role];
     bool changed = false;
 
-    for (final device in devices) {
-      final parsed = parseXceDeviceName(device.deviceName);
-      if (parsed == null) continue;
-      final (peerRole, peerRaceId, humanName) = parsed;
-      if (peerRaceId != raceId) continue;
-      if (!expectedRoles.contains(peerRole)) continue;
-
-      final prev = _statuses[peerRole];
-
-      switch (device.state) {
-        case SessionState.notConnected:
-          if (prev == PeerStatus.connected || prev == PeerStatus.found) {
-            // Peer was known — it has gone offline.
-            _statuses[peerRole] = PeerStatus.offline;
-            changed = true;
-          } else {
-            // First contact — auto-invite and mark as found.
-            _nearbyService?.invitePeer(
-              deviceID: device.deviceId,
-              deviceName: device.deviceName,
-            );
-            _statuses[peerRole] = PeerStatus.found;
-            _deviceNames[peerRole] = humanName;
-            _deviceIds[peerRole] = device.deviceId;
-            changed = true;
-          }
-        case SessionState.connecting:
-          if (prev != PeerStatus.found && prev != PeerStatus.connected) {
-            _statuses[peerRole] = PeerStatus.found;
-            _deviceNames[peerRole] = humanName;
-            _deviceIds[peerRole] = device.deviceId;
-            changed = true;
-          }
-        case SessionState.connected:
-          if (prev != PeerStatus.connected) {
-            _statuses[peerRole] = PeerStatus.connected;
-            _deviceNames[peerRole] = humanName;
-            _deviceIds[peerRole] = device.deviceId;
-            changed = true;
-          }
-      }
+    switch (event.state) {
+      case SessionState.notConnected:
+        if (prev == PeerStatus.connected || prev == PeerStatus.found) {
+          // Peer was known — it has gone offline.
+          _statuses[event.role] = PeerStatus.offline;
+          changed = true;
+        } else {
+          // First contact — mark as found (P2PSessionService handles inviting).
+          _statuses[event.role] = PeerStatus.found;
+          _deviceNames[event.role] = event.deviceName;
+          changed = true;
+        }
+      case SessionState.connecting:
+        if (prev != PeerStatus.found && prev != PeerStatus.connected) {
+          _statuses[event.role] = PeerStatus.found;
+          _deviceNames[event.role] = event.deviceName;
+          changed = true;
+        }
+      case SessionState.connected:
+        if (prev != PeerStatus.connected) {
+          _statuses[event.role] = PeerStatus.connected;
+          _deviceNames[event.role] = event.deviceName;
+          changed = true;
+        }
     }
 
     if (changed) notifyListeners();
@@ -248,12 +163,7 @@ class PeerDiscoveryNotifier extends ChangeNotifier {
 
   @override
   void dispose() {
-    _stateSubscription?.cancel();
-    _nearbyService?.stopAdvertisingPeer();
-    _nearbyService?.stopBrowsingForPeers();
-    for (final deviceId in _deviceIds.values) {
-      _nearbyService?.disconnectPeer(deviceID: deviceId);
-    }
+    _sub?.cancel();
     super.dispose();
   }
 }

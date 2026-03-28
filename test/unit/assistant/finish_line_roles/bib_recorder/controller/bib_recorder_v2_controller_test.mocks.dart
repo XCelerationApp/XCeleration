@@ -1092,6 +1092,12 @@ class MockP2PSessionService extends _i1.Mock implements _i13.P2PSessionService {
       ) as _i3.Stream<(_i14.Role, _i15.MessageEnvelope)>);
 
   @override
+  _i3.Stream<_i13.PeerStateEvent> get peerStateEvents => (super.noSuchMethod(
+        Invocation.getter(#peerStateEvents),
+        returnValue: _i3.Stream<_i13.PeerStateEvent>.empty(),
+      ) as _i3.Stream<_i13.PeerStateEvent>);
+
+  @override
   _i3.Future<void> init() => (super.noSuchMethod(
         Invocation.method(
           #init,

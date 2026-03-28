@@ -68,7 +68,8 @@ class _VerifierScreenState extends State<VerifierScreen> {
     final notifier = PeerDiscoveryNotifier(
       role: Role.verifier,
       raceId: race.raceId,
-    )..startDiscovery();
+      session: session,
+    );
     setState(() {
       _connecting = true;
       _peerNotifier = notifier;

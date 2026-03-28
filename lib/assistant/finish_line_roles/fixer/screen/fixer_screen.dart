@@ -79,7 +79,8 @@ class _FixerScreenState extends State<FixerScreen> {
     final notifier = PeerDiscoveryNotifier(
       role: Role.fixer,
       raceId: race.raceId,
-    )..startDiscovery();
+      session: session,
+    );
     setState(() {
       _connecting = true;
       _peerNotifier = notifier;

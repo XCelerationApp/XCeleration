@@ -4,12 +4,14 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i5;
-import 'dart:ui' as _i8;
+import 'dart:ui' as _i9;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i7;
 import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart'
     as _i3;
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart'
+    as _i8;
 import 'package:xceleration/assistant/finish_line_roles/verifier/controller/verifier_controller.dart'
     as _i2;
 import 'package:xceleration/assistant/shared/models/race_record.dart' as _i4;
@@ -169,6 +171,25 @@ class MockVerifierController extends _i1.Mock
       );
 
   @override
+  _i5.Future<void> deleteRaceFromLobby(int? raceId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteRaceFromLobby,
+          [raceId],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  void attachSession(_i8.P2PSessionService? session) => super.noSuchMethod(
+        Invocation.method(
+          #attachSession,
+          [session],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   void dispose() => super.noSuchMethod(
         Invocation.method(
           #dispose,
@@ -178,7 +199,7 @@ class MockVerifierController extends _i1.Mock
       );
 
   @override
-  void addListener(_i8.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -187,7 +208,7 @@ class MockVerifierController extends _i1.Mock
       );
 
   @override
-  void removeListener(_i8.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],
