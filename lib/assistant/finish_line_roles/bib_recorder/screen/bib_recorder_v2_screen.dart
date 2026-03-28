@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/bib_recorder_v2_controller.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/manage_mode_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_lobby_widget.dart';
@@ -51,6 +52,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
   PeerDiscoveryNotifier? _peerNotifier;
   P2PSessionService? _session;
   RaceRecord? _previousRace;
+  SharedPreferences? _prefs;
 
   @override
   void initState() {
@@ -62,16 +64,19 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
     _controller.initialize().then((_) {
       if (mounted) setState(() => _initialising = false);
     });
+    SharedPreferences.getInstance().then((p) => _prefs = p);
   }
 
-  void _onControllerChanged() {
+  Future<void> _onControllerChanged() async {
     // Detect race selection: null → non-null transition.
     if (_previousRace == null && _controller.selectedRace != null) {
       final race = _controller.selectedRace!;
+      _prefs ??= await SharedPreferences.getInstance();
       final session = P2PSessionService(
         localRole: Role.bibRecorderV2,
         raceId: race.raceId,
         nearbyConnections: NearbyConnections(),
+        prefs: _prefs!,
       );
       _controller.attachSession(session);
       unawaited(session.init());

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_lobby_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/verifier/controller/verifier_controller.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
@@ -48,20 +49,24 @@ class _VerifierScreenState extends State<VerifierScreen> {
   PeerDiscoveryNotifier? _peerNotifier;
   P2PSessionService? _session;
   String? _selectedRaceName;
+  SharedPreferences? _prefs;
 
   @override
   void initState() {
     super.initState();
     _controller = VerifierController(storage: widget.storage);
     _controller.initialize();
+    SharedPreferences.getInstance().then((p) => _prefs = p);
   }
 
-  void _onJoinTapped(RaceRecord race) {
+  Future<void> _onJoinTapped(RaceRecord race) async {
     _selectedRaceName = race.name;
+    _prefs ??= await SharedPreferences.getInstance();
     final session = P2PSessionService(
       localRole: Role.verifier,
       raceId: race.raceId,
       nearbyConnections: NearbyConnections(),
+      prefs: _prefs!,
     );
     _controller.attachSession(session);
     unawaited(session.init());
