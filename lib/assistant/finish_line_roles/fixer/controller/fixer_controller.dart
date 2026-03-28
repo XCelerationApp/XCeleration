@@ -116,6 +116,7 @@ class FixerController extends ChangeNotifier {
     if (saveResult case Failure(:final error)) {
       Logger.e(
           '[FixerController.processLoadedRaceData] ${error.originalException}');
+      await _loadRaces();
       return Failure(error);
     }
 
