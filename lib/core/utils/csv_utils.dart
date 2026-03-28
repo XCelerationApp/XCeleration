@@ -54,7 +54,7 @@ class CsvUtils {
       ]);
     }
 
-    return const ListToCsvConverter().convert(rows);
+    return const CsvEncoder().convert(rows);
   }
 
   // Save the generated CSV content using file_saver (cross-platform)
