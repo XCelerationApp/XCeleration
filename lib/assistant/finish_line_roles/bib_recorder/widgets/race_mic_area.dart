@@ -12,6 +12,7 @@ class RaceMicArea extends StatelessWidget {
     super.key,
     required this.isListening,
     required this.hasEntries,
+    required this.voiceReady,
     required this.onMicDown,
     required this.onMicUp,
     required this.onReRecord,
@@ -19,6 +20,7 @@ class RaceMicArea extends StatelessWidget {
 
   final bool isListening;
   final bool hasEntries;
+  final bool voiceReady;
   final Future<void> Function() onMicDown;
   final Future<void> Function() onMicUp;
   final VoidCallback onReRecord;
@@ -49,6 +51,7 @@ class RaceMicArea extends StatelessWidget {
         const SizedBox(width: AppSpacing.md),
         _MicButton(
           isListening: isListening,
+          voiceReady: voiceReady,
           onMicDown: onMicDown,
           onMicUp: onMicUp,
         ),
@@ -62,23 +65,31 @@ class RaceMicArea extends StatelessWidget {
 class _MicButton extends StatelessWidget {
   const _MicButton({
     required this.isListening,
+    required this.voiceReady,
     required this.onMicDown,
     required this.onMicUp,
   });
 
   final bool isListening;
+  final bool voiceReady;
   final Future<void> Function() onMicDown;
   final Future<void> Function() onMicUp;
+
+  String get _label {
+    if (!voiceReady) return 'LOADING MODEL…';
+    if (isListening) return 'LISTENING…';
+    return 'HOLD TO RECORD';
+  }
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         GestureDetector(
-          onPanStart: (_) => onMicDown(),
-          onPanEnd: (_) => onMicUp(),
-          onTapDown: (_) => onMicDown(),
-          onTapUp: (_) => onMicUp(),
+          onPanStart: voiceReady ? (_) => onMicDown() : null,
+          onPanEnd: voiceReady ? (_) => onMicUp() : null,
+          onTapDown: voiceReady ? (_) => onMicDown() : null,
+          onTapUp: voiceReady ? (_) => onMicUp() : null,
           child: AnimatedContainer(
             duration: AppAnimations.fast,
             width: 92,
@@ -96,16 +107,26 @@ class _MicButton extends StatelessWidget {
               ),
               boxShadow: isListening ? AppShadows.glow : [],
             ),
-            child: Icon(
-              Icons.mic,
-              color: isListening ? Colors.white : AppColors.mediumColor,
-              size: 35,
-            ),
+            child: voiceReady
+                ? Icon(
+                    Icons.mic,
+                    color:
+                        isListening ? Colors.white : AppColors.mediumColor,
+                    size: 35,
+                  )
+                : const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: AppColors.mediumColor,
+                    ),
+                  ),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
         Text(
-          isListening ? 'LISTENING…' : 'HOLD TO RECORD',
+          _label,
           style: AppTypography.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
             color: AppColors.mediumColor,

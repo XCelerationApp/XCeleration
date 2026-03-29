@@ -259,6 +259,7 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
             RaceMicArea(
               isListening: _ctrl.isListening,
               hasEntries: _ctrl.entries.isNotEmpty,
+              voiceReady: _ctrl.voiceReady,
               onMicDown: _onMicDown,
               onMicUp: _onMicUp,
               onReRecord: _ctrl.reRecordLast,
