@@ -236,7 +236,7 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
             const SizedBox(height: AppSpacing.md),
           ],
           _buildVoiceCard(parsedBib),
-          if ((_hasPendingBib || _isManualMode) && parsedBib != null) ...[
+          if (_isManualMode && parsedBib != null) ...[
             const SizedBox(height: AppSpacing.md),
             ManualConfirmRow(
               bib: parsedBib,
@@ -247,7 +247,7 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
                 _resetCard();
               },
             ),
-          ] else if (_raceStarted && !_isManualMode && !_hasPendingBib) ...[
+          ] else if (_raceStarted && !_isManualMode) ...[
             const SizedBox(height: AppSpacing.md),
             RaceMicArea(
               isListening: _ctrl.isListening,
