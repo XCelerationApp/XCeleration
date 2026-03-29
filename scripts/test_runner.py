@@ -39,7 +39,7 @@ FLUTTER = _find_flutter()
 
 
 def run_tests(paths=None, verbose=False):
-    cmd = [FLUTTER, "test", "--reporter=json", "-j", "16"]
+    cmd = [FLUTTER, "test", "--reporter=json"]
     if paths:
         cmd.extend(paths)
 
