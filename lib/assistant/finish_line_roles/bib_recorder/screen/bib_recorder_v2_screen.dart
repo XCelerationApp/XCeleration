@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/bib_recorder_v2_controller.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/manage_mode_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_lobby_widget.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_mode_widget.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/get_from_coach.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
@@ -12,15 +15,11 @@ import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/components/app_header.dart';
-import 'package:xceleration/core/components/device_connection_widget.dart';
-import 'package:xceleration/core/result.dart';
-import 'package:xceleration/core/services/device_connection_factory_impl.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/enums.dart';
-import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 import 'package:xceleration/shared/role_bar/widgets/role_selector_sheet.dart';
 import 'package:xceleration/shared/settings_screen.dart';
@@ -121,25 +120,11 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
     });
   }
 
-  Future<void> _onGetFromCoach() async {
-    final devices = const DeviceConnectionFactoryImpl().createDevices(
-      DeviceName.bibRecorderV2,
-      DeviceType.browserDevice,
-    );
-    await sheet(
-      context: context,
-      title: 'Load a new race from Coach',
-      body: DeviceConnectionWidget(devices: devices),
-    );
-    final data = devices.coach?.data;
-    if (data == null || !mounted) return;
-    final result = await _controller.processLoadedRaceData(data);
-    if (result case Failure(:final error) when mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.userMessage)),
+  Future<void> _onGetFromCoach() => getFromCoach(
+        context: context,
+        deviceName: DeviceName.bibRecorderV2,
+        onData: _controller.processLoadedRaceData,
       );
-    }
-  }
 
   @override
   void dispose() {

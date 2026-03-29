@@ -45,6 +45,9 @@ class AppColors {
   /// Amber — used for "create new runner" action buttons.
   static const Color warningAmber = Color(0xFFF59E0B);
 
+  /// Subtle off-white surface (e.g. role cards, unpressed card backgrounds).
+  static const Color cardBackground = Color(0xFFFAFAFA);
+
   /// Default fallback colour for a team that has no colour set.
   static const Color defaultTeamColor = Color(0xFF2196F3);
 }
