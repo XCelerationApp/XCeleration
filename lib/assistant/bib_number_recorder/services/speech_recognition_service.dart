@@ -85,18 +85,23 @@ void _inferenceIsolateEntry(({
 /// [ISpeechRecognitionService] implementation backed by a long-lived
 /// background [Isolate].
 ///
-/// The ONNX model is loaded once in [initialize] and kept resident for the
-/// lifetime of the service. Each [transcribe] call sends the WAV path to the
-/// isolate and awaits the transcript — no model-reload overhead per call.
+/// The ONNX model is loaded once in [initialize] and kept resident across
+/// instances via a static cache. This avoids reloading the ~28 MB model every
+/// time the bib recorder screen is revisited. Each [transcribe] call sends
+/// the WAV path to the isolate and awaits the transcript.
 class SpeechRecognitionService implements ISpeechRecognitionService {
-  SendPort? _sendPort;
-  Isolate? _isolate;
+  // Static cache — the send-port survives across instances so the model is
+  // loaded only once per app session.
+  static SendPort? _cachedSendPort;
 
   @override
   Future<void> initialize(ModelAssets assets) async {
+    // Reuse the existing isolate if one is already running.
+    if (_cachedSendPort != null) return;
+
     final ready = ReceivePort();
 
-    _isolate = await Isolate.spawn(
+    await Isolate.spawn(
       _inferenceIsolateEntry,
       (
         encoder: p.join(assets.modelDir, 'encoder-epoch-99-avg-1.int8.onnx'),
@@ -109,16 +114,16 @@ class SpeechRecognitionService implements ISpeechRecognitionService {
     );
 
     // Wait until the isolate signals it has loaded the model.
-    _sendPort = await ready.first as SendPort;
+    _cachedSendPort = await ready.first as SendPort;
     ready.close();
   }
 
   @override
   Future<String> transcribe(String wavPath) async {
-    if (_sendPort == null) return '';
+    if (_cachedSendPort == null) return '';
 
     final reply = ReceivePort();
-    _sendPort!.send((wavPath: wavPath, replyPort: reply.sendPort));
+    _cachedSendPort!.send((wavPath: wavPath, replyPort: reply.sendPort));
     final result = await reply.first as String;
     reply.close();
     return result;
@@ -126,9 +131,7 @@ class SpeechRecognitionService implements ISpeechRecognitionService {
 
   @override
   Future<void> dispose() async {
-    _sendPort?.send(null); // shutdown signal
-    _isolate?.kill(priority: Isolate.immediate);
-    _sendPort = null;
-    _isolate = null;
+    // No-op: the isolate is intentionally kept alive across screen visits.
+    // It will be cleaned up when the app process exits.
   }
 }
