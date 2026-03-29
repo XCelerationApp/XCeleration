@@ -144,6 +144,30 @@ class SyncService implements ISyncService {
     await assignUuids('races', 'race_id');
     await assignUuids('race_results', 'result_id');
 
+    // Assign UUIDs to race_participants rows (composite PK — can't use assignUuids)
+    final rpWithoutUuid = await db.query(
+      'race_participants',
+      columns: ['race_id', 'runner_id'],
+      where: "uuid IS NULL OR uuid = ''",
+      limit: 1000,
+    );
+    if (rpWithoutUuid.isNotEmpty) {
+      await db.transaction((txn) async {
+        for (final row in rpWithoutUuid) {
+          await txn.update(
+            'race_participants',
+            {
+              'uuid': _uuid.v4(),
+              'is_dirty': 1,
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
+            },
+            where: 'race_id = ? AND runner_id = ?',
+            whereArgs: [row['race_id'], row['runner_id']],
+          );
+        }
+      });
+    }
+
     // Populate runner_uuid and race_uuid for race_results rows that are missing them
     await db.rawUpdate('''
       UPDATE race_results
@@ -496,6 +520,18 @@ class SyncService implements ISyncService {
     final rows = await db.query('race_participants', where: 'is_dirty = 1');
     if (rows.isEmpty) return;
 
+    // Collect all UUIDs upfront for a single batch conflict check query
+    final uuids = rows.map((r) => r['uuid']).whereType<String>().toList();
+
+    // Fetch all matching remote rows in one round-trip
+    final remoteRows =
+        await _syncClient.fetchByUuids('race_participants', uuids);
+    final remoteMap = <String, Map<String, dynamic>>{};
+    for (final r in remoteRows) {
+      final u = r['uuid'] as String?;
+      if (u != null) remoteMap[u] = r;
+    }
+
     final payload = <Map<String, dynamic>>[];
 
     for (final row in rows) {
@@ -516,6 +552,22 @@ class SyncService implements ISyncService {
 
       copy['owner_user_id'] = uid;
       copy['created_at'] ??= copy['updated_at'] ?? DateTime.now().toUtc().toIso8601String();
+
+      // Resolve conflict in-memory against pre-fetched remote data
+      final conflictCheck = _checkForPushConflictInMemory(
+          copy, remoteMap[copy['uuid'] as String?]);
+      if (conflictCheck.hasConflict) {
+        Logger.d(
+            '⚠️ Push conflict for race_participants UUID:${copy['uuid']}: ${conflictCheck.details} — skipping push, clearing dirty flag');
+        final skippedUuid = copy['uuid'] as String?;
+        if (skippedUuid != null) {
+          await db.rawUpdate(
+              'UPDATE race_participants SET is_dirty = 0 WHERE uuid = ?',
+              [skippedUuid]);
+        }
+        continue;
+      }
+
       payload.add(copy);
     }
 
@@ -762,6 +814,9 @@ class SyncService implements ISyncService {
 
     String? newCursor = cursor;
     bool hadWrites = false;
+    // Once any row is skipped due to unresolved UUID foreign keys, stop
+    // advancing the cursor so those rows are re-fetched on the next sync.
+    bool hasUnresolvedSkip = false;
 
     for (final row in data) {
       final remote = Map<String, dynamic>.from(row);
@@ -788,6 +843,7 @@ class SyncService implements ISyncService {
       if (runnerId == null || raceId == null) {
         Logger.d(
             'Skipping race_result UUID:$uuid — runner_uuid=$runnerUuid or race_uuid=$raceUuid not yet pulled locally. Will retry on next sync.');
+        hasUnresolvedSkip = true;
         continue;
       }
 
@@ -819,10 +875,12 @@ class SyncService implements ISyncService {
           hadWrites = true;
           changedRaceIds.add(raceId);
         }
-        final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
+        if (!hasUnresolvedSkip) {
+          final updatedAtStr = remote['updated_at']?.toString();
+          if (updatedAtStr != null &&
+              (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+            newCursor = updatedAtStr;
+          }
         }
         continue;
       }
@@ -875,10 +933,12 @@ class SyncService implements ISyncService {
         }
       }
 
-      final updatedAtStr = remote['updated_at']?.toString();
-      if (updatedAtStr != null &&
-          (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-        newCursor = updatedAtStr;
+      if (!hasUnresolvedSkip) {
+        final updatedAtStr = remote['updated_at']?.toString();
+        if (updatedAtStr != null &&
+            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+          newCursor = updatedAtStr;
+        }
       }
     }
 
@@ -961,6 +1021,9 @@ class SyncService implements ISyncService {
 
     String? newCursor = cursor;
     bool hadWrites = false;
+    // Once any row is skipped due to unresolved UUID foreign keys, stop
+    // advancing the cursor so those rows are re-fetched on the next sync.
+    bool hasUnresolvedSkip = false;
 
     for (final row in data) {
       final remote = Map<String, dynamic>.from(row);
@@ -983,6 +1046,7 @@ class SyncService implements ISyncService {
       if (raceId == null || runnerId == null) {
         Logger.d(
             'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — not yet pulled locally. Will retry on next sync.');
+        hasUnresolvedSkip = true;
         continue;
       }
 
@@ -1016,15 +1080,45 @@ class SyncService implements ISyncService {
               'Applied remote tombstone to $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
           hadWrites = true;
         }
-        final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
+        if (!hasUnresolvedSkip) {
+          final updatedAtStr = remote['updated_at']?.toString();
+          if (updatedAtStr != null &&
+              (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+            newCursor = updatedAtStr;
+          }
         }
         continue;
       }
 
       if (locals.isEmpty) {
+        // When the remote row has no UUID, there may already be a local row at
+        // the same (race_id, runner_id) that has a locally-assigned UUID which
+        // hasn't been pushed yet. Overwriting it with ConflictAlgorithm.replace
+        // would reset the UUID to null, causing an infinite re-assign cycle.
+        // Instead, preserve the local UUID and mark the row dirty so it is
+        // pushed upstream on the next sync.
+        if (uuid == null) {
+          final pkRows = await db.query(table,
+              where: 'race_id = ? AND runner_id = ?',
+              whereArgs: [raceId, runnerId]);
+          if (pkRows.isNotEmpty) {
+            final localUuid = pkRows.first['uuid'] as String?;
+            if (localUuid != null) {
+              await db.update(table, {'is_dirty': 1},
+                  where: 'race_id = ? AND runner_id = ?',
+                  whereArgs: [raceId, runnerId]);
+              if (!hasUnresolvedSkip) {
+                final updatedAtStr = remote['updated_at']?.toString();
+                if (updatedAtStr != null &&
+                    (newCursor == null ||
+                        updatedAtStr.compareTo(newCursor) > 0)) {
+                  newCursor = updatedAtStr;
+                }
+              }
+              continue;
+            }
+          }
+        }
         final insert = Map<String, dynamic>.from(remote);
         insert['is_dirty'] = 0;
         await db.insert(table, insert,
@@ -1065,10 +1159,12 @@ class SyncService implements ISyncService {
         }
       }
 
-      final updatedAtStr = remote['updated_at']?.toString();
-      if (updatedAtStr != null &&
-          (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-        newCursor = updatedAtStr;
+      if (!hasUnresolvedSkip) {
+        final updatedAtStr = remote['updated_at']?.toString();
+        if (updatedAtStr != null &&
+            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+          newCursor = updatedAtStr;
+        }
       }
     }
 
