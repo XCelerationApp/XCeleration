@@ -33,16 +33,104 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
 
   // Input mode state — purely visual, lives in widget state.
   bool _isManualMode = false;
-  final TextEditingController _manualBibController = TextEditingController();
+
+  // Unified card state — shared by voice and manual modes.
+  final TextEditingController _cardBibController = TextEditingController();
+  final FocusNode _cardBibFocusNode = FocusNode();
+  Timer? _autoSubmitTimer;
+  bool _hasPendingBib = false;
+
+  static const _autoSubmitDelay = Duration(seconds: 4);
 
   BibRecorderV2Controller get _ctrl => widget.controller;
 
   @override
+  void initState() {
+    super.initState();
+    _ctrl.onBibPending = _onBibPending;
+    _cardBibFocusNode.addListener(_onCardFieldFocusChange);
+  }
+
+  @override
+  void didUpdateWidget(RaceModeWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller) {
+      oldWidget.controller.onBibPending = null;
+      _ctrl.onBibPending = _onBibPending;
+    }
+  }
+
+  @override
   void dispose() {
+    _ctrl.onBibPending = null;
     _waveTimer?.cancel();
-    _manualBibController.dispose();
+    _autoSubmitTimer?.cancel();
+    _cardBibController.dispose();
+    _cardBibFocusNode.removeListener(_onCardFieldFocusChange);
+    _cardBibFocusNode.dispose();
     super.dispose();
   }
+
+  // ── Auto-submit timer ────────────────────────────────────────────────────
+
+  /// Called by the controller when voice recognition produces a bib.
+  void _onBibPending(int bib) {
+    _autoSubmitTimer?.cancel();
+    _cardBibController.text = bib.toString();
+    _cardBibController.selection = TextSelection.collapsed(
+      offset: _cardBibController.text.length,
+    );
+    setState(() => _hasPendingBib = true);
+    _startAutoSubmitTimer();
+  }
+
+  void _startAutoSubmitTimer() {
+    final parsedBib = int.tryParse(_cardBibController.text.trim());
+    if (parsedBib == null) return;
+    _autoSubmitTimer?.cancel();
+    _autoSubmitTimer = Timer(_autoSubmitDelay, _autoSubmit);
+  }
+
+  void _autoSubmit() {
+    final bib = int.tryParse(_cardBibController.text.trim());
+    if (bib == null) return;
+    _ctrl.addBib(bib);
+    _resetCard();
+  }
+
+  void _resetCard() {
+    _autoSubmitTimer?.cancel();
+    _cardBibController.clear();
+    setState(() => _hasPendingBib = false);
+  }
+
+  void _onCardFieldFocusChange() {
+    if (_cardBibFocusNode.hasFocus) {
+      _autoSubmitTimer?.cancel();
+    } else if (_hasPendingBib || _isManualMode) {
+      final parsedBib = int.tryParse(_cardBibController.text.trim());
+      if (parsedBib != null) _startAutoSubmitTimer();
+    }
+  }
+
+  void _onFieldChanged(String value) {
+    // Restart timer on every keystroke if text is valid.
+    _autoSubmitTimer?.cancel();
+    final bib = int.tryParse(value.trim());
+    if (bib != null && !_cardBibFocusNode.hasFocus) {
+      _startAutoSubmitTimer();
+    }
+    setState(() {});
+  }
+
+  void _onFieldSubmitted(String value) {
+    final bib = int.tryParse(value.trim());
+    if (bib == null) return;
+    _ctrl.addBib(bib);
+    _resetCard();
+  }
+
+  // ── Wave animation ───────────────────────────────────────────────────────
 
   void _startWave() {
     _waveTimer?.cancel();
@@ -58,6 +146,12 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
   }
 
   Future<void> _onMicDown() async {
+    // If there's a pending bib, auto-submit it before starting a new recording.
+    if (_hasPendingBib) {
+      final bib = int.tryParse(_cardBibController.text.trim());
+      if (bib != null) _ctrl.addBib(bib);
+      _resetCard();
+    }
     _startWave();
     await _ctrl.startListening();
   }
@@ -75,6 +169,8 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
       return max(3.0, (v * 28).roundToDouble());
     });
   }
+
+  // ── Build ────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -115,77 +211,61 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
   bool get _raceStarted => _ctrl.raceStarted;
 
   Widget _buildVoiceArea() {
-    return ValueListenableBuilder<TextEditingValue>(
-      valueListenable: _manualBibController,
-      builder: (context, textValue, _) {
-        final parsedBib = int.tryParse(textValue.text.trim());
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            0,
-            AppSpacing.lg,
-            AppSpacing.md,
-          ),
-          child: Column(
-            children: [
-              if (_raceStarted) ...[
-                RaceInputModeToggle(
-                  isManualMode: _isManualMode,
-                  onSwitchToVoice: () => setState(() {
-                    _isManualMode = false;
-                    _manualBibController.clear();
-                  }),
-                  onSwitchToManual: () =>
-                      setState(() => _isManualMode = true),
-                ),
-                const SizedBox(height: AppSpacing.md),
-              ],
-              _buildVoiceCard(parsedBib),
-              if (_isManualMode && parsedBib != null) ...[
-                const SizedBox(height: AppSpacing.md),
-                ManualConfirmRow(
-                  bib: parsedBib,
-                  flag: _ctrl.flagFor(parsedBib),
-                  onReRecord: _manualBibController.clear,
-                  onConfirm: () {
-                    _ctrl.addBib(parsedBib);
-                    _manualBibController.clear();
-                  },
-                ),
-              ] else if (_raceStarted && !_isManualMode) ...[
-                const SizedBox(height: AppSpacing.md),
-                RaceMicArea(
-                  isListening: _ctrl.isListening,
-                  hasEntries: _ctrl.entries.isNotEmpty,
-                  onMicDown: _onMicDown,
-                  onMicUp: _onMicUp,
-                  onReRecord: _ctrl.reRecordLast,
-                ),
-              ],
-            ],
-          ),
-        );
-      },
+    final parsedBib = int.tryParse(_cardBibController.text.trim());
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        0,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      child: Column(
+        children: [
+          if (_raceStarted) ...[
+            RaceInputModeToggle(
+              isManualMode: _isManualMode,
+              onSwitchToVoice: () {
+                _resetCard();
+                setState(() => _isManualMode = false);
+              },
+              onSwitchToManual: () {
+                _resetCard();
+                setState(() => _isManualMode = true);
+              },
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
+          _buildVoiceCard(parsedBib),
+          if ((_hasPendingBib || _isManualMode) && parsedBib != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            ManualConfirmRow(
+              bib: parsedBib,
+              flag: _ctrl.flagFor(parsedBib),
+              onReRecord: _resetCard,
+              onConfirm: () {
+                _ctrl.addBib(parsedBib);
+                _resetCard();
+              },
+            ),
+          ] else if (_raceStarted && !_isManualMode && !_hasPendingBib) ...[
+            const SizedBox(height: AppSpacing.md),
+            RaceMicArea(
+              isListening: _ctrl.isListening,
+              hasEntries: _ctrl.entries.isNotEmpty,
+              onMicDown: _onMicDown,
+              onMicUp: _onMicUp,
+              onReRecord: _ctrl.reRecordLast,
+            ),
+          ],
+        ],
+      ),
     );
   }
 
-  Color _cardBorderColor(int? parsedManualBib) {
-    if (_isManualMode) {
-      if (parsedManualBib == null) return AppColors.borderColor;
-      final flag = _ctrl.flagFor(parsedManualBib);
-      if (flag == 'duplicate') {
-        return AppColors.redColor.withValues(alpha: AppOpacity.solid);
-      }
-      if (flag == 'unknown') {
-        return AppColors.statusSetup.withValues(alpha: AppOpacity.solid);
-      }
-      return AppColors.primaryColor.withValues(alpha: AppOpacity.solid);
-    }
-    // Voice mode — colour based on the last displayed bib (respects _awaitingRecord).
-    final displayBib = _ctrl.lastAddedBib;
-    if (displayBib != null && _ctrl.entries.isNotEmpty) {
-      final lastEntry = _ctrl.entries.first;
-      final flag = _ctrl.flagFor(lastEntry.bib, excludeId: lastEntry.id);
+  Color _cardBorderColor(int? parsedBib) {
+    if (_hasPendingBib || _isManualMode) {
+      if (parsedBib == null) return AppColors.borderColor;
+      final flag = _ctrl.flagFor(parsedBib);
       if (flag == 'duplicate') {
         return AppColors.redColor.withValues(alpha: AppOpacity.solid);
       }
@@ -200,18 +280,7 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
     return AppColors.borderColor;
   }
 
-  Widget _buildVoiceCard(int? parsedManualBib) {
-    // Use lastAddedBib so the card goes blank when _awaitingRecord is true
-    // (after Re-record is pressed) — the entry stays in the list below.
-    final displayBib = !_isManualMode ? _ctrl.lastAddedBib : null;
-    final lastEntry = (displayBib != null && _ctrl.entries.isNotEmpty)
-        ? _ctrl.entries.first
-        : null;
-    final flag = lastEntry != null
-        ? _ctrl.flagFor(lastEntry.bib, excludeId: lastEntry.id)
-        : null;
-    final runner = displayBib != null ? _ctrl.runnerFor(displayBib) : null;
-
+  Widget _buildVoiceCard(int? parsedBib) {
     return AnimatedContainer(
       duration: AppAnimations.standard,
       width: double.infinity,
@@ -220,19 +289,18 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
       decoration: BoxDecoration(
         color: AppColors.surfaceColor,
         borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-        border: Border.all(color: _cardBorderColor(parsedManualBib), width: 1.5),
+        border: Border.all(color: _cardBorderColor(parsedBib), width: 1.5),
       ),
       child: VoiceCardContent(
         isListening: _ctrl.isListening,
         isProcessing: _ctrl.isProcessing,
         bars: _bars,
         isManualMode: _isManualMode,
-        displayBib: displayBib,
-        flag: flag,
-        runner: runner,
-        parsedManualBib: parsedManualBib,
-        manualBibController: _manualBibController,
-        onAddBib: _ctrl.addBib,
+        hasPendingBib: _hasPendingBib,
+        bibController: _cardBibController,
+        focusNode: _cardBibFocusNode,
+        onFieldChanged: _onFieldChanged,
+        onFieldSubmitted: _onFieldSubmitted,
         flagFor: (bib) => _ctrl.flagFor(bib),
         runnerFor: _ctrl.runnerFor,
       ),
@@ -240,23 +308,13 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
   }
 
   Widget _buildList() {
-    // Skip entries[0] from the list only when the card is actively displaying
-    // it (voice mode, not listening/processing, and a bib is shown in card).
-    // While listening or processing, the bib moves into the list so the card
-    // can show the waveform / spinner without hiding the previous entry.
-    final skipFirst = !_isManualMode &&
-        !_ctrl.isListening &&
-        !_ctrl.isProcessing &&
-        _ctrl.lastAddedBib != null;
-    final offset = skipFirst ? 1 : 0;
-    final listCount = _ctrl.entries.length - offset;
-
-    if (listCount <= 0) {
+    final entries = _ctrl.entries;
+    if (entries.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('🏁', style: TextStyle(fontSize: 32)),
+            const Text('\uD83C\uDFC1', style: TextStyle(fontSize: 32)),
             const SizedBox(height: AppSpacing.sm),
             Text(
               'Enter the first bib above',
@@ -270,13 +328,13 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
     }
 
     return ListView.builder(
-      itemCount: listCount,
+      itemCount: entries.length,
       itemBuilder: (_, i) {
-        final entry = _ctrl.entries[i + offset];
+        final entry = entries[i];
         return SwipeBibRowWidget(
           key: ValueKey(entry.id),
           entry: entry,
-          position: _ctrl.entries.length - offset - i,
+          position: entries.length - i,
           controller: _ctrl,
           isNew: false,
         );
