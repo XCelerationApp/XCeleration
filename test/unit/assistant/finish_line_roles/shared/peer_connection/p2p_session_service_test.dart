@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:fake_async/fake_async.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
@@ -478,15 +479,20 @@ void main() {
   // ---------------------------------------------------------------------------
 
   group('peer discovery', () {
-    test('invites peer when it is found but not yet connected', () async {
-      await capturedStateCallback([
-        Device('verifier-device-id', 'xce|VFR|42|test-phone', 0 /* SessionState.notConnected */),
-      ]);
+    test('invites peer when it is found but not yet connected', () {
+      fakeAsync((async) {
+        capturedStateCallback([
+          Device('verifier-device-id', 'xce|VFR|42|test-phone', 0 /* SessionState.notConnected */),
+        ]);
 
-      verify(mockNearby.invitePeer(
-        deviceID: 'verifier-device-id',
-        deviceName: 'xce|VFR|42|test-phone',
-      )).called(1);
+        // Invitation is debounced — advance past the 2 s window.
+        async.elapse(const Duration(seconds: 2));
+
+        verify(mockNearby.invitePeer(
+          deviceID: 'verifier-device-id',
+          deviceName: 'xce|VFR|42|test-phone',
+        )).called(1);
+      });
     });
 
     test('ignores devices with unrecognised name format', () async {
