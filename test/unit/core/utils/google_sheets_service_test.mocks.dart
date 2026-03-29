@@ -32,13 +32,8 @@ import 'package:xceleration/core/utils/google_picker_service.dart' as _i2;
 
 class _FakeGooglePickerService_0 extends _i1.SmartFake
     implements _i2.GooglePickerService {
-  _FakeGooglePickerService_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeGooglePickerService_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [ConnectivityService].
@@ -51,13 +46,12 @@ class MockConnectivityService extends _i1.Mock
   }
 
   @override
-  _i4.Future<bool> isOnline() => (super.noSuchMethod(
-        Invocation.method(
-          #isOnline,
-          [],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+  _i4.Future<bool> isOnline() =>
+      (super.noSuchMethod(
+            Invocation.method(#isOnline, []),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 }
 
 /// A class which mocks [GoogleAuthService].
@@ -69,75 +63,88 @@ class MockGoogleAuthService extends _i1.Mock implements _i5.GoogleAuthService {
   }
 
   @override
-  bool get hasValidIosToken => (super.noSuchMethod(
-        Invocation.getter(#hasValidIosToken),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  bool get hasValidWebToken => (super.noSuchMethod(
-        Invocation.getter(#hasValidWebToken),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  _i4.Future<String?> get iosAccessToken => (super.noSuchMethod(
-        Invocation.getter(#iosAccessToken),
-        returnValue: _i4.Future<String?>.value(),
-      ) as _i4.Future<String?>);
-
-  @override
-  _i4.Future<String?> get webAccessToken => (super.noSuchMethod(
-        Invocation.getter(#webAccessToken),
-        returnValue: _i4.Future<String?>.value(),
-      ) as _i4.Future<String?>);
-
-  @override
-  _i4.Future<void> setIosToken(
-    String? token,
-    DateTime? expiry,
-  ) =>
+  bool get hasValidIosToken =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setIosToken,
-          [
-            token,
-            expiry,
-          ],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+            Invocation.getter(#hasValidIosToken),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  _i4.Future<_i6.Client?> getAuthClient() => (super.noSuchMethod(
-        Invocation.method(
-          #getAuthClient,
-          [],
-        ),
-        returnValue: _i4.Future<_i6.Client?>.value(),
-      ) as _i4.Future<_i6.Client?>);
+  bool get hasValidWebToken =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasValidWebToken),
+            returnValue: false,
+          )
+          as bool);
+
+  @override
+  _i4.Future<String?> get iosAccessToken =>
+      (super.noSuchMethod(
+            Invocation.getter(#iosAccessToken),
+            returnValue: _i4.Future<String?>.value(),
+          )
+          as _i4.Future<String?>);
+
+  @override
+  _i4.Future<String?> get webAccessToken =>
+      (super.noSuchMethod(
+            Invocation.getter(#webAccessToken),
+            returnValue: _i4.Future<String?>.value(),
+          )
+          as _i4.Future<String?>);
+
+  @override
+  _i4.Future<void> setIosToken(String? token, DateTime? expiry) =>
+      (super.noSuchMethod(
+            Invocation.method(#setIosToken, [token, expiry]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> setWebToken(String? token, DateTime? expiry) =>
+      (super.noSuchMethod(
+            Invocation.method(#setWebToken, [token, expiry]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> setPickerTokens(String? token, DateTime? expiry) =>
+      (super.noSuchMethod(
+            Invocation.method(#setPickerTokens, [token, expiry]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<_i6.Client?> getAuthClient() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAuthClient, []),
+            returnValue: _i4.Future<_i6.Client?>.value(),
+          )
+          as _i4.Future<_i6.Client?>);
 
   @override
   _i4.Future<bool> signIn({bool? requireWebToken = true}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #signIn,
-          [],
-          {#requireWebToken: requireWebToken},
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+            Invocation.method(#signIn, [], {#requireWebToken: requireWebToken}),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
-  _i4.Future<void> signOut() => (super.noSuchMethod(
-        Invocation.method(
-          #signOut,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> signOut() =>
+      (super.noSuchMethod(
+            Invocation.method(#signOut, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 }
 
 /// A class which mocks [GoogleDriveService].
@@ -150,51 +157,48 @@ class MockGoogleDriveService extends _i1.Mock
   }
 
   @override
-  _i2.GooglePickerService get pickerService => (super.noSuchMethod(
-        Invocation.getter(#pickerService),
-        returnValue: _FakeGooglePickerService_0(
-          this,
-          Invocation.getter(#pickerService),
-        ),
-      ) as _i2.GooglePickerService);
+  _i2.GooglePickerService get pickerService =>
+      (super.noSuchMethod(
+            Invocation.getter(#pickerService),
+            returnValue: _FakeGooglePickerService_0(
+              this,
+              Invocation.getter(#pickerService),
+            ),
+          )
+          as _i2.GooglePickerService);
 
   @override
-  _i4.Future<bool> signInAndSetup() => (super.noSuchMethod(
-        Invocation.method(
-          #signInAndSetup,
-          [],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+  _i4.Future<bool> signInAndSetup() =>
+      (super.noSuchMethod(
+            Invocation.method(#signInAndSetup, []),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
-  _i4.Future<void> signOut() => (super.noSuchMethod(
-        Invocation.method(
-          #signOut,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> signOut() =>
+      (super.noSuchMethod(
+            Invocation.method(#signOut, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
-  _i4.Future<_i8.File?> getFileInfo(String? fileId) => (super.noSuchMethod(
-        Invocation.method(
-          #getFileInfo,
-          [fileId],
-        ),
-        returnValue: _i4.Future<_i8.File?>.value(),
-      ) as _i4.Future<_i8.File?>);
+  _i4.Future<_i8.File?> getFileInfo(String? fileId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getFileInfo, [fileId]),
+            returnValue: _i4.Future<_i8.File?>.value(),
+          )
+          as _i4.Future<_i8.File?>);
 
   @override
   _i4.Future<_i9.File?> pickSpreadsheetFile(_i10.BuildContext? context) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #pickSpreadsheetFile,
-          [context],
-        ),
-        returnValue: _i4.Future<_i9.File?>.value(),
-      ) as _i4.Future<_i9.File?>);
+            Invocation.method(#pickSpreadsheetFile, [context]),
+            returnValue: _i4.Future<_i9.File?>.value(),
+          )
+          as _i4.Future<_i9.File?>);
 
   @override
   _i4.Future<Map<String, String>?> createGoogleSheet(
@@ -202,48 +206,32 @@ class MockGoogleDriveService extends _i1.Mock
     String? title,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #createGoogleSheet,
-          [
-            context,
-            title,
-          ],
-        ),
-        returnValue: _i4.Future<Map<String, String>?>.value(),
-      ) as _i4.Future<Map<String, String>?>);
+            Invocation.method(#createGoogleSheet, [context, title]),
+            returnValue: _i4.Future<Map<String, String>?>.value(),
+          )
+          as _i4.Future<Map<String, String>?>);
 
   @override
-  _i4.Future<String?> getWebViewLink(String? fileId) => (super.noSuchMethod(
-        Invocation.method(
-          #getWebViewLink,
-          [fileId],
-        ),
-        returnValue: _i4.Future<String?>.value(),
-      ) as _i4.Future<String?>);
+  _i4.Future<String?> getWebViewLink(String? fileId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getWebViewLink, [fileId]),
+            returnValue: _i4.Future<String?>.value(),
+          )
+          as _i4.Future<String?>);
 
   @override
   _i4.Future<bool> setFilePublicPermission(String? fileId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setFilePublicPermission,
-          [fileId],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+            Invocation.method(#setFilePublicPermission, [fileId]),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
-  _i4.Future<_i9.File?> downloadFile(
-    String? fileId,
-    String? fileName,
-  ) =>
+  _i4.Future<_i9.File?> downloadFile(String? fileId, String? fileName) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #downloadFile,
-          [
-            fileId,
-            fileName,
-          ],
-        ),
-        returnValue: _i4.Future<_i9.File?>.value(),
-      ) as _i4.Future<_i9.File?>);
+            Invocation.method(#downloadFile, [fileId, fileName]),
+            returnValue: _i4.Future<_i9.File?>.value(),
+          )
+          as _i4.Future<_i9.File?>);
 }

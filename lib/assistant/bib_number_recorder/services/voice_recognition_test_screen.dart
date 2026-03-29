@@ -70,7 +70,7 @@ class _VoiceRecognitionTestScreenState
     }
   }
 
-  void _onPointerDown(_) {
+  void _onPointerDown(PointerDownEvent _) {
     if (_status != _Status.ready) return;
     setState(() {
       _status = _Status.recording;
@@ -81,8 +81,8 @@ class _VoiceRecognitionTestScreenState
     _service.start();
   }
 
-  void _onPointerUp(_) => _stopAndRecognise();
-  void _onPointerCancel(_) => _stopAndRecognise();
+  void _onPointerUp(PointerUpEvent _) => _stopAndRecognise();
+  void _onPointerCancel(PointerCancelEvent _) => _stopAndRecognise();
 
   Future<void> _stopAndRecognise() async {
     if (_status != _Status.recording) return;

@@ -19,8 +19,11 @@ import '../../shared/models/runner.dart' as db_models;
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import '../../shared/widgets/other_races_sheet.dart';
+import '../../shared/widgets/download_race_sheet.dart';
+import '../../shared/services/assistant_export_service.dart';
 import '../widgets/runners_loaded_sheet.dart';
 import 'bib_number_data_controller.dart';
+import 'package:share_plus/share_plus.dart';
 
 sealed class ShareDataResult {}
 
@@ -442,6 +445,46 @@ class BibNumberController extends BibNumberDataController {
       title: 'Loaded Runners',
       body: RunnersLoadedSheet(runners: runners),
     );
+  }
+
+  Future<void> downloadRace(BuildContext context) async {
+    if (currentRace == null) return;
+
+    final dynamic rawFormat = await sheet(
+      context: context,
+      title: 'Download Race',
+      body: const DownloadRaceSheet(),
+    );
+    final format = rawFormat is DownloadFormat ? rawFormat : null;
+
+    if (format == null || !context.mounted) return;
+
+    final race = currentRace!;
+    final records = List<BibDatumRecord>.from(bibRecords);
+
+    final xFile = await DialogUtils.executeWithLoadingDialog<XFile>(
+      context,
+      loadingMessage: 'Preparing download...',
+      operation: () async {
+        final result =
+            await AssistantExportService.exportBibData(race, records, format);
+        return switch (result) {
+          Success(:final value) => value,
+          Failure(:final error) => throw Exception(error.userMessage),
+        };
+      },
+    );
+
+    if (xFile == null || !context.mounted) return;
+
+    try {
+      await AssistantExportService.shareFile(xFile, race.name);
+    } catch (e) {
+      Logger.e('Error sharing race download: $e');
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context, message: 'Failed to share file.');
+      }
+    }
   }
 
   /// Gets a runner by bib number from the local runners list.

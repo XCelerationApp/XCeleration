@@ -33,13 +33,8 @@ import 'package:xceleration/core/utils/enums.dart' as _i10;
 // ignore_for_file: invalid_use_of_internal_member
 
 class _FakeDuration_0 extends _i1.SmartFake implements Duration {
-  _FakeDuration_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeDuration_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeDeviceConnectionServiceInterface_1 extends _i1.SmartFake
@@ -47,21 +42,13 @@ class _FakeDeviceConnectionServiceInterface_1 extends _i1.SmartFake
   _FakeDeviceConnectionServiceInterface_1(
     Object parent,
     Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  ) : super(parent, parentInvocation);
 }
 
 class _FakeDevicesManager_2 extends _i1.SmartFake
     implements _i3.DevicesManager {
-  _FakeDevicesManager_2(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeDevicesManager_2(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [DeviceConnectionService].
@@ -74,105 +61,94 @@ class MockDeviceConnectionService extends _i1.Mock
   }
 
   @override
-  int get maxReconnectionAttempts => (super.noSuchMethod(
-        Invocation.getter(#maxReconnectionAttempts),
-        returnValue: 0,
-      ) as int);
+  int get maxReconnectionAttempts =>
+      (super.noSuchMethod(
+            Invocation.getter(#maxReconnectionAttempts),
+            returnValue: 0,
+          )
+          as int);
 
   @override
-  Duration get rescanBackoff => (super.noSuchMethod(
-        Invocation.getter(#rescanBackoff),
-        returnValue: _FakeDuration_0(
-          this,
-          Invocation.getter(#rescanBackoff),
-        ),
-      ) as Duration);
+  Duration get rescanBackoff =>
+      (super.noSuchMethod(
+            Invocation.getter(#rescanBackoff),
+            returnValue: _FakeDuration_0(
+              this,
+              Invocation.getter(#rescanBackoff),
+            ),
+          )
+          as Duration);
 
   @override
-  bool get nearbyConnectionsInitialized => (super.noSuchMethod(
-        Invocation.getter(#nearbyConnectionsInitialized),
-        returnValue: false,
-      ) as bool);
+  bool get nearbyConnectionsInitialized =>
+      (super.noSuchMethod(
+            Invocation.getter(#nearbyConnectionsInitialized),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  bool get isActive => (super.noSuchMethod(
-        Invocation.getter(#isActive),
-        returnValue: false,
-      ) as bool);
+  bool get isActive =>
+      (super.noSuchMethod(Invocation.getter(#isActive), returnValue: false)
+          as bool);
 
   @override
   set rescanBackoff(Duration? value) => super.noSuchMethod(
-        Invocation.setter(
-          #rescanBackoff,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#rescanBackoff, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set nearbyConnectionsInitialized(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #nearbyConnectionsInitialized,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#nearbyConnectionsInitialized, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set receivedDataSubscription(_i4.StreamSubscription<dynamic>? value) =>
       super.noSuchMethod(
-        Invocation.setter(
-          #receivedDataSubscription,
-          value,
-        ),
+        Invocation.setter(#receivedDataSubscription, value),
         returnValueForMissingStub: null,
       );
 
   @override
   set deviceMonitorSubscription(_i4.StreamSubscription<dynamic>? value) =>
       super.noSuchMethod(
-        Invocation.setter(
-          #deviceMonitorSubscription,
-          value,
-        ),
+        Invocation.setter(#deviceMonitorSubscription, value),
         returnValueForMissingStub: null,
       );
 
   @override
-  _i4.Future<_i5.Result<bool>> checkIfNearbyConnectionsWorks(
-          {Duration? timeout = const Duration(seconds: 5)}) =>
+  _i4.Future<_i5.Result<bool>> checkIfNearbyConnectionsWorks({
+    Duration? timeout = const Duration(seconds: 5),
+  }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #checkIfNearbyConnectionsWorks,
-          [],
-          {#timeout: timeout},
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<bool>>.value(_i6.dummyValue<_i5.Result<bool>>(
-          this,
-          Invocation.method(
-            #checkIfNearbyConnectionsWorks,
-            [],
-            {#timeout: timeout},
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<bool>>);
+            Invocation.method(#checkIfNearbyConnectionsWorks, [], {
+              #timeout: timeout,
+            }),
+            returnValue: _i4.Future<_i5.Result<bool>>.value(
+              _i6.dummyValue<_i5.Result<bool>>(
+                this,
+                Invocation.method(#checkIfNearbyConnectionsWorks, [], {
+                  #timeout: timeout,
+                }),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<bool>>);
 
   @override
-  _i4.Future<_i5.Result<bool>> init() => (super.noSuchMethod(
-        Invocation.method(
-          #init,
-          [],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<bool>>.value(_i6.dummyValue<_i5.Result<bool>>(
-          this,
-          Invocation.method(
-            #init,
-            [],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<bool>>);
+  _i4.Future<_i5.Result<bool>> init() =>
+      (super.noSuchMethod(
+            Invocation.method(#init, []),
+            returnValue: _i4.Future<_i5.Result<bool>>.value(
+              _i6.dummyValue<_i5.Result<bool>>(
+                this,
+                Invocation.method(#init, []),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<bool>>);
 
   @override
   _i4.Future<void> monitorDevicesConnectionStatus({
@@ -183,48 +159,41 @@ class MockDeviceConnectionService extends _i1.Mock
     _i4.Future<void> Function()? timeoutCallback,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #monitorDevicesConnectionStatus,
-          [],
-          {
-            #deviceFoundCallback: deviceFoundCallback,
-            #deviceConnectingCallback: deviceConnectingCallback,
-            #deviceConnectedCallback: deviceConnectedCallback,
-            #timeout: timeout,
-            #timeoutCallback: timeoutCallback,
-          },
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+            Invocation.method(#monitorDevicesConnectionStatus, [], {
+              #deviceFoundCallback: deviceFoundCallback,
+              #deviceConnectingCallback: deviceConnectingCallback,
+              #deviceConnectedCallback: deviceConnectedCallback,
+              #timeout: timeout,
+              #timeoutCallback: timeoutCallback,
+            }),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
-  _i4.Future<bool> inviteDevice(_i7.Device? device) => (super.noSuchMethod(
-        Invocation.method(
-          #inviteDevice,
-          [device],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+  _i4.Future<bool> inviteDevice(_i7.Device? device) =>
+      (super.noSuchMethod(
+            Invocation.method(#inviteDevice, [device]),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
   _i4.Future<bool> attemptReconnection(_i7.Device? device) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #attemptReconnection,
-          [device],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+            Invocation.method(#attemptReconnection, [device]),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
-  _i4.Future<bool> disconnectDevice(_i7.Device? device) => (super.noSuchMethod(
-        Invocation.method(
-          #disconnectDevice,
-          [device],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+  _i4.Future<bool> disconnectDevice(_i7.Device? device) =>
+      (super.noSuchMethod(
+            Invocation.method(#disconnectDevice, [device]),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
   _i4.Future<bool> sendMessageToDevice(
@@ -232,50 +201,37 @@ class MockDeviceConnectionService extends _i1.Mock
     _i8.Package? package,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #sendMessageToDevice,
-          [
-            device,
-            package,
-          ],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+            Invocation.method(#sendMessageToDevice, [device, package]),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
   _i4.Future<String?> monitorMessageReceives(
     _i7.Device? device, {
-    required dynamic Function(
-      _i8.Package,
-      String,
-    )? messageReceivedCallback,
+    required dynamic Function(_i8.Package, String)? messageReceivedCallback,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #monitorMessageReceives,
-          [device],
-          {#messageReceivedCallback: messageReceivedCallback},
-        ),
-        returnValue: _i4.Future<String?>.value(),
-      ) as _i4.Future<String?>);
+            Invocation.method(
+              #monitorMessageReceives,
+              [device],
+              {#messageReceivedCallback: messageReceivedCallback},
+            ),
+            returnValue: _i4.Future<String?>.value(),
+          )
+          as _i4.Future<String?>);
 
   @override
   void stopMessageMonitoring(String? token) => super.noSuchMethod(
-        Invocation.method(
-          #stopMessageMonitoring,
-          [token],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#stopMessageMonitoring, [token]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [Protocol].
@@ -289,122 +245,102 @@ class MockProtocol extends _i1.Mock implements _i9.Protocol {
   @override
   _i2.DeviceConnectionServiceInterface get deviceConnectionService =>
       (super.noSuchMethod(
-        Invocation.getter(#deviceConnectionService),
-        returnValue: _FakeDeviceConnectionServiceInterface_1(
-          this,
-          Invocation.getter(#deviceConnectionService),
-        ),
-      ) as _i2.DeviceConnectionServiceInterface);
+            Invocation.getter(#deviceConnectionService),
+            returnValue: _FakeDeviceConnectionServiceInterface_1(
+              this,
+              Invocation.getter(#deviceConnectionService),
+            ),
+          )
+          as _i2.DeviceConnectionServiceInterface);
 
   @override
-  Duration get retryTimeout => (super.noSuchMethod(
-        Invocation.getter(#retryTimeout),
-        returnValue: _FakeDuration_0(
-          this,
-          Invocation.getter(#retryTimeout),
-        ),
-      ) as Duration);
+  Duration get retryTimeout =>
+      (super.noSuchMethod(
+            Invocation.getter(#retryTimeout),
+            returnValue: _FakeDuration_0(
+              this,
+              Invocation.getter(#retryTimeout),
+            ),
+          )
+          as Duration);
 
   @override
-  Duration get sendStabilizationDelay => (super.noSuchMethod(
-        Invocation.getter(#sendStabilizationDelay),
-        returnValue: _FakeDuration_0(
-          this,
-          Invocation.getter(#sendStabilizationDelay),
-        ),
-      ) as Duration);
+  Duration get sendStabilizationDelay =>
+      (super.noSuchMethod(
+            Invocation.getter(#sendStabilizationDelay),
+            returnValue: _FakeDuration_0(
+              this,
+              Invocation.getter(#sendStabilizationDelay),
+            ),
+          )
+          as Duration);
 
   @override
-  Duration get transferAbortTimeout => (super.noSuchMethod(
-        Invocation.getter(#transferAbortTimeout),
-        returnValue: _FakeDuration_0(
-          this,
-          Invocation.getter(#transferAbortTimeout),
-        ),
-      ) as Duration);
+  Duration get transferAbortTimeout =>
+      (super.noSuchMethod(
+            Invocation.getter(#transferAbortTimeout),
+            returnValue: _FakeDuration_0(
+              this,
+              Invocation.getter(#transferAbortTimeout),
+            ),
+          )
+          as Duration);
 
   @override
-  Map<String, _i7.Device> get connectedDevices => (super.noSuchMethod(
-        Invocation.getter(#connectedDevices),
-        returnValue: <String, _i7.Device>{},
-      ) as Map<String, _i7.Device>);
+  Map<String, _i7.Device> get connectedDevices =>
+      (super.noSuchMethod(
+            Invocation.getter(#connectedDevices),
+            returnValue: <String, _i7.Device>{},
+          )
+          as Map<String, _i7.Device>);
 
   @override
-  bool get isTerminated => (super.noSuchMethod(
-        Invocation.getter(#isTerminated),
-        returnValue: false,
-      ) as bool);
+  bool get isTerminated =>
+      (super.noSuchMethod(Invocation.getter(#isTerminated), returnValue: false)
+          as bool);
 
   @override
   void addDevice(_i7.Device? device) => super.noSuchMethod(
-        Invocation.method(
-          #addDevice,
-          [device],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addDevice, [device]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeDevice(String? deviceId) => super.noSuchMethod(
-        Invocation.method(
-          #removeDevice,
-          [deviceId],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeDevice, [deviceId]),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i4.Future<void> terminate() => (super.noSuchMethod(
-        Invocation.method(
-          #terminate,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
-
-  @override
-  _i4.Future<void> handleMessage(
-    _i8.Package? package,
-    String? senderId,
-  ) =>
+  _i4.Future<void> terminate() =>
       (super.noSuchMethod(
-        Invocation.method(
-          #handleMessage,
-          [
-            package,
-            senderId,
-          ],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+            Invocation.method(#terminate, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
-  _i4.Future<_i5.Result<void>> sendData(
-    String? data,
-    String? senderId,
-  ) =>
+  _i4.Future<void> handleMessage(_i8.Package? package, String? senderId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #sendData,
-          [
-            data,
-            senderId,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i6.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #sendData,
-            [
-              data,
-              senderId,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#handleMessage, [package, senderId]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<_i5.Result<void>> sendData(String? data, String? senderId) =>
+      (super.noSuchMethod(
+            Invocation.method(#sendData, [data, senderId]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i6.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#sendData, [data, senderId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<String?>> handleDataTransfer({
@@ -414,67 +350,51 @@ class MockProtocol extends _i1.Mock implements _i9.Protocol {
     required bool Function()? shouldContinueTransfer,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #handleDataTransfer,
-          [],
-          {
-            #deviceId: deviceId,
-            #dataToSend: dataToSend,
-            #isReceiving: isReceiving,
-            #shouldContinueTransfer: shouldContinueTransfer,
-          },
-        ),
-        returnValue: _i4.Future<_i5.Result<String?>>.value(
-            _i6.dummyValue<_i5.Result<String?>>(
-          this,
-          Invocation.method(
-            #handleDataTransfer,
-            [],
-            {
+            Invocation.method(#handleDataTransfer, [], {
               #deviceId: deviceId,
               #dataToSend: dataToSend,
               #isReceiving: isReceiving,
               #shouldContinueTransfer: shouldContinueTransfer,
-            },
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<String?>>);
+            }),
+            returnValue: _i4.Future<_i5.Result<String?>>.value(
+              _i6.dummyValue<_i5.Result<String?>>(
+                this,
+                Invocation.method(#handleDataTransfer, [], {
+                  #deviceId: deviceId,
+                  #dataToSend: dataToSend,
+                  #isReceiving: isReceiving,
+                  #shouldContinueTransfer: shouldContinueTransfer,
+                }),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<String?>>);
 
   @override
   void resetDeviceState(String? deviceId) => super.noSuchMethod(
-        Invocation.method(
-          #resetDeviceState,
-          [deviceId],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#resetDeviceState, [deviceId]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void clear() => super.noSuchMethod(
-        Invocation.method(
-          #clear,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#clear, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  bool isFinished(String? deviceId) => (super.noSuchMethod(
-        Invocation.method(
-          #isFinished,
-          [deviceId],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool isFinished(String? deviceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#isFinished, [deviceId]),
+            returnValue: false,
+          )
+          as bool);
 }
 
 /// A class which mocks [DevicesManager].
@@ -486,81 +406,77 @@ class MockDevicesManager extends _i1.Mock implements _i3.DevicesManager {
   }
 
   @override
-  _i10.DeviceName get currentDeviceName => (super.noSuchMethod(
-        Invocation.getter(#currentDeviceName),
-        returnValue: _i10.DeviceName.coach,
-      ) as _i10.DeviceName);
+  _i10.DeviceName get currentDeviceName =>
+      (super.noSuchMethod(
+            Invocation.getter(#currentDeviceName),
+            returnValue: _i10.DeviceName.coach,
+          )
+          as _i10.DeviceName);
 
   @override
-  _i10.DeviceType get currentDeviceType => (super.noSuchMethod(
-        Invocation.getter(#currentDeviceType),
-        returnValue: _i10.DeviceType.advertiserDevice,
-      ) as _i10.DeviceType);
+  _i10.DeviceType get currentDeviceType =>
+      (super.noSuchMethod(
+            Invocation.getter(#currentDeviceType),
+            returnValue: _i10.DeviceType.advertiserDevice,
+          )
+          as _i10.DeviceType);
 
   @override
-  bool get toSpectator => (super.noSuchMethod(
-        Invocation.getter(#toSpectator),
-        returnValue: false,
-      ) as bool);
+  bool get toSpectator =>
+      (super.noSuchMethod(Invocation.getter(#toSpectator), returnValue: false)
+          as bool);
 
   @override
-  List<_i3.ConnectedDevice> get devices => (super.noSuchMethod(
-        Invocation.getter(#devices),
-        returnValue: <_i3.ConnectedDevice>[],
-      ) as List<_i3.ConnectedDevice>);
+  List<_i3.ConnectedDevice> get devices =>
+      (super.noSuchMethod(
+            Invocation.getter(#devices),
+            returnValue: <_i3.ConnectedDevice>[],
+          )
+          as List<_i3.ConnectedDevice>);
 
   @override
-  List<_i3.ConnectedDevice> get otherDevices => (super.noSuchMethod(
-        Invocation.getter(#otherDevices),
-        returnValue: <_i3.ConnectedDevice>[],
-      ) as List<_i3.ConnectedDevice>);
+  List<_i3.ConnectedDevice> get otherDevices =>
+      (super.noSuchMethod(
+            Invocation.getter(#otherDevices),
+            returnValue: <_i3.ConnectedDevice>[],
+          )
+          as List<_i3.ConnectedDevice>);
 
   @override
   void reset() => super.noSuchMethod(
-        Invocation.method(
-          #reset,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#reset, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  bool hasDevice(_i10.DeviceName? name) => (super.noSuchMethod(
-        Invocation.method(
-          #hasDevice,
-          [name],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool hasDevice(_i10.DeviceName? name) =>
+      (super.noSuchMethod(
+            Invocation.method(#hasDevice, [name]),
+            returnValue: false,
+          )
+          as bool);
 
   @override
   _i3.ConnectedDevice? getDevice(_i10.DeviceName? name) =>
-      (super.noSuchMethod(Invocation.method(
-        #getDevice,
-        [name],
-      )) as _i3.ConnectedDevice?);
+      (super.noSuchMethod(Invocation.method(#getDevice, [name]))
+          as _i3.ConnectedDevice?);
 
   @override
-  bool allDevicesFinished() => (super.noSuchMethod(
-        Invocation.method(
-          #allDevicesFinished,
-          [],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool allDevicesFinished() =>
+      (super.noSuchMethod(
+            Invocation.method(#allDevicesFinished, []),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  _i3.DevicesManager copy() => (super.noSuchMethod(
-        Invocation.method(
-          #copy,
-          [],
-        ),
-        returnValue: _FakeDevicesManager_2(
-          this,
-          Invocation.method(
-            #copy,
-            [],
-          ),
-        ),
-      ) as _i3.DevicesManager);
+  _i3.DevicesManager copy() =>
+      (super.noSuchMethod(
+            Invocation.method(#copy, []),
+            returnValue: _FakeDevicesManager_2(
+              this,
+              Invocation.method(#copy, []),
+            ),
+          )
+          as _i3.DevicesManager);
 }

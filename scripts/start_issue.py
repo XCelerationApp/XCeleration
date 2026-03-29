@@ -3,8 +3,12 @@
 Start working on a Linear issue.
 Creates a git worktree branched from dev and opens it in Cursor.
 
-Usage: python3 scripts/start_issue.py 123
+Usage:
+  python3 scripts/start_issue.py 123             # no simulator
+  python3 scripts/start_issue.py 123 --simulator # create & boot a dedicated simulator
 """
+import argparse
+import json
 import os
 import shutil
 import subprocess
@@ -31,18 +35,78 @@ def branch_exists(repo_root: str, branch: str) -> bool:
     return result.returncode == 0
 
 
+def get_latest_ios_runtime() -> str:
+    """Return the identifier of the latest available iOS runtime."""
+    result = subprocess.run(
+        ["xcrun", "simctl", "list", "runtimes", "--json"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        print("Warning: could not list simulators runtimes — xcrun simctl unavailable")
+        return ""
+    data = json.loads(result.stdout)
+    ios_runtimes = [
+        r for r in data.get("runtimes", [])
+        if r.get("name", "").startswith("iOS") and r.get("isAvailable", False)
+    ]
+    if not ios_runtimes:
+        return ""
+    ios_runtimes.sort(key=lambda r: r.get("version", "0"))
+    return ios_runtimes[-1]["identifier"]
+
+
+def create_simulator(issue_id: str, worktree_path: str) -> None:
+    """Create and boot a dedicated simulator for the worktree, persist its UDID."""
+    runtime = get_latest_ios_runtime()
+    if not runtime:
+        print("Warning: no iOS runtime found — skipping simulator creation")
+        return
+
+    print(f"Creating simulator '{issue_id}'...")
+    result = subprocess.run(
+        ["xcrun", "simctl", "create", issue_id, "iPhone 16", runtime],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        print(f"Warning: could not create simulator\n{result.stderr.strip()}")
+        return
+
+    udid = result.stdout.strip()
+    udid_path = os.path.join(worktree_path, ".simulator_udid")
+    with open(udid_path, "w") as f:
+        f.write(udid + "\n")
+    print(f"Simulator UDID   : {udid}")
+
+    print("Booting simulator...")
+    boot = subprocess.run(
+        ["xcrun", "simctl", "boot", udid],
+        capture_output=True, text=True,
+    )
+    if boot.returncode != 0 and "already booted" not in boot.stderr.lower():
+        print(f"Warning: could not boot simulator\n{boot.stderr.strip()}")
+    else:
+        print("Simulator booted.")
+
+
 def main():
-    if len(sys.argv) != 2:
-        print("Usage: python3 scripts/start_issue.py 123")
+    parser = argparse.ArgumentParser(
+        description="Start working on a Linear issue.",
+        usage="python3 scripts/start_issue.py 123 [--simulator]",
+    )
+    parser.add_argument("issue_number", help="Linear issue number (digits only, e.g. 123)")
+    parser.add_argument(
+        "--simulator", "-s",
+        action="store_true",
+        default=False,
+        help="Create and boot a dedicated iPhone simulator for this worktree",
+    )
+    args = parser.parse_args()
+
+    if not args.issue_number.isdigit():
+        print(f"Error: '{args.issue_number}' is not a valid issue number — pass only the number, e.g. 123")
         sys.exit(1)
 
-    arg = sys.argv[1]
-
-    if not arg.isdigit():
-        print(f"Error: '{arg}' is not a valid issue number — pass only the number, e.g. 123")
-        sys.exit(1)
-
-    issue_id = f"XCE-{arg}"
+    issue_id = f"XCE-{args.issue_number}"
 
     repo_root = get_repo_root()
     worktree_path = os.path.join(os.path.dirname(repo_root), f"{issue_id}")
@@ -84,6 +148,10 @@ def main():
     marker_path = os.path.join(worktree_path, ".linear-issue")
     with open(marker_path, "w") as f:
         f.write(issue_id + "\n")
+
+    # Optionally create and boot a dedicated simulator for this worktree
+    if args.simulator:
+        create_simulator(issue_id, worktree_path)
 
     # Run flutter pub get in the new worktree
     subprocess.run(["flutter", "pub", "get"], cwd=worktree_path)
