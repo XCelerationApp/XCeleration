@@ -81,8 +81,8 @@ class _MicButton extends StatelessWidget {
           onTapUp: (_) => onMicUp(),
           child: AnimatedContainer(
             duration: AppAnimations.fast,
-            width: 72,
-            height: 72,
+            width: 92,
+            height: 92,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isListening
@@ -99,7 +99,7 @@ class _MicButton extends StatelessWidget {
             child: Icon(
               Icons.mic,
               color: isListening ? Colors.white : AppColors.mediumColor,
-              size: 28,
+              size: 35,
             ),
           ),
         ),
