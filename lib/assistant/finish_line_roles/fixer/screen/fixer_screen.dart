@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/race_lobby_widget.dart';
@@ -10,10 +12,8 @@ import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
 import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/get_from_coach.dart';
 import 'package:xceleration/core/components/app_header.dart';
-import 'package:xceleration/core/components/device_connection_widget.dart';
-import 'package:xceleration/core/result.dart';
-import 'package:xceleration/core/services/device_connection_factory_impl.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/overflow_menu_button.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/widgets/role_bottom_bar.dart';
@@ -22,7 +22,6 @@ import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/enums.dart';
-import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 import 'package:xceleration/shared/role_bar/widgets/role_selector_sheet.dart';
 import 'package:xceleration/shared/settings_screen.dart';
@@ -109,25 +108,11 @@ class _FixerScreenState extends State<FixerScreen> {
     });
   }
 
-  Future<void> _onGetFromCoach() async {
-    final devices = const DeviceConnectionFactoryImpl().createDevices(
-      DeviceName.fixer,
-      DeviceType.browserDevice,
-    );
-    await sheet(
-      context: context,
-      title: 'Load a new race from Coach',
-      body: DeviceConnectionWidget(devices: devices),
-    );
-    final data = devices.coach?.data;
-    if (data == null || !mounted) return;
-    final result = await _controller.processLoadedRaceData(data);
-    if (result case Failure(:final error) when mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error.userMessage)),
+  Future<void> _onGetFromCoach() => getFromCoach(
+        context: context,
+        deviceName: DeviceName.fixer,
+        onData: _controller.processLoadedRaceData,
       );
-    }
-  }
 
   /// Tears down the active P2P session and returns to the lobby.
   void _leaveRace() {

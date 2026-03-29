@@ -18,10 +18,15 @@ class BibEntry {
     this.isNewRunner = false,
   });
 
-  BibEntry copyWith({int? bib, int? correctedTo, bool? isNewRunner}) => BibEntry(
+  BibEntry copyWith({
+    int? bib,
+    int? Function()? correctedTo,
+    bool? isNewRunner,
+  }) =>
+      BibEntry(
         id: id,
         bib: bib ?? this.bib,
-        correctedTo: correctedTo ?? this.correctedTo,
+        correctedTo: correctedTo != null ? correctedTo() : this.correctedTo,
         isNewRunner: isNewRunner ?? this.isNewRunner,
       );
 }
