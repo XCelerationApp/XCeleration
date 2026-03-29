@@ -3,9 +3,10 @@
 // Do not manually edit this file.
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
-import 'dart:async' as _i7;
-import 'dart:ui' as _i10;
+import 'dart:async' as _i8;
+import 'dart:ui' as _i11;
 
+import 'package:flutter/foundation.dart' as _i7;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i6;
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/bib_recorder_v2_controller.dart'
@@ -13,10 +14,10 @@ import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/
 import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_entry.dart'
     as _i4;
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart'
-    as _i9;
+    as _i10;
 import 'package:xceleration/assistant/shared/models/race_record.dart' as _i3;
 import 'package:xceleration/assistant/shared/models/runner.dart' as _i5;
-import 'package:xceleration/core/result.dart' as _i8;
+import 'package:xceleration/core/result.dart' as _i9;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -100,20 +101,29 @@ class MockBibRecorderV2Controller extends _i1.Mock
       ) as String);
 
   @override
+  set onBibPending(_i7.ValueChanged<int>? value) => super.noSuchMethod(
+        Invocation.setter(
+          #onBibPending,
+          value,
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   bool get hasListeners => (super.noSuchMethod(
         Invocation.getter(#hasListeners),
         returnValue: false,
       ) as bool);
 
   @override
-  _i7.Future<void> initialize() => (super.noSuchMethod(
+  _i8.Future<void> initialize() => (super.noSuchMethod(
         Invocation.method(
           #initialize,
           [],
         ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
   void selectRace(_i3.RaceRecord? race) => super.noSuchMethod(
@@ -161,24 +171,24 @@ class MockBibRecorderV2Controller extends _i1.Mock
       );
 
   @override
-  _i7.Future<void> deleteRace() => (super.noSuchMethod(
+  _i8.Future<void> deleteRace() => (super.noSuchMethod(
         Invocation.method(
           #deleteRace,
           [],
         ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i7.Future<void> deleteRaceFromLobby(int? raceId) => (super.noSuchMethod(
+  _i8.Future<void> deleteRaceFromLobby(int? raceId) => (super.noSuchMethod(
         Invocation.method(
           #deleteRaceFromLobby,
           [raceId],
         ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
   String? flagFor(
@@ -198,24 +208,24 @@ class MockBibRecorderV2Controller extends _i1.Mock
       )) as _i5.Runner?);
 
   @override
-  _i7.Future<void> startListening() => (super.noSuchMethod(
+  _i8.Future<void> startListening() => (super.noSuchMethod(
         Invocation.method(
           #startListening,
           [],
         ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
-  _i7.Future<void> stopListening() => (super.noSuchMethod(
+  _i8.Future<void> stopListening() => (super.noSuchMethod(
         Invocation.method(
           #stopListening,
           [],
         ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+        returnValue: _i8.Future<void>.value(),
+        returnValueForMissingStub: _i8.Future<void>.value(),
+      ) as _i8.Future<void>);
 
   @override
   void addBib(int? bib) => super.noSuchMethod(
@@ -270,39 +280,39 @@ class MockBibRecorderV2Controller extends _i1.Mock
       );
 
   @override
-  _i7.Future<_i8.Result<void>> processLoadedRaceData(String? data) =>
+  _i8.Future<_i9.Result<void>> processLoadedRaceData(String? data) =>
       (super.noSuchMethod(
         Invocation.method(
           #processLoadedRaceData,
           [data],
         ),
         returnValue:
-            _i7.Future<_i8.Result<void>>.value(_i6.dummyValue<_i8.Result<void>>(
+            _i8.Future<_i9.Result<void>>.value(_i6.dummyValue<_i9.Result<void>>(
           this,
           Invocation.method(
             #processLoadedRaceData,
             [data],
           ),
         )),
-      ) as _i7.Future<_i8.Result<void>>);
+      ) as _i8.Future<_i9.Result<void>>);
 
   @override
-  _i7.Future<String> getEncodedBibData() => (super.noSuchMethod(
+  _i8.Future<String> getEncodedBibData() => (super.noSuchMethod(
         Invocation.method(
           #getEncodedBibData,
           [],
         ),
-        returnValue: _i7.Future<String>.value(_i6.dummyValue<String>(
+        returnValue: _i8.Future<String>.value(_i6.dummyValue<String>(
           this,
           Invocation.method(
             #getEncodedBibData,
             [],
           ),
         )),
-      ) as _i7.Future<String>);
+      ) as _i8.Future<String>);
 
   @override
-  void attachSession(_i9.P2PSessionService? session) => super.noSuchMethod(
+  void attachSession(_i10.P2PSessionService? session) => super.noSuchMethod(
         Invocation.method(
           #attachSession,
           [session],
@@ -320,7 +330,7 @@ class MockBibRecorderV2Controller extends _i1.Mock
       );
 
   @override
-  void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #addListener,
           [listener],
@@ -329,7 +339,7 @@ class MockBibRecorderV2Controller extends _i1.Mock
       );
 
   @override
-  void removeListener(_i10.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
         Invocation.method(
           #removeListener,
           [listener],
