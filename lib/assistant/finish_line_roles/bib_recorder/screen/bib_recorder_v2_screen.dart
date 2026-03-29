@@ -230,7 +230,7 @@ class _LoadingBody extends StatelessWidget {
           const CircularProgressIndicator(color: AppColors.primaryColor),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            'Loading voice model…',
+            'Loading…',
             style: AppTypography.smallBodyRegular.copyWith(
               color: AppColors.mediumColor,
             ),

@@ -102,17 +102,18 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-  /// Call once after creating the controller. Loads races and initialises the
-  /// voice service in parallel. If a [P2PSessionService] was provided it also
-  /// subscribes to incoming [FixerCorrectionMessage]s.
+  /// Call once after creating the controller. Loads races and starts voice
+  /// initialisation in the background (does not block on it). If a
+  /// [P2PSessionService] was provided it also subscribes to incoming
+  /// [FixerCorrectionMessage]s.
   Future<void> initialize() async {
     if (_session != null) {
       _sessionSub = _session!.incomingMessages.listen(_onSessionMessage);
     }
-    await Future.wait([
-      _loadRaces(),
-      _initVoice(),
-    ]);
+    // Fire-and-forget: voice loads in the background so the lobby appears
+    // immediately. The mic is gated on _voiceReady in RaceModeWidget.
+    unawaited(_initVoice());
+    await _loadRaces();
   }
 
   Future<void> _loadRaces() async {
