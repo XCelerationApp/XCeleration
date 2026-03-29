@@ -17,9 +17,9 @@ import 'package:xceleration/core/theme/typography.dart';
 ///   • Runner name (large) or "NOT IN ROSTER" for unknowns
 ///   • Team colour dot + team abbreviation
 ///   • Action buttons:
-///       - UNKNOWN  → single "Got it"
-///       - Normal   → Wrong | Skip | Correct (flex:2)
-///       - Acted    → status label + Undo button (3-second window)
+///       - UNKNOWN / DUPLICATE → single "Got it — sending to Fixer"
+///       - Normal              → Wrong | Skip | Correct (flex:2)
+///       - Acted               → status label + Undo button (3-second window)
 class VerifierEntryCard extends StatelessWidget {
   const VerifierEntryCard({
     super.key,
@@ -128,7 +128,7 @@ class _FlagBanner extends StatelessWidget {
     final isDuplicate = flag == BibFlag.duplicate;
     final color = isDuplicate ? AppColors.redColor : AppColors.statusSetup;
     final label = isDuplicate
-        ? '⚠ DUPLICATE BIB — verify carefully'
+        ? '⚠ DUPLICATE BIB'
         : 'UNKNOWN BIB';
 
     return Container(
@@ -257,7 +257,7 @@ class _ActionButtons extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (entry.flag == BibFlag.unknown) {
+    if (entry.flag == BibFlag.unknown || entry.flag == BibFlag.duplicate) {
       return _ActionBtn(
         label: 'Got it — sending to Fixer',
         bg: AppColors.surfaceColor,
