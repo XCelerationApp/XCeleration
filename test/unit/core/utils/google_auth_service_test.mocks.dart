@@ -33,11 +33,10 @@ class MockConnectivityService extends _i1.Mock
   }
 
   @override
-  _i3.Future<bool> isOnline() => (super.noSuchMethod(
-        Invocation.method(
-          #isOnline,
-          [],
-        ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+  _i3.Future<bool> isOnline() =>
+      (super.noSuchMethod(
+            Invocation.method(#isOnline, []),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
 }

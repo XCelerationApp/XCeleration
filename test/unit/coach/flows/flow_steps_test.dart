@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/flows/controller/flow_controller.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
+import 'package:xceleration/coach/flows/pre_race_flow/steps/review_runners/review_runners_step.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
 
 FlowStep _step({
   bool Function()? canProceed,
@@ -20,6 +22,125 @@ FlowStep _step({
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  // ===========================================================================
+  // FlowStep
+  // ===========================================================================
+  group('FlowStep', () {
+    group('notifyContentChanged', () {
+      test('emits an event on onContentChange', () async {
+        final step = _step();
+        bool emitted = false;
+        step.onContentChange.listen((_) => emitted = true);
+        step.notifyContentChanged();
+        await Future<void>.delayed(Duration.zero);
+        expect(emitted, isTrue);
+        step.dispose();
+      });
+    });
+
+    group('onContentChange', () {
+      test('supports multiple listeners (broadcast stream)', () async {
+        final step = _step();
+        int count = 0;
+        step.onContentChange.listen((_) => count++);
+        step.onContentChange.listen((_) => count++);
+        step.notifyContentChanged();
+        await Future<void>.delayed(Duration.zero);
+        expect(count, 2);
+        step.dispose();
+      });
+    });
+
+    group('dispose', () {
+      test('closes the stream so notifyContentChanged throws StateError', () {
+        final step = _step();
+        step.dispose();
+        expect(step.notifyContentChanged, throwsStateError);
+      });
+    });
+  });
+
+  // ===========================================================================
+  // ReviewRunnersStep
+  // ===========================================================================
+  group('ReviewRunnersStep', () {
+    late MasterRace masterRace;
+
+    setUp(() {
+      masterRace = MasterRace.getInstance(1);
+    });
+
+    tearDown(() {
+      MasterRace.clearInstance(1);
+    });
+
+    ReviewRunnersStep buildStep({
+      required Future<bool> Function(MasterRace) checkMinimumRunners,
+    }) {
+      return ReviewRunnersStep(
+        masterRace: masterRace,
+        onNext: () async {},
+        checkMinimumRunners: checkMinimumRunners,
+      );
+    }
+
+    group('seedInitialProceed', () {
+      test('sets canProceed to true when checker returns true', () async {
+        final step = buildStep(checkMinimumRunners: (_) async => true);
+        await step.seedInitialProceed();
+
+        expect(step.canProceed(), isTrue);
+        step.dispose();
+      });
+
+      test('sets canProceed to false when checker returns false', () async {
+        final step = buildStep(checkMinimumRunners: (_) async => false);
+        await step.seedInitialProceed();
+
+        expect(step.canProceed(), isFalse);
+        step.dispose();
+      });
+    });
+
+    group('checkRunners', () {
+      test('notifies content changed when canProceed value changes', () async {
+        var returnValue = false;
+        final step =
+            buildStep(checkMinimumRunners: (_) async => returnValue);
+
+        await Future.microtask(() {});
+
+        final events = <void>[];
+        step.onContentChange.listen((_) => events.add(null));
+
+        returnValue = true;
+        await step.checkRunners();
+        await Future.microtask(() {});
+
+        expect(events, hasLength(1));
+        step.dispose();
+      });
+
+      test('does not notify when canProceed value is unchanged', () async {
+        final step = buildStep(checkMinimumRunners: (_) async => true);
+
+        await step.seedInitialProceed();
+        await Future.microtask(() {});
+
+        final events = <void>[];
+        step.onContentChange.listen((_) => events.add(null));
+
+        await step.checkRunners();
+
+        expect(events, isEmpty);
+        step.dispose();
+      });
+    });
+  });
+
+  // ===========================================================================
+  // FlowController
+  // ===========================================================================
   group('FlowController', () {
     group('canGoBack', () {
       test('is false at index 0', () {
@@ -126,7 +247,7 @@ void main() {
           _step(),
           _step(onBack: () { called = true; }),
         ]);
-        await controller.goToNext(); // advance to step with onBack
+        await controller.goToNext();
         controller.goBack();
         expect(called, isTrue);
         controller.dispose();
@@ -188,12 +309,10 @@ void main() {
         int notifyCount = 0;
         controller.addListener(() => notifyCount++);
 
-        // step2 content change triggers notification
         step2.notifyContentChanged();
         await Future<void>.delayed(Duration.zero);
         expect(notifyCount, greaterThan(0));
 
-        // step1 content change does not trigger notification (unsubscribed)
         notifyCount = 0;
         step1.notifyContentChanged();
         await Future<void>.delayed(Duration.zero);
@@ -265,8 +384,6 @@ void main() {
         final step2 = _step();
         final controller = FlowController([step1, step2]);
         controller.dispose();
-        // FlowStep.dispose() closes the underlying StreamController.
-        // Adding to a closed StreamController throws StateError.
         expect(step1.notifyContentChanged, throwsStateError);
         expect(step2.notifyContentChanged, throwsStateError);
       });

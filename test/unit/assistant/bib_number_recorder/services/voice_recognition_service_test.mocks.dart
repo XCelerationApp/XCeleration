@@ -41,49 +41,43 @@ class MockIBibAudioRecorder extends _i1.Mock implements _i2.IBibAudioRecorder {
   }
 
   @override
-  _i3.Future<_i4.Result<void>> open() => (super.noSuchMethod(
-        Invocation.method(
-          #open,
-          [],
-        ),
-        returnValue:
-            _i3.Future<_i4.Result<void>>.value(_i5.dummyValue<_i4.Result<void>>(
-          this,
-          Invocation.method(
-            #open,
-            [],
-          ),
-        )),
-      ) as _i3.Future<_i4.Result<void>>);
+  _i3.Future<_i4.Result<void>> open() =>
+      (super.noSuchMethod(
+            Invocation.method(#open, []),
+            returnValue: _i3.Future<_i4.Result<void>>.value(
+              _i5.dummyValue<_i4.Result<void>>(
+                this,
+                Invocation.method(#open, []),
+              ),
+            ),
+          )
+          as _i3.Future<_i4.Result<void>>);
 
   @override
-  _i3.Future<void> start() => (super.noSuchMethod(
-        Invocation.method(
-          #start,
-          [],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+  _i3.Future<void> start() =>
+      (super.noSuchMethod(
+            Invocation.method(#start, []),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 
   @override
-  _i3.Future<String?> stop() => (super.noSuchMethod(
-        Invocation.method(
-          #stop,
-          [],
-        ),
-        returnValue: _i3.Future<String?>.value(),
-      ) as _i3.Future<String?>);
+  _i3.Future<String?> stop() =>
+      (super.noSuchMethod(
+            Invocation.method(#stop, []),
+            returnValue: _i3.Future<String?>.value(),
+          )
+          as _i3.Future<String?>);
 
   @override
-  _i3.Future<void> close() => (super.noSuchMethod(
-        Invocation.method(
-          #close,
-          [],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+  _i3.Future<void> close() =>
+      (super.noSuchMethod(
+            Invocation.method(#close, []),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 }
 
 /// A class which mocks [IModelDownloadService].
@@ -98,19 +92,15 @@ class MockIModelDownloadService extends _i1.Mock
   @override
   _i3.Future<_i4.Result<_i7.ModelAssets>> ensureModelReady() =>
       (super.noSuchMethod(
-        Invocation.method(
-          #ensureModelReady,
-          [],
-        ),
-        returnValue: _i3.Future<_i4.Result<_i7.ModelAssets>>.value(
-            _i5.dummyValue<_i4.Result<_i7.ModelAssets>>(
-          this,
-          Invocation.method(
-            #ensureModelReady,
-            [],
-          ),
-        )),
-      ) as _i3.Future<_i4.Result<_i7.ModelAssets>>);
+            Invocation.method(#ensureModelReady, []),
+            returnValue: _i3.Future<_i4.Result<_i7.ModelAssets>>.value(
+              _i5.dummyValue<_i4.Result<_i7.ModelAssets>>(
+                this,
+                Invocation.method(#ensureModelReady, []),
+              ),
+            ),
+          )
+          as _i3.Future<_i4.Result<_i7.ModelAssets>>);
 }
 
 /// A class which mocks [ISpeechRecognitionService].
@@ -123,37 +113,33 @@ class MockISpeechRecognitionService extends _i1.Mock
   }
 
   @override
-  _i3.Future<void> initialize(_i7.ModelAssets? assets) => (super.noSuchMethod(
-        Invocation.method(
-          #initialize,
-          [assets],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+  _i3.Future<void> initialize(_i7.ModelAssets? assets) =>
+      (super.noSuchMethod(
+            Invocation.method(#initialize, [assets]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 
   @override
-  _i3.Future<String> transcribe(String? wavPath) => (super.noSuchMethod(
-        Invocation.method(
-          #transcribe,
-          [wavPath],
-        ),
-        returnValue: _i3.Future<String>.value(_i5.dummyValue<String>(
-          this,
-          Invocation.method(
-            #transcribe,
-            [wavPath],
-          ),
-        )),
-      ) as _i3.Future<String>);
+  _i3.Future<String> transcribe(String? wavPath) =>
+      (super.noSuchMethod(
+            Invocation.method(#transcribe, [wavPath]),
+            returnValue: _i3.Future<String>.value(
+              _i5.dummyValue<String>(
+                this,
+                Invocation.method(#transcribe, [wavPath]),
+              ),
+            ),
+          )
+          as _i3.Future<String>);
 
   @override
-  _i3.Future<void> dispose() => (super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+  _i3.Future<void> dispose() =>
+      (super.noSuchMethod(
+            Invocation.method(#dispose, []),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 }

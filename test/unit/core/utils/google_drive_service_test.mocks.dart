@@ -35,13 +35,12 @@ class MockConnectivityService extends _i1.Mock
   }
 
   @override
-  _i3.Future<bool> isOnline() => (super.noSuchMethod(
-        Invocation.method(
-          #isOnline,
-          [],
-        ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+  _i3.Future<bool> isOnline() =>
+      (super.noSuchMethod(
+            Invocation.method(#isOnline, []),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
 }
 
 /// A class which mocks [GoogleAuthService].
@@ -53,73 +52,86 @@ class MockGoogleAuthService extends _i1.Mock implements _i4.GoogleAuthService {
   }
 
   @override
-  bool get hasValidIosToken => (super.noSuchMethod(
-        Invocation.getter(#hasValidIosToken),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  bool get hasValidWebToken => (super.noSuchMethod(
-        Invocation.getter(#hasValidWebToken),
-        returnValue: false,
-      ) as bool);
-
-  @override
-  _i3.Future<String?> get iosAccessToken => (super.noSuchMethod(
-        Invocation.getter(#iosAccessToken),
-        returnValue: _i3.Future<String?>.value(),
-      ) as _i3.Future<String?>);
-
-  @override
-  _i3.Future<String?> get webAccessToken => (super.noSuchMethod(
-        Invocation.getter(#webAccessToken),
-        returnValue: _i3.Future<String?>.value(),
-      ) as _i3.Future<String?>);
-
-  @override
-  _i3.Future<void> setIosToken(
-    String? token,
-    DateTime? expiry,
-  ) =>
+  bool get hasValidIosToken =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setIosToken,
-          [
-            token,
-            expiry,
-          ],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+            Invocation.getter(#hasValidIosToken),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  _i3.Future<_i5.Client?> getAuthClient() => (super.noSuchMethod(
-        Invocation.method(
-          #getAuthClient,
-          [],
-        ),
-        returnValue: _i3.Future<_i5.Client?>.value(),
-      ) as _i3.Future<_i5.Client?>);
+  bool get hasValidWebToken =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasValidWebToken),
+            returnValue: false,
+          )
+          as bool);
+
+  @override
+  _i3.Future<String?> get iosAccessToken =>
+      (super.noSuchMethod(
+            Invocation.getter(#iosAccessToken),
+            returnValue: _i3.Future<String?>.value(),
+          )
+          as _i3.Future<String?>);
+
+  @override
+  _i3.Future<String?> get webAccessToken =>
+      (super.noSuchMethod(
+            Invocation.getter(#webAccessToken),
+            returnValue: _i3.Future<String?>.value(),
+          )
+          as _i3.Future<String?>);
+
+  @override
+  _i3.Future<void> setIosToken(String? token, DateTime? expiry) =>
+      (super.noSuchMethod(
+            Invocation.method(#setIosToken, [token, expiry]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> setWebToken(String? token, DateTime? expiry) =>
+      (super.noSuchMethod(
+            Invocation.method(#setWebToken, [token, expiry]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> setPickerTokens(String? token, DateTime? expiry) =>
+      (super.noSuchMethod(
+            Invocation.method(#setPickerTokens, [token, expiry]),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<_i5.Client?> getAuthClient() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAuthClient, []),
+            returnValue: _i3.Future<_i5.Client?>.value(),
+          )
+          as _i3.Future<_i5.Client?>);
 
   @override
   _i3.Future<bool> signIn({bool? requireWebToken = true}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #signIn,
-          [],
-          {#requireWebToken: requireWebToken},
-        ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+            Invocation.method(#signIn, [], {#requireWebToken: requireWebToken}),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
 
   @override
-  _i3.Future<void> signOut() => (super.noSuchMethod(
-        Invocation.method(
-          #signOut,
-          [],
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+  _i3.Future<void> signOut() =>
+      (super.noSuchMethod(
+            Invocation.method(#signOut, []),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 }
