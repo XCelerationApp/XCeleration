@@ -103,6 +103,13 @@ class P2PSessionService {
   // Guard against re-entrant init callback — see [init].
   bool _discoveryStarted = false;
 
+  // Debounce timers for invitePeer, keyed by device ID.  Prevents rapid-fire
+  // invitations when the native layer emits multiple notConnected events in a
+  // burst (e.g. after a "Connection invalid" error), which would otherwise
+  // cause a connect → disconnect → connect loop that takes 10-15 s to settle.
+  final Map<String, Timer> _inviteTimers = {};
+  static const Duration _inviteDebounce = Duration(seconds: 2);
+
   // ---------------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------------
@@ -209,6 +216,10 @@ class P2PSessionService {
 
   /// Stops advertising/browsing, cancels subscriptions, and closes the streams.
   Future<void> dispose() async {
+    for (final timer in _inviteTimers.values) {
+      timer.cancel();
+    }
+    _inviteTimers.clear();
     await _stateSubscription?.cancel();
     await _dataSubscription?.cancel();
 
@@ -245,6 +256,7 @@ class P2PSessionService {
 
       switch (device.state) {
         case SessionState.connected:
+          _inviteTimers.remove(device.deviceId)?.cancel();
           _deviceIdToRole[device.deviceId] = role;
           _roleToDeviceId[role] = device.deviceId;
           _peerEventsController.add(
@@ -256,16 +268,10 @@ class P2PSessionService {
           // Re-queue any un-ACKed messages before the device goes offline so
           // they are re-delivered in order on the next reconnect.
           _requeuePending(role);
-          // Device visible but not connected — auto-invite.
-          try {
-            await _nearbyConnections.invitePeer(
-              deviceID: device.deviceId,
-              deviceName: device.deviceName,
-            );
-          } catch (e) {
-            Logger.e(
-                '[P2PSessionService] invitePeer(${device.deviceId}) failed: $e');
-          }
+          // Device visible but not connected — debounce the auto-invite so
+          // rapid-fire notConnected events from the native layer don't spawn
+          // competing invitations that prevent the connection from stabilising.
+          _scheduleInvite(device.deviceId, device.deviceName);
           _peerEventsController.add(
             PeerStateEvent(
                 role: role,
@@ -341,6 +347,28 @@ class P2PSessionService {
     } catch (e) {
       Logger.e('[P2PSessionService] Failed to send ACK for seq $sequence: $e');
     }
+  }
+
+  /// Schedules an [invitePeer] call for [deviceId] after [_inviteDebounce].
+  ///
+  /// If a timer is already running for this device it is cancelled and
+  /// restarted, so only the last notConnected event in a burst actually
+  /// triggers the invitation.  This prevents the rapid-fire invite loop
+  /// observed when the native Multipeer Connectivity layer drops and
+  /// re-discovers the peer repeatedly.
+  void _scheduleInvite(String deviceId, String deviceName) {
+    _inviteTimers[deviceId]?.cancel();
+    _inviteTimers[deviceId] = Timer(_inviteDebounce, () async {
+      _inviteTimers.remove(deviceId);
+      try {
+        await _nearbyConnections.invitePeer(
+          deviceID: deviceId,
+          deviceName: deviceName,
+        );
+      } catch (e) {
+        Logger.e('[P2PSessionService] invitePeer($deviceId) failed: $e');
+      }
+    });
   }
 
   /// Drains the outbound queue for [role], sending each buffered message in
