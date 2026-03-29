@@ -177,30 +177,37 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
     return ListenableBuilder(
       listenable: _ctrl,
       builder: (context, _) {
-        return ColoredBox(
-          color: Colors.white,
-          child: SafeArea(
-            top: false,
-            child: Column(
-              children: [
-                RaceHeader(
-                  raceName: _ctrl.selectedRace?.formattedName ?? '',
-                  entryCount: _ctrl.entries.length,
-                  raceStarted: _raceStarted,
-                ),
-                _buildVoiceArea(),
-                Expanded(child: _buildList()),
-                RaceBottomBar(
-                  isRaceStarted: _raceStarted,
-                  entryCount: _ctrl.entries.length,
-                  runners: _ctrl.runners,
-                  onBeginRace: _ctrl.beginRace,
-                  onStopRace: _ctrl.stopRace,
-                  onDeleteRace: _ctrl.deleteRace,
-                  onClearEntries: _ctrl.clearEntries,
-                  onLeaveRace: _ctrl.leaveRace,
-                ),
-              ],
+        final keyboardOpen =
+            MediaQuery.of(context).viewInsets.bottom > 0;
+        return GestureDetector(
+          onTap: () => FocusScope.of(context).unfocus(),
+          behavior: HitTestBehavior.translucent,
+          child: ColoredBox(
+            color: Colors.white,
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  RaceHeader(
+                    raceName: _ctrl.selectedRace?.formattedName ?? '',
+                    entryCount: _ctrl.entries.length,
+                    raceStarted: _raceStarted,
+                  ),
+                  _buildVoiceArea(),
+                  Expanded(child: _buildList()),
+                  if (!keyboardOpen)
+                    RaceBottomBar(
+                      isRaceStarted: _raceStarted,
+                      entryCount: _ctrl.entries.length,
+                      runners: _ctrl.runners,
+                      onBeginRace: _ctrl.beginRace,
+                      onStopRace: _ctrl.stopRace,
+                      onDeleteRace: _ctrl.deleteRace,
+                      onClearEntries: _ctrl.clearEntries,
+                      onLeaveRace: _ctrl.leaveRace,
+                    ),
+                ],
+              ),
             ),
           ),
         );

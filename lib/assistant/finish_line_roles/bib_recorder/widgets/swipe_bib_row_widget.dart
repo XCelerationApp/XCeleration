@@ -33,23 +33,53 @@ class SwipeBibRowWidget extends StatefulWidget {
 class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
   bool _editing = false;
   late TextEditingController _textCtrl;
+  final FocusNode _focusNode = FocusNode();
+  final GlobalKey _rowKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _textCtrl = TextEditingController(text: '${widget.entry.bib}');
+    _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
     _textCtrl.dispose();
     super.dispose();
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus && _editing) {
+      _commit();
+    }
   }
 
   void _commit() {
     final n = int.tryParse(_textCtrl.text);
     if (n != null && n > 0) widget.controller.editEntry(widget.entry.id, n);
     setState(() => _editing = false);
+  }
+
+  void _enterEditMode() {
+    setState(() {
+      _editing = true;
+      _textCtrl.text = '${widget.entry.bib}';
+    });
+    // After the keyboard opens, scroll this row into view.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _rowKey.currentContext;
+      if (ctx != null) {
+        Scrollable.ensureVisible(
+          ctx,
+          duration: AppAnimations.standard,
+          curve: AppAnimations.enter,
+          alignmentPolicy: ScrollPositionAlignmentPolicy.keepVisibleAtEnd,
+        );
+      }
+    });
   }
 
   @override
@@ -79,6 +109,7 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
         ),
       ),
       child: AnimatedContainer(
+        key: _rowKey,
         duration: AppAnimations.fast,
         color: widget.isNew
             ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
@@ -103,6 +134,7 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
                     width: 60,
                     child: TextField(
                       controller: _textCtrl,
+                      focusNode: _focusNode,
                       autofocus: true,
                       keyboardType: TextInputType.number,
                       inputFormatters: [
@@ -151,10 +183,7 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
     final correctedTo = widget.entry.correctedTo;
     if (correctedTo != null) {
       return GestureDetector(
-        onTap: () => setState(() {
-          _editing = true;
-          _textCtrl.text = '${widget.entry.bib}';
-        }),
+        onTap: _enterEditMode,
         child: SizedBox(
           width: 56,
           child: Column(
@@ -179,10 +208,7 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
       );
     }
     return GestureDetector(
-      onTap: () => setState(() {
-        _editing = true;
-        _textCtrl.text = '${widget.entry.bib}';
-      }),
+      onTap: _enterEditMode,
       child: Container(
         width: 56,
         decoration: const BoxDecoration(
