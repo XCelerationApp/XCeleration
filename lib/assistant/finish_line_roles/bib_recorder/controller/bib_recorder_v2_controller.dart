@@ -44,6 +44,11 @@ class BibRecorderV2Controller extends ChangeNotifier {
   final IHapticFeedback _haptic;
   P2PSessionService? _session;
 
+  /// When set, voice-recognized bibs are delivered here instead of being added
+  /// directly to entries. The widget can display the bib in an editable field
+  /// and start an auto-submit timer before calling [addBib].
+  ValueChanged<int>? onBibPending;
+
   StreamSubscription<int?>? _bibSub;
   StreamSubscription<String>? _transcriptSub;
   StreamSubscription<(Role, MessageEnvelope)>? _sessionSub;
@@ -295,6 +300,11 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _transcript = '';
     _awaitingRecord = false;
     if (bib != null) {
+      if (onBibPending != null) {
+        notifyListeners();
+        onBibPending!(bib);
+        return;
+      }
       final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
       _entries.insert(0, entry);
       if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
