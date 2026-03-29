@@ -45,13 +45,8 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart'
 
 class _FakeDevicesManager_0 extends _i1.SmartFake
     implements _i2.DevicesManager {
-  _FakeDevicesManager_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeDevicesManager_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [IAssistantStorageService].
@@ -66,36 +61,28 @@ class MockIAssistantStorageService extends _i1.Mock
   @override
   _i4.Future<_i5.Result<void>> saveNewRace(_i6.RaceRecord? race) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveNewRace,
-          [race],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #saveNewRace,
-            [race],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#saveNewRace, [race]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveNewRace, [race]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> updateRace(_i6.RaceRecord? race) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateRace,
-          [race],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #updateRace,
-            [race],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#updateRace, [race]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateRace, [race]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> updateRaceDuration(
@@ -104,27 +91,15 @@ class MockIAssistantStorageService extends _i1.Mock
     Duration? time,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateRaceDuration,
-          [
-            raceId,
-            type,
-            time,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #updateRaceDuration,
-            [
-              raceId,
-              type,
-              time,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#updateRaceDuration, [raceId, type, time]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateRaceDuration, [raceId, type, time]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> updateRaceStartTime(
@@ -133,27 +108,19 @@ class MockIAssistantStorageService extends _i1.Mock
     DateTime? startedAt,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateRaceStartTime,
-          [
-            raceId,
-            type,
-            startedAt,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #updateRaceStartTime,
-            [
-              raceId,
-              type,
-              startedAt,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#updateRaceStartTime, [raceId, type, startedAt]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateRaceStartTime, [
+                  raceId,
+                  type,
+                  startedAt,
+                ]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> updateRaceStatus(
@@ -162,27 +129,15 @@ class MockIAssistantStorageService extends _i1.Mock
     bool? stopped,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateRaceStatus,
-          [
-            raceId,
-            type,
-            stopped,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #updateRaceStatus,
-            [
-              raceId,
-              type,
-              stopped,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#updateRaceStatus, [raceId, type, stopped]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateRaceStatus, [raceId, type, stopped]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<List<_i6.RaceRecord>>> getRecentRaces(
@@ -190,135 +145,80 @@ class MockIAssistantStorageService extends _i1.Mock
     Duration? since,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getRecentRaces,
-          [type],
-          {#since: since},
-        ),
-        returnValue: _i4.Future<_i5.Result<List<_i6.RaceRecord>>>.value(
-            _i7.dummyValue<_i5.Result<List<_i6.RaceRecord>>>(
-          this,
-          Invocation.method(
-            #getRecentRaces,
-            [type],
-            {#since: since},
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<List<_i6.RaceRecord>>>);
+            Invocation.method(#getRecentRaces, [type], {#since: since}),
+            returnValue: _i4.Future<_i5.Result<List<_i6.RaceRecord>>>.value(
+              _i7.dummyValue<_i5.Result<List<_i6.RaceRecord>>>(
+                this,
+                Invocation.method(#getRecentRaces, [type], {#since: since}),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<List<_i6.RaceRecord>>>);
 
   @override
   _i4.Future<_i5.Result<List<_i6.RaceRecord>>> getRaces(String? type) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getRaces,
-          [type],
-        ),
-        returnValue: _i4.Future<_i5.Result<List<_i6.RaceRecord>>>.value(
-            _i7.dummyValue<_i5.Result<List<_i6.RaceRecord>>>(
-          this,
-          Invocation.method(
-            #getRaces,
-            [type],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<List<_i6.RaceRecord>>>);
+            Invocation.method(#getRaces, [type]),
+            returnValue: _i4.Future<_i5.Result<List<_i6.RaceRecord>>>.value(
+              _i7.dummyValue<_i5.Result<List<_i6.RaceRecord>>>(
+                this,
+                Invocation.method(#getRaces, [type]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<List<_i6.RaceRecord>>>);
 
   @override
-  _i4.Future<_i5.Result<_i6.RaceRecord?>> getRace(
-    int? raceId,
-    String? type,
-  ) =>
+  _i4.Future<_i5.Result<_i6.RaceRecord?>> getRace(int? raceId, String? type) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getRace,
-          [
-            raceId,
-            type,
-          ],
-        ),
-        returnValue: _i4.Future<_i5.Result<_i6.RaceRecord?>>.value(
-            _i7.dummyValue<_i5.Result<_i6.RaceRecord?>>(
-          this,
-          Invocation.method(
-            #getRace,
-            [
-              raceId,
-              type,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<_i6.RaceRecord?>>);
+            Invocation.method(#getRace, [raceId, type]),
+            returnValue: _i4.Future<_i5.Result<_i6.RaceRecord?>>.value(
+              _i7.dummyValue<_i5.Result<_i6.RaceRecord?>>(
+                this,
+                Invocation.method(#getRace, [raceId, type]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<_i6.RaceRecord?>>);
 
   @override
-  _i4.Future<_i5.Result<void>> deleteRace(
-    int? raceId,
-    String? type,
-  ) =>
+  _i4.Future<_i5.Result<void>> deleteRace(int? raceId, String? type) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #deleteRace,
-          [
-            raceId,
-            type,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #deleteRace,
-            [
-              raceId,
-              type,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#deleteRace, [raceId, type]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteRace, [raceId, type]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> deleteOldRaces({Duration? olderThan}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #deleteOldRaces,
-          [],
-          {#olderThan: olderThan},
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #deleteOldRaces,
-            [],
-            {#olderThan: olderThan},
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#deleteOldRaces, [], {#olderThan: olderThan}),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteOldRaces, [], {#olderThan: olderThan}),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
-  _i4.Future<_i5.Result<void>> saveChunk(
-    int? raceId,
-    _i8.TimingChunk? chunk,
-  ) =>
+  _i4.Future<_i5.Result<void>> saveChunk(int? raceId, _i8.TimingChunk? chunk) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveChunk,
-          [
-            raceId,
-            chunk,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #saveChunk,
-            [
-              raceId,
-              chunk,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#saveChunk, [raceId, chunk]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveChunk, [raceId, chunk]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<_i8.TimingChunk?>> getChunk(
@@ -326,25 +226,15 @@ class MockIAssistantStorageService extends _i1.Mock
     int? chunkId,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getChunk,
-          [
-            raceId,
-            chunkId,
-          ],
-        ),
-        returnValue: _i4.Future<_i5.Result<_i8.TimingChunk?>>.value(
-            _i7.dummyValue<_i5.Result<_i8.TimingChunk?>>(
-          this,
-          Invocation.method(
-            #getChunk,
-            [
-              raceId,
-              chunkId,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<_i8.TimingChunk?>>);
+            Invocation.method(#getChunk, [raceId, chunkId]),
+            returnValue: _i4.Future<_i5.Result<_i8.TimingChunk?>>.value(
+              _i7.dummyValue<_i5.Result<_i8.TimingChunk?>>(
+                this,
+                Invocation.method(#getChunk, [raceId, chunkId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<_i8.TimingChunk?>>);
 
   @override
   _i4.Future<_i5.Result<String?>> getChunkTimingData(
@@ -352,84 +242,54 @@ class MockIAssistantStorageService extends _i1.Mock
     int? chunkId,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getChunkTimingData,
-          [
-            raceId,
-            chunkId,
-          ],
-        ),
-        returnValue: _i4.Future<_i5.Result<String?>>.value(
-            _i7.dummyValue<_i5.Result<String?>>(
-          this,
-          Invocation.method(
-            #getChunkTimingData,
-            [
-              raceId,
-              chunkId,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<String?>>);
+            Invocation.method(#getChunkTimingData, [raceId, chunkId]),
+            returnValue: _i4.Future<_i5.Result<String?>>.value(
+              _i7.dummyValue<_i5.Result<String?>>(
+                this,
+                Invocation.method(#getChunkTimingData, [raceId, chunkId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<String?>>);
 
   @override
   _i4.Future<_i5.Result<List<_i8.TimingChunk>>> getChunks(int? raceId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getChunks,
-          [raceId],
-        ),
-        returnValue: _i4.Future<_i5.Result<List<_i8.TimingChunk>>>.value(
-            _i7.dummyValue<_i5.Result<List<_i8.TimingChunk>>>(
-          this,
-          Invocation.method(
-            #getChunks,
-            [raceId],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<List<_i8.TimingChunk>>>);
+            Invocation.method(#getChunks, [raceId]),
+            returnValue: _i4.Future<_i5.Result<List<_i8.TimingChunk>>>.value(
+              _i7.dummyValue<_i5.Result<List<_i8.TimingChunk>>>(
+                this,
+                Invocation.method(#getChunks, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<List<_i8.TimingChunk>>>);
 
   @override
-  _i4.Future<_i5.Result<void>> deleteChunk(
-    int? raceId,
-    int? chunkId,
-  ) =>
+  _i4.Future<_i5.Result<void>> deleteChunk(int? raceId, int? chunkId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #deleteChunk,
-          [
-            raceId,
-            chunkId,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #deleteChunk,
-            [
-              raceId,
-              chunkId,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#deleteChunk, [raceId, chunkId]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteChunk, [raceId, chunkId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
-  _i4.Future<_i5.Result<void>> deleteChunks(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #deleteChunks,
-          [raceId],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #deleteChunks,
-            [raceId],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+  _i4.Future<_i5.Result<void>> deleteChunks(int? raceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteChunks, [raceId]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteChunks, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> saveChunkConflict(
@@ -438,27 +298,23 @@ class MockIAssistantStorageService extends _i1.Mock
     _i9.TimingDatum? conflictRecord,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveChunkConflict,
-          [
-            raceId,
-            chunkId,
-            conflictRecord,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #saveChunkConflict,
-            [
+            Invocation.method(#saveChunkConflict, [
               raceId,
               chunkId,
               conflictRecord,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            ]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveChunkConflict, [
+                  raceId,
+                  chunkId,
+                  conflictRecord,
+                ]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> updateChunkConflict(
@@ -466,42 +322,31 @@ class MockIAssistantStorageService extends _i1.Mock
     _i9.TimingDatum? conflictRecord,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateChunkConflict,
-          [
-            chunkId,
-            conflictRecord,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #updateChunkConflict,
-            [
-              chunkId,
-              conflictRecord,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#updateChunkConflict, [chunkId, conflictRecord]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateChunkConflict, [
+                  chunkId,
+                  conflictRecord,
+                ]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<String?>> getChunkConflict(String? chunkId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getChunkConflict,
-          [chunkId],
-        ),
-        returnValue: _i4.Future<_i5.Result<String?>>.value(
-            _i7.dummyValue<_i5.Result<String?>>(
-          this,
-          Invocation.method(
-            #getChunkConflict,
-            [chunkId],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<String?>>);
+            Invocation.method(#getChunkConflict, [chunkId]),
+            returnValue: _i4.Future<_i5.Result<String?>>.value(
+              _i7.dummyValue<_i5.Result<String?>>(
+                this,
+                Invocation.method(#getChunkConflict, [chunkId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<String?>>);
 
   @override
   _i4.Future<_i5.Result<void>> saveChunkTimingData(
@@ -509,25 +354,18 @@ class MockIAssistantStorageService extends _i1.Mock
     List<String>? encodedRecords,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveChunkTimingData,
-          [
-            chunkId,
-            encodedRecords,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #saveChunkTimingData,
-            [
-              chunkId,
-              encodedRecords,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#saveChunkTimingData, [chunkId, encodedRecords]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveChunkTimingData, [
+                  chunkId,
+                  encodedRecords,
+                ]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> updateChunkTimingData(
@@ -536,27 +374,23 @@ class MockIAssistantStorageService extends _i1.Mock
     List<_i9.TimingDatum>? timingData,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateChunkTimingData,
-          [
-            raceId,
-            chunkId,
-            timingData,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #updateChunkTimingData,
-            [
+            Invocation.method(#updateChunkTimingData, [
               raceId,
               chunkId,
               timingData,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            ]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateChunkTimingData, [
+                  raceId,
+                  chunkId,
+                  timingData,
+                ]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> addLoggedTimingDatum(
@@ -565,44 +399,32 @@ class MockIAssistantStorageService extends _i1.Mock
     _i9.TimingDatum? datum,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #addLoggedTimingDatum,
-          [
-            raceId,
-            chunkId,
-            datum,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #addLoggedTimingDatum,
-            [
-              raceId,
-              chunkId,
-              datum,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#addLoggedTimingDatum, [raceId, chunkId, datum]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#addLoggedTimingDatum, [
+                  raceId,
+                  chunkId,
+                  datum,
+                ]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> saveRunner(_i10.Runner? runner) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveRunner,
-          [runner],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #saveRunner,
-            [runner],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#saveRunner, [runner]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveRunner, [runner]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> saveRunners(
@@ -610,25 +432,15 @@ class MockIAssistantStorageService extends _i1.Mock
     List<_i10.Runner>? runners,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveRunners,
-          [
-            raceId,
-            runners,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #saveRunners,
-            [
-              raceId,
-              runners,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#saveRunners, [raceId, runners]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveRunners, [raceId, runners]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<_i10.Runner?>> getRunner(
@@ -636,119 +448,80 @@ class MockIAssistantStorageService extends _i1.Mock
     String? bibNumber,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getRunner,
-          [
-            raceId,
-            bibNumber,
-          ],
-        ),
-        returnValue: _i4.Future<_i5.Result<_i10.Runner?>>.value(
-            _i7.dummyValue<_i5.Result<_i10.Runner?>>(
-          this,
-          Invocation.method(
-            #getRunner,
-            [
-              raceId,
-              bibNumber,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<_i10.Runner?>>);
+            Invocation.method(#getRunner, [raceId, bibNumber]),
+            returnValue: _i4.Future<_i5.Result<_i10.Runner?>>.value(
+              _i7.dummyValue<_i5.Result<_i10.Runner?>>(
+                this,
+                Invocation.method(#getRunner, [raceId, bibNumber]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<_i10.Runner?>>);
 
   @override
   _i4.Future<_i5.Result<List<_i10.Runner>>> getRunners(int? raceId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getRunners,
-          [raceId],
-        ),
-        returnValue: _i4.Future<_i5.Result<List<_i10.Runner>>>.value(
-            _i7.dummyValue<_i5.Result<List<_i10.Runner>>>(
-          this,
-          Invocation.method(
-            #getRunners,
-            [raceId],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<List<_i10.Runner>>>);
+            Invocation.method(#getRunners, [raceId]),
+            returnValue: _i4.Future<_i5.Result<List<_i10.Runner>>>.value(
+              _i7.dummyValue<_i5.Result<List<_i10.Runner>>>(
+                this,
+                Invocation.method(#getRunners, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<List<_i10.Runner>>>);
 
   @override
   _i4.Future<_i5.Result<void>> updateRunner(_i10.Runner? runner) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateRunner,
-          [runner],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #updateRunner,
-            [runner],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#updateRunner, [runner]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateRunner, [runner]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
-  _i4.Future<_i5.Result<void>> deleteRunner(
-    int? raceId,
-    String? bibNumber,
-  ) =>
+  _i4.Future<_i5.Result<void>> deleteRunner(int? raceId, String? bibNumber) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #deleteRunner,
-          [
-            raceId,
-            bibNumber,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #deleteRunner,
-            [
-              raceId,
-              bibNumber,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#deleteRunner, [raceId, bibNumber]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteRunner, [raceId, bibNumber]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> deleteRunners(int? raceId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #deleteRunners,
-          [raceId],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #deleteRunners,
-            [raceId],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#deleteRunners, [raceId]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteRunners, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> saveBibRecord(_i11.BibRecord? bibRecord) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveBibRecord,
-          [bibRecord],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #saveBibRecord,
-            [bibRecord],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#saveBibRecord, [bibRecord]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveBibRecord, [bibRecord]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> saveBibRecords(
@@ -756,25 +529,15 @@ class MockIAssistantStorageService extends _i1.Mock
     List<_i11.BibRecord>? bibRecords,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveBibRecords,
-          [
-            raceId,
-            bibRecords,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #saveBibRecords,
-            [
-              raceId,
-              bibRecords,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#saveBibRecords, [raceId, bibRecords]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveBibRecords, [raceId, bibRecords]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> addBibRecord(
@@ -783,53 +546,28 @@ class MockIAssistantStorageService extends _i1.Mock
     String? bibNumber,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #addBibRecord,
-          [
-            raceId,
-            bibId,
-            bibNumber,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #addBibRecord,
-            [
-              raceId,
-              bibId,
-              bibNumber,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#addBibRecord, [raceId, bibId, bibNumber]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#addBibRecord, [raceId, bibId, bibNumber]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
-  _i4.Future<_i5.Result<void>> removeBibRecord(
-    int? raceId,
-    int? bibId,
-  ) =>
+  _i4.Future<_i5.Result<void>> removeBibRecord(int? raceId, int? bibId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #removeBibRecord,
-          [
-            raceId,
-            bibId,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #removeBibRecord,
-            [
-              raceId,
-              bibId,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#removeBibRecord, [raceId, bibId]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#removeBibRecord, [raceId, bibId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> updateBibRecordValue(
@@ -838,27 +576,23 @@ class MockIAssistantStorageService extends _i1.Mock
     String? bibNumber,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateBibRecordValue,
-          [
-            raceId,
-            bibId,
-            bibNumber,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #updateBibRecordValue,
-            [
+            Invocation.method(#updateBibRecordValue, [
               raceId,
               bibId,
               bibNumber,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            ]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateBibRecordValue, [
+                  raceId,
+                  bibId,
+                  bibNumber,
+                ]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<_i11.BibRecord?>> getBibRecord(
@@ -866,118 +600,80 @@ class MockIAssistantStorageService extends _i1.Mock
     int? bibId,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getBibRecord,
-          [
-            raceId,
-            bibId,
-          ],
-        ),
-        returnValue: _i4.Future<_i5.Result<_i11.BibRecord?>>.value(
-            _i7.dummyValue<_i5.Result<_i11.BibRecord?>>(
-          this,
-          Invocation.method(
-            #getBibRecord,
-            [
-              raceId,
-              bibId,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<_i11.BibRecord?>>);
+            Invocation.method(#getBibRecord, [raceId, bibId]),
+            returnValue: _i4.Future<_i5.Result<_i11.BibRecord?>>.value(
+              _i7.dummyValue<_i5.Result<_i11.BibRecord?>>(
+                this,
+                Invocation.method(#getBibRecord, [raceId, bibId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<_i11.BibRecord?>>);
 
   @override
   _i4.Future<_i5.Result<List<_i11.BibRecord>>> getBibRecords(int? raceId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getBibRecords,
-          [raceId],
-        ),
-        returnValue: _i4.Future<_i5.Result<List<_i11.BibRecord>>>.value(
-            _i7.dummyValue<_i5.Result<List<_i11.BibRecord>>>(
-          this,
-          Invocation.method(
-            #getBibRecords,
-            [raceId],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<List<_i11.BibRecord>>>);
+            Invocation.method(#getBibRecords, [raceId]),
+            returnValue: _i4.Future<_i5.Result<List<_i11.BibRecord>>>.value(
+              _i7.dummyValue<_i5.Result<List<_i11.BibRecord>>>(
+                this,
+                Invocation.method(#getBibRecords, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<List<_i11.BibRecord>>>);
 
   @override
   _i4.Future<_i5.Result<void>> updateBibRecord(_i11.BibRecord? bibRecord) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateBibRecord,
-          [bibRecord],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #updateBibRecord,
-            [bibRecord],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#updateBibRecord, [bibRecord]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateBibRecord, [bibRecord]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
-  _i4.Future<_i5.Result<void>> deleteBibRecord(
-    int? raceId,
-    int? bibId,
-  ) =>
+  _i4.Future<_i5.Result<void>> deleteBibRecord(int? raceId, int? bibId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #deleteBibRecord,
-          [
-            raceId,
-            bibId,
-          ],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #deleteBibRecord,
-            [
-              raceId,
-              bibId,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#deleteBibRecord, [raceId, bibId]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteBibRecord, [raceId, bibId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
   _i4.Future<_i5.Result<void>> deleteBibRecords(int? raceId) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #deleteBibRecords,
-          [raceId],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<void>>.value(_i7.dummyValue<_i5.Result<void>>(
-          this,
-          Invocation.method(
-            #deleteBibRecords,
-            [raceId],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<void>>);
+            Invocation.method(#deleteBibRecords, [raceId]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteBibRecords, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 
   @override
-  _i4.Future<_i5.Result<int>> getNextBibId(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #getNextBibId,
-          [raceId],
-        ),
-        returnValue:
-            _i4.Future<_i5.Result<int>>.value(_i7.dummyValue<_i5.Result<int>>(
-          this,
-          Invocation.method(
-            #getNextBibId,
-            [raceId],
-          ),
-        )),
-      ) as _i4.Future<_i5.Result<int>>);
+  _i4.Future<_i5.Result<int>> getNextBibId(int? raceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getNextBibId, [raceId]),
+            returnValue: _i4.Future<_i5.Result<int>>.value(
+              _i7.dummyValue<_i5.Result<int>>(
+                this,
+                Invocation.method(#getNextBibId, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<int>>);
 }
 
 /// A class which mocks [IDemoRaceGenerator].
@@ -992,21 +688,18 @@ class MockIDemoRaceGenerator extends _i1.Mock
   @override
   _i4.Future<bool> ensureDemoRaceExists(String? deviceType) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #ensureDemoRaceExists,
-          [deviceType],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+            Invocation.method(#ensureDemoRaceExists, [deviceType]),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
-  bool isDemoRace(_i6.RaceRecord? race) => (super.noSuchMethod(
-        Invocation.method(
-          #isDemoRace,
-          [race],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool isDemoRace(_i6.RaceRecord? race) =>
+      (super.noSuchMethod(
+            Invocation.method(#isDemoRace, [race]),
+            returnValue: false,
+          )
+          as bool);
 }
 
 /// A class which mocks [IDeviceConnectionFactory].
@@ -1026,32 +719,21 @@ class MockIDeviceConnectionFactory extends _i1.Mock
     bool? toSpectator,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #createDevices,
-          [
-            deviceName,
-            deviceType,
-          ],
-          {
-            #data: data,
-            #toSpectator: toSpectator,
-          },
-        ),
-        returnValue: _FakeDevicesManager_0(
-          this,
-          Invocation.method(
-            #createDevices,
-            [
-              deviceName,
-              deviceType,
-            ],
-            {
-              #data: data,
-              #toSpectator: toSpectator,
-            },
-          ),
-        ),
-      ) as _i2.DevicesManager);
+            Invocation.method(
+              #createDevices,
+              [deviceName, deviceType],
+              {#data: data, #toSpectator: toSpectator},
+            ),
+            returnValue: _FakeDevicesManager_0(
+              this,
+              Invocation.method(
+                #createDevices,
+                [deviceName, deviceType],
+                {#data: data, #toSpectator: toSpectator},
+              ),
+            ),
+          )
+          as _i2.DevicesManager);
 }
 
 /// A class which mocks [TutorialManager].
@@ -1063,83 +745,62 @@ class MockTutorialManager extends _i1.Mock implements _i15.TutorialManager {
   }
 
   @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-      ) as bool);
+  bool get hasListeners =>
+      (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
+          as bool);
 
   @override
   void setTargetRect(_i16.Rect? rect) => super.noSuchMethod(
-        Invocation.method(
-          #setTargetRect,
-          [rect],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#setTargetRect, [rect]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void startTutorial(List<String>? coachMarkIds) => super.noSuchMethod(
-        Invocation.method(
-          #startTutorial,
-          [coachMarkIds],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#startTutorial, [coachMarkIds]),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i4.Future<void> nextTutorial() => (super.noSuchMethod(
-        Invocation.method(
-          #nextTutorial,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> nextTutorial() =>
+      (super.noSuchMethod(
+            Invocation.method(#nextTutorial, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
-  _i4.Future<bool> hasSeenTutorial(String? id) => (super.noSuchMethod(
-        Invocation.method(
-          #hasSeenTutorial,
-          [id],
-        ),
-        returnValue: _i4.Future<bool>.value(false),
-      ) as _i4.Future<bool>);
+  _i4.Future<bool> hasSeenTutorial(String? id) =>
+      (super.noSuchMethod(
+            Invocation.method(#hasSeenTutorial, [id]),
+            returnValue: _i4.Future<bool>.value(false),
+          )
+          as _i4.Future<bool>);
 
   @override
   void addListener(_i16.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeListener(_i16.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [IPostFrameScheduler].
@@ -1153,10 +814,7 @@ class MockIPostFrameScheduler extends _i1.Mock
 
   @override
   void schedulePostFrame(_i16.VoidCallback? callback) => super.noSuchMethod(
-        Invocation.method(
-          #schedulePostFrame,
-          [callback],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#schedulePostFrame, [callback]),
+    returnValueForMissingStub: null,
+  );
 }

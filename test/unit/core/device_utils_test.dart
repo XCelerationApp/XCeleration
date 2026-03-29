@@ -1,8 +1,14 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/enums.dart';
+import 'package:xceleration/core/utils/platform_checker.dart';
 
 void main() {
+  // ===========================================================================
+  // DevicesManager spectator behavior
+  // ===========================================================================
   group('DevicesManager spectator behavior', () {
     test('spectator advertiser targets spectator with payload', () {
       final devices = DeviceConnectionService.createDevices(
@@ -12,7 +18,6 @@ void main() {
         toSpectator: true,
       );
 
-      // Should advertise to spectator only
       expect(devices.spectator, isNotNull);
       expect(devices.coach, isNull);
       expect(devices.otherDevices.length, 1);
@@ -49,6 +54,33 @@ void main() {
       final names = devices.otherDevices.map((d) => d.name).toList();
       expect(names.contains(DeviceName.spectator), isTrue);
       expect(names.contains(DeviceName.coach), isFalse);
+    });
+  });
+
+  // ===========================================================================
+  // PlatformChecker
+  // ===========================================================================
+  group('PlatformChecker', () {
+    late PlatformChecker checker;
+
+    setUp(() {
+      checker = const PlatformChecker();
+    });
+
+    test('implements PlatformCheckerInterface', () {
+      expect(checker, isA<PlatformCheckerInterface>());
+    });
+
+    test('isAndroid delegates to dart:io Platform', () {
+      expect(checker.isAndroid, equals(Platform.isAndroid));
+    });
+
+    test('isIOS delegates to dart:io Platform', () {
+      expect(checker.isIOS, equals(Platform.isIOS));
+    });
+
+    test('isAndroid and isIOS are not both true simultaneously', () {
+      expect(checker.isAndroid && checker.isIOS, isFalse);
     });
   });
 }
