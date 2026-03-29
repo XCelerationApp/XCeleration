@@ -301,6 +301,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _awaitingRecord = false;
     if (bib != null) {
       if (onBibPending != null) {
+        if (flagFor(bib) != null) _haptic.vibrate();
         notifyListeners();
         onBibPending!(bib);
         return;
