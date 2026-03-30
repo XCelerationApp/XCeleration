@@ -101,7 +101,7 @@ class MockBibRecorderV2Controller extends _i1.Mock
       ) as String);
 
   @override
-  set onBibPending(_i7.ValueChanged<int>? value) => super.noSuchMethod(
+  set onBibPending(_i7.ValueChanged<String>? value) => super.noSuchMethod(
         Invocation.setter(
           #onBibPending,
           value,
