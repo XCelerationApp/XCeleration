@@ -224,11 +224,20 @@ class BibNumberParser {
         }
         pendingTens = word;
         Logger.d('[BibParser:chunked] "$word" → value=$v (tens, held as pending)');
-      } else if (pendingTens != null) {
+      } else if (pendingTens != null && v < 10) {
+        // Only combine single digits (0–9) with a pending tens word.
+        // Values ≥ 10 (ten, eleven, twelve, etc.) start a new chunk.
         final combined = _wordValues[pendingTens]! + v;
         chunks.add(combined);
         Logger.d('[BibParser:chunked] "$word" → value=$v combined with pending "$pendingTens" (${_wordValues[pendingTens]}) = $combined  chunks=$chunks');
         pendingTens = null;
+      } else if (pendingTens != null) {
+        // Flush the pending tens as its own chunk, then add this value.
+        chunks.add(_wordValues[pendingTens]!);
+        Logger.d('[BibParser:chunked] "$word" (value=$v ≥10) → flushing pending "$pendingTens" as ${_wordValues[pendingTens]}  chunks=$chunks');
+        pendingTens = null;
+        chunks.add(v);
+        Logger.d('[BibParser:chunked] "$word" → value=$v  chunks=$chunks');
       } else {
         chunks.add(v);
         Logger.d('[BibParser:chunked] "$word" → value=$v  chunks=$chunks');

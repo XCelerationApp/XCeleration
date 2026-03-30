@@ -59,6 +59,10 @@ void main() {
           () => expect(parser.parse('ninety nine'), equals('99')));
       test('standalone tens: thirty → 30',
           () => expect(parser.parse('thirty'), equals('30')));
+      test('seventy ten → 7010 (not 80)',
+          () => expect(parser.parse('seventy ten'), equals('7010')));
+      test('forty twelve → 4012',
+          () => expect(parser.parse('forty twelve'), equals('4012')));
     });
 
     group('parse — natural English (hundred / thousand)', () {
