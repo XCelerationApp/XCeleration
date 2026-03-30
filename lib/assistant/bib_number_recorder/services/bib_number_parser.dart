@@ -8,8 +8,9 @@ import 'package:xceleration/core/utils/logger.dart';
 /// - "oh" → 0 (common spoken synonym for zero)
 const Map<String, int> _wordValues = {
   'zero': 0, 'oh': 0, 'o': 0, 'ow': 0,
-  'one': 1, 'a': 1, 'two': 2, 'to': 2, 'three': 3, 'four': 4, 'for': 4,
-  'five': 5, 'six': 6, 'seven': 7, 'eight': 8, 'nine': 9,
+  'one': 1, 'a': 1, 'won': 1, 'n': 1,
+  'two': 2, 'to': 2, 'too': 2, 'three': 3, 'four': 4, 'for': 4,
+  'five': 5, 'six': 6, 'zic': 6, 'seven': 7, 'eight': 8, 'nine': 9,
   'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13,
   'fourteen': 14, 'fifteen': 15, 'sixteen': 16, 'seventeen': 17,
   'eighteen': 18, 'nineteen': 19, 'twenty': 20, 'thirty': 30,
@@ -24,9 +25,17 @@ const Map<String, int> _wordValues = {
 /// Unrecognised words that should always map to zero but don't match the
 /// z/g/ss heuristic (e.g. short words with none of those characters).
 const Set<String> _zeroSubstitutions = {
-  'dire', 'dieu', 'youm', 'yeob', 'vour', 'vor', 'erro', 'edy',
-  'ows', 'owen', 'tuzo', 'monso',
+  'dire', 'dieu', 'youm', 'yeob', 'vour', 'vor', 'erro', 'ero', 'edy',
+  'er', 'ere', 'yo',
+  'ows', 'owen', 'owve', 'tuzo', 'monso',
 };
+
+/// Words that a garbled-zero candidate might actually be.
+/// If the candidate is within edit distance 2 of any of these, it's not zero.
+const List<String> _nonZeroNumberWords = [
+  'six', 'six', 'seven', 'eight', 'nine', 'sixty', 'seventy', 'eighty',
+  'ninety', 'sixteen', 'seventeen', 'eighteen', 'nineteen',
+];
 
 /// Detects garbled "zero" output from the model.
 ///
@@ -34,6 +43,8 @@ const Set<String> _zeroSubstitutions = {
 /// mangled zeros. Length determines whether one or two zeros were merged:
 /// - Short (2–6 chars): single zero  (e.g. "zer", "zio", "giro")
 /// - Long  (7+ chars):  double zero  (e.g. "zerosio", "girozier", "geosiosio")
+///
+/// Excludes words that are close to known number words (e.g. "zic" ≈ "six").
 String? _garbledZeroReplacement(String word) {
   if (_wordValues.containsKey(word)) return null;
   if (word.length < 2) return null;
@@ -44,13 +55,39 @@ String? _garbledZeroReplacement(String word) {
 
   if (!hasZ && !hasG && sCount < 2) return null;
 
+  // Don't treat as zero if it's close to a real number word.
+  for (final nw in _nonZeroNumberWords) {
+    if (_editDistance(word, nw) <= 1) return null;
+  }
+
   return word.length >= 7 ? 'zero zero' : 'zero';
+}
+
+/// Levenshtein edit distance between two strings.
+int _editDistance(String a, String b) {
+  if (a == b) return 0;
+  if (a.isEmpty) return b.length;
+  if (b.isEmpty) return a.length;
+
+  final prev = List<int>.generate(b.length + 1, (i) => i);
+  final curr = List<int>.filled(b.length + 1, 0);
+
+  for (var i = 1; i <= a.length; i++) {
+    curr[0] = i;
+    for (var j = 1; j <= b.length; j++) {
+      final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+      curr[j] = [curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost]
+          .reduce((a, b) => a < b ? a : b);
+    }
+    prev.setAll(0, curr);
+  }
+  return curr[b.length];
 }
 
 /// Words that may be "zero" but are also real English words.
 /// Only substituted as a fallback when the transcript otherwise fails to parse.
 const Set<String> _ambiguousZeroWords = {
-  'year', "year's", 'years', 'europe', 'now', 'x', 'u',
+  'year', "year's", 'years', 'europe', 'now', 'x', 'u', 'y', 'or',
 };
 
 /// Converts spoken number-word sequences into bib number strings.
@@ -106,8 +143,13 @@ class BibNumberParser {
     final rawWords = text.split(RegExp(r'\s+'));
     Logger.d('[BibParser] Raw words: $rawWords');
 
-    final words = rawWords.where((w) => w.isNotEmpty && w != 'and').toList();
-    Logger.d('[BibParser] After filtering empty/"and": $words');
+    var words = rawWords.where((w) => w.isNotEmpty && w != 'and').toList();
+
+    // Strip spurious "a" when followed by a number word (not hundred/thousand).
+    // Handles "a one hundred" → "one hundred" while preserving "a hundred".
+    words = _filterSpuriousA(words);
+
+    Logger.d('[BibParser] After filtering: $words');
 
     if (words.isEmpty) {
       Logger.d('[BibParser] No words remain → null');
@@ -204,8 +246,20 @@ class BibNumberParser {
     }
 
     // Concatenate chunk digit strings — this preserves leading zeros.
-    final joined = chunks.map((c) => c.toString()).join();
+    var joined = chunks.map((c) => c.toString()).join();
     Logger.d('[BibParser:chunked] Chunks: $chunks → joined: "$joined"');
+
+    // If too many digits (common when fuzzy-zero adds an extra zero the model
+    // already transcribed), try removing one zero-valued chunk and re-joining.
+    if (joined.length > 4 && chunks.contains(0)) {
+      final trimmed = List<int>.from(chunks);
+      trimmed.remove(0); // removes first zero
+      final rejoin = trimmed.map((c) => c.toString()).join();
+      if (rejoin.length <= 4) {
+        Logger.d('[BibParser:chunked] Overflow "$joined" → dropped one zero → "$rejoin"');
+        joined = rejoin;
+      }
+    }
 
     if (joined.length > 4) return null;
     final intValue = int.tryParse(joined);
@@ -226,6 +280,23 @@ class BibNumberParser {
       return w;
     }).toList();
     return changed ? result.join(' ') : text;
+  }
+
+  /// Removes "a" when it appears before a number word that isn't "hundred" or
+  /// "thousand". Handles model output like "a one hundred" → "one hundred".
+  static List<String> _filterSpuriousA(List<String> words) {
+    final result = <String>[];
+    for (var i = 0; i < words.length; i++) {
+      if (words[i] == 'a' &&
+          i + 1 < words.length &&
+          words[i + 1] != 'hundred' &&
+          words[i + 1] != 'thousand' &&
+          _wordValues.containsKey(words[i + 1])) {
+        continue; // skip this "a"
+      }
+      result.add(words[i]);
+    }
+    return result;
   }
 
   /// Strips possessive suffixes the model sometimes adds (e.g. "eleven's" → "eleven").
