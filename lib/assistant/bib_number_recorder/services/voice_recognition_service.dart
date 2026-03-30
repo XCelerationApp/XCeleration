@@ -88,20 +88,18 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
   @override
   Future<void> stop() async {
     final path = await _recorder.stop();
-    Logger.d('[VoiceRecognition] stop() — recorder returned path: $path, ready: $_ready');
+    // Logger.d('[VoiceRecognition] stop() — recorder returned path: $path, ready: $_ready');
 
     if (path == null || !_ready) {
-      Logger.d('[VoiceRecognition] No recording or not ready → emitting null');
+      // Logger.d('[VoiceRecognition] No recording or not ready → emitting null');
       _bibController.add(null);
       _partialController.add('');
       return;
     }
 
     final transcript = await _speechRecognition.transcribe(path);
-    Logger.d('[VoiceRecognition] Transcript from model: "$transcript"');
-
     final bib = _parser.parse(transcript);
-    Logger.d('[VoiceRecognition] Parser result: $bib (transcript: "$transcript")');
+    Logger.d('[VoiceRecognition] "$transcript" → $bib');
 
     _partialController.add(transcript);
     _bibController.add(bib);

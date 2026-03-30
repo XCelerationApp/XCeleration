@@ -1,4 +1,4 @@
-import 'package:xceleration/core/utils/logger.dart';
+// import 'package:xceleration/core/utils/logger.dart';
 
 /// Maps recognised number words to their integer values.
 ///
@@ -106,23 +106,23 @@ class BibNumberParser {
   /// Returns the parsed bib number as a string (preserving leading zeros),
   /// or null if the text cannot be parsed or falls outside 0–9999.
   String? parse(String text) {
-    Logger.d('[BibParser] Input text: "$text"');
+    // Logger.d('[BibParser] Input text: "$text"');
 
     if (text.isEmpty) {
-      Logger.d('[BibParser] Empty input → null');
+      // Logger.d('[BibParser] Empty input → null');
       return null;
     }
 
     // Strip possessive suffixes the model sometimes adds ("eleven's" → "eleven").
     final stripped = _stripPossessives(text);
     if (stripped != text) {
-      Logger.d('[BibParser] After possessive stripping: "$stripped"');
+      // Logger.d('[BibParser] After possessive stripping: "$stripped"');
     }
 
     // First pass: try with safe zero substitutions applied.
     final normalised = _normaliseZeros(stripped);
     if (normalised != text) {
-      Logger.d('[BibParser] After zero normalisation: "$normalised"');
+      // Logger.d('[BibParser] After zero normalisation: "$normalised"');
     }
 
     final result = _tryParse(normalised);
@@ -132,7 +132,7 @@ class BibNumberParser {
     // parse failed — these are only safe when no other interpretation works.
     final aggressive = _normaliseAmbiguousZeros(normalised);
     if (aggressive != normalised) {
-      Logger.d('[BibParser] Retrying with ambiguous zero substitutions: "$aggressive"');
+      // Logger.d('[BibParser] Retrying with ambiguous zero substitutions: "$aggressive"');
       return _tryParse(aggressive);
     }
 
@@ -141,7 +141,7 @@ class BibNumberParser {
 
   String? _tryParse(String text) {
     final rawWords = text.split(RegExp(r'\s+'));
-    Logger.d('[BibParser] Raw words: $rawWords');
+    // Logger.d('[BibParser] Raw words: $rawWords');
 
     var words = rawWords.where((w) => w.isNotEmpty && w != 'and').toList();
 
@@ -149,10 +149,10 @@ class BibNumberParser {
     // Handles "a one hundred" → "one hundred" while preserving "a hundred".
     words = _filterSpuriousA(words);
 
-    Logger.d('[BibParser] After filtering: $words');
+    // Logger.d('[BibParser] After filtering: $words');
 
     if (words.isEmpty) {
-      Logger.d('[BibParser] No words remain → null');
+      // Logger.d('[BibParser] No words remain → null');
       return null;
     }
 
@@ -161,19 +161,19 @@ class BibNumberParser {
         .where((w) => w != 'hundred' && w != 'thousand' && !_wordValues.containsKey(w))
         .toList();
     if (unrecognised.isNotEmpty) {
-      Logger.d('[BibParser] Unrecognised words: $unrecognised → null');
+      // Logger.d('[BibParser] Unrecognised words: $unrecognised → null');
       return null;
     }
 
     if (words.contains('hundred') || words.contains('thousand')) {
-      Logger.d('[BibParser] Strategy: _parseNatural (contains hundred/thousand)');
+      // Logger.d('[BibParser] Strategy: _parseNatural (contains hundred/thousand)');
       final result = _parseNatural(words);
-      Logger.d('[BibParser] Final result: $result');
+      // Logger.d('[BibParser] Final result: $result');
       return result;
     }
-    Logger.d('[BibParser] Strategy: _parseChunked');
+    // Logger.d('[BibParser] Strategy: _parseChunked');
     final result = _parseChunked(words);
-    Logger.d('[BibParser] Final result: $result');
+    // Logger.d('[BibParser] Final result: $result');
     return result;
   }
 
@@ -184,24 +184,24 @@ class BibNumberParser {
       if (word == 'thousand') {
         final multiplier = current == 0 ? 1 : current;
         result += multiplier * 1000;
-        Logger.d('[BibParser:natural] "$word" → result += $multiplier*1000 = ${multiplier * 1000}  (result=$result, current reset to 0)');
+        // Logger.d('[BibParser:natural] "$word" → result += $multiplier*1000 = ${multiplier * 1000}  (result=$result, current reset to 0)');
         current = 0;
       } else if (word == 'hundred') {
         final multiplier = current == 0 ? 1 : current;
         current = multiplier * 100;
-        Logger.d('[BibParser:natural] "$word" → current = $multiplier*100 = $current  (result=$result)');
+        // Logger.d('[BibParser:natural] "$word" → current = $multiplier*100 = $current  (result=$result)');
       } else {
         final v = _wordValues[word];
         if (v == null) {
-          Logger.d('[BibParser:natural] "$word" → unrecognised → null');
+          // Logger.d('[BibParser:natural] "$word" → unrecognised → null');
           return null;
         }
         current += v;
-        Logger.d('[BibParser:natural] "$word" → value=$v  (current=$current, result=$result)');
+        // Logger.d('[BibParser:natural] "$word" → value=$v  (current=$current, result=$result)');
       }
     }
     result += current;
-    Logger.d('[BibParser:natural] Final: result=$result (valid range 1–9999: ${result >= 1 && result <= 9999})');
+    // Logger.d('[BibParser:natural] Final: result=$result (valid range 1–9999: ${result >= 1 && result <= 9999})');
     if (result < 1 || result > 9999) return null;
     return result.toString();
   }
@@ -213,50 +213,50 @@ class BibNumberParser {
     for (final word in words) {
       final v = _wordValues[word];
       if (v == null) {
-        Logger.d('[BibParser:chunked] "$word" → unrecognised → null');
+        // Logger.d('[BibParser:chunked] "$word" → unrecognised → null');
         return null;
       }
 
       if (v >= 20 && v % 10 == 0) {
         if (pendingTens != null) {
           chunks.add(_wordValues[pendingTens]!);
-          Logger.d('[BibParser:chunked] "$word" is tens → flushing pending "$pendingTens" as ${_wordValues[pendingTens]}  chunks=$chunks');
+          // Logger.d('[BibParser:chunked] "$word" is tens → flushing pending "$pendingTens" as ${_wordValues[pendingTens]}  chunks=$chunks');
         }
         pendingTens = word;
-        Logger.d('[BibParser:chunked] "$word" → value=$v (tens, held as pending)');
+        // Logger.d('[BibParser:chunked] "$word" → value=$v (tens, held as pending)');
       } else if (pendingTens != null && v < 10) {
         // Only combine single digits (0–9) with a pending tens word.
         // Values ≥ 10 (ten, eleven, twelve, etc.) start a new chunk.
         final combined = _wordValues[pendingTens]! + v;
         chunks.add(combined);
-        Logger.d('[BibParser:chunked] "$word" → value=$v combined with pending "$pendingTens" (${_wordValues[pendingTens]}) = $combined  chunks=$chunks');
+        // Logger.d('[BibParser:chunked] "$word" → value=$v combined with pending "$pendingTens" (${_wordValues[pendingTens]}) = $combined  chunks=$chunks');
         pendingTens = null;
       } else if (pendingTens != null) {
         // Flush the pending tens as its own chunk, then add this value.
         chunks.add(_wordValues[pendingTens]!);
-        Logger.d('[BibParser:chunked] "$word" (value=$v ≥10) → flushing pending "$pendingTens" as ${_wordValues[pendingTens]}  chunks=$chunks');
+        // Logger.d('[BibParser:chunked] "$word" (value=$v ≥10) → flushing pending "$pendingTens" as ${_wordValues[pendingTens]}  chunks=$chunks');
         pendingTens = null;
         chunks.add(v);
-        Logger.d('[BibParser:chunked] "$word" → value=$v  chunks=$chunks');
+        // Logger.d('[BibParser:chunked] "$word" → value=$v  chunks=$chunks');
       } else {
         chunks.add(v);
-        Logger.d('[BibParser:chunked] "$word" → value=$v  chunks=$chunks');
+        // Logger.d('[BibParser:chunked] "$word" → value=$v  chunks=$chunks');
       }
     }
 
     if (pendingTens != null) {
       chunks.add(_wordValues[pendingTens]!);
-      Logger.d('[BibParser:chunked] Flushing final pending "$pendingTens" as ${_wordValues[pendingTens]}  chunks=$chunks');
+      // Logger.d('[BibParser:chunked] Flushing final pending "$pendingTens" as ${_wordValues[pendingTens]}  chunks=$chunks');
     }
 
     if (chunks.isEmpty) {
-      Logger.d('[BibParser:chunked] No chunks produced → null');
+      // Logger.d('[BibParser:chunked] No chunks produced → null');
       return null;
     }
 
     // Concatenate chunk digit strings — this preserves leading zeros.
     var joined = chunks.map((c) => c.toString()).join();
-    Logger.d('[BibParser:chunked] Chunks: $chunks → joined: "$joined"');
+    // Logger.d('[BibParser:chunked] Chunks: $chunks → joined: "$joined"');
 
     // If too many digits (common when fuzzy-zero adds an extra zero the model
     // already transcribed), try removing one zero-valued chunk and re-joining.
@@ -265,7 +265,7 @@ class BibNumberParser {
       trimmed.remove(0); // removes first zero
       final rejoin = trimmed.map((c) => c.toString()).join();
       if (rejoin.length <= 4) {
-        Logger.d('[BibParser:chunked] Overflow "$joined" → dropped one zero → "$rejoin"');
+        // Logger.d('[BibParser:chunked] Overflow "$joined" → dropped one zero → "$rejoin"');
         joined = rejoin;
       }
     }
