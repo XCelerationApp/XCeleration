@@ -9,7 +9,10 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<Database> get database async {
-    _db ??= await _initDB('races.db');
+    if (_db == null) {
+      final db = await _initDB('races.db');
+      _db ??= db;
+    }
     return _db!;
   }
 
@@ -19,7 +22,7 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
     return await openDatabase(
       path,
-      version: 17,
+      version: 19,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -32,55 +35,11 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
   }
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion < 15) {
-      try {
-        await db.execute('ALTER TABLE races ADD COLUMN owner_user_id TEXT');
-        Logger.d('Added owner_user_id column to races table');
-      } catch (e) {
-        Logger.d('owner_user_id column might already exist: $e');
-      }
-
-      try {
-        await db.execute('''
-          CREATE TABLE IF NOT EXISTS sync_state (
-            key TEXT PRIMARY KEY,
-            value TEXT NOT NULL
-          )
-        ''');
-        Logger.d('Created sync_state table');
-      } catch (e) {
-        Logger.d('sync_state table might already exist: $e');
-      }
-    }
-
-    if (oldVersion < 16) {
-      try {
-        await db.execute(
-            'ALTER TABLE race_results ADD COLUMN runner_uuid TEXT');
-        Logger.d('Added runner_uuid column to race_results table');
-      } catch (e) {
-        Logger.d('runner_uuid column might already exist in race_results: $e');
-      }
-
-      try {
-        await db.execute('ALTER TABLE race_results ADD COLUMN race_uuid TEXT');
-        Logger.d('Added race_uuid column to race_results table');
-      } catch (e) {
-        Logger.d('race_uuid column might already exist in race_results: $e');
-      }
-    }
-
-    if (oldVersion < 17) {
-      for (final column in ['race_uuid', 'runner_uuid', 'team_uuid']) {
-        try {
-          await db.execute(
-              'ALTER TABLE race_participants ADD COLUMN $column TEXT');
-          Logger.d('Added $column column to race_participants table');
-        } catch (e) {
-          Logger.d('$column column might already exist in race_participants: $e');
-        }
-      }
-    }
+    Logger.d('Schema version mismatch ($oldVersion → $newVersion): nuking local DB');
+    await db.close();
+    final path = join(await getDatabasesPath(), 'races.db');
+    await databaseFactory.deleteDatabase(path);
+    _db = await openDatabase(path, version: newVersion, onCreate: _createDB);
   }
 
   @override
@@ -93,8 +52,21 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
   @override
   Future<void> deleteDatabase() async {
     Logger.d('Deleting database');
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+    }
     final path = join(await getDatabasesPath(), 'races.db');
     await databaseFactory.deleteDatabase(path);
-    _db = null;
+  }
+
+  @override
+  Future<void> deleteUserData(String userId) async {
+    Logger.d('Deleting local data for user $userId');
+    final db = await database;
+    await db.transaction((txn) async {
+      await txn.delete('races', where: 'owner_user_id = ?', whereArgs: [userId]);
+      await txn.delete('sync_state');
+    });
   }
 }
