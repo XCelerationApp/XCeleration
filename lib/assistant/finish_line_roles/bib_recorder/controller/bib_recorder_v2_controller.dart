@@ -302,21 +302,24 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _isProcessing = false;
     _transcript = '';
     _awaitingRecord = false;
-    if (bib != null) {
-      if (onBibPending != null) {
-        if (flagFor(bib) != null) _haptic.vibrate();
-        notifyListeners();
-        onBibPending!(bib);
-        return;
-      }
-      final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
-      _entries.insert(0, entry);
-      if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
-      _nextPosition++;
-      _positionToEntryId[_nextPosition] = entry.id;
-      _sendBibEntry(entry.id, bib, _nextPosition);
-      _persistAddBib(entry.id, bib);
+    if (bib == null) {
+      _haptic.vibrate();
+      notifyListeners();
+      return;
     }
+    if (onBibPending != null) {
+      if (flagFor(bib) != null) _haptic.vibrate();
+      notifyListeners();
+      onBibPending!(bib);
+      return;
+    }
+    final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
+    _entries.insert(0, entry);
+    if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
+    _nextPosition++;
+    _positionToEntryId[_nextPosition] = entry.id;
+    _sendBibEntry(entry.id, bib, _nextPosition);
+    _persistAddBib(entry.id, bib);
     notifyListeners();
   }
 
@@ -327,7 +330,6 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _awaitingRecord = false;
     final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
     _entries.insert(0, entry);
-    if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
     _nextPosition++;
     _positionToEntryId[_nextPosition] = entry.id;
     _sendBibEntry(entry.id, bib, _nextPosition);
@@ -363,6 +365,18 @@ class BibRecorderV2Controller extends ChangeNotifier {
       unawaited(_storage.updateBibRecordValue(_selectedRace!.raceId, id, newBib.toString()).then((result) {
         if (result case Failure(:final error)) {
           Logger.e('[BibRecorderV2Controller.editEntry] ${error.originalException}');
+        }
+      }));
+    }
+    notifyListeners();
+  }
+
+  void restoreEntry(BibEntry entry, int index) {
+    _entries.insert(index.clamp(0, _entries.length), entry);
+    if (_selectedRace != null) {
+      unawaited(_storage.addBibRecord(_selectedRace!.raceId, entry.id, entry.bib.toString()).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[BibRecorderV2Controller.restoreEntry] ${error.originalException}');
         }
       }));
     }

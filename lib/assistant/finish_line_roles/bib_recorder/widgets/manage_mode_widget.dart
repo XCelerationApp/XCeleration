@@ -198,7 +198,7 @@ class ManageModeWidget extends StatelessWidget {
               OverflowMenuItem(
                 label: 'Clear All Records',
                 danger: true,
-                onTap: controller.clearEntries,
+                onTap: () => _showClearConfirm(context),
               ),
               OverflowMenuItem(
                 label: 'Delete Race',
@@ -228,6 +228,21 @@ class ManageModeWidget extends StatelessWidget {
           DeviceType.advertiserDevice,
           data: encodedData,
         ),
+      ),
+    );
+  }
+
+  void _showClearConfirm(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ConfirmBottomSheet(
+        title: 'Clear All Records?',
+        message:
+            'Permanently deletes all ${controller.entries.length} bib records.',
+        confirmLabel: 'Clear All',
+        onConfirm: controller.clearEntries,
       ),
     );
   }
