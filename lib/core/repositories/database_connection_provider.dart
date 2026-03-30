@@ -9,10 +9,7 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<Database> get database async {
-    if (_db == null) {
-      final db = await _initDB('races.db');
-      _db ??= db;
-    }
+    _db ??= await _initDB('races.db');
     return _db!;
   }
 
@@ -36,10 +33,13 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     Logger.d('Schema version mismatch ($oldVersion → $newVersion): nuking local DB');
-    await db.close();
-    final path = join(await getDatabasesPath(), 'races.db');
-    await databaseFactory.deleteDatabase(path);
-    _db = await openDatabase(path, version: newVersion, onCreate: _createDB);
+    final tables = await db.rawQuery(
+      "SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'",
+    );
+    for (final row in tables) {
+      await db.execute('DROP TABLE IF EXISTS "${row['name'] as String}"');
+    }
+    await _createDB(db, newVersion);
   }
 
   @override
