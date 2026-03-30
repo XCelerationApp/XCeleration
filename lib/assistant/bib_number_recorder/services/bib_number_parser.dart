@@ -33,7 +33,7 @@ const Set<String> _zeroSubstitutions = {
 /// Words that a garbled-zero candidate might actually be.
 /// If the candidate is within edit distance 2 of any of these, it's not zero.
 const List<String> _nonZeroNumberWords = [
-  'six', 'six', 'seven', 'eight', 'nine', 'sixty', 'seventy', 'eighty',
+  'six', 'seven', 'eight', 'nine', 'sixty', 'seventy', 'eighty',
   'ninety', 'sixteen', 'seventeen', 'eighteen', 'nineteen',
 ];
 
