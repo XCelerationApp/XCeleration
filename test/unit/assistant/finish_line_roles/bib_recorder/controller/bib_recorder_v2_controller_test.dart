@@ -640,7 +640,7 @@ void main() {
         expect(controller.lastAddedBib, 101);
       });
 
-      test('vibrates haptic when bib is a duplicate', () async {
+      test('does not vibrate on duplicate — haptic is handled at recognition time', () async {
         final mockHaptic = MockIHapticFeedback();
         when(mockHaptic.vibrate()).thenAnswer((_) async {});
         final controller = BibRecorderV2Controller(
@@ -652,7 +652,7 @@ void main() {
         // Wait 2 ms so the second entry gets a distinct id.
         await Future.delayed(const Duration(milliseconds: 2));
         controller.addBib(101); // duplicate
-        verify(mockHaptic.vibrate()).called(1);
+        verifyNever(mockHaptic.vibrate());
       });
 
       test('does not vibrate when bib is clean (no roster, no duplicates)', () {
@@ -750,6 +750,37 @@ void main() {
         controller.addBib(202);
         controller.clearEntries();
         expect(controller.entries, isEmpty);
+      });
+
+      test('restoreEntry re-inserts entry at correct index', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        final entry = controller.entries.first;
+        controller.deleteEntry(entry.id);
+        expect(controller.entries, isEmpty);
+
+        controller.restoreEntry(entry, 0);
+        expect(controller.entries.length, 1);
+        expect(controller.entries.first.bib, 101);
+      });
+
+      test('restoreEntry clamps index when out of bounds', () {
+        final controller = BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        );
+        controller.addBib(101);
+        final entry = controller.entries.first;
+        controller.deleteEntry(entry.id);
+
+        controller.restoreEntry(entry, 99);
+        expect(controller.entries.length, 1);
+        expect(controller.entries.last.bib, 101);
       });
     });
 
@@ -897,6 +928,34 @@ void main() {
       test('voiceReady is true when initialize succeeds', () async {
         final controller = await makeVoiceController();
         expect(controller.voiceReady, isTrue);
+      });
+
+      test('vibrates when voice recognition returns null', () async {
+        final mockHaptic = MockIHapticFeedback();
+        when(mockHaptic.vibrate()).thenAnswer((_) async {});
+        final mockStorage = MockIAssistantStorageService();
+        final mockVoice = MockIVoiceRecognitionService();
+        when(mockVoice.bibNumbers)
+            .thenAnswer((_) => bibStreamCtrl.stream);
+        when(mockVoice.partialResults)
+            .thenAnswer((_) => transcriptStreamCtrl.stream);
+        when(mockVoice.initialize())
+            .thenAnswer((_) async => const Success<void>(null));
+        when(mockVoice.start()).thenAnswer((_) async {});
+        when(mockVoice.stop()).thenAnswer((_) async {});
+        when(mockStorage.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: mockVoice,
+          haptic: mockHaptic,
+        );
+        await controller.initialize();
+        await controller.startListening();
+        await controller.stopListening();
+        bibStreamCtrl.add(null);
+        await Future.microtask(() {});
+        verify(mockHaptic.vibrate()).called(1);
       });
     });
 

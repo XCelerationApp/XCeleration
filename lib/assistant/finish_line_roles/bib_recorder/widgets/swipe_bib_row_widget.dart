@@ -94,7 +94,24 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
       key: ValueKey(widget.entry.id),
       direction: DismissDirection.endToStart,
       confirmDismiss: (_) async {
+        final deletedEntry = widget.entry;
+        final deletedIndex = widget.position - 1;
         widget.controller.deleteEntry(widget.entry.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Bib #${deletedEntry.bib} deleted'),
+              duration: const Duration(seconds: 3),
+              action: SnackBarAction(
+                label: 'Undo',
+                onPressed: () {
+                  widget.controller.restoreEntry(deletedEntry, deletedIndex);
+                },
+              ),
+            ),
+          );
+        }
         return false;
       },
       background: Container(
