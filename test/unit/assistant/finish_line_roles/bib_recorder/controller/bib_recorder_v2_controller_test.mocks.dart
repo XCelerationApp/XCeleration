@@ -977,10 +977,10 @@ class MockIVoiceRecognitionService extends _i1.Mock
   }
 
   @override
-  _i3.Stream<int?> get bibNumbers => (super.noSuchMethod(
+  _i3.Stream<String?> get bibNumbers => (super.noSuchMethod(
         Invocation.getter(#bibNumbers),
-        returnValue: _i3.Stream<int?>.empty(),
-      ) as _i3.Stream<int?>);
+        returnValue: _i3.Stream<String?>.empty(),
+      ) as _i3.Stream<String?>);
 
   @override
   _i3.Stream<String> get partialResults => (super.noSuchMethod(

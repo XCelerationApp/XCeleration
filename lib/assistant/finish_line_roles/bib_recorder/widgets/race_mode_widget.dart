@@ -74,9 +74,9 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
   // ── Auto-submit timer ────────────────────────────────────────────────────
 
   /// Called by the controller when voice recognition produces a bib.
-  void _onBibPending(int bib) {
+  void _onBibPending(String bib) {
     _autoSubmitTimer?.cancel();
-    _cardBibController.text = bib.toString();
+    _cardBibController.text = bib;
     _cardBibController.selection = TextSelection.collapsed(
       offset: _cardBibController.text.length,
     );
