@@ -4,9 +4,10 @@ import 'package:xceleration/core/result.dart';
 ///
 /// Lifecycle: [initialize] → [start] / [stop] (repeatable) → [dispose].
 abstract interface class IVoiceRecognitionService {
-  /// Emits a recognised bib number (1–9999), or null when no valid number was
-  /// heard. Emitted once per [stop] call.
-  Stream<int?> get bibNumbers;
+  /// Emits a recognised bib number as a digit string (e.g. "0042", "1234"),
+  /// preserving leading zeros, or null when no valid number was heard.
+  /// Emitted once per [stop] call.
+  Stream<String?> get bibNumbers;
 
   /// Emits the raw lowercase transcript after each [stop] call (before
   /// bib parsing). Useful for debugging recognition quality.

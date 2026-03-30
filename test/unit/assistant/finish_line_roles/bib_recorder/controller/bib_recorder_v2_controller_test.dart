@@ -65,7 +65,7 @@ void main() {
     final mockHaptic = MockIHapticFeedback();
 
     when(mockVoice.bibNumbers)
-        .thenAnswer((_) => StreamController<int?>.broadcast().stream);
+        .thenAnswer((_) => StreamController<String?>.broadcast().stream);
     when(mockVoice.partialResults)
         .thenAnswer((_) => StreamController<String>.broadcast().stream);
     when(mockVoice.initialize())
@@ -819,11 +819,11 @@ void main() {
     });
 
     group('voice state', () {
-      late StreamController<int?> bibStreamCtrl;
+      late StreamController<String?> bibStreamCtrl;
       late StreamController<String> transcriptStreamCtrl;
 
       setUp(() {
-        bibStreamCtrl = StreamController<int?>.broadcast();
+        bibStreamCtrl = StreamController<String?>.broadcast();
         transcriptStreamCtrl = StreamController<String>.broadcast();
       });
 

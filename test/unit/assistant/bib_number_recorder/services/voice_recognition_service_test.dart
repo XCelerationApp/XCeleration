@@ -138,7 +138,7 @@ void main() {
           () async {
         when(mockRecorder.stop()).thenAnswer((_) async => null);
 
-        final bibs = <int?>[];
+        final bibs = <String?>[];
         final partials = <String>[];
         service.bibNumbers.listen(bibs.add);
         service.partialResults.listen(partials.add);
@@ -155,7 +155,7 @@ void main() {
         when(mockSpeechRecognition.transcribe('/tmp/bib.wav'))
             .thenAnswer((_) async => 'twenty three');
 
-        final bibs = <int?>[];
+        final bibs = <String?>[];
         final partials = <String>[];
         service.bibNumbers.listen(bibs.add);
         service.partialResults.listen(partials.add);
@@ -163,7 +163,7 @@ void main() {
         await service.stop();
         await pumpEventQueue();
 
-        expect(bibs, [23]);
+        expect(bibs, ['23']);
         expect(partials, ['twenty three']);
       });
 
@@ -173,7 +173,7 @@ void main() {
         when(mockSpeechRecognition.transcribe('/tmp/bib.wav'))
             .thenAnswer((_) async => 'hello world');
 
-        final bibs = <int?>[];
+        final bibs = <String?>[];
         service.bibNumbers.listen(bibs.add);
         service.partialResults.listen((_) {});
 
@@ -188,7 +188,7 @@ void main() {
         when(mockSpeechRecognition.transcribe('/tmp/bib.wav'))
             .thenAnswer((_) async => '');
 
-        final bibs = <int?>[];
+        final bibs = <String?>[];
         service.bibNumbers.listen(bibs.add);
         service.partialResults.listen((_) {});
 

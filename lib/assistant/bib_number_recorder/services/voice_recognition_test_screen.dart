@@ -38,10 +38,10 @@ class _VoiceRecognitionTestScreenState
   _Status _status = _Status.initialising;
   String _statusMessage = 'Initialising…';
   String _rawText = '';
-  int? _lastBib;
-  final List<int> _history = [];
+  String? _lastBib;
+  final List<String> _history = [];
 
-  StreamSubscription<int?>? _bibSub;
+  StreamSubscription<String?>? _bibSub;
   StreamSubscription<String>? _partialSub;
 
   @override
@@ -98,7 +98,7 @@ class _VoiceRecognitionTestScreenState
     });
   }
 
-  void _onBib(int? bib) {
+  void _onBib(String? bib) {
     if (!mounted) return;
     setState(() {
       _lastBib = bib;
@@ -166,7 +166,7 @@ class _VoiceRecognitionTestScreenState
                   spacing: AppSpacing.sm,
                   runSpacing: AppSpacing.xs,
                   children: _history
-                      .map((bib) => Chip(label: Text('$bib')))
+                      .map((bib) => Chip(label: Text(bib)))
                       .toList(),
                 ),
               ],
@@ -230,7 +230,7 @@ class _StatusCard extends StatelessWidget {
 class _ResultCard extends StatelessWidget {
   const _ResultCard({required this.rawText, required this.bib});
   final String rawText;
-  final int? bib;
+  final String? bib;
 
   @override
   Widget build(BuildContext context) {
@@ -277,7 +277,7 @@ class _ResultCard extends StatelessWidget {
                 AppTypography.caption.copyWith(color: AppColors.mediumColor),
           ),
           Text(
-            bib != null ? '$bib' : 'not recognised',
+            bib ?? 'not recognised',
             style: AppTypography.titleSemibold.copyWith(
               color:
                   bib != null ? AppColors.primaryColor : AppColors.redColor,

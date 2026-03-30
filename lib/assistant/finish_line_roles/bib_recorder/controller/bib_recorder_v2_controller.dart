@@ -47,9 +47,9 @@ class BibRecorderV2Controller extends ChangeNotifier {
   /// When set, voice-recognized bibs are delivered here instead of being added
   /// directly to entries. The widget can display the bib in an editable field
   /// and start an auto-submit timer before calling [addBib].
-  ValueChanged<int>? onBibPending;
+  ValueChanged<String>? onBibPending;
 
-  StreamSubscription<int?>? _bibSub;
+  StreamSubscription<String?>? _bibSub;
   StreamSubscription<String>? _transcriptSub;
   StreamSubscription<(Role, MessageEnvelope)>? _sessionSub;
 
@@ -296,15 +296,17 @@ class BibRecorderV2Controller extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _onBibRecognized(int? bib) {
+  void _onBibRecognized(String? bibStr) {
     _isProcessing = false;
     _transcript = '';
     _awaitingRecord = false;
-    if (bib != null) {
+    if (bibStr != null) {
+      final bib = int.tryParse(bibStr);
+      if (bib == null) return;
       if (onBibPending != null) {
         if (flagFor(bib) != null) _haptic.vibrate();
         notifyListeners();
-        onBibPending!(bib);
+        onBibPending!(bibStr);
         return;
       }
       final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);

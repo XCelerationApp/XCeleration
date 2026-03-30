@@ -33,9 +33,9 @@ void _inferenceIsolateEntry(({
       debug: false,
     ),
     decodingMethod: 'modified_beam_search',
-    maxActivePaths: 4,
+    maxActivePaths: 8,
     hotwordsFile: args.hotwordsFile,
-    hotwordsScore: 5,
+    hotwordsScore: 10,
   );
 
   final recognizer = sherpa.OfflineRecognizer(config);
@@ -58,7 +58,18 @@ void _inferenceIsolateEntry(({
 
     try {
       final wave = sherpa.readWave(wavPath);
+      final durationSec = wave.samples.isEmpty
+          ? 0.0
+          : wave.samples.length / wave.sampleRate;
+      // ignore: avoid_print — Logger.d is unavailable in isolates.
+      print('[SherpaOnnx] WAV loaded: '
+          '${wave.samples.length} samples, '
+          'rate=${wave.sampleRate} Hz, '
+          'duration=${durationSec.toStringAsFixed(2)}s');
+
       if (wave.samples.isEmpty) {
+        // ignore: avoid_print
+        print('[SherpaOnnx] Empty WAV — returning blank transcript');
         replyPort.send('');
         return;
       }
@@ -67,12 +78,19 @@ void _inferenceIsolateEntry(({
         stream.acceptWaveform(
             samples: wave.samples, sampleRate: wave.sampleRate);
         recognizer.decode(stream);
-        replyPort.send(
-            recognizer.getResult(stream).text.trim().toLowerCase());
+        final rawResult = recognizer.getResult(stream);
+        final transcript = rawResult.text.trim().toLowerCase();
+        // ignore: avoid_print
+        print('[SherpaOnnx] Raw model text: "${rawResult.text}"');
+        // ignore: avoid_print
+        print('[SherpaOnnx] Normalised transcript: "$transcript"');
+        replyPort.send(transcript);
       } finally {
         stream.free();
       }
-    } catch (_) {
+    } catch (e, st) {
+      // ignore: avoid_print
+      print('[SherpaOnnx] Transcription error: $e\n$st');
       replyPort.send('');
     }
   });

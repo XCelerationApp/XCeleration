@@ -10,6 +10,7 @@ import 'package:xceleration/assistant/bib_number_recorder/services/model_downloa
 import 'package:xceleration/assistant/bib_number_recorder/services/speech_recognition_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/logger.dart';
 
 /// [IVoiceRecognitionService] implementation.
 ///
@@ -43,13 +44,13 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
   final ISpeechRecognitionService _speechRecognition;
   final BibNumberParser _parser;
 
-  final _bibController = StreamController<int?>.broadcast();
+  final _bibController = StreamController<String?>.broadcast();
   final _partialController = StreamController<String>.broadcast();
 
   bool _ready = false;
 
   @override
-  Stream<int?> get bibNumbers => _bibController.stream;
+  Stream<String?> get bibNumbers => _bibController.stream;
 
   @override
   Stream<String> get partialResults => _partialController.stream;
@@ -87,16 +88,23 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
   @override
   Future<void> stop() async {
     final path = await _recorder.stop();
+    Logger.d('[VoiceRecognition] stop() — recorder returned path: $path, ready: $_ready');
 
     if (path == null || !_ready) {
+      Logger.d('[VoiceRecognition] No recording or not ready → emitting null');
       _bibController.add(null);
       _partialController.add('');
       return;
     }
 
     final transcript = await _speechRecognition.transcribe(path);
+    Logger.d('[VoiceRecognition] Transcript from model: "$transcript"');
+
+    final bib = _parser.parse(transcript);
+    Logger.d('[VoiceRecognition] Parser result: $bib (transcript: "$transcript")');
+
     _partialController.add(transcript);
-    _bibController.add(_parser.parse(transcript));
+    _bibController.add(bib);
   }
 
   @override
