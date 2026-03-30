@@ -664,6 +664,147 @@ void main() {
         await service.pullAll();
         await streamExpectation;
       });
+
+      // -----------------------------------------------------------------------
+      group('race_results pull — cursor', () {
+      test(
+          'does not advance cursor past a skipped row when runner UUID is unresolved',
+          () async {
+        const runnerUuidExists = 'runner-uuid-exists';
+        const runnerUuidMissing = 'runner-uuid-missing';
+        const raceUuid = 'race-uuid-1';
+        const t1 = '2024-01-01T10:00:00.000Z';
+        const t2 = '2024-01-01T11:00:00.000Z';
+
+        final row1 = {
+          'uuid': 'result-uuid-1',
+          'runner_uuid': runnerUuidExists,
+          'race_uuid': raceUuid,
+          'updated_at': t1,
+          'owner_user_id': 'user-1',
+        };
+        // row2 has a later updated_at but an unresolvable runner_uuid
+        final row2 = {
+          'uuid': 'result-uuid-2',
+          'runner_uuid': runnerUuidMissing,
+          'race_uuid': raceUuid,
+          'updated_at': t2,
+          'owner_user_id': 'user-1',
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'race_results',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [row1, row2]);
+
+        // Only the existing runner resolves
+        when(mockDatabase.rawQuery(
+          argThat(contains('runner_id FROM runners')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': runnerUuidExists, 'runner_id': 1}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('race_id FROM races')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': raceUuid, 'race_id': 10}
+            ]);
+
+        // No existing local race_results
+        when(mockDatabase.rawQuery(
+          argThat(contains('FROM race_results WHERE')),
+          any,
+        )).thenAnswer((_) async => []);
+
+        await service.pullAll();
+
+        final captured = verify(mockDatabase.insert(
+          'sync_state',
+          captureAny,
+          conflictAlgorithm: anyNamed('conflictAlgorithm'),
+        )).captured;
+
+        final cursorSave = captured
+            .cast<Map<String, dynamic>>()
+            .firstWhere((m) => m['key'] == 'cursor.race_results');
+        expect(cursorSave['value'], t1,
+            reason: 'cursor must not advance past the skipped row at t2');
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('race_participants pull — cursor', () {
+      test(
+          'does not advance cursor past a skipped row when race UUID is unresolved',
+          () async {
+        const runnerUuid = 'runner-uuid-1';
+        const raceUuidExists = 'race-uuid-exists';
+        const raceUuidMissing = 'race-uuid-missing';
+        const t1 = '2024-02-01T10:00:00.000Z';
+        const t2 = '2024-02-01T11:00:00.000Z';
+
+        final row1 = {
+          'uuid': 'participant-uuid-1',
+          'race_uuid': raceUuidExists,
+          'runner_uuid': runnerUuid,
+          'team_uuid': null,
+          'updated_at': t1,
+          'owner_user_id': 'user-1',
+        };
+        // row2 has a later updated_at but an unresolvable race_uuid
+        final row2 = {
+          'uuid': 'participant-uuid-2',
+          'race_uuid': raceUuidMissing,
+          'runner_uuid': runnerUuid,
+          'team_uuid': null,
+          'updated_at': t2,
+          'owner_user_id': 'user-1',
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'race_participants',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [row1, row2]);
+
+        // Only the existing race resolves
+        when(mockDatabase.rawQuery(
+          argThat(contains('race_id FROM races')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': raceUuidExists, 'race_id': 10}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('runner_id FROM runners')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': runnerUuid, 'runner_id': 1}
+            ]);
+
+        // No existing local race_participants
+        when(mockDatabase.rawQuery(
+          argThat(contains('FROM race_participants WHERE')),
+          any,
+        )).thenAnswer((_) async => []);
+
+        await service.pullAll();
+
+        final captured = verify(mockDatabase.insert(
+          'sync_state',
+          captureAny,
+          conflictAlgorithm: anyNamed('conflictAlgorithm'),
+        )).captured;
+
+        final cursorSave = captured
+            .cast<Map<String, dynamic>>()
+            .firstWhere((m) => m['key'] == 'cursor.race_participants');
+        expect(cursorSave['value'], t1,
+            reason: 'cursor must not advance past the skipped row at t2');
+      });
     });
 
     // -------------------------------------------------------------------------
@@ -681,5 +822,6 @@ void main() {
         await sub.cancel();
       });
     });
+  });
   });
 }
