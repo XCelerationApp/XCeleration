@@ -424,8 +424,3 @@ class P2PSessionService {
   }
 }
 
-/// Discards the [Future] returned by an async call intentionally.
-///
-/// Used for fire-and-forget operations (e.g. sending ACKs from a sync
-/// callback) where we accept that the result is not awaited.
-void unawaited(Future<void> future) {}

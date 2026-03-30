@@ -10,10 +10,10 @@ import 'package:xceleration/assistant/shared/models/bib_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/race_data_loader.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/haptic_feedback_service.dart';
-import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -241,6 +241,8 @@ class BibRecorderV2Controller extends ChangeNotifier {
         }
         notifyListeners();
       case Failure(:final error):
+        _positionToEntryId.clear();
+        _nextPosition = 0;
         Logger.e('[BibRecorderV2Controller._loadBibRecords] ${error.originalException}');
     }
   }
@@ -300,23 +302,26 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _isProcessing = false;
     _transcript = '';
     _awaitingRecord = false;
-    if (bibStr != null) {
-      final bib = int.tryParse(bibStr);
-      if (bib == null) return;
-      if (onBibPending != null) {
-        if (flagFor(bib) != null) _haptic.vibrate();
-        notifyListeners();
-        onBibPending!(bibStr);
-        return;
-      }
-      final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
-      _entries.insert(0, entry);
-      if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
-      _nextPosition++;
-      _positionToEntryId[_nextPosition] = entry.id;
-      _sendBibEntry(entry.id, bib, _nextPosition);
-      _persistAddBib(entry.id, bib);
+    if (bibStr == null) {
+      _haptic.vibrate();
+      notifyListeners();
+      return;
     }
+    final bib = int.tryParse(bibStr);
+    if (bib == null) return;
+    if (onBibPending != null) {
+      if (flagFor(bib) != null) _haptic.vibrate();
+      notifyListeners();
+      onBibPending!(bibStr);
+      return;
+    }
+    final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
+    _entries.insert(0, entry);
+    if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
+    _nextPosition++;
+    _positionToEntryId[_nextPosition] = entry.id;
+    _sendBibEntry(entry.id, bib, _nextPosition);
+    _persistAddBib(entry.id, bib);
     notifyListeners();
   }
 
@@ -327,7 +332,6 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _awaitingRecord = false;
     final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
     _entries.insert(0, entry);
-    if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
     _nextPosition++;
     _positionToEntryId[_nextPosition] = entry.id;
     _sendBibEntry(entry.id, bib, _nextPosition);
@@ -363,6 +367,18 @@ class BibRecorderV2Controller extends ChangeNotifier {
       unawaited(_storage.updateBibRecordValue(_selectedRace!.raceId, id, newBib.toString()).then((result) {
         if (result case Failure(:final error)) {
           Logger.e('[BibRecorderV2Controller.editEntry] ${error.originalException}');
+        }
+      }));
+    }
+    notifyListeners();
+  }
+
+  void restoreEntry(BibEntry entry, int index) {
+    _entries.insert(index.clamp(0, _entries.length), entry);
+    if (_selectedRace != null) {
+      unawaited(_storage.addBibRecord(_selectedRace!.raceId, entry.id, entry.bib.toString()).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[BibRecorderV2Controller.restoreEntry] ${error.originalException}');
         }
       }));
     }
@@ -422,63 +438,14 @@ class BibRecorderV2Controller extends ChangeNotifier {
   // ── Race loading ──────────────────────────────────────────────────────────
 
   /// Parses [data] received from the Coach, saves the race and runners to
-  /// storage, then reloads the race list. Returns [Failure] with a
-  /// user-readable message if parsing or saving fails.
-  Future<Result<void>> processLoadedRaceData(String data) async {
-    late RaceRecord raceRecord;
-    List<BibDatum> loadedRunners = [];
-
-    try {
-      final parts = data.split('---');
-      if (parts.length == 2) {
-        raceRecord = RaceRecord.fromEncodedString(parts[0],
-            type: DeviceName.bibRecorderV2.toString());
-
-        final runnersResult =
-            await BibDecodeUtils.decodeEncodedRunners(parts[1]);
-        switch (runnersResult) {
-          case Success(:final value):
-            loadedRunners = value;
-          case Failure(:final error):
-            Logger.e(
-                '[BibRecorderV2Controller.processLoadedRaceData] ${error.originalException}');
-            return Failure(error);
-        }
-      } else {
-        raceRecord = RaceRecord.fromEncodedString(data,
-            type: DeviceName.bibRecorderV2.toString());
-      }
-    } catch (e) {
-      Logger.e('Error parsing race data: $e');
-      return Failure(AppError(userMessage: 'Failed to parse race data: $e'));
-    }
-
-    final saveResult = await _storage.saveNewRace(raceRecord);
-    if (saveResult case Failure(:final error)) {
-      Logger.e(
-          '[BibRecorderV2Controller.processLoadedRaceData] ${error.originalException}');
-      await _loadRaces();
-      return Failure(error);
-    }
-
-    if (loadedRunners.isNotEmpty) {
-      final dbRunners = loadedRunners
-          .map((runner) => Runner(
-                raceId: raceRecord.raceId,
-                bibNumber: runner.bib,
-                name: runner.name,
-                teamAbbreviation: runner.teamAbbreviation,
-                grade: runner.grade,
-                teamColor: runner.teamColor,
-                createdAt: DateTime.now(),
-              ))
-          .toList();
-      await _storage.saveRunners(raceRecord.raceId, dbRunners);
-    }
-
-    await _loadRaces();
-    return const Success(null);
-  }
+  /// storage, then reloads the race list.
+  Future<Result<void>> processLoadedRaceData(String data) =>
+      processLoadedRaceDataShared(
+        data: data,
+        deviceName: DeviceName.bibRecorderV2,
+        storage: _storage,
+        onComplete: _loadRaces,
+      );
 
   // ── Share ─────────────────────────────────────────────────────────────────
 
@@ -549,7 +516,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
     final idx = _entries.indexWhere((e) => e.id == entryId);
     if (idx == -1) return;
     if (msg.correctedBib != null) {
-      _entries[idx] = _entries[idx].copyWith(correctedTo: msg.correctedBib);
+      _entries[idx] = _entries[idx].copyWith(correctedTo: () => msg.correctedBib);
     } else if (msg.correctionType == CorrectionType.newRunner) {
       _entries[idx] = _entries[idx].copyWith(isNewRunner: true);
     }

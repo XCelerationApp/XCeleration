@@ -255,10 +255,9 @@ class _SubRoleCardState extends State<_SubRoleCard> {
       duration: AppAnimations.fast,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        // TODO(ui): #fafafa is not in AppColors — closest is backgroundColor
         color: _pressed
             ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
-            : const Color(0xFFFAFAFA),
+            : AppColors.cardBackground,
         borderRadius: BorderRadius.circular(AppBorderRadius.lg),
         border: Border.all(
           color: _pressed ? AppColors.primaryColor : AppColors.lightColor,
