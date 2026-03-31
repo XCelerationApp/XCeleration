@@ -325,6 +325,8 @@ class SyncService implements ISyncService {
         return;
       }
 
+      await _db.openForUser(_auth.currentUserId!);
+
       await ensureLocalUuids();
       await pushAll();
       await pullAll();

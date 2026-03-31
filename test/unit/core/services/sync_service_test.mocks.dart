@@ -208,6 +208,16 @@ class MockIDatabaseConnectionProvider extends _i1.Mock
       ) as _i4.Future<_i2.Database>);
 
   @override
+  _i4.Future<void> openForUser(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #openForUser,
+          [userId],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
   _i4.Future<void> close() => (super.noSuchMethod(
         Invocation.method(
           #close,
@@ -222,6 +232,16 @@ class MockIDatabaseConnectionProvider extends _i1.Mock
         Invocation.method(
           #deleteDatabase,
           [],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> deleteUserData(String? userId) => (super.noSuchMethod(
+        Invocation.method(
+          #deleteUserData,
+          [userId],
         ),
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
@@ -404,6 +424,77 @@ class MockIAuthService extends _i1.Mock implements _i8.IAuthService {
   _i4.Future<void> sendPasswordResetEmail(String? email) => (super.noSuchMethod(
         Invocation.method(
           #sendPasswordResetEmail,
+          [email],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<_i3.AuthResponse> verifyEmailOtp(
+    String? email,
+    String? token,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #verifyEmailOtp,
+          [
+            email,
+            token,
+          ],
+        ),
+        returnValue: _i4.Future<_i3.AuthResponse>.value(_FakeAuthResponse_2(
+          this,
+          Invocation.method(
+            #verifyEmailOtp,
+            [
+              email,
+              token,
+            ],
+          ),
+        )),
+      ) as _i4.Future<_i3.AuthResponse>);
+
+  @override
+  _i4.Future<_i3.AuthResponse> verifyPasswordResetOtp(
+    String? email,
+    String? token,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #verifyPasswordResetOtp,
+          [
+            email,
+            token,
+          ],
+        ),
+        returnValue: _i4.Future<_i3.AuthResponse>.value(_FakeAuthResponse_2(
+          this,
+          Invocation.method(
+            #verifyPasswordResetOtp,
+            [
+              email,
+              token,
+            ],
+          ),
+        )),
+      ) as _i4.Future<_i3.AuthResponse>);
+
+  @override
+  _i4.Future<void> updatePassword(String? newPassword) => (super.noSuchMethod(
+        Invocation.method(
+          #updatePassword,
+          [newPassword],
+        ),
+        returnValue: _i4.Future<void>.value(),
+        returnValueForMissingStub: _i4.Future<void>.value(),
+      ) as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> resendEmailConfirmation(String? email) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #resendEmailConfirmation,
           [email],
         ),
         returnValue: _i4.Future<void>.value(),

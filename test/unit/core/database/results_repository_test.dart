@@ -26,6 +26,9 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
   }
 
   @override
+  Future<void> openForUser(String userId) async {}
+
+  @override
   Future<void> close() async {
     await _db?.close();
     _db = null;
@@ -35,6 +38,9 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
   Future<void> deleteDatabase() async {
     _db = null;
   }
+
+  @override
+  Future<void> deleteUserData(String userId) async {}
 }
 
 void main() {

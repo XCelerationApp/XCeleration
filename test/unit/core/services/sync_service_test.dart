@@ -83,6 +83,7 @@ void main() {
     );
 
     when(mockConnProvider.database).thenAnswer((_) async => mockDatabase);
+    when(mockConnProvider.openForUser(any)).thenAnswer((_) async {});
     when(mockRemote.init()).thenAnswer((_) async {});
     when(mockRemote.isInitialized).thenReturn(false);
     // Default to unauthenticated; individual tests override as needed.

@@ -4,9 +4,12 @@ import 'package:provider/provider.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import '../core/components/dialog_utils.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import '../core/components/page_route_animations.dart';
 import 'role_screen.dart';
 
@@ -206,26 +209,26 @@ class SettingsScreen extends StatelessWidget {
           cancelText: 'Cancel',
         );
         if (!confirmed || !context.mounted) return;
-        try {
-          await DialogUtils.executeWithLoadingDialog(context,
-              loadingMessage: 'Deleting account...', operation: () async {
-            await AuthService.instance.deleteCurrentUserAccount();
-          });
-          if (!context.mounted) return;
-          // Ensure the local session is cleared after account deletion
-          await AuthService.instance.signOut();
-          if (!context.mounted) return;
-          DialogUtils.showSuccessDialog(context, message: 'Account deleted');
-          Navigator.of(context).pushAndRemoveUntil(
-            RolePageRouteAnimation(child: const RoleScreen()),
-            (route) => false,
-          );
-        } catch (e) {
-          if (!context.mounted) return;
-          DialogUtils.showErrorDialog(
-            context,
-            message: 'Failed to delete account: $e',
-          );
+        final result = await DialogUtils.executeWithLoadingDialog(context,
+            loadingMessage: 'Deleting account...', operation: () async {
+          return AuthService.instance.deleteCurrentUserAccount();
+        });
+        if (!context.mounted) return;
+        switch (result) {
+          case Success():
+            final userId = AuthService.instance.currentUserId!;
+            await ServiceLocator.get<IDatabaseConnectionProvider>().deleteUserData(userId);
+            await AuthService.instance.signOut();
+            if (!context.mounted) return;
+            DialogUtils.showSuccessDialog(context, message: 'Account deleted');
+            Navigator.of(context).pushAndRemoveUntil(
+              RolePageRouteAnimation(child: const RoleScreen()),
+              (route) => false,
+            );
+          case Failure(:final error):
+            DialogUtils.showErrorDialog(context, message: error.userMessage);
+          case null:
+            break;
         }
       },
     );
@@ -239,6 +242,7 @@ class SettingsScreen extends StatelessWidget {
       Icons.logout,
       isSelected: false,
       onTap: () async {
+        await ServiceLocator.get<IDatabaseConnectionProvider>().close();
         await AuthService.instance.signOut();
         if (!context.mounted) return;
         Navigator.of(context).pushAndRemoveUntil(
