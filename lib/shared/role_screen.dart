@@ -17,10 +17,12 @@ import '../core/theme/app_opacity.dart';
 import '../core/theme/app_animations.dart';
 import '../core/theme/typography.dart';
 import '../core/components/page_route_animations.dart';
+import '../core/repositories/i_database_connection_provider.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/i_remote_api_client.dart';
 import '../core/services/profile_service.dart';
 import '../core/services/remote_api_client.dart';
+import '../core/services/service_locator.dart';
 import 'screens/sign_in_screen.dart';
 
 // ─── Shared animation helper ──────────────────────────────────────────────────
@@ -575,7 +577,7 @@ class _RoleScreenState extends State<RoleScreen>
     super.dispose();
   }
 
-  void _onCoach() {
+  void _onCoach() async {
     final auth = widget.authService ?? AuthService.instance;
     final remoteApi = widget.remoteApiClient ?? RemoteApiClient();
     if (!auth.isSignedIn) {
@@ -592,6 +594,9 @@ class _RoleScreenState extends State<RoleScreen>
       );
       return;
     }
+    await ServiceLocator.get<IDatabaseConnectionProvider>()
+        .openForUser(auth.currentUserId!);
+    if (!mounted) return;
     Navigator.of(context).push(
       InitialPageRouteAnimation(child: const RacesScreen()),
     );

@@ -6,11 +6,27 @@ import 'i_database_connection_provider.dart';
 
 class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
   Database? _db;
+  String? _currentUserId;
 
   @override
   Future<Database> get database async {
-    _db ??= await _initDB('races.db');
+    if (_db == null) {
+      throw StateError(
+        'No user database open. Call openForUser() before accessing the database.',
+      );
+    }
     return _db!;
+  }
+
+  @override
+  Future<void> openForUser(String userId) async {
+    if (_currentUserId == userId && _db != null) return;
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+    }
+    _currentUserId = userId;
+    _db = await _initDB('races_$userId.db');
   }
 
   Future<Database> _initDB(String fileName) async {
@@ -44,9 +60,11 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> close() async {
-    final db = await database;
-    await db.close();
-    _db = null;
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+    }
+    _currentUserId = null;
   }
 
   @override
@@ -56,17 +74,22 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
       await _db!.close();
       _db = null;
     }
-    final path = join(await getDatabasesPath(), 'races.db');
-    await databaseFactory.deleteDatabase(path);
+    if (_currentUserId != null) {
+      final path = join(await getDatabasesPath(), 'races_$_currentUserId.db');
+      await databaseFactory.deleteDatabase(path);
+      _currentUserId = null;
+    }
   }
 
   @override
   Future<void> deleteUserData(String userId) async {
     Logger.d('Deleting local data for user $userId');
-    final db = await database;
-    await db.transaction((txn) async {
-      await txn.delete('races', where: 'owner_user_id = ?', whereArgs: [userId]);
-      await txn.delete('sync_state');
-    });
+    if (_db != null) {
+      await _db!.close();
+      _db = null;
+    }
+    final path = join(await getDatabasesPath(), 'races_$userId.db');
+    await databaseFactory.deleteDatabase(path);
+    _currentUserId = null;
   }
 }
