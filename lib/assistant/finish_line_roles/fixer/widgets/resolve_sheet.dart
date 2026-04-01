@@ -38,12 +38,10 @@ class _ResolveSheetState extends State<ResolveSheet> {
 
   @override
   void dispose() {
+    widget.controller.clearSearch();
     _searchCtrl.dispose();
     _nameCtrl.dispose();
     _bibCtrl.dispose();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      widget.controller.clearSearch();
-    });
     super.dispose();
   }
 

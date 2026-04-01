@@ -63,7 +63,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
     _controller.initialize().then((_) {
       if (mounted) setState(() => _initialising = false);
     });
-    SharedPreferences.getInstance().then((p) => _prefs = p);
+    SharedPreferences.getInstance().then((p) { if (mounted) _prefs = p; });
   }
 
   Future<void> _onControllerChanged() async {
@@ -71,6 +71,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
     if (_previousRace == null && _controller.selectedRace != null) {
       final race = _controller.selectedRace!;
       _prefs ??= await SharedPreferences.getInstance();
+      if (!mounted) return;
       final session = P2PSessionService(
         localRole: Role.bibRecorderV2,
         raceId: race.raceId,
