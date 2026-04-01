@@ -47,10 +47,13 @@ class _OverflowMenuButtonState extends State<OverflowMenuButton> {
 
     _overlay = OverlayEntry(
       builder: (overlayContext) {
-        final screenSize = MediaQuery.of(overlayContext).size;
+        final mediaQuery = MediaQuery.of(overlayContext);
+        final screenSize = mediaQuery.size;
+        final padding = mediaQuery.padding;
         const menuWidth = 210.0;
         final right = screenSize.width - buttonPos.dx - buttonSize.width;
-        final bottom = screenSize.height - buttonPos.dy + AppSpacing.sm;
+        final rawBottom = screenSize.height - buttonPos.dy + AppSpacing.sm;
+        final bottom = rawBottom.clamp(padding.bottom, screenSize.height);
 
         return Stack(
           children: [

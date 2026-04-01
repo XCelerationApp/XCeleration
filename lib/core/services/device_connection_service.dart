@@ -937,7 +937,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     // Disconnect from all devices in the state map
     final devicesCopy = _deviceStateMap.values.toList();
     for (var device in devicesCopy) {
-      disconnectDevice(device);
+      unawaited(disconnectDevice(device));
     }
     _deviceStateMap.clear();
 

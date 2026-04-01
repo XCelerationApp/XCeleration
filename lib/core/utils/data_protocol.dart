@@ -440,6 +440,9 @@ class Protocol implements ProtocolInterface {
       }
 
       // Wait for either completion or termination with resilience to transient state changes
+      final terminationFuture = _isTerminated
+          ? Future<void>.value()
+          : _terminationController.stream.first.catchError((_) {});
       await Future.any([
         Future.doWhile(() async {
           // Check if we've finished or should terminate
@@ -456,7 +459,7 @@ class Protocol implements ProtocolInterface {
           await Future.delayed(Duration(milliseconds: 100));
           return true;
         }),
-        _terminationController.stream.first,
+        terminationFuture,
       ]);
 
       // Check again with our timer-based state checker
