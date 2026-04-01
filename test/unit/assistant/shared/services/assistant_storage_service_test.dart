@@ -575,36 +575,72 @@ void main() {
         });
       });
 
-      group('Legacy chunk conflict/timing-data methods', () {
-        // These methods reference tables that don't exist in the schema
-        // (chunk_conflicts, chunk_timing_data). They always return Failure.
-        test('updateChunkConflict returns Failure for non-existent table',
-            () async {
-          final result =
-              await AssistantStorageService.instance.updateChunkConflict(
-                  '1',
-                  TimingDatum(
-                      time: '0:01.00',
-                      conflict:
-                          Conflict(type: ConflictType.missingTime, offBy: 1)));
+      group('Chunk conflict/timing-data helper methods', () {
+        const raceId = 99;
+        const chunkId = 1;
+        final race = RaceRecord(
+          raceId: raceId,
+          date: DateTime(2024, 1, 1),
+          name: 'Conflict Race',
+          type: DeviceName.raceTimer.toString(),
+        );
 
-          expect(result, isA<Failure<void>>());
+        setUp(() async {
+          await AssistantStorageService.instance.saveNewRace(race);
+          await AssistantStorageService.instance.saveChunk(
+            raceId,
+            TimingChunk(
+                id: chunkId, timingData: const [], conflictRecord: null),
+          );
         });
 
-        test('getChunkConflict returns Failure for non-existent table',
+        test('updateChunkConflict updates conflict_record on timing_chunks',
             () async {
-          final result =
-              await AssistantStorageService.instance.getChunkConflict('1');
+          final datum = TimingDatum(
+              time: '0:01.00',
+              conflict:
+                  Conflict(type: ConflictType.missingTime, offBy: 1));
+          final result = await AssistantStorageService.instance
+              .updateChunkConflict(raceId, chunkId, datum);
 
-          expect(result, isA<Failure<String?>>());
+          expect(result, isA<Success<void>>());
+
+          final getResult = await AssistantStorageService.instance
+              .getChunkConflict(raceId, chunkId);
+          expect(getResult, isA<Success<String?>>());
+          expect((getResult as Success<String?>).value, isNotNull);
         });
 
-        test('saveChunkTimingData returns Failure for non-existent table',
+        test('updateChunkConflict clears conflict when null', () async {
+          final result = await AssistantStorageService.instance
+              .updateChunkConflict(raceId, chunkId, null);
+
+          expect(result, isA<Success<void>>());
+
+          final getResult = await AssistantStorageService.instance
+              .getChunkConflict(raceId, chunkId);
+          expect((getResult as Success<String?>).value, isNull);
+        });
+
+        test('getChunkConflict returns null when no conflict set', () async {
+          final result = await AssistantStorageService.instance
+              .getChunkConflict(raceId, chunkId);
+
+          expect(result, isA<Success<String?>>());
+          expect((result as Success<String?>).value, isNull);
+        });
+
+        test('saveChunkTimingData updates timing_data on timing_chunks',
             () async {
           final result = await AssistantStorageService.instance
-              .saveChunkTimingData('1', ['0:01.00']);
+              .saveChunkTimingData(raceId, chunkId, ['0:01.00', '0:02.00']);
 
-          expect(result, isA<Failure<void>>());
+          expect(result, isA<Success<void>>());
+
+          final getResult = await AssistantStorageService.instance
+              .getChunkTimingData(raceId, chunkId);
+          expect(getResult, isA<Success<String?>>());
+          expect((getResult as Success<String?>).value, '0:01.00,0:02.00');
         });
       });
     });

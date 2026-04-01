@@ -51,12 +51,12 @@ abstract interface class IAssistantStorageService {
       int raceId, int chunkId, TimingDatum conflictRecord);
 
   Future<Result<void>> updateChunkConflict(
-      String chunkId, TimingDatum? conflictRecord);
+      int raceId, int chunkId, TimingDatum? conflictRecord);
 
-  Future<Result<String?>> getChunkConflict(String chunkId);
+  Future<Result<String?>> getChunkConflict(int raceId, int chunkId);
 
   Future<Result<void>> saveChunkTimingData(
-      String chunkId, List<String> encodedRecords);
+      int raceId, int chunkId, List<String> encodedRecords);
 
   Future<Result<void>> updateChunkTimingData(
       int raceId, int chunkId, List<TimingDatum> timingData);
