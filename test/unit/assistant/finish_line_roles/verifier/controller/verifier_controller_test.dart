@@ -978,12 +978,12 @@ void main() {
       });
 
       test('loads persisted entries on joinRace for crash recovery', () async {
-        const persisted = [
+        final persisted = [
           VerifierEntry(id: 1, position: 1, bib: 101, status: VerificationStatus.pending),
           VerifierEntry(id: 2, position: 2, bib: 102, status: VerificationStatus.verified),
         ];
         when(mockStorage.getVerifierEntries(42))
-            .thenAnswer((_) async => const Success(persisted));
+            .thenAnswer((_) async => Success(persisted));
 
         final controller = makeController(storage: mockStorage);
         await controller.initialize();
@@ -1049,6 +1049,52 @@ void main() {
         controller.skip(3);
         verify(mockHaptic.lightImpact()).called(1);
         verifyNever(mockHaptic.vibrate());
+      });
+    });
+
+    group('verify on non-existent ID', () {
+      test('does not throw', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 1,
+            bib: 101,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.entries.length, 1);
+
+        // verify on a position that does not exist — should not throw.
+        expect(() => controller.verify(999), returnsNormally);
+      });
+    });
+
+    group('flag on non-existent ID', () {
+      test('does not throw', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 1,
+            bib: 101,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.entries.length, 1);
+
+        // flag on a position that does not exist — should not throw.
+        expect(() => controller.flag(999), returnsNormally);
       });
     });
   });

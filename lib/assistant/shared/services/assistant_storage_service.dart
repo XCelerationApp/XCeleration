@@ -191,7 +191,7 @@ class AssistantStorageService implements IAssistantStorageService {
       await db.insert(
         'race_history',
         race.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.abort,
       );
       return const Success(null);
     } catch (e) {
