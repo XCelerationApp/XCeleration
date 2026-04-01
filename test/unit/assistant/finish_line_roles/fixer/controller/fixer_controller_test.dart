@@ -1219,5 +1219,50 @@ void main() {
         verifyNever(mockHaptic.vibrate());
       });
     });
+
+    group('detachSession', () {
+      test('cancels subscription so subsequent messages do not affect controller', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        // Send a valid flag message — should be received.
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.wrongName,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.queue.length, 1);
+
+        // Detach the session.
+        controller.detachSession();
+
+        // Send another message on the same stream — should be ignored.
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 2,
+              bib: 202,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.duplicate,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        // Still only one entry — the second message was ignored.
+        expect(controller.queue.length, 1);
+      });
+    });
   });
 }

@@ -1436,5 +1436,99 @@ void main() {
         expect(controller.flagFor(entry.bib, excludeId: entry.id), isNull);
       });
     });
+
+    group('dispose', () {
+      test('cancels voice and session subscriptions', () async {
+        final controller = await makeInitializedController();
+
+        // dispose() should not throw, and subsequent voice events should not
+        // cause errors because subscriptions are cancelled.
+        controller.dispose();
+        controllers.remove(controller); // already disposed — skip tearDown
+
+        // Sending on the stream after dispose should not throw.
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        // If we got here without throwing, the subscriptions were cancelled.
+      });
+    });
+
+    group('beginRace', () {
+      test('sets raceStarted to true', () async {
+        final mockStorage = MockIAssistantStorageService();
+        when(mockStorage.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(mockStorage.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(mockStorage.getBibRecords(any))
+            .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+
+        final race = RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'bibRecorderV2',
+        );
+
+        final controller = track(BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+        controller.selectRace(race);
+        await Future.microtask(() {});
+
+        controller.beginRace();
+
+        expect(controller.raceStarted, isTrue);
+      });
+    });
+
+    group('resumeRace', () {
+      test('clears raceStopped', () async {
+        final mockStorage = MockIAssistantStorageService();
+        when(mockStorage.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(mockStorage.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(mockStorage.getBibRecords(any))
+            .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+        when(mockStorage.addBibRecord(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+
+        final race = RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'bibRecorderV2',
+        );
+
+        final controller = track(BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+        controller.selectRace(race);
+        await Future.microtask(() {});
+
+        controller.beginRace();
+        controller.stopRace();
+        expect(controller.raceStopped, isTrue);
+
+        controller.resumeRace();
+
+        expect(controller.raceStopped, isFalse);
+        expect(controller.raceStarted, isTrue);
+      });
+    });
   });
 }
