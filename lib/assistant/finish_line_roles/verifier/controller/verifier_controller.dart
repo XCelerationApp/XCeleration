@@ -100,6 +100,8 @@ class VerifierController extends ChangeNotifier {
   Future<void> joinRace({required int raceId}) async {
     _raceId = raceId;
     _inRace = true;
+    _entries.clear();
+    _history.clear();
     notifyListeners();
     if (_storage == null) return;
     final result = await _storage.getVerifierEntries(raceId);
@@ -250,6 +252,7 @@ class VerifierController extends ChangeNotifier {
 
   void _addEntryFromMessage(BibEntryMessage msg) {
     final entry = VerifierEntry.fromMessage(msg);
+    if (_entries.any((e) => e.id == entry.id)) return;
     _entries.insert(0, entry);
     if (_storage != null) {
       unawaited(_storage.saveVerifierEntry(_raceId, entry).then((result) {

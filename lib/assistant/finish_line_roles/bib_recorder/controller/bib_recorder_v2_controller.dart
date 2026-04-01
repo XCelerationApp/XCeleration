@@ -178,6 +178,8 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _raceStopped = false;
     _entries.clear();
     _runners.clear();
+    _nextPosition = 0;
+    _positionToEntryId.clear();
     _transcript = '';
     _isListening = false;
     _isProcessing = false;
@@ -349,6 +351,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   void deleteEntry(int id) {
     _entries.removeWhere((e) => e.id == id);
+    _positionToEntryId.removeWhere((_, entryId) => entryId == id);
     if (_selectedRace != null) {
       unawaited(_storage.removeBibRecord(_selectedRace!.raceId, id).then((result) {
         if (result case Failure(:final error)) {
