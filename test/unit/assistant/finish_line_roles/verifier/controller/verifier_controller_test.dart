@@ -25,6 +25,7 @@ void main() {
   late MockIAssistantStorageService mockStorage;
   late MockIHapticFeedback mockHaptic;
   late StreamController<(Role, MessageEnvelope)> incomingController;
+  final controllers = <VerifierController>[];
 
   final testRace = RaceRecord(
     raceId: 1,
@@ -68,13 +69,31 @@ void main() {
   });
 
   tearDown(() async {
+    for (final c in controllers) {
+      c.dispose();
+    }
+    controllers.clear();
     await incomingController.close();
   });
+
+  VerifierController makeController({
+    P2PSessionService? session,
+    IAssistantStorageService? storage,
+    IHapticFeedback? haptic,
+  }) {
+    final c = VerifierController(
+      session: session,
+      storage: storage,
+      haptic: haptic ?? mockHaptic,
+    );
+    controllers.add(c);
+    return c;
+  }
 
   group('VerifierController', () {
     group('initialize', () {
       test('subscribes to incoming messages when session is set', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         final msg = BibEntryMessage(
@@ -94,7 +113,7 @@ void main() {
 
     group('incoming BibEntryMessage', () {
       test('adds resolved entry with no flag', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -118,7 +137,7 @@ void main() {
       });
 
       test('adds entry with duplicate flag', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -137,7 +156,7 @@ void main() {
       });
 
       test('adds entry with unknown flag', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -156,7 +175,7 @@ void main() {
       });
 
       test('populates runner context from message when present', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -181,7 +200,7 @@ void main() {
       });
 
       test('leaves runner context null for unknown bib', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -203,7 +222,7 @@ void main() {
       });
 
       test('ignores non-bibEntry message types', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -224,7 +243,7 @@ void main() {
       });
 
       test('malformed bibEntry payload is dropped and stream listener remains alive', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         // Malformed: missing required fields — fromJson will throw.
@@ -260,7 +279,7 @@ void main() {
     group('flag', () {
       test('sends VerifierFlagMessage to fixer after 3-second undo window', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
 
           incomingController.add((
@@ -294,7 +313,7 @@ void main() {
 
       test('sends FlagReason.unknown for unknown-flagged entry after undo window', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
 
           incomingController.add((
@@ -321,7 +340,7 @@ void main() {
 
       test('sends FlagReason.duplicate for duplicate-flagged entry after undo window', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
 
           incomingController.add((
@@ -348,7 +367,7 @@ void main() {
 
       test('does not send message when flag is undone within 3 seconds', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
 
           incomingController.add((
@@ -373,7 +392,7 @@ void main() {
 
       test('does not send message when no session is set', () {
         fakeAsync((fake) {
-          final controller = VerifierController(haptic: mockHaptic);
+          final controller = makeController();
           controller.joinRace(raceId: 1);
 
           controller.flag(1); // no session — flag is a no-op for P2P
@@ -396,7 +415,7 @@ void main() {
           );
 
       test('verify updates entry status to verified immediately', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
         incomingController.add((
           Role.bibRecorderV2,
@@ -410,7 +429,7 @@ void main() {
       });
 
       test('flag updates entry status to flagged immediately', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
         incomingController.add((
           Role.bibRecorderV2,
@@ -424,7 +443,7 @@ void main() {
       });
 
       test('skip updates entry status to skipped immediately', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
         incomingController.add((
           Role.bibRecorderV2,
@@ -438,7 +457,7 @@ void main() {
       });
 
       test('acted entry remains in entries within the 3-second window', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
         incomingController.add((
           Role.bibRecorderV2,
@@ -463,7 +482,7 @@ void main() {
 
       test('entry moves to history after 3 seconds', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -483,7 +502,7 @@ void main() {
 
       test('confirmed count is 0 before timer fires', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -500,7 +519,7 @@ void main() {
 
       test('wrong count increments after flagged entry commits', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -518,7 +537,7 @@ void main() {
 
       test('skipped count increments after skipped entry commits', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -535,7 +554,7 @@ void main() {
 
       test('pending count excludes acted-but-not-committed entries', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -565,7 +584,7 @@ void main() {
           );
 
       test('undo cancels timer and reverts entry to pending', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
         incomingController.add((
           Role.bibRecorderV2,
@@ -582,7 +601,7 @@ void main() {
       });
 
       test('undo restores pending count', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
         incomingController.add((
           Role.bibRecorderV2,
@@ -600,7 +619,7 @@ void main() {
 
       test('undo prevents entry from being committed to history', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -621,7 +640,7 @@ void main() {
 
       test('undo after entry committed is a no-op', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -645,7 +664,7 @@ void main() {
 
     group('leaveRace', () {
       test('clears entries, history, and sets isInRace to false', () async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
         controller.joinRace(raceId: 1);
         incomingController.add((
@@ -668,7 +687,7 @@ void main() {
 
       test('cancels pending timers so no commits fire after leave', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -695,7 +714,7 @@ void main() {
 
     group('processLoadedRaceData', () {
       test('returns Failure when data cannot be parsed', () async {
-        final controller = VerifierController(storage: mockStorage, haptic: mockHaptic);
+        final controller = makeController(storage: mockStorage);
 
         final result = await controller.processLoadedRaceData('not valid json');
 
@@ -703,7 +722,7 @@ void main() {
       });
 
       test('returns Failure when runner section is invalid', () async {
-        final controller = VerifierController(storage: mockStorage, haptic: mockHaptic);
+        final controller = makeController(storage: mockStorage);
         final data = '${testRace.encode()}---invalid-runner-data';
 
         final result = await controller.processLoadedRaceData(data);
@@ -715,7 +734,7 @@ void main() {
         when(mockStorage.saveNewRace(any)).thenAnswer(
           (_) async => Failure<void>(const AppError(userMessage: 'Save failed')),
         );
-        final controller = VerifierController(storage: mockStorage, haptic: mockHaptic);
+        final controller = makeController(storage: mockStorage);
 
         final result = await controller.processLoadedRaceData(testRace.encode());
 
@@ -724,7 +743,7 @@ void main() {
       });
 
       test('returns Success and calls saveNewRace on valid data without runners', () async {
-        final controller = VerifierController(storage: mockStorage, haptic: mockHaptic);
+        final controller = makeController(storage: mockStorage);
 
         final result = await controller.processLoadedRaceData(testRace.encode());
 
@@ -734,7 +753,7 @@ void main() {
       });
 
       test('returns Success and calls saveRunners on valid data with runners', () async {
-        final controller = VerifierController(storage: mockStorage, haptic: mockHaptic);
+        final controller = makeController(storage: mockStorage);
         final data = '${testRace.encode()}---$validRunnerJson';
 
         final result = await controller.processLoadedRaceData(data);
@@ -745,7 +764,7 @@ void main() {
       });
 
       test('returns Failure when storage is null', () async {
-        final controller = VerifierController(haptic: mockHaptic);
+        final controller = makeController();
 
         final result = await controller.processLoadedRaceData(testRace.encode());
 
@@ -756,7 +775,7 @@ void main() {
     group('stats', () {
       test('confirmed / wrong / skipped only count committed entries', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           for (final pos in [1, 2, 3]) {
             incomingController.add((
@@ -790,7 +809,7 @@ void main() {
 
       test('pending only counts genuinely pending entries', () {
         fakeAsync((fake) {
-          final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+          final controller = makeController(session: mockSession);
           controller.initialize();
           for (final pos in [1, 2, 3]) {
             incomingController.add((
@@ -816,7 +835,7 @@ void main() {
     group('attachSession', () {
       test('subscribes to incoming messages after construction without session',
           () async {
-        final controller = VerifierController(haptic: mockHaptic);
+        final controller = makeController();
 
         controller.attachSession(mockSession);
 
@@ -843,7 +862,7 @@ void main() {
         when(secondSession.incomingMessages)
             .thenAnswer((_) => secondController.stream);
 
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         // Replace with second session.
@@ -871,11 +890,7 @@ void main() {
 
     group('persistence', () {
       test('saves entry to storage when received from BibRecorder', () async {
-        final controller = VerifierController(
-          session: mockSession,
-          storage: mockStorage,
-          haptic: mockHaptic,
-        );
+        final controller = makeController(session: mockSession, storage: mockStorage);
         controller.initialize();
 
         incomingController.add((
@@ -894,11 +909,7 @@ void main() {
 
       test('updates status in storage when entry is verified', () {
         fakeAsync((fake) {
-          final controller = VerifierController(
-            session: mockSession,
-            storage: mockStorage,
-            haptic: mockHaptic,
-          );
+          final controller = makeController(session: mockSession, storage: mockStorage);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -921,11 +932,7 @@ void main() {
 
       test('updates status in storage when entry is flagged', () {
         fakeAsync((fake) {
-          final controller = VerifierController(
-            session: mockSession,
-            storage: mockStorage,
-            haptic: mockHaptic,
-          );
+          final controller = makeController(session: mockSession, storage: mockStorage);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -948,11 +955,7 @@ void main() {
 
       test('reverts status to pending in storage on undo', () {
         fakeAsync((fake) {
-          final controller = VerifierController(
-            session: mockSession,
-            storage: mockStorage,
-            haptic: mockHaptic,
-          );
+          final controller = makeController(session: mockSession, storage: mockStorage);
           controller.initialize();
           incomingController.add((
             Role.bibRecorderV2,
@@ -982,10 +985,7 @@ void main() {
         when(mockStorage.getVerifierEntries(42))
             .thenAnswer((_) async => const Success(persisted));
 
-        final controller = VerifierController(
-          storage: mockStorage,
-          haptic: mockHaptic,
-        );
+        final controller = makeController(storage: mockStorage);
         await controller.initialize();
         await controller.joinRace(raceId: 42);
 
@@ -996,10 +996,7 @@ void main() {
       });
 
       test('does not persist when storage is null', () async {
-        final controller = VerifierController(
-          session: mockSession,
-          haptic: mockHaptic,
-        );
+        final controller = makeController(session: mockSession);
         controller.initialize();
 
         incomingController.add((
@@ -1026,7 +1023,7 @@ void main() {
           );
 
       Future<VerifierController> makeControllerWithEntry(int position, int bib) async {
-        final controller = VerifierController(session: mockSession, haptic: mockHaptic);
+        final controller = makeController(session: mockSession);
         controller.initialize();
         incomingController.add((Role.bibRecorderV2, MessageEnvelope.wrapBibEntry(makeMsg(position, bib))));
         await Future.microtask(() {});
