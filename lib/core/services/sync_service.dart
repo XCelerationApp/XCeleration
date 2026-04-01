@@ -893,9 +893,17 @@ class SyncService implements ISyncService {
             hadWrites = true;
           }
           final updatedAtStr = remote['updated_at']?.toString();
-          if (updatedAtStr != null &&
-              (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-            newCursor = updatedAtStr;
+          if (updatedAtStr != null) {
+            try {
+              final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+              final currentCursor =
+                  newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+              if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+                newCursor = updatedAt.toIso8601String();
+              }
+            } catch (_) {
+              // Unparseable timestamp — skip cursor advancement for this row
+            }
           }
           continue;
         }
@@ -957,9 +965,17 @@ class SyncService implements ISyncService {
           }
         }
         final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
+        if (updatedAtStr != null) {
+          try {
+            final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+            final currentCursor =
+                newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+            if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+              newCursor = updatedAt.toIso8601String();
+            }
+          } catch (_) {
+            // Unparseable timestamp — skip cursor advancement for this row
+          }
         }
       }
       if (hadWrites) changedTables.add(table);
@@ -1111,9 +1127,17 @@ class SyncService implements ISyncService {
         }
         if (!hasUnresolvedSkip) {
           final updatedAtStr = remote['updated_at']?.toString();
-          if (updatedAtStr != null &&
-              (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-            newCursor = updatedAtStr;
+          if (updatedAtStr != null) {
+            try {
+              final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+              final currentCursor =
+                  newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+              if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+                newCursor = updatedAt.toIso8601String();
+              }
+            } catch (_) {
+              // Unparseable timestamp — skip cursor advancement for this row
+            }
           }
         }
         continue;
@@ -1169,9 +1193,17 @@ class SyncService implements ISyncService {
 
       if (!hasUnresolvedSkip) {
         final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
+        if (updatedAtStr != null) {
+          try {
+            final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+            final currentCursor =
+                newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+            if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+              newCursor = updatedAt.toIso8601String();
+            }
+          } catch (_) {
+            // Unparseable timestamp — skip cursor advancement for this row
+          }
         }
       }
     }
@@ -1316,9 +1348,17 @@ class SyncService implements ISyncService {
         }
         if (!hasUnresolvedSkip) {
           final updatedAtStr = remote['updated_at']?.toString();
-          if (updatedAtStr != null &&
-              (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-            newCursor = updatedAtStr;
+          if (updatedAtStr != null) {
+            try {
+              final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+              final currentCursor =
+                  newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+              if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+                newCursor = updatedAt.toIso8601String();
+              }
+            } catch (_) {
+              // Unparseable timestamp — skip cursor advancement for this row
+            }
           }
         }
         continue;
@@ -1343,10 +1383,19 @@ class SyncService implements ISyncService {
                   whereArgs: [raceId, runnerId]);
               if (!hasUnresolvedSkip) {
                 final updatedAtStr = remote['updated_at']?.toString();
-                if (updatedAtStr != null &&
-                    (newCursor == null ||
-                        updatedAtStr.compareTo(newCursor) > 0)) {
-                  newCursor = updatedAtStr;
+                if (updatedAtStr != null) {
+                  try {
+                    final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+                    final currentCursor = newCursor != null
+                        ? DateTime.parse(newCursor).toUtc()
+                        : null;
+                    if (currentCursor == null ||
+                        updatedAt.isAfter(currentCursor)) {
+                      newCursor = updatedAt.toIso8601String();
+                    }
+                  } catch (_) {
+                    // Unparseable timestamp — skip cursor advancement for this row
+                  }
                 }
               }
               continue;
@@ -1403,9 +1452,17 @@ class SyncService implements ISyncService {
 
       if (!hasUnresolvedSkip) {
         final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
+        if (updatedAtStr != null) {
+          try {
+            final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+            final currentCursor =
+                newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+            if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+              newCursor = updatedAt.toIso8601String();
+            }
+          } catch (_) {
+            // Unparseable timestamp — skip cursor advancement for this row
+          }
         }
       }
     }
@@ -1530,9 +1587,17 @@ class SyncService implements ISyncService {
         }
         if (!hasUnresolvedSkip) {
           final updatedAtStr = remote['updated_at']?.toString();
-          if (updatedAtStr != null &&
-              (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-            newCursor = updatedAtStr;
+          if (updatedAtStr != null) {
+            try {
+              final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+              final currentCursor =
+                  newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+              if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+                newCursor = updatedAt.toIso8601String();
+              }
+            } catch (_) {
+              // Unparseable timestamp — skip cursor advancement for this row
+            }
           }
         }
         continue;
@@ -1550,10 +1615,18 @@ class SyncService implements ISyncService {
                 whereArgs: [teamId, runnerId]);
             if (!hasUnresolvedSkip) {
               final updatedAtStr = remote['updated_at']?.toString();
-              if (updatedAtStr != null &&
-                  (newCursor == null ||
-                      updatedAtStr.compareTo(newCursor) > 0)) {
-                newCursor = updatedAtStr;
+              if (updatedAtStr != null) {
+                try {
+                  final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+                  final currentCursor = newCursor != null
+                      ? DateTime.parse(newCursor).toUtc()
+                      : null;
+                  if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+                    newCursor = updatedAt.toIso8601String();
+                  }
+                } catch (_) {
+                  // Unparseable timestamp — skip cursor advancement for this row
+                }
               }
             }
             continue;
@@ -1600,9 +1673,17 @@ class SyncService implements ISyncService {
 
       if (!hasUnresolvedSkip) {
         final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
+        if (updatedAtStr != null) {
+          try {
+            final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+            final currentCursor =
+                newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+            if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+              newCursor = updatedAt.toIso8601String();
+            }
+          } catch (_) {
+            // Unparseable timestamp — skip cursor advancement for this row
+          }
         }
       }
     }
@@ -1727,9 +1808,17 @@ class SyncService implements ISyncService {
         }
         if (!hasUnresolvedSkip) {
           final updatedAtStr = remote['updated_at']?.toString();
-          if (updatedAtStr != null &&
-              (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-            newCursor = updatedAtStr;
+          if (updatedAtStr != null) {
+            try {
+              final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+              final currentCursor =
+                  newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+              if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+                newCursor = updatedAt.toIso8601String();
+              }
+            } catch (_) {
+              // Unparseable timestamp — skip cursor advancement for this row
+            }
           }
         }
         continue;
@@ -1747,10 +1836,18 @@ class SyncService implements ISyncService {
                 whereArgs: [raceId, teamId]);
             if (!hasUnresolvedSkip) {
               final updatedAtStr = remote['updated_at']?.toString();
-              if (updatedAtStr != null &&
-                  (newCursor == null ||
-                      updatedAtStr.compareTo(newCursor) > 0)) {
-                newCursor = updatedAtStr;
+              if (updatedAtStr != null) {
+                try {
+                  final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+                  final currentCursor = newCursor != null
+                      ? DateTime.parse(newCursor).toUtc()
+                      : null;
+                  if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+                    newCursor = updatedAt.toIso8601String();
+                  }
+                } catch (_) {
+                  // Unparseable timestamp — skip cursor advancement for this row
+                }
               }
             }
             continue;
@@ -1797,9 +1894,17 @@ class SyncService implements ISyncService {
 
       if (!hasUnresolvedSkip) {
         final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
+        if (updatedAtStr != null) {
+          try {
+            final updatedAt = DateTime.parse(updatedAtStr).toUtc();
+            final currentCursor =
+                newCursor != null ? DateTime.parse(newCursor).toUtc() : null;
+            if (currentCursor == null || updatedAt.isAfter(currentCursor)) {
+              newCursor = updatedAt.toIso8601String();
+            }
+          } catch (_) {
+            // Unparseable timestamp — skip cursor advancement for this row
+          }
         }
       }
     }
