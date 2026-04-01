@@ -396,15 +396,21 @@ class MockIAssistantStorageService extends _i1.Mock
 
   @override
   _i4.Future<_i7.Result<void>> updateChunkConflict(
-    String? chunkId,
+    int? raceId,
+    int? chunkId,
     _i11.TimingDatum? conflictRecord,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#updateChunkConflict, [chunkId, conflictRecord]),
+            Invocation.method(#updateChunkConflict, [
+              raceId,
+              chunkId,
+              conflictRecord,
+            ]),
             returnValue: _i4.Future<_i7.Result<void>>.value(
               _i9.dummyValue<_i7.Result<void>>(
                 this,
                 Invocation.method(#updateChunkConflict, [
+                  raceId,
                   chunkId,
                   conflictRecord,
                 ]),
@@ -414,13 +420,13 @@ class MockIAssistantStorageService extends _i1.Mock
           as _i4.Future<_i7.Result<void>>);
 
   @override
-  _i4.Future<_i7.Result<String?>> getChunkConflict(String? chunkId) =>
+  _i4.Future<_i7.Result<String?>> getChunkConflict(int? raceId, int? chunkId) =>
       (super.noSuchMethod(
-            Invocation.method(#getChunkConflict, [chunkId]),
+            Invocation.method(#getChunkConflict, [raceId, chunkId]),
             returnValue: _i4.Future<_i7.Result<String?>>.value(
               _i9.dummyValue<_i7.Result<String?>>(
                 this,
-                Invocation.method(#getChunkConflict, [chunkId]),
+                Invocation.method(#getChunkConflict, [raceId, chunkId]),
               ),
             ),
           )
@@ -428,15 +434,21 @@ class MockIAssistantStorageService extends _i1.Mock
 
   @override
   _i4.Future<_i7.Result<void>> saveChunkTimingData(
-    String? chunkId,
+    int? raceId,
+    int? chunkId,
     List<String>? encodedRecords,
   ) =>
       (super.noSuchMethod(
-            Invocation.method(#saveChunkTimingData, [chunkId, encodedRecords]),
+            Invocation.method(#saveChunkTimingData, [
+              raceId,
+              chunkId,
+              encodedRecords,
+            ]),
             returnValue: _i4.Future<_i7.Result<void>>.value(
               _i9.dummyValue<_i7.Result<void>>(
                 this,
                 Invocation.method(#saveChunkTimingData, [
+                  raceId,
                   chunkId,
                   encodedRecords,
                 ]),
