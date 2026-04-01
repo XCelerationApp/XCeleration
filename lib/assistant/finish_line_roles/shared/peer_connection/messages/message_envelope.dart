@@ -107,18 +107,13 @@ class MessageEnvelope {
 
   /// Decodes [payload] into the correct typed message based on [type].
   ///
-  /// Returns one of:
-  /// - [BibEntryMessage]
-  /// - [VerifierFlagMessage]
-  /// - [FixerCorrectionMessage]
-  /// - [AckMessage]
-  ///
-  /// Throws [ArgumentError] for unknown type discriminators.
-  Object decode() => switch (type) {
+  /// Returns `null` for malformed ACKs (missing sequence) or unknown types.
+  Object? decode() => switch (type) {
         MessageType.bibEntry => BibEntryMessage.fromJson(payload),
         MessageType.verifierFlag => VerifierFlagMessage.fromJson(payload),
         MessageType.fixerCorrection => FixerCorrectionMessage.fromJson(payload),
-        MessageType.ack => AckMessage(sequence: sequence!),
-        _ => throw ArgumentError('Unknown message type: $type'),
+        MessageType.ack =>
+          sequence != null ? AckMessage(sequence: sequence!) : null,
+        _ => null,
       };
 }

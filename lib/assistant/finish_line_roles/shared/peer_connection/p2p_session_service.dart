@@ -196,6 +196,11 @@ class P2PSessionService {
       _pendingAck.putIfAbsent(target, () => {})[stamped.sequence!] = stamped;
     } catch (e) {
       Logger.e('[P2PSessionService] sendMessage to $target failed: $e');
+      // Re-queue the message for retry on next flush.
+      final queue = _outboundQueues.putIfAbsent(target, () => []);
+      if (queue.length < _kQueueCap) {
+        queue.add(stamped);
+      }
     }
   }
 
