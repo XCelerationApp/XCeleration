@@ -512,6 +512,74 @@ void main() {
 
         verifyNever(mockStorage.addBibRecord(any, any, any));
       });
+
+      test('_applyCorrection calls updateBibRecordValue when correctedBib is set', () async {
+        final mockStorage = makeStorage();
+        final mockVoice = MockIVoiceRecognitionService();
+        when(mockVoice.bibNumbers)
+            .thenAnswer((_) => StreamController<String?>.broadcast().stream);
+        when(mockVoice.partialResults)
+            .thenAnswer((_) => StreamController<String>.broadcast().stream);
+        when(mockVoice.initialize())
+            .thenAnswer((_) async => Failure<void>(const AppError(userMessage: '')));
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: mockVoice,
+          haptic: MockIHapticFeedback(),
+          session: mockSession,
+        );
+        await controller.initialize();
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+        controller.addBib(101); // position 1
+
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        verify(mockStorage.updateBibRecordValue(any, any, '114')).called(1);
+      });
+
+      test('_applyCorrection does not call updateBibRecordValue for newRunner', () async {
+        final mockStorage = makeStorage();
+        final mockVoice = MockIVoiceRecognitionService();
+        when(mockVoice.bibNumbers)
+            .thenAnswer((_) => StreamController<String?>.broadcast().stream);
+        when(mockVoice.partialResults)
+            .thenAnswer((_) => StreamController<String>.broadcast().stream);
+        when(mockVoice.initialize())
+            .thenAnswer((_) async => Failure<void>(const AppError(userMessage: '')));
+        final controller = BibRecorderV2Controller(
+          storage: mockStorage,
+          voice: mockVoice,
+          haptic: MockIHapticFeedback(),
+          session: mockSession,
+        );
+        await controller.initialize();
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+        controller.addBib(101); // position 1
+        clearInteractions(mockStorage);
+
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctionType: CorrectionType.newRunner,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        verifyNever(mockStorage.updateBibRecordValue(any, any, any));
+      });
     });
 
     group('stopRace unresolved handoff (XCE-379)', () {

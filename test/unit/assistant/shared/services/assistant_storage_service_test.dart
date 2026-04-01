@@ -1,5 +1,8 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart';
 import 'package:xceleration/assistant/shared/models/bib_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
@@ -984,6 +987,316 @@ void main() {
 
           expect(result, isA<Success<int>>());
           expect((result as Success).value, 21);
+        });
+      });
+    });
+
+    // =========================================================================
+    // Verifier Entry Methods
+    // =========================================================================
+    group('Verifier Entry Methods', () {
+      const kRaceId = 50;
+      final kRace = RaceRecord(
+        raceId: kRaceId,
+        date: DateTime(2024, 1, 1),
+        name: 'Verifier Race',
+        type: DeviceName.verifier.toString(),
+      );
+
+      setUp(() async {
+        await AssistantStorageService.instance.saveNewRace(kRace);
+      });
+
+      group('saveVerifierEntry / getVerifierEntries', () {
+        test('saves and retrieves a verifier entry', () async {
+          const entry = VerifierEntry(
+            id: 1,
+            position: 1,
+            bib: 101,
+            runnerName: 'Alice',
+            teamAbbreviation: 'EAG',
+            teamColor: Color(0xFF0000FF),
+            flag: BibFlag.none,
+            status: VerificationStatus.pending,
+          );
+
+          await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry);
+          final result = await AssistantStorageService.instance.getVerifierEntries(kRaceId);
+
+          expect(result, isA<Success<List<VerifierEntry>>>());
+          final entries = (result as Success).value;
+          expect(entries.length, 1);
+          expect(entries.first.id, 1);
+          expect(entries.first.bib, 101);
+          expect(entries.first.runnerName, 'Alice');
+          expect(entries.first.teamAbbreviation, 'EAG');
+          expect(entries.first.flag, BibFlag.none);
+          expect(entries.first.status, VerificationStatus.pending);
+        });
+
+        test('returns empty list when no entries exist', () async {
+          final result = await AssistantStorageService.instance.getVerifierEntries(kRaceId);
+
+          expect(result, isA<Success<List<VerifierEntry>>>());
+          expect((result as Success).value, isEmpty);
+        });
+
+        test('saves multiple entries and retrieves all', () async {
+          const entry1 = VerifierEntry(id: 1, position: 1, bib: 101);
+          const entry2 = VerifierEntry(id: 2, position: 2, bib: 102, flag: BibFlag.unknown);
+
+          await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry1);
+          await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry2);
+          final result = await AssistantStorageService.instance.getVerifierEntries(kRaceId);
+
+          expect((result as Success).value.length, 2);
+        });
+      });
+
+      group('updateVerifierEntryStatus', () {
+        test('updates status from pending to verified', () async {
+          const entry = VerifierEntry(id: 1, position: 1, bib: 101);
+          await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry);
+
+          await AssistantStorageService.instance
+              .updateVerifierEntryStatus(kRaceId, 1, VerificationStatus.verified);
+
+          final result = await AssistantStorageService.instance.getVerifierEntries(kRaceId);
+          expect((result as Success).value.first.status, VerificationStatus.verified);
+        });
+
+        test('updates status to flagged', () async {
+          const entry = VerifierEntry(id: 2, position: 2, bib: 102);
+          await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry);
+
+          await AssistantStorageService.instance
+              .updateVerifierEntryStatus(kRaceId, 2, VerificationStatus.flagged);
+
+          final result = await AssistantStorageService.instance.getVerifierEntries(kRaceId);
+          expect((result as Success).value.first.status, VerificationStatus.flagged);
+        });
+      });
+
+      group('deleteVerifierEntries', () {
+        test('deletes all verifier entries for a race', () async {
+          const entry1 = VerifierEntry(id: 1, position: 1, bib: 101);
+          const entry2 = VerifierEntry(id: 2, position: 2, bib: 102);
+          await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry1);
+          await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry2);
+
+          await AssistantStorageService.instance.deleteVerifierEntries(kRaceId);
+
+          final result = await AssistantStorageService.instance.getVerifierEntries(kRaceId);
+          expect((result as Success).value, isEmpty);
+        });
+      });
+
+      group('VerifierEntry toMap/fromMap round-trip', () {
+        test('preserves all fields through serialization', () {
+          const original = VerifierEntry(
+            id: 42,
+            position: 7,
+            bib: 303,
+            runnerName: 'Bob Smith',
+            teamAbbreviation: 'WLV',
+            teamColor: Color(0xFFFF0000),
+            flag: BibFlag.duplicate,
+            status: VerificationStatus.skipped,
+          );
+
+          final map = original.toMap(99);
+          final restored = VerifierEntry.fromMap(map);
+
+          expect(restored.id, original.id);
+          expect(restored.position, original.position);
+          expect(restored.bib, original.bib);
+          expect(restored.runnerName, original.runnerName);
+          expect(restored.teamAbbreviation, original.teamAbbreviation);
+          expect(restored.flag, original.flag);
+          expect(restored.status, original.status);
+          expect(map['race_id'], 99);
+        });
+
+        test('handles null optional fields', () {
+          const original = VerifierEntry(
+            id: 1,
+            position: 1,
+            bib: 100,
+            flag: BibFlag.unknown,
+            status: VerificationStatus.pending,
+          );
+
+          final map = original.toMap(1);
+          final restored = VerifierEntry.fromMap(map);
+
+          expect(restored.runnerName, isNull);
+          expect(restored.teamAbbreviation, isNull);
+          expect(restored.teamColor, isNull);
+        });
+      });
+    });
+
+    // =========================================================================
+    // Fixer Entry Methods
+    // =========================================================================
+    group('Fixer Entry Methods', () {
+      const kRaceId = 60;
+      final kRace = RaceRecord(
+        raceId: kRaceId,
+        date: DateTime(2024, 1, 1),
+        name: 'Fixer Race',
+        type: DeviceName.fixer.toString(),
+      );
+
+      setUp(() async {
+        await AssistantStorageService.instance.saveNewRace(kRace);
+      });
+
+      group('saveFixerEntry / getFixerEntries', () {
+        test('saves and retrieves a fixer entry', () async {
+          const entry = FixerEntry(
+            id: 1,
+            position: 3,
+            bib: 201,
+            runnerName: 'Charlie',
+            reason: FixReason.verifierFlagged,
+          );
+
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, entry);
+          final result = await AssistantStorageService.instance.getFixerEntries(kRaceId);
+
+          expect(result, isA<Success<List<FixerEntry>>>());
+          final entries = (result as Success).value;
+          expect(entries.length, 1);
+          expect(entries.first.id, 1);
+          expect(entries.first.bib, 201);
+          expect(entries.first.runnerName, 'Charlie');
+          expect(entries.first.reason, FixReason.verifierFlagged);
+          expect(entries.first.isResolved, isFalse);
+        });
+
+        test('returns empty list when no entries exist', () async {
+          final result = await AssistantStorageService.instance.getFixerEntries(kRaceId);
+
+          expect(result, isA<Success<List<FixerEntry>>>());
+          expect((result as Success).value, isEmpty);
+        });
+
+        test('saves entries with different reasons', () async {
+          const e1 = FixerEntry(id: 1, position: 1, bib: 101, reason: FixReason.duplicate);
+          const e2 = FixerEntry(id: 2, position: 2, bib: 102, reason: FixReason.unknown);
+          const e3 = FixerEntry(id: 3, position: 3, bib: 103, reason: FixReason.verifierFlagged);
+
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, e1);
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, e2);
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, e3);
+
+          final result = await AssistantStorageService.instance.getFixerEntries(kRaceId);
+          expect((result as Success).value.length, 3);
+        });
+      });
+
+      group('updateFixerEntryResolution', () {
+        test('marks entry as resolved with corrected bib', () async {
+          const entry = FixerEntry(id: 1, position: 1, bib: 101, reason: FixReason.unknown);
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, entry);
+
+          await AssistantStorageService.instance.updateFixerEntryResolution(
+            kRaceId, 1,
+            isResolved: true,
+            correctedBib: 202,
+            resolvedName: 'Alice',
+            isNewRunner: false,
+            correctionType: 'matched',
+          );
+
+          final result = await AssistantStorageService.instance.getFixerEntries(kRaceId);
+          final resolved = (result as Success).value.first;
+          expect(resolved.isResolved, isTrue);
+          expect(resolved.correctedBib, 202);
+          expect(resolved.resolvedName, 'Alice');
+          expect(resolved.isNewRunner, isFalse);
+        });
+
+        test('marks entry as resolved with new runner', () async {
+          const entry = FixerEntry(id: 2, position: 2, bib: 303, reason: FixReason.unknown);
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, entry);
+
+          await AssistantStorageService.instance.updateFixerEntryResolution(
+            kRaceId, 2,
+            isResolved: true,
+            resolvedName: 'New Runner',
+            isNewRunner: true,
+            correctionType: 'newRunner',
+          );
+
+          final result = await AssistantStorageService.instance.getFixerEntries(kRaceId);
+          final resolved = (result as Success).value.first;
+          expect(resolved.isResolved, isTrue);
+          expect(resolved.isNewRunner, isTrue);
+          expect(resolved.resolvedName, 'New Runner');
+        });
+      });
+
+      group('deleteFixerEntries', () {
+        test('deletes all fixer entries for a race', () async {
+          const e1 = FixerEntry(id: 1, position: 1, bib: 101, reason: FixReason.duplicate);
+          const e2 = FixerEntry(id: 2, position: 2, bib: 102, reason: FixReason.unknown);
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, e1);
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, e2);
+
+          await AssistantStorageService.instance.deleteFixerEntries(kRaceId);
+
+          final result = await AssistantStorageService.instance.getFixerEntries(kRaceId);
+          expect((result as Success).value, isEmpty);
+        });
+      });
+
+      group('FixerEntry toMap/fromMap round-trip', () {
+        test('preserves all fields through serialization', () {
+          const original = FixerEntry(
+            id: 10,
+            position: 5,
+            bib: 456,
+            runnerName: 'Dan',
+            reason: FixReason.duplicate,
+            isResolved: true,
+            correctedBib: 789,
+            resolvedName: 'Daniel',
+            isNewRunner: false,
+          );
+
+          final map = original.toMap(99);
+          final restored = FixerEntry.fromMap(map);
+
+          expect(restored.id, original.id);
+          expect(restored.position, original.position);
+          expect(restored.bib, original.bib);
+          expect(restored.runnerName, original.runnerName);
+          expect(restored.reason, original.reason);
+          expect(restored.isResolved, original.isResolved);
+          expect(restored.correctedBib, original.correctedBib);
+          expect(restored.resolvedName, original.resolvedName);
+          expect(restored.isNewRunner, original.isNewRunner);
+          expect(map['race_id'], 99);
+        });
+
+        test('handles null optional fields', () {
+          const original = FixerEntry(
+            id: 1,
+            position: 1,
+            bib: 100,
+            reason: FixReason.unknown,
+          );
+
+          final map = original.toMap(1);
+          final restored = FixerEntry.fromMap(map);
+
+          expect(restored.runnerName, isNull);
+          expect(restored.correctedBib, isNull);
+          expect(restored.resolvedName, isNull);
+          expect(restored.isResolved, isFalse);
+          expect(restored.isNewRunner, isFalse);
         });
       });
     });
