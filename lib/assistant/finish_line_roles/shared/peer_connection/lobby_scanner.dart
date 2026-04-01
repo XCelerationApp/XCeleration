@@ -30,6 +30,7 @@ class LobbyScanner extends ChangeNotifier {
   final Role localRole;
 
   final List<DiscoveredSession> _sessions = [];
+  bool _disposed = false;
 
   NearbyService? _nearbyService;
   StreamSubscription? _stateSubscription;
@@ -50,10 +51,12 @@ class LobbyScanner extends ChangeNotifier {
       deviceName: 'xce|${xceRoleCode(localRole)}|0|',
       strategy: Strategy.P2P_CLUSTER,
       callback: (isRunning) async {
+        if (_disposed) return;
         if (isRunning == true) {
           // Browse only — suppress advertising to avoid confusing the BibRecorder.
           await service.stopAdvertisingPeer();
           await Future.delayed(const Duration(milliseconds: 200));
+          if (_disposed) return;
           await service.startBrowsingForPeers();
         }
       },
@@ -65,6 +68,7 @@ class LobbyScanner extends ChangeNotifier {
   }
 
   void _onStateChanged(List<Device> devices) {
+    if (_disposed) return;
     bool changed = false;
     for (final device in devices) {
       final parsed = parseXceDeviceName(device.deviceName);
@@ -72,6 +76,15 @@ class LobbyScanner extends ChangeNotifier {
       final (peerRole, peerRaceId, humanName) = parsed;
       // Only surface BibRecorder sessions; ignore raceId 0 (other scanners).
       if (peerRole != Role.bibRecorderV2 || peerRaceId == 0) continue;
+
+      if (device.state == SessionState.notConnected) {
+        // Remove stale sessions when the advertising device disappears.
+        final removed = _sessions.length;
+        _sessions.removeWhere((s) => s.raceId == peerRaceId);
+        if (_sessions.length != removed) changed = true;
+        continue;
+      }
+
       if (_sessions.any((s) => s.raceId == peerRaceId)) continue;
       _sessions.add(DiscoveredSession(raceId: peerRaceId, hostName: humanName));
       changed = true;
@@ -81,8 +94,10 @@ class LobbyScanner extends ChangeNotifier {
 
   @override
   void dispose() {
+    _disposed = true;
     _stateSubscription?.cancel();
     _nearbyService?.stopBrowsingForPeers();
+    _nearbyService = null;
     super.dispose();
   }
 }
