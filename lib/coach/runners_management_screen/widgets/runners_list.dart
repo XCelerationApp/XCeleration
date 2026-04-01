@@ -12,10 +12,11 @@ import '../controller/runners_management_controller.dart';
 import 'runner_list_item.dart';
 import 'team_header_tile.dart';
 
-// Height of the TeamHeaderTile row: 8+8 vertical padding + 20px line height.
-const double _kHeaderExtent = 36.0;
+// Height of the TeamHeaderTile row — driven by the PopupMenuButton's 48px
+// minimum touch target, which is the tallest element in the header row.
+const double _kHeaderExtent = 48.0;
 // Height of the ListTitles row: 8+8 vertical padding + ~16px line height.
-const double _kTitlesExtent = 32.0;
+const double _kTitlesExtent = 36.0;
 
 class RunnersList extends StatefulWidget {
   const RunnersList({super.key, required this.controller});
@@ -126,9 +127,7 @@ class _RunnersListState extends State<RunnersList> {
     final borderColor = AppColors.mediumColor.withValues(alpha: AppOpacity.medium);
     final cardRadius = Radius.circular(AppBorderRadius.md);
 
-    final slivers = <Widget>[
-      const SliverPadding(padding: EdgeInsets.only(top: AppSpacing.sm)),
-    ];
+    final slivers = <Widget>[];
 
     for (final team in teams) {
       final raceRunners = teamMap[team] ?? [];
