@@ -869,6 +869,154 @@ void main() {
       });
     });
 
+    group('persistence', () {
+      test('saves entry to storage when received from BibRecorder', () async {
+        final controller = VerifierController(
+          session: mockSession,
+          storage: mockStorage,
+          haptic: mockHaptic,
+        );
+        controller.initialize();
+
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 1,
+            bib: 101,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+          )),
+        ));
+        await Future.microtask(() {});
+
+        verify(mockStorage.saveVerifierEntry(any, any)).called(1);
+      });
+
+      test('updates status in storage when entry is verified', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(
+            session: mockSession,
+            storage: mockStorage,
+            haptic: mockHaptic,
+          );
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.now(),
+            )),
+          ));
+          fake.flushMicrotasks();
+
+          controller.verify(1);
+
+          verify(mockStorage.updateVerifierEntryStatus(
+            any, 1, VerificationStatus.verified,
+          )).called(1);
+        });
+      });
+
+      test('updates status in storage when entry is flagged', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(
+            session: mockSession,
+            storage: mockStorage,
+            haptic: mockHaptic,
+          );
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.now(),
+            )),
+          ));
+          fake.flushMicrotasks();
+
+          controller.flag(1);
+
+          verify(mockStorage.updateVerifierEntryStatus(
+            any, 1, VerificationStatus.flagged,
+          )).called(1);
+        });
+      });
+
+      test('reverts status to pending in storage on undo', () {
+        fakeAsync((fake) {
+          final controller = VerifierController(
+            session: mockSession,
+            storage: mockStorage,
+            haptic: mockHaptic,
+          );
+          controller.initialize();
+          incomingController.add((
+            Role.bibRecorderV2,
+            MessageEnvelope.wrapBibEntry(BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.now(),
+            )),
+          ));
+          fake.flushMicrotasks();
+
+          controller.verify(1);
+          controller.undo(1);
+
+          verify(mockStorage.updateVerifierEntryStatus(
+            any, 1, VerificationStatus.pending,
+          )).called(1);
+        });
+      });
+
+      test('loads persisted entries on joinRace for crash recovery', () async {
+        const persisted = [
+          VerifierEntry(id: 1, position: 1, bib: 101, status: VerificationStatus.pending),
+          VerifierEntry(id: 2, position: 2, bib: 102, status: VerificationStatus.verified),
+        ];
+        when(mockStorage.getVerifierEntries(42))
+            .thenAnswer((_) async => const Success(persisted));
+
+        final controller = VerifierController(
+          storage: mockStorage,
+          haptic: mockHaptic,
+        );
+        await controller.initialize();
+        await controller.joinRace(raceId: 42);
+
+        // Pending entries go to active queue, non-pending to history.
+        expect(controller.entries.length, 1);
+        expect(controller.entries.first.bib, 101);
+        expect(controller.confirmed, 1); // verified entry in history
+      });
+
+      test('does not persist when storage is null', () async {
+        final controller = VerifierController(
+          session: mockSession,
+          haptic: mockHaptic,
+        );
+        controller.initialize();
+
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 1,
+            bib: 101,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime.now(),
+          )),
+        ));
+        await Future.microtask(() {});
+
+        verifyNever(mockStorage.saveVerifierEntry(any, any));
+      });
+    });
+
     group('haptics', () {
       BibEntryMessage makeMsg(int position, int bib) => BibEntryMessage(
             finishPosition: position,

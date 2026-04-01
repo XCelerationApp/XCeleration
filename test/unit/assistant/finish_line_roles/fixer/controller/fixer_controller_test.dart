@@ -996,6 +996,134 @@ void main() {
       });
     });
 
+    group('persistence', () {
+      test('saves entry to storage when received from Verifier', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 1,
+              bib: 101,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.wrongName,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        verify(mockStorage.saveFixerEntry(any, any)).called(1);
+      });
+
+      test('persists resolution when resolveWithRunner is called', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 1,
+              bib: 107,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.wrongName,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        controller.resolveWithRunner(
+          1,
+          Runner(raceId: 1, bibNumber: '110', name: 'Ryan', createdAt: DateTime(2026)),
+        );
+
+        verify(mockStorage.updateFixerEntryResolution(
+          any, 1,
+          isResolved: true,
+          correctedBib: 110,
+          resolvedName: 'Ryan',
+          isNewRunner: false,
+          correctionType: 'matched',
+        )).called(1);
+      });
+
+      test('persists resolution when resolveWithBib is called', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 2,
+              bib: 105,
+              status: BibEntryStatus.duplicate,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.duplicate,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        controller.resolveWithBib(2, 115);
+
+        verify(mockStorage.updateFixerEntryResolution(
+          any, 2,
+          isResolved: true,
+          correctedBib: 115,
+          isNewRunner: false,
+          correctionType: 'bibCorrected',
+        )).called(1);
+      });
+
+      test('persists resolution when resolveAsNewRunner is called', () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 3,
+              bib: 199,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+            ),
+            reason: FlagReason.unknown,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        controller.resolveAsNewRunner(3, name: 'Jane Doe', newBib: 200);
+
+        verify(mockStorage.updateFixerEntryResolution(
+          any, 3,
+          isResolved: true,
+          correctedBib: 200,
+          resolvedName: 'Jane Doe',
+          isNewRunner: true,
+          correctionType: 'newRunner',
+        )).called(1);
+      });
+
+      test('loads persisted entries on joinRace for crash recovery', () async {
+        final persisted = [
+          const FixerEntry(id: 1, position: 1, bib: 101, reason: FixReason.unknown),
+          const FixerEntry(id: 2, position: 2, bib: 102, reason: FixReason.duplicate, isResolved: true, correctedBib: 202),
+        ];
+        when(mockStorage.getFixerEntries(any))
+            .thenAnswer((_) async => Success(persisted));
+
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        await controller.joinRace();
+
+        expect(controller.queue.length, 2);
+        expect(controller.unresolvedCount, 1);
+      });
+    });
+
     group('haptics', () {
       Future<FixerController> makeControllerWithEntry({
         required int finishPosition,
