@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart';
 import '../models/race_record.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
@@ -31,7 +33,7 @@ class AssistantStorageService implements IAssistantStorageService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         // Race history table with composite primary key (race_id, type)
         await db.execute('''
@@ -87,6 +89,84 @@ class AssistantStorageService implements IAssistantStorageService {
             FOREIGN KEY (race_id, bib_number) REFERENCES runners(race_id, bib_number) ON DELETE CASCADE
           )
         ''');
+
+        // Verifier entries for crash recovery
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS verifier_entries (
+            race_id INTEGER NOT NULL,
+            entry_id INTEGER NOT NULL,
+            position INTEGER NOT NULL,
+            bib_number TEXT NOT NULL,
+            flag TEXT NOT NULL,
+            status TEXT NOT NULL,
+            runner_name TEXT,
+            team_abbreviation TEXT,
+            team_color INTEGER,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (race_id, entry_id),
+            FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
+          )
+        ''');
+
+        // Fixer entries for crash recovery and audit trail
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS fixer_entries (
+            race_id INTEGER NOT NULL,
+            entry_id INTEGER NOT NULL,
+            position INTEGER NOT NULL,
+            original_bib TEXT NOT NULL,
+            runner_name TEXT,
+            reason TEXT NOT NULL,
+            is_resolved INTEGER NOT NULL DEFAULT 0,
+            corrected_bib TEXT,
+            resolved_name TEXT,
+            is_new_runner INTEGER NOT NULL DEFAULT 0,
+            correction_type TEXT,
+            resolved_at INTEGER,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (race_id, entry_id),
+            FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
+          )
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS verifier_entries (
+              race_id INTEGER NOT NULL,
+              entry_id INTEGER NOT NULL,
+              position INTEGER NOT NULL,
+              bib_number TEXT NOT NULL,
+              flag TEXT NOT NULL,
+              status TEXT NOT NULL,
+              runner_name TEXT,
+              team_abbreviation TEXT,
+              team_color INTEGER,
+              created_at INTEGER NOT NULL,
+              PRIMARY KEY (race_id, entry_id),
+              FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS fixer_entries (
+              race_id INTEGER NOT NULL,
+              entry_id INTEGER NOT NULL,
+              position INTEGER NOT NULL,
+              original_bib TEXT NOT NULL,
+              runner_name TEXT,
+              reason TEXT NOT NULL,
+              is_resolved INTEGER NOT NULL DEFAULT 0,
+              corrected_bib TEXT,
+              resolved_name TEXT,
+              is_new_runner INTEGER NOT NULL DEFAULT 0,
+              correction_type TEXT,
+              resolved_at INTEGER,
+              created_at INTEGER NOT NULL,
+              PRIMARY KEY (race_id, entry_id),
+              FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
+            )
+          ''');
+        }
       },
     );
   }
@@ -272,9 +352,19 @@ class AssistantStorageService implements IAssistantStorageService {
   Future<Result<void>> deleteRace(int raceId, String type) async {
     try {
       final db = await database;
-      // Delete all chunks first (foreign key constraint)
+      // Delete dependent tables first (foreign key constraints)
       await db.delete(
         'timing_chunks',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
+      await db.delete(
+        'verifier_entries',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
+      await db.delete(
+        'fixer_entries',
         where: 'race_id = ?',
         whereArgs: [raceId],
       );
@@ -1034,6 +1124,186 @@ class AssistantStorageService implements IAssistantStorageService {
       Logger.e('Failed to get next bib ID: $e');
       return Failure(AppError(
         userMessage: 'Could not determine next bib ID.',
+        originalException: e,
+      ));
+    }
+  }
+
+  // Verifier Entry Methods
+  // ============================================================================
+
+  @override
+  Future<Result<void>> saveVerifierEntry(int raceId, VerifierEntry entry) async {
+    try {
+      final db = await database;
+      await db.insert(
+        'verifier_entries',
+        entry.toMap(raceId),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to save verifier entry: $e');
+      return Failure(AppError(
+        userMessage: 'Could not save verifier entry.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> updateVerifierEntryStatus(
+      int raceId, int entryId, VerificationStatus status) async {
+    try {
+      final db = await database;
+      await db.update(
+        'verifier_entries',
+        {'status': status.name},
+        where: 'race_id = ? AND entry_id = ?',
+        whereArgs: [raceId, entryId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to update verifier entry status: $e');
+      return Failure(AppError(
+        userMessage: 'Could not update verifier entry.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<List<VerifierEntry>>> getVerifierEntries(int raceId) async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> records = await db.query(
+        'verifier_entries',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+        orderBy: 'created_at ASC',
+      );
+      return Success(
+          records.map((record) => VerifierEntry.fromMap(record)).toList());
+    } catch (e) {
+      Logger.e('Failed to get verifier entries: $e');
+      return Failure(AppError(
+        userMessage: 'Could not load verifier entries.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteVerifierEntries(int raceId) async {
+    try {
+      final db = await database;
+      await db.delete(
+        'verifier_entries',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to delete verifier entries: $e');
+      return Failure(AppError(
+        userMessage: 'Could not delete verifier entries.',
+        originalException: e,
+      ));
+    }
+  }
+
+  // Fixer Entry Methods
+  // ============================================================================
+
+  @override
+  Future<Result<void>> saveFixerEntry(int raceId, FixerEntry entry) async {
+    try {
+      final db = await database;
+      await db.insert(
+        'fixer_entries',
+        entry.toMap(raceId),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to save fixer entry: $e');
+      return Failure(AppError(
+        userMessage: 'Could not save fixer entry.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> updateFixerEntryResolution(
+    int raceId,
+    int entryId, {
+    required bool isResolved,
+    int? correctedBib,
+    String? resolvedName,
+    required bool isNewRunner,
+    required String correctionType,
+  }) async {
+    try {
+      final db = await database;
+      await db.update(
+        'fixer_entries',
+        {
+          'is_resolved': isResolved ? 1 : 0,
+          'corrected_bib': correctedBib?.toString(),
+          'resolved_name': resolvedName,
+          'is_new_runner': isNewRunner ? 1 : 0,
+          'correction_type': correctionType,
+          'resolved_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        where: 'race_id = ? AND entry_id = ?',
+        whereArgs: [raceId, entryId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to update fixer entry resolution: $e');
+      return Failure(AppError(
+        userMessage: 'Could not update fixer entry.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<List<FixerEntry>>> getFixerEntries(int raceId) async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> records = await db.query(
+        'fixer_entries',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+        orderBy: 'created_at ASC',
+      );
+      return Success(
+          records.map((record) => FixerEntry.fromMap(record)).toList());
+    } catch (e) {
+      Logger.e('Failed to get fixer entries: $e');
+      return Failure(AppError(
+        userMessage: 'Could not load fixer entries.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteFixerEntries(int raceId) async {
+    try {
+      final db = await database;
+      await db.delete(
+        'fixer_entries',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to delete fixer entries: $e');
+      return Failure(AppError(
+        userMessage: 'Could not delete fixer entries.',
         originalException: e,
       ));
     }
