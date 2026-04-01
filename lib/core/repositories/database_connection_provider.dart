@@ -19,7 +19,8 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
     return await openDatabase(
       path,
-      version: 17,
+      version: 18,
+      onConfigure: (db) => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -79,6 +80,26 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
         } catch (e) {
           Logger.d('$column column might already exist in race_participants: $e');
         }
+      }
+    }
+
+    if (oldVersion < 18) {
+      // Add uuid column to race_participants for sync push/pull
+      try {
+        await db.execute(
+            'ALTER TABLE race_participants ADD COLUMN uuid TEXT UNIQUE');
+        Logger.d('Added uuid column to race_participants table');
+      } catch (e) {
+        Logger.d('uuid column might already exist in race_participants: $e');
+      }
+
+      // Add team_id column to race_results for team-based result queries
+      try {
+        await db.execute(
+            'ALTER TABLE race_results ADD COLUMN team_id INTEGER REFERENCES teams(team_id)');
+        Logger.d('Added team_id column to race_results table');
+      } catch (e) {
+        Logger.d('team_id column might already exist in race_results: $e');
       }
     }
   }
