@@ -353,13 +353,22 @@ void main() {
         expect(decoded.correctionType, CorrectionType.bibCorrected);
       });
 
-      test('throws ArgumentError for unknown type', () {
+      test('returns null for unknown type', () {
         final envelope = MessageEnvelope(
           type: 'unknown_type',
           version: messageSchemaVersion,
           payload: {},
         );
-        expect(() => envelope.decode(), throwsArgumentError);
+        expect(envelope.decode(), isNull);
+      });
+
+      test('returns null for ACK with missing sequence', () {
+        final envelope = MessageEnvelope(
+          type: MessageType.ack,
+          version: messageSchemaVersion,
+          payload: const {},
+        );
+        expect(envelope.decode(), isNull);
       });
     });
   });
