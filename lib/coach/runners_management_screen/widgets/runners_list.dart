@@ -172,8 +172,7 @@ class _RunnersListState extends State<RunnersList> {
             child: expanded
                 ? DecoratedBox(
                     decoration: BoxDecoration(
-                      color: AppColors.mediumColor
-                          .withValues(alpha: AppOpacity.faint),
+                      color: AppColors.surfaceColor,
                       border: Border(
                         bottom: BorderSide(color: borderColor),
                         left: BorderSide(color: borderColor),
@@ -306,7 +305,7 @@ class _TeamSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: AppColors.backgroundColor,
+          color: AppColors.surfaceColor,
           border: border,
           borderRadius: borderRadius,
         ),
