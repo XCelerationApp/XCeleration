@@ -43,7 +43,7 @@ void main() {
 
   group('VerifierEntryCard', () {
     testWidgets('pending entry renders bib number and position', (tester) async {
-      const entry = VerifierEntry(id: 1, position: 3, bib: 205);
+      final entry = VerifierEntry(id: 1, position: 3, bib: 205);
 
       await tester.pumpWidget(wrapCard(entry));
       await tester.pump();
@@ -55,7 +55,7 @@ void main() {
 
     testWidgets('pending entry shows team abbreviation when present',
         (tester) async {
-      const entry = VerifierEntry(
+      final entry = VerifierEntry(
         id: 1,
         position: 1,
         bib: 101,
@@ -72,7 +72,7 @@ void main() {
 
     testWidgets('shows DUPLICATE banner for duplicate-flagged entry',
         (tester) async {
-      const entry = VerifierEntry(
+      final entry = VerifierEntry(
         id: 1,
         position: 2,
         bib: 107,
@@ -87,7 +87,7 @@ void main() {
 
     testWidgets('shows UNKNOWN BIB banner for unknown-flagged entry',
         (tester) async {
-      const entry = VerifierEntry(
+      final entry = VerifierEntry(
         id: 1,
         position: 3,
         bib: 999,
@@ -101,7 +101,7 @@ void main() {
     });
 
     testWidgets('shows action buttons for pending entry', (tester) async {
-      const entry = VerifierEntry(id: 1, position: 1, bib: 101);
+      final entry = VerifierEntry(id: 1, position: 1, bib: 101);
 
       await tester.pumpWidget(wrapCard(entry));
       await tester.pump();
@@ -116,7 +116,7 @@ void main() {
         (tester) async {
       // An acted entry (e.g. verified but not yet committed) still shows in
       // the entries list with its acted status.
-      const entry = VerifierEntry(
+      final entry = VerifierEntry(
         id: 1,
         position: 1,
         bib: 101,
@@ -132,7 +132,7 @@ void main() {
 
     testWidgets('shows Sent to Fixer label for flagged acted entry',
         (tester) async {
-      const entry = VerifierEntry(
+      final entry = VerifierEntry(
         id: 1,
         position: 1,
         bib: 101,

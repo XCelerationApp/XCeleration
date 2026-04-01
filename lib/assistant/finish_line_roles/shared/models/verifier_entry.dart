@@ -10,7 +10,7 @@ enum VerificationStatus { pending, verified, flagged, skipped }
 /// A bib entry received from the Bib Recorder awaiting visual confirmation
 /// by the Verifier stationed at the chute exit.
 class VerifierEntry {
-  const VerifierEntry({
+  VerifierEntry({
     required this.id,
     required this.position,
     required this.bib,
@@ -20,7 +20,8 @@ class VerifierEntry {
     this.teamColor,
     this.flag = BibFlag.none,
     this.status = VerificationStatus.pending,
-  });
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   /// Matches [BibEntry.id] from the Bib Recorder.
   final int id;
@@ -38,6 +39,7 @@ class VerifierEntry {
   final Color? teamColor;
   final BibFlag flag;
   final VerificationStatus status;
+  final DateTime createdAt;
 
   /// Constructs a [VerifierEntry] directly from a received [BibEntryMessage].
   ///
@@ -58,6 +60,7 @@ class VerifierEntry {
       teamAbbreviation: msg.teamAbbreviation,
       teamColor: msg.teamColor != null ? Color(msg.teamColor!) : null,
       flag: flag,
+      createdAt: DateTime.now(),
     );
   }
 
@@ -71,6 +74,7 @@ class VerifierEntry {
         teamColor: teamColor,
         flag: flag,
         status: status ?? this.status,
+        createdAt: createdAt,
       );
 
   Map<String, dynamic> toMap(int raceId) => {
@@ -83,7 +87,7 @@ class VerifierEntry {
         'runner_name': runnerName,
         'team_abbreviation': teamAbbreviation,
         'team_color': teamColor?.toARGB32(),
-        'created_at': DateTime.now().millisecondsSinceEpoch,
+        'created_at': createdAt.millisecondsSinceEpoch,
       };
 
   factory VerifierEntry.fromMap(Map<String, dynamic> map) => VerifierEntry(
@@ -97,5 +101,7 @@ class VerifierEntry {
             : null,
         flag: BibFlag.values.byName(map['flag'] as String),
         status: VerificationStatus.values.byName(map['status'] as String),
+        createdAt: DateTime.fromMillisecondsSinceEpoch(
+            map['created_at'] as int),
       );
 }

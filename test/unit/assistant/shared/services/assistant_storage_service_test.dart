@@ -1045,7 +1045,7 @@ void main() {
 
       group('saveVerifierEntry / getVerifierEntries', () {
         test('saves and retrieves a verifier entry', () async {
-          const entry = VerifierEntry(
+          final entry = VerifierEntry(
             id: 1,
             position: 1,
             bib: 101,
@@ -1078,8 +1078,8 @@ void main() {
         });
 
         test('saves multiple entries and retrieves all', () async {
-          const entry1 = VerifierEntry(id: 1, position: 1, bib: 101);
-          const entry2 = VerifierEntry(id: 2, position: 2, bib: 102, flag: BibFlag.unknown);
+          final entry1 = VerifierEntry(id: 1, position: 1, bib: 101);
+          final entry2 = VerifierEntry(id: 2, position: 2, bib: 102, flag: BibFlag.unknown);
 
           await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry1);
           await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry2);
@@ -1091,7 +1091,7 @@ void main() {
 
       group('updateVerifierEntryStatus', () {
         test('updates status from pending to verified', () async {
-          const entry = VerifierEntry(id: 1, position: 1, bib: 101);
+          final entry = VerifierEntry(id: 1, position: 1, bib: 101);
           await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry);
 
           await AssistantStorageService.instance
@@ -1102,7 +1102,7 @@ void main() {
         });
 
         test('updates status to flagged', () async {
-          const entry = VerifierEntry(id: 2, position: 2, bib: 102);
+          final entry = VerifierEntry(id: 2, position: 2, bib: 102);
           await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry);
 
           await AssistantStorageService.instance
@@ -1115,8 +1115,8 @@ void main() {
 
       group('deleteVerifierEntries', () {
         test('deletes all verifier entries for a race', () async {
-          const entry1 = VerifierEntry(id: 1, position: 1, bib: 101);
-          const entry2 = VerifierEntry(id: 2, position: 2, bib: 102);
+          final entry1 = VerifierEntry(id: 1, position: 1, bib: 101);
+          final entry2 = VerifierEntry(id: 2, position: 2, bib: 102);
           await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry1);
           await AssistantStorageService.instance.saveVerifierEntry(kRaceId, entry2);
 
@@ -1129,7 +1129,7 @@ void main() {
 
       group('VerifierEntry toMap/fromMap round-trip', () {
         test('preserves all fields through serialization', () {
-          const original = VerifierEntry(
+          final original = VerifierEntry(
             id: 42,
             position: 7,
             bib: 303,
@@ -1154,7 +1154,7 @@ void main() {
         });
 
         test('handles null optional fields', () {
-          const original = VerifierEntry(
+          final original = VerifierEntry(
             id: 1,
             position: 1,
             bib: 100,
