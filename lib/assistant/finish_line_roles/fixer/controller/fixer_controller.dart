@@ -100,16 +100,20 @@ class FixerController extends ChangeNotifier {
         onComplete: _loadRaces,
       );
 
-  /// Enter a race session.
+  /// Enter a race session and recover any persisted entries.
   Future<void> joinRace() async {
     _inRace = true;
     notifyListeners();
-    final result = await _storage.getRunners(_raceId);
-    switch (result) {
+    final runnersResult = await _storage.getRunners(_raceId);
+    switch (runnersResult) {
       case Success(:final value):
         _allRunners.addAll(value);
       case Failure(:final error):
         Logger.e('[FixerController.joinRace] ${error.originalException}');
+    }
+    final entriesResult = await _storage.getFixerEntries(_raceId);
+    if (entriesResult case Success(:final value)) {
+      _queue.addAll(value);
     }
     notifyListeners();
   }
@@ -188,6 +192,18 @@ class FixerController extends ChangeNotifier {
         )),
       ));
     }
+    unawaited(_storage.updateFixerEntryResolution(
+      _raceId, entryId,
+      isResolved: true,
+      correctedBib: correctedBib,
+      resolvedName: resolvedName,
+      isNewRunner: false,
+      correctionType: 'matched',
+    ).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[FixerController.resolveWithRunner] ${error.originalException}');
+      }
+    }));
     notifyListeners();
   }
 
@@ -209,6 +225,17 @@ class FixerController extends ChangeNotifier {
         )),
       ));
     }
+    unawaited(_storage.updateFixerEntryResolution(
+      _raceId, entryId,
+      isResolved: true,
+      correctedBib: newBib,
+      isNewRunner: false,
+      correctionType: 'bibCorrected',
+    ).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[FixerController.resolveWithBib] ${error.originalException}');
+      }
+    }));
     notifyListeners();
   }
 
@@ -250,6 +277,18 @@ class FixerController extends ChangeNotifier {
         Logger.e('[FixerController.resolveAsNewRunner] ${error.originalException}');
       }
     }));
+    unawaited(_storage.updateFixerEntryResolution(
+      _raceId, entryId,
+      isResolved: true,
+      correctedBib: newBib,
+      resolvedName: resolvedName,
+      isNewRunner: true,
+      correctionType: 'newRunner',
+    ).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[FixerController.resolveAsNewRunner] ${error.originalException}');
+      }
+    }));
     notifyListeners();
   }
 
@@ -272,15 +311,18 @@ class FixerController extends ChangeNotifier {
       FlagReason.unknown => FixReason.unknown,
       FlagReason.duplicate => FixReason.duplicate,
     };
-    _queue.insert(
-      0,
-      FixerEntry(
-        id: msg.entry.entryId ?? msg.entry.finishPosition,
-        position: msg.entry.finishPosition,
-        bib: msg.entry.bib,
-        reason: reason,
-      ),
+    final entry = FixerEntry(
+      id: msg.entry.entryId ?? msg.entry.finishPosition,
+      position: msg.entry.finishPosition,
+      bib: msg.entry.bib,
+      reason: reason,
     );
+    _queue.insert(0, entry);
+    unawaited(_storage.saveFixerEntry(_raceId, entry).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[FixerController._addEntryFromFlag] ${error.originalException}');
+      }
+    }));
     notifyListeners();
   }
 
