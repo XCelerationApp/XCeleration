@@ -4,25 +4,29 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i4;
-import 'dart:ui' as _i16;
+import 'dart:ui' as _i18;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i7;
+import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart'
+    as _i13;
+import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart'
+    as _i12;
 import 'package:xceleration/assistant/shared/models/bib_record.dart' as _i11;
 import 'package:xceleration/assistant/shared/models/race_record.dart' as _i6;
 import 'package:xceleration/assistant/shared/models/runner.dart' as _i10;
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart'
     as _i3;
 import 'package:xceleration/assistant/shared/services/i_demo_race_generator.dart'
-    as _i12;
+    as _i14;
 import 'package:xceleration/core/result.dart' as _i5;
 import 'package:xceleration/core/services/device_connection_service.dart'
     as _i2;
 import 'package:xceleration/core/services/i_device_connection_factory.dart'
-    as _i13;
-import 'package:xceleration/core/services/i_post_frame_scheduler.dart' as _i17;
-import 'package:xceleration/core/services/tutorial_manager.dart' as _i15;
-import 'package:xceleration/core/utils/enums.dart' as _i14;
+    as _i15;
+import 'package:xceleration/core/services/i_post_frame_scheduler.dart' as _i19;
+import 'package:xceleration/core/services/tutorial_manager.dart' as _i17;
+import 'package:xceleration/core/utils/enums.dart' as _i16;
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart'
     as _i8;
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart'
@@ -674,13 +678,165 @@ class MockIAssistantStorageService extends _i1.Mock
             ),
           )
           as _i4.Future<_i5.Result<int>>);
+
+  @override
+  _i4.Future<_i5.Result<void>> saveVerifierEntry(
+    int? raceId,
+    _i12.VerifierEntry? entry,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveVerifierEntry, [raceId, entry]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveVerifierEntry, [raceId, entry]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
+
+  @override
+  _i4.Future<_i5.Result<void>> updateVerifierEntryStatus(
+    int? raceId,
+    int? entryId,
+    _i12.VerificationStatus? status,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateVerifierEntryStatus, [
+              raceId,
+              entryId,
+              status,
+            ]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#updateVerifierEntryStatus, [
+                  raceId,
+                  entryId,
+                  status,
+                ]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
+
+  @override
+  _i4.Future<_i5.Result<List<_i12.VerifierEntry>>> getVerifierEntries(
+    int? raceId,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#getVerifierEntries, [raceId]),
+            returnValue: _i4.Future<_i5.Result<List<_i12.VerifierEntry>>>.value(
+              _i7.dummyValue<_i5.Result<List<_i12.VerifierEntry>>>(
+                this,
+                Invocation.method(#getVerifierEntries, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<List<_i12.VerifierEntry>>>);
+
+  @override
+  _i4.Future<_i5.Result<void>> deleteVerifierEntries(int? raceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteVerifierEntries, [raceId]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteVerifierEntries, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
+
+  @override
+  _i4.Future<_i5.Result<void>> saveFixerEntry(
+    int? raceId,
+    _i13.FixerEntry? entry,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#saveFixerEntry, [raceId, entry]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#saveFixerEntry, [raceId, entry]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
+
+  @override
+  _i4.Future<_i5.Result<void>> updateFixerEntryResolution(
+    int? raceId,
+    int? entryId, {
+    required bool? isResolved,
+    int? correctedBib,
+    String? resolvedName,
+    required bool? isNewRunner,
+    required String? correctionType,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #updateFixerEntryResolution,
+              [raceId, entryId],
+              {
+                #isResolved: isResolved,
+                #correctedBib: correctedBib,
+                #resolvedName: resolvedName,
+                #isNewRunner: isNewRunner,
+                #correctionType: correctionType,
+              },
+            ),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(
+                  #updateFixerEntryResolution,
+                  [raceId, entryId],
+                  {
+                    #isResolved: isResolved,
+                    #correctedBib: correctedBib,
+                    #resolvedName: resolvedName,
+                    #isNewRunner: isNewRunner,
+                    #correctionType: correctionType,
+                  },
+                ),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
+
+  @override
+  _i4.Future<_i5.Result<List<_i13.FixerEntry>>> getFixerEntries(int? raceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#getFixerEntries, [raceId]),
+            returnValue: _i4.Future<_i5.Result<List<_i13.FixerEntry>>>.value(
+              _i7.dummyValue<_i5.Result<List<_i13.FixerEntry>>>(
+                this,
+                Invocation.method(#getFixerEntries, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<List<_i13.FixerEntry>>>);
+
+  @override
+  _i4.Future<_i5.Result<void>> deleteFixerEntries(int? raceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteFixerEntries, [raceId]),
+            returnValue: _i4.Future<_i5.Result<void>>.value(
+              _i7.dummyValue<_i5.Result<void>>(
+                this,
+                Invocation.method(#deleteFixerEntries, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i5.Result<void>>);
 }
 
 /// A class which mocks [IDemoRaceGenerator].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIDemoRaceGenerator extends _i1.Mock
-    implements _i12.IDemoRaceGenerator {
+    implements _i14.IDemoRaceGenerator {
   MockIDemoRaceGenerator() {
     _i1.throwOnMissingStub(this);
   }
@@ -706,15 +862,15 @@ class MockIDemoRaceGenerator extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIDeviceConnectionFactory extends _i1.Mock
-    implements _i13.IDeviceConnectionFactory {
+    implements _i15.IDeviceConnectionFactory {
   MockIDeviceConnectionFactory() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
   _i2.DevicesManager createDevices(
-    _i14.DeviceName? deviceName,
-    _i14.DeviceType? deviceType, {
+    _i16.DeviceName? deviceName,
+    _i16.DeviceType? deviceType, {
     String? data,
     bool? toSpectator,
   }) =>
@@ -739,7 +895,7 @@ class MockIDeviceConnectionFactory extends _i1.Mock
 /// A class which mocks [TutorialManager].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTutorialManager extends _i1.Mock implements _i15.TutorialManager {
+class MockTutorialManager extends _i1.Mock implements _i17.TutorialManager {
   MockTutorialManager() {
     _i1.throwOnMissingStub(this);
   }
@@ -750,7 +906,7 @@ class MockTutorialManager extends _i1.Mock implements _i15.TutorialManager {
           as bool);
 
   @override
-  void setTargetRect(_i16.Rect? rect) => super.noSuchMethod(
+  void setTargetRect(_i18.Rect? rect) => super.noSuchMethod(
     Invocation.method(#setTargetRect, [rect]),
     returnValueForMissingStub: null,
   );
@@ -779,13 +935,13 @@ class MockTutorialManager extends _i1.Mock implements _i15.TutorialManager {
           as _i4.Future<bool>);
 
   @override
-  void addListener(_i16.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i18.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i16.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i18.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -807,13 +963,13 @@ class MockTutorialManager extends _i1.Mock implements _i15.TutorialManager {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIPostFrameScheduler extends _i1.Mock
-    implements _i17.IPostFrameScheduler {
+    implements _i19.IPostFrameScheduler {
   MockIPostFrameScheduler() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  void schedulePostFrame(_i16.VoidCallback? callback) => super.noSuchMethod(
+  void schedulePostFrame(_i18.VoidCallback? callback) => super.noSuchMethod(
     Invocation.method(#schedulePostFrame, [callback]),
     returnValueForMissingStub: null,
   );

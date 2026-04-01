@@ -28,13 +28,8 @@ import 'package:xceleration/core/utils/connection_interfaces.dart' as _i3;
 
 class _FakeStreamSubscription_0<T> extends _i1.SmartFake
     implements _i2.StreamSubscription<T> {
-  _FakeStreamSubscription_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeStreamSubscription_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [NearbyConnectionsInterface].
@@ -54,91 +49,74 @@ class MockNearbyConnectionsInterface extends _i1.Mock
     required Function? callback,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #init,
-          [],
-          {
-            #serviceType: serviceType,
-            #deviceName: deviceName,
-            #strategy: strategy,
-            #callback: callback,
-          },
-        ),
-        returnValue: _i2.Future<dynamic>.value(),
-      ) as _i2.Future<dynamic>);
+            Invocation.method(#init, [], {
+              #serviceType: serviceType,
+              #deviceName: deviceName,
+              #strategy: strategy,
+              #callback: callback,
+            }),
+            returnValue: _i2.Future<dynamic>.value(),
+          )
+          as _i2.Future<dynamic>);
 
   @override
-  _i2.FutureOr<dynamic> sendMessage(
-    String? deviceID,
-    String? message,
-  ) =>
-      (super.noSuchMethod(Invocation.method(
-        #sendMessage,
-        [
-          deviceID,
-          message,
-        ],
-      )) as _i2.FutureOr<dynamic>);
+  _i2.FutureOr<dynamic> sendMessage(String? deviceID, String? message) =>
+      (super.noSuchMethod(Invocation.method(#sendMessage, [deviceID, message]))
+          as _i2.FutureOr<dynamic>);
 
   @override
   _i2.FutureOr<dynamic> invitePeer({
     required String? deviceID,
     required String? deviceName,
   }) =>
-      (super.noSuchMethod(Invocation.method(
-        #invitePeer,
-        [],
-        {
-          #deviceID: deviceID,
-          #deviceName: deviceName,
-        },
-      )) as _i2.FutureOr<dynamic>);
+      (super.noSuchMethod(
+            Invocation.method(#invitePeer, [], {
+              #deviceID: deviceID,
+              #deviceName: deviceName,
+            }),
+          )
+          as _i2.FutureOr<dynamic>);
 
   @override
   _i2.FutureOr<dynamic> disconnectPeer({required String? deviceID}) =>
-      (super.noSuchMethod(Invocation.method(
-        #disconnectPeer,
-        [],
-        {#deviceID: deviceID},
-      )) as _i2.FutureOr<dynamic>);
+      (super.noSuchMethod(
+            Invocation.method(#disconnectPeer, [], {#deviceID: deviceID}),
+          )
+          as _i2.FutureOr<dynamic>);
 
   @override
-  _i2.StreamSubscription<dynamic> dataReceivedSubscription(
-          {required dynamic Function(dynamic)? callback}) =>
+  _i2.StreamSubscription<dynamic> dataReceivedSubscription({
+    required dynamic Function(dynamic)? callback,
+  }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #dataReceivedSubscription,
-          [],
-          {#callback: callback},
-        ),
-        returnValue: _FakeStreamSubscription_0<dynamic>(
-          this,
-          Invocation.method(
-            #dataReceivedSubscription,
-            [],
-            {#callback: callback},
-          ),
-        ),
-      ) as _i2.StreamSubscription<dynamic>);
+            Invocation.method(#dataReceivedSubscription, [], {
+              #callback: callback,
+            }),
+            returnValue: _FakeStreamSubscription_0<dynamic>(
+              this,
+              Invocation.method(#dataReceivedSubscription, [], {
+                #callback: callback,
+              }),
+            ),
+          )
+          as _i2.StreamSubscription<dynamic>);
 
   @override
-  _i2.StreamSubscription<dynamic> stateChangedSubscription(
-          {required dynamic Function(List<_i4.Device>)? callback}) =>
+  _i2.StreamSubscription<dynamic> stateChangedSubscription({
+    required dynamic Function(List<_i4.Device>)? callback,
+  }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #stateChangedSubscription,
-          [],
-          {#callback: callback},
-        ),
-        returnValue: _FakeStreamSubscription_0<dynamic>(
-          this,
-          Invocation.method(
-            #stateChangedSubscription,
-            [],
-            {#callback: callback},
-          ),
-        ),
-      ) as _i2.StreamSubscription<dynamic>);
+            Invocation.method(#stateChangedSubscription, [], {
+              #callback: callback,
+            }),
+            returnValue: _FakeStreamSubscription_0<dynamic>(
+              this,
+              Invocation.method(#stateChangedSubscription, [], {
+                #callback: callback,
+              }),
+            ),
+          )
+          as _i2.StreamSubscription<dynamic>);
 }
 
 /// A class which mocks [SharedPreferences].
@@ -150,174 +128,116 @@ class MockSharedPreferences extends _i1.Mock implements _i5.SharedPreferences {
   }
 
   @override
-  Set<String> getKeys() => (super.noSuchMethod(
-        Invocation.method(
-          #getKeys,
-          [],
-        ),
-        returnValue: <String>{},
-      ) as Set<String>);
+  Set<String> getKeys() =>
+      (super.noSuchMethod(
+            Invocation.method(#getKeys, []),
+            returnValue: <String>{},
+          )
+          as Set<String>);
 
   @override
-  Object? get(String? key) => (super.noSuchMethod(Invocation.method(
-        #get,
-        [key],
-      )) as Object?);
+  Object? get(String? key) =>
+      (super.noSuchMethod(Invocation.method(#get, [key])) as Object?);
 
   @override
-  bool? getBool(String? key) => (super.noSuchMethod(Invocation.method(
-        #getBool,
-        [key],
-      )) as bool?);
+  bool? getBool(String? key) =>
+      (super.noSuchMethod(Invocation.method(#getBool, [key])) as bool?);
 
   @override
-  int? getInt(String? key) => (super.noSuchMethod(Invocation.method(
-        #getInt,
-        [key],
-      )) as int?);
+  int? getInt(String? key) =>
+      (super.noSuchMethod(Invocation.method(#getInt, [key])) as int?);
 
   @override
-  double? getDouble(String? key) => (super.noSuchMethod(Invocation.method(
-        #getDouble,
-        [key],
-      )) as double?);
+  double? getDouble(String? key) =>
+      (super.noSuchMethod(Invocation.method(#getDouble, [key])) as double?);
 
   @override
-  String? getString(String? key) => (super.noSuchMethod(Invocation.method(
-        #getString,
-        [key],
-      )) as String?);
+  String? getString(String? key) =>
+      (super.noSuchMethod(Invocation.method(#getString, [key])) as String?);
 
   @override
-  bool containsKey(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #containsKey,
-          [key],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool containsKey(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#containsKey, [key]),
+            returnValue: false,
+          )
+          as bool);
 
   @override
   List<String>? getStringList(String? key) =>
-      (super.noSuchMethod(Invocation.method(
-        #getStringList,
-        [key],
-      )) as List<String>?);
+      (super.noSuchMethod(Invocation.method(#getStringList, [key]))
+          as List<String>?);
 
   @override
-  _i2.Future<bool> setBool(
-    String? key,
-    bool? value,
-  ) =>
+  _i2.Future<bool> setBool(String? key, bool? value) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setBool,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i2.Future<bool>.value(false),
-      ) as _i2.Future<bool>);
+            Invocation.method(#setBool, [key, value]),
+            returnValue: _i2.Future<bool>.value(false),
+          )
+          as _i2.Future<bool>);
 
   @override
-  _i2.Future<bool> setInt(
-    String? key,
-    int? value,
-  ) =>
+  _i2.Future<bool> setInt(String? key, int? value) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setInt,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i2.Future<bool>.value(false),
-      ) as _i2.Future<bool>);
+            Invocation.method(#setInt, [key, value]),
+            returnValue: _i2.Future<bool>.value(false),
+          )
+          as _i2.Future<bool>);
 
   @override
-  _i2.Future<bool> setDouble(
-    String? key,
-    double? value,
-  ) =>
+  _i2.Future<bool> setDouble(String? key, double? value) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setDouble,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i2.Future<bool>.value(false),
-      ) as _i2.Future<bool>);
+            Invocation.method(#setDouble, [key, value]),
+            returnValue: _i2.Future<bool>.value(false),
+          )
+          as _i2.Future<bool>);
 
   @override
-  _i2.Future<bool> setString(
-    String? key,
-    String? value,
-  ) =>
+  _i2.Future<bool> setString(String? key, String? value) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setString,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i2.Future<bool>.value(false),
-      ) as _i2.Future<bool>);
+            Invocation.method(#setString, [key, value]),
+            returnValue: _i2.Future<bool>.value(false),
+          )
+          as _i2.Future<bool>);
 
   @override
-  _i2.Future<bool> setStringList(
-    String? key,
-    List<String>? value,
-  ) =>
+  _i2.Future<bool> setStringList(String? key, List<String>? value) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #setStringList,
-          [
-            key,
-            value,
-          ],
-        ),
-        returnValue: _i2.Future<bool>.value(false),
-      ) as _i2.Future<bool>);
+            Invocation.method(#setStringList, [key, value]),
+            returnValue: _i2.Future<bool>.value(false),
+          )
+          as _i2.Future<bool>);
 
   @override
-  _i2.Future<bool> remove(String? key) => (super.noSuchMethod(
-        Invocation.method(
-          #remove,
-          [key],
-        ),
-        returnValue: _i2.Future<bool>.value(false),
-      ) as _i2.Future<bool>);
+  _i2.Future<bool> remove(String? key) =>
+      (super.noSuchMethod(
+            Invocation.method(#remove, [key]),
+            returnValue: _i2.Future<bool>.value(false),
+          )
+          as _i2.Future<bool>);
 
   @override
-  _i2.Future<bool> commit() => (super.noSuchMethod(
-        Invocation.method(
-          #commit,
-          [],
-        ),
-        returnValue: _i2.Future<bool>.value(false),
-      ) as _i2.Future<bool>);
+  _i2.Future<bool> commit() =>
+      (super.noSuchMethod(
+            Invocation.method(#commit, []),
+            returnValue: _i2.Future<bool>.value(false),
+          )
+          as _i2.Future<bool>);
 
   @override
-  _i2.Future<bool> clear() => (super.noSuchMethod(
-        Invocation.method(
-          #clear,
-          [],
-        ),
-        returnValue: _i2.Future<bool>.value(false),
-      ) as _i2.Future<bool>);
+  _i2.Future<bool> clear() =>
+      (super.noSuchMethod(
+            Invocation.method(#clear, []),
+            returnValue: _i2.Future<bool>.value(false),
+          )
+          as _i2.Future<bool>);
 
   @override
-  _i2.Future<void> reload() => (super.noSuchMethod(
-        Invocation.method(
-          #reload,
-          [],
-        ),
-        returnValue: _i2.Future<void>.value(),
-        returnValueForMissingStub: _i2.Future<void>.value(),
-      ) as _i2.Future<void>);
+  _i2.Future<void> reload() =>
+      (super.noSuchMethod(
+            Invocation.method(#reload, []),
+            returnValue: _i2.Future<void>.value(),
+            returnValueForMissingStub: _i2.Future<void>.value(),
+          )
+          as _i2.Future<void>);
 }

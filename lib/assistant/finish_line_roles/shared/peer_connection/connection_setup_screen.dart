@@ -71,7 +71,7 @@ class ConnectionSetupScreen extends StatelessWidget {
                     const SizedBox(height: AppSpacing.xxl),
                     ListenableBuilder(
                       listenable: notifier,
-                      builder: (_, __) => Column(
+                      builder: (_, _) => Column(
                         children: peers
                             .map((p) => _PeerCard(
                                   config: p,
@@ -269,7 +269,7 @@ class _BottomActions extends StatelessWidget {
       ),
       child: ListenableBuilder(
         listenable: notifier,
-        builder: (_, __) {
+        builder: (_, _) {
           final anyConn = notifier.anyConnected;
           final allConn = notifier.allConnected;
           final btnLabel = allConn

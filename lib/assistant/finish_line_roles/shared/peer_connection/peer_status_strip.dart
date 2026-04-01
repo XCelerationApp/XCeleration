@@ -20,7 +20,7 @@ class PeerStatusStrip extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: notifier,
-      builder: (_, __) {
+      builder: (_, _) {
         final peers = kPeerConfig[notifier.role] ?? [];
         return Padding(
           padding: const EdgeInsets.fromLTRB(

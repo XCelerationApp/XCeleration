@@ -42,188 +42,145 @@ class MockVerifierController extends _i1.Mock
   }
 
   @override
-  List<_i3.VerifierEntry> get entries => (super.noSuchMethod(
-        Invocation.getter(#entries),
-        returnValue: <_i3.VerifierEntry>[],
-      ) as List<_i3.VerifierEntry>);
+  List<_i3.VerifierEntry> get entries =>
+      (super.noSuchMethod(
+            Invocation.getter(#entries),
+            returnValue: <_i3.VerifierEntry>[],
+          )
+          as List<_i3.VerifierEntry>);
 
   @override
-  bool get isInRace => (super.noSuchMethod(
-        Invocation.getter(#isInRace),
-        returnValue: false,
-      ) as bool);
+  bool get isInRace =>
+      (super.noSuchMethod(Invocation.getter(#isInRace), returnValue: false)
+          as bool);
 
   @override
-  List<_i4.RaceRecord> get races => (super.noSuchMethod(
-        Invocation.getter(#races),
-        returnValue: <_i4.RaceRecord>[],
-      ) as List<_i4.RaceRecord>);
+  List<_i4.RaceRecord> get races =>
+      (super.noSuchMethod(
+            Invocation.getter(#races),
+            returnValue: <_i4.RaceRecord>[],
+          )
+          as List<_i4.RaceRecord>);
 
   @override
-  int get confirmed => (super.noSuchMethod(
-        Invocation.getter(#confirmed),
-        returnValue: 0,
-      ) as int);
+  int get confirmed =>
+      (super.noSuchMethod(Invocation.getter(#confirmed), returnValue: 0)
+          as int);
 
   @override
-  int get wrong => (super.noSuchMethod(
-        Invocation.getter(#wrong),
-        returnValue: 0,
-      ) as int);
+  int get wrong =>
+      (super.noSuchMethod(Invocation.getter(#wrong), returnValue: 0) as int);
 
   @override
-  int get skipped => (super.noSuchMethod(
-        Invocation.getter(#skipped),
-        returnValue: 0,
-      ) as int);
+  int get skipped =>
+      (super.noSuchMethod(Invocation.getter(#skipped), returnValue: 0) as int);
 
   @override
-  int get pending => (super.noSuchMethod(
-        Invocation.getter(#pending),
-        returnValue: 0,
-      ) as int);
+  int get pending =>
+      (super.noSuchMethod(Invocation.getter(#pending), returnValue: 0) as int);
 
   @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-      ) as bool);
+  bool get hasListeners =>
+      (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
+          as bool);
 
   @override
-  _i5.Future<void> initialize() => (super.noSuchMethod(
-        Invocation.method(
-          #initialize,
-          [],
-        ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+  _i5.Future<void> initialize() =>
+      (super.noSuchMethod(
+            Invocation.method(#initialize, []),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 
   @override
   _i5.Future<_i6.Result<void>> processLoadedRaceData(String? data) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #processLoadedRaceData,
-          [data],
-        ),
-        returnValue:
-            _i5.Future<_i6.Result<void>>.value(_i7.dummyValue<_i6.Result<void>>(
-          this,
-          Invocation.method(
-            #processLoadedRaceData,
-            [data],
-          ),
-        )),
-      ) as _i5.Future<_i6.Result<void>>);
+            Invocation.method(#processLoadedRaceData, [data]),
+            returnValue: _i5.Future<_i6.Result<void>>.value(
+              _i7.dummyValue<_i6.Result<void>>(
+                this,
+                Invocation.method(#processLoadedRaceData, [data]),
+              ),
+            ),
+          )
+          as _i5.Future<_i6.Result<void>>);
 
   @override
-  _i5.Future<void> joinRace({required int? raceId}) => (super.noSuchMethod(
-        Invocation.method(
-          #joinRace,
-          [],
-          {#raceId: raceId},
-        ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+  _i5.Future<void> joinRace({required int? raceId}) =>
+      (super.noSuchMethod(
+            Invocation.method(#joinRace, [], {#raceId: raceId}),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 
   @override
   void verify(int? id) => super.noSuchMethod(
-        Invocation.method(
-          #verify,
-          [id],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#verify, [id]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void flag(int? id) => super.noSuchMethod(
-        Invocation.method(
-          #flag,
-          [id],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#flag, [id]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void skip(int? id) => super.noSuchMethod(
-        Invocation.method(
-          #skip,
-          [id],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#skip, [id]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void undo(int? id) => super.noSuchMethod(
-        Invocation.method(
-          #undo,
-          [id],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#undo, [id]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void leaveRace() => super.noSuchMethod(
-        Invocation.method(
-          #leaveRace,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#leaveRace, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i5.Future<void> deleteRaceFromLobby(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #deleteRaceFromLobby,
-          [raceId],
-        ),
-        returnValue: _i5.Future<void>.value(),
-        returnValueForMissingStub: _i5.Future<void>.value(),
-      ) as _i5.Future<void>);
+  _i5.Future<void> deleteRaceFromLobby(int? raceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteRaceFromLobby, [raceId]),
+            returnValue: _i5.Future<void>.value(),
+            returnValueForMissingStub: _i5.Future<void>.value(),
+          )
+          as _i5.Future<void>);
 
   @override
   void attachSession(_i8.P2PSessionService? session) => super.noSuchMethod(
-        Invocation.method(
-          #attachSession,
-          [session],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#attachSession, [session]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }
