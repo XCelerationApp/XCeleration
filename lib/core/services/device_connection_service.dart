@@ -934,10 +934,18 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     _stagnationTimer?.cancel();
     _stagnationTimer = null;
 
-    // Disconnect from all devices in the state map
+    // Disconnect from all devices in the state map, awaiting each future so
+    // failures are not silently swallowed.
     final devicesCopy = _deviceStateMap.values.toList();
-    for (var device in devicesCopy) {
-      unawaited(disconnectDevice(device));
+    if (devicesCopy.isNotEmpty) {
+      unawaited(Future.wait(
+        devicesCopy.map(
+          (device) => disconnectDevice(device).catchError((Object e) {
+            Logger.e('Error disconnecting device: $e');
+            return false;
+          }),
+        ),
+      ));
     }
     _deviceStateMap.clear();
 
