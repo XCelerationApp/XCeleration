@@ -103,6 +103,8 @@ class FixerController extends ChangeNotifier {
   /// Enter a race session and recover any persisted entries.
   Future<void> joinRace() async {
     _inRace = true;
+    _queue.clear();
+    _allRunners.clear();
     notifyListeners();
     final runnersResult = await _storage.getRunners(_raceId);
     switch (runnersResult) {
@@ -249,7 +251,7 @@ class FixerController extends ChangeNotifier {
     unawaited(_haptic.lightImpact());
     final original = _queue[idx];
     final resolvedName = name ?? 'New Runner';
-    final bibNumber = (newBib ?? entryId).toString();
+    final bibNumber = (newBib ?? original.bib).toString();
     _queue[idx] = original.copyWith(
       isResolved: true,
       isNewRunner: true,
@@ -267,14 +269,18 @@ class FixerController extends ChangeNotifier {
         )),
       ));
     }
-    unawaited(_storage.saveRunner(Runner(
+    final newRunner = Runner(
       raceId: _raceId,
       bibNumber: bibNumber,
       name: name,
       createdAt: DateTime.now(),
-    )).then((result) {
-      if (result case Failure(:final error)) {
-        Logger.e('[FixerController.resolveAsNewRunner] ${error.originalException}');
+    );
+    unawaited(_storage.saveRunner(newRunner).then((result) {
+      switch (result) {
+        case Success():
+          _allRunners.add(newRunner);
+        case Failure(:final error):
+          Logger.e('[FixerController.resolveAsNewRunner] ${error.originalException}');
       }
     }));
     unawaited(_storage.updateFixerEntryResolution(
@@ -311,8 +317,10 @@ class FixerController extends ChangeNotifier {
       FlagReason.unknown => FixReason.unknown,
       FlagReason.duplicate => FixReason.duplicate,
     };
+    final entryId = msg.entry.entryId ?? msg.entry.finishPosition;
+    if (_queue.any((e) => e.id == entryId)) return;
     final entry = FixerEntry(
-      id: msg.entry.entryId ?? msg.entry.finishPosition,
+      id: entryId,
       position: msg.entry.finishPosition,
       bib: msg.entry.bib,
       reason: reason,

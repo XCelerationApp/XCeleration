@@ -917,7 +917,7 @@ void main() {
         verifyNever(mockStorage.updateBibRecordValue(any, any, any));
       });
 
-      test('resolveAsNewRunner uses entryId as bibNumber when newBib is null', () async {
+      test('resolveAsNewRunner uses original bib as bibNumber when newBib is null', () async {
         final controller = await makeControllerWithEntry(finishPosition: 4, bib: 188);
 
         controller.resolveAsNewRunner(4, name: 'Unknown');
@@ -925,7 +925,7 @@ void main() {
 
         final captured = verify(mockStorage.saveRunner(captureAny)).captured;
         final runner = captured.single as Runner;
-        expect(runner.bibNumber, '4');
+        expect(runner.bibNumber, '188');
       });
     });
 
