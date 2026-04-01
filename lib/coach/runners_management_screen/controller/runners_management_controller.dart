@@ -476,7 +476,7 @@ class RunnersManagementController with ChangeNotifier {
           (t) => t.name == createdTeam.name,
           orElse: () => createdTeam);
       if (!context.mounted) return;
-      await showAddRunnersToTeamSheet(context, persisted);
+      await showAddRunnerChoiceSheet(context, persisted);
     }
   }
 
