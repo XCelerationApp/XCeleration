@@ -64,4 +64,34 @@ class FixerEntry {
         resolvedName: resolvedName ?? this.resolvedName,
         isNewRunner: isNewRunner ?? this.isNewRunner,
       );
+
+  Map<String, dynamic> toMap(int raceId) => {
+        'race_id': raceId,
+        'entry_id': id,
+        'position': position,
+        'original_bib': bib.toString(),
+        'runner_name': runnerName,
+        'reason': reason.name,
+        'is_resolved': isResolved ? 1 : 0,
+        'corrected_bib': correctedBib?.toString(),
+        'resolved_name': resolvedName,
+        'is_new_runner': isNewRunner ? 1 : 0,
+        'correction_type': null,
+        'resolved_at': null,
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      };
+
+  factory FixerEntry.fromMap(Map<String, dynamic> map) => FixerEntry(
+        id: map['entry_id'] as int,
+        position: map['position'] as int,
+        bib: int.parse(map['original_bib'] as String),
+        runnerName: map['runner_name'] as String?,
+        reason: FixReason.values.byName(map['reason'] as String),
+        isResolved: (map['is_resolved'] as int) == 1,
+        correctedBib: map['corrected_bib'] != null
+            ? int.parse(map['corrected_bib'] as String)
+            : null,
+        resolvedName: map['resolved_name'] as String?,
+        isNewRunner: (map['is_new_runner'] as int) == 1,
+      );
 }

@@ -65,4 +65,30 @@ class VerifierEntry {
         flag: flag,
         status: status ?? this.status,
       );
+
+  Map<String, dynamic> toMap(int raceId) => {
+        'race_id': raceId,
+        'entry_id': id,
+        'position': position,
+        'bib_number': bib.toString(),
+        'flag': flag.name,
+        'status': status.name,
+        'runner_name': runnerName,
+        'team_abbreviation': teamAbbreviation,
+        'team_color': teamColor?.toARGB32(),
+        'created_at': DateTime.now().millisecondsSinceEpoch,
+      };
+
+  factory VerifierEntry.fromMap(Map<String, dynamic> map) => VerifierEntry(
+        id: map['entry_id'] as int,
+        position: map['position'] as int,
+        bib: int.parse(map['bib_number'] as String),
+        runnerName: map['runner_name'] as String?,
+        teamAbbreviation: map['team_abbreviation'] as String?,
+        teamColor: map['team_color'] != null
+            ? Color(map['team_color'] as int)
+            : null,
+        flag: BibFlag.values.byName(map['flag'] as String),
+        status: VerificationStatus.values.byName(map['status'] as String),
+      );
 }
