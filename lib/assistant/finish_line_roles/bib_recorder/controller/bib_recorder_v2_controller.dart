@@ -517,6 +517,15 @@ class BibRecorderV2Controller extends ChangeNotifier {
     if (idx == -1) return;
     if (msg.correctedBib != null) {
       _entries[idx] = _entries[idx].copyWith(correctedTo: () => msg.correctedBib);
+      if (_selectedRace != null) {
+        unawaited(_storage.updateBibRecordValue(
+          _selectedRace!.raceId, entryId, msg.correctedBib.toString(),
+        ).then((result) {
+          if (result case Failure(:final error)) {
+            Logger.e('[BibRecorderV2Controller._applyCorrection] ${error.originalException}');
+          }
+        }));
+      }
     } else if (msg.correctionType == CorrectionType.newRunner) {
       _entries[idx] = _entries[idx].copyWith(isNewRunner: true);
     }
