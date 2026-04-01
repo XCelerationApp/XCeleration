@@ -193,7 +193,12 @@ class P2PSessionService {
     try {
       final json = jsonEncode(stamped.toJson());
       await _nearbyConnections.sendMessage(deviceId, json);
-      _pendingAck.putIfAbsent(target, () => {})[stamped.sequence!] = stamped;
+      final ack = _pendingAck.putIfAbsent(target, () => {});
+      ack[stamped.sequence!] = stamped;
+      // Cap pending-ACK map to prevent unbounded growth if peer never ACKs.
+      if (ack.length > _kQueueCap) {
+        ack.remove(ack.keys.first);
+      }
     } catch (e) {
       Logger.e('[P2PSessionService] sendMessage to $target failed: $e');
       // Re-queue the message for retry on next flush.
@@ -262,6 +267,11 @@ class P2PSessionService {
       switch (device.state) {
         case SessionState.connected:
           _inviteTimers.remove(device.deviceId)?.cancel();
+          // Clean up stale device ID if the role reconnected with a new one.
+          final oldDeviceId = _roleToDeviceId[role];
+          if (oldDeviceId != null && oldDeviceId != device.deviceId) {
+            _deviceIdToRole.remove(oldDeviceId);
+          }
           _deviceIdToRole[device.deviceId] = role;
           _roleToDeviceId[role] = device.deviceId;
           _peerEventsController.add(
@@ -331,9 +341,9 @@ class P2PSessionService {
           return;
         }
         seen.add(seq);
-        // Evict the smallest entry once the cap is reached.
+        // Evict the oldest (first) entry once the cap is reached.
         if (seen.length > _kSeenSequenceCap) {
-          seen.remove(seen.reduce((a, b) => a < b ? a : b));
+          seen.remove(seen.first);
         }
         unawaited(_sendAck(senderDeviceId, seq));
       }
