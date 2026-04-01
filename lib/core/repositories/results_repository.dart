@@ -39,7 +39,7 @@ class ResultsRepository implements IResultsRepository {
       final db = await _db;
       final existing = await db.query(
         'race_results',
-        where: 'race_id = ? AND runner_id = ?',
+        where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
         whereArgs: [result.raceId, result.runner!.runnerId],
       );
       if (existing.isNotEmpty) throw Exception('RaceResult already exists');
@@ -61,7 +61,7 @@ class ResultsRepository implements IResultsRepository {
     final db = await _db;
     final rows = await db.query(
       'race_results',
-      where: 'race_id = ? AND runner_id = ?',
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
     );
     return rows.isNotEmpty ? RaceResult.fromMap(rows.first) : null;
@@ -86,7 +86,7 @@ class ResultsRepository implements IResultsRepository {
       FROM race_results rr
       JOIN runners r ON rr.runner_id = r.runner_id
       LEFT JOIN teams t ON rr.team_id = t.team_id
-      WHERE rr.race_id = ?
+      WHERE rr.race_id = ? AND rr.deleted_at IS NULL AND r.deleted_at IS NULL
       ORDER BY rr.place
     ''', [raceId]);
     return rows.map((m) => RaceResult.fromMap(m)).toList();

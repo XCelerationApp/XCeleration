@@ -38,8 +38,8 @@ class TeamRepository implements ITeamRepository {
   @override
   Future<Team?> getTeam(int teamId) async {
     final db = await _db;
-    final rows =
-        await db.query('teams', where: 'team_id = ?', whereArgs: [teamId]);
+    final rows = await db.query('teams',
+        where: 'team_id = ? AND deleted_at IS NULL', whereArgs: [teamId]);
     return rows.isNotEmpty ? Team.fromMap(rows.first) : null;
   }
 
@@ -48,7 +48,7 @@ class TeamRepository implements ITeamRepository {
     final db = await _db;
     final rows = await db.query(
       'teams',
-      where: 'name = ?',
+      where: 'name = ? AND deleted_at IS NULL',
       whereArgs: [name],
       limit: 1,
     );
@@ -58,7 +58,8 @@ class TeamRepository implements ITeamRepository {
   @override
   Future<List<Team>> getAllTeams() async {
     final db = await _db;
-    final rows = await db.query('teams', orderBy: 'name');
+    final rows =
+        await db.query('teams', where: 'deleted_at IS NULL', orderBy: 'name');
     return rows.map((m) => Team.fromMap(m)).toList();
   }
 
@@ -67,7 +68,7 @@ class TeamRepository implements ITeamRepository {
     final db = await _db;
     final rows = await db.query(
       'teams',
-      where: 'name LIKE ? OR abbreviation LIKE ?',
+      where: '(name LIKE ? OR abbreviation LIKE ?) AND deleted_at IS NULL',
       whereArgs: ['%$query%', '%$query%'],
       orderBy: 'name',
     );
@@ -100,7 +101,15 @@ class TeamRepository implements ITeamRepository {
       throw Exception('Team with id $teamId not found');
     }
     final db = await _db;
-    await db.delete('teams', where: 'team_id = ?', whereArgs: [teamId]);
+    await db.update(
+      'teams',
+      {
+        'deleted_at': DateTime.now().toUtc().toIso8601String(),
+        'is_dirty': 1,
+      },
+      where: 'team_id = ?',
+      whereArgs: [teamId],
+    );
     _writeBus?.notify();
   }
 }
