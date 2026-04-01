@@ -153,10 +153,19 @@ class SpeechRecognitionService implements ISpeechRecognitionService {
     if (_cachedSendPort == null) return '';
 
     final reply = ReceivePort();
-    _cachedSendPort!.send((wavPath: wavPath, replyPort: reply.sendPort));
-    final result = await reply.first as String;
-    reply.close();
-    return result;
+    try {
+      _cachedSendPort!.send((wavPath: wavPath, replyPort: reply.sendPort));
+      final result = await reply.first
+          .timeout(const Duration(seconds: 30)) as String;
+      return result;
+    } catch (_) {
+      // Isolate may have crashed — clear the stale SendPort so the next
+      // initialize() call respawns it.
+      _cachedSendPort = null;
+      return '';
+    } finally {
+      reply.close();
+    }
   }
 
   @override
