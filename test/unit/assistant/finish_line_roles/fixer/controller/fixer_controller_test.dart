@@ -31,6 +31,7 @@ void main() {
   late MockIAssistantStorageService mockStorage;
   late MockIHapticFeedback mockHaptic;
   late StreamController<(Role, MessageEnvelope)> incomingController;
+  final controllers = <FixerController>[];
 
   setUp(() {
     mockSession = MockP2PSessionService();
@@ -67,6 +68,10 @@ void main() {
   });
 
   tearDown(() async {
+    for (final c in controllers) {
+      c.dispose();
+    }
+    controllers.clear();
     await incomingController.close();
   });
 
@@ -83,6 +88,7 @@ void main() {
     if (session != null) {
       controller.attachSession(session, raceId: raceId);
     }
+    controllers.add(controller);
     return controller;
   }
 
@@ -374,8 +380,21 @@ void main() {
       });
 
       test('does not send message when no session is set', () async {
+        // Pre-populate storage with a fixer entry so the queue is not empty.
+        when(mockStorage.getFixerEntries(any)).thenAnswer((_) async =>
+            const Success<List<FixerEntry>>([
+              FixerEntry(
+                id: 1,
+                position: 1,
+                bib: 101,
+                reason: FixReason.unknown,
+              ),
+            ]));
+
         final controller = makeController();
         await controller.joinRace();
+
+        controller.resolveAsNewRunner(1, name: 'New Runner');
 
         verifyNever(mockSession.sendMessage(any, any));
       });

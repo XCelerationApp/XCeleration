@@ -42,6 +42,7 @@ void main() {
 
   late MockP2PSessionService mockSession;
   late StreamController<(Role, MessageEnvelope)> incomingController;
+  final controllers = <BibRecorderV2Controller>[];
 
   setUp(() {
     mockSession = MockP2PSessionService();
@@ -54,8 +55,18 @@ void main() {
   });
 
   tearDown(() async {
+    for (final c in controllers) {
+      c.dispose();
+    }
+    controllers.clear();
     await incomingController.close();
   });
+
+  /// Registers [c] for disposal in tearDown and returns it.
+  BibRecorderV2Controller track(BibRecorderV2Controller c) {
+    controllers.add(c);
+    return c;
+  }
 
   // Builds a controller wired up with a real (minimal) voice + storage mock so
   // initialize() can be awaited without errors.
@@ -73,12 +84,12 @@ void main() {
     when(mockStorage.getRaces(any))
         .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
 
-    final controller = BibRecorderV2Controller(
+    final controller = track(BibRecorderV2Controller(
       storage: mockStorage,
       voice: mockVoice,
       haptic: mockHaptic,
       session: mockSession,
-    );
+    ));
     await controller.initialize();
     return controller;
   }
@@ -87,12 +98,12 @@ void main() {
     group('addBib', () {
       test('sends BibEntryMessage to verifier when session is set', () {
         final mockStorage = MockIAssistantStorageService();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
           session: mockSession,
-        );
+        ));
 
         controller.addBib(101);
 
@@ -107,12 +118,12 @@ void main() {
       });
 
       test('assigns incrementing finish positions for consecutive bibs', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
           session: mockSession,
-        );
+        ));
 
         controller.addBib(101);
         controller.addBib(102);
@@ -130,12 +141,12 @@ void main() {
       });
 
       test('sends duplicate status when bib already recorded', () async {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
           session: mockSession,
-        );
+        ));
 
         controller.addBib(101);
         // Wait 2 ms so the second entry gets a distinct millisecond-based id,
@@ -151,11 +162,11 @@ void main() {
       });
 
       test('does not call sendMessage when no session is set', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
 
         controller.addBib(101);
 
@@ -187,12 +198,12 @@ void main() {
         when(mockStorage.addBibRecord(any, any, any))
             .thenAnswer((_) async => const Success<void>(null));
 
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
           session: mockSession,
-        );
+        ));
         controller.selectRace(race);
         await Future.microtask(() {});
 
@@ -207,12 +218,12 @@ void main() {
       });
 
       test('sends null runner context when bib is unknown', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
           session: mockSession,
-        );
+        ));
 
         // No runners loaded — bib is unknown.
         controller.addBib(999);
@@ -394,11 +405,11 @@ void main() {
 
       test('addBib calls addBibRecord with correct args', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.selectRace(makeRace());
         await Future.microtask(() {});
 
@@ -410,11 +421,11 @@ void main() {
 
       test('editEntry calls updateBibRecordValue with correct args', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.selectRace(makeRace());
         await Future.microtask(() {});
         controller.addBib(101);
@@ -429,11 +440,11 @@ void main() {
 
       test('deleteEntry calls removeBibRecord with correct args', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.selectRace(makeRace());
         await Future.microtask(() {});
         controller.addBib(101);
@@ -448,11 +459,11 @@ void main() {
 
       test('clearEntries calls deleteBibRecords', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.selectRace(makeRace());
         await Future.microtask(() {});
 
@@ -464,11 +475,11 @@ void main() {
 
       test('deleteRace calls deleteRace on storage', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.selectRace(makeRace());
         await Future.microtask(() {});
 
@@ -485,11 +496,11 @@ void main() {
           createdAt: DateTime(2026),
         );
         final mockStorage = makeStorage(bibRecords: [existingRecord]);
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
 
         controller.selectRace(makeRace());
         await Future.microtask(() {});
@@ -501,11 +512,11 @@ void main() {
 
       test('storage methods are not called when no race is selected', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
 
         controller.addBib(101);
         await Future.microtask(() {});
@@ -522,12 +533,12 @@ void main() {
             .thenAnswer((_) => StreamController<String>.broadcast().stream);
         when(mockVoice.initialize())
             .thenAnswer((_) async => Failure<void>(const AppError(userMessage: '')));
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: mockVoice,
           haptic: MockIHapticFeedback(),
           session: mockSession,
-        );
+        ));
         await controller.initialize();
         controller.selectRace(makeRace());
         await Future.microtask(() {});
@@ -556,12 +567,12 @@ void main() {
             .thenAnswer((_) => StreamController<String>.broadcast().stream);
         when(mockVoice.initialize())
             .thenAnswer((_) async => Failure<void>(const AppError(userMessage: '')));
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: mockVoice,
           haptic: MockIHapticFeedback(),
           session: mockSession,
-        );
+        ));
         await controller.initialize();
         controller.selectRace(makeRace());
         await Future.microtask(() {});
@@ -617,11 +628,11 @@ void main() {
         when(mockStorage.getRunners(1))
             .thenAnswer((_) async => Success<List<Runner>>([runner]));
 
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.selectRace(race);
         await Future.microtask(() {});
 
@@ -654,11 +665,11 @@ void main() {
         when(mockStorage.getRunners(1))
             .thenAnswer((_) async => Success<List<Runner>>([runner]));
 
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.attachSession(mockSession);
         controller.selectRace(race);
         await Future.microtask(() {});
@@ -687,11 +698,11 @@ void main() {
 
     group('addBib entry state', () {
       test('inserts entry at front of list', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         controller.addBib(202);
         expect(controller.entries.first.bib, 202);
@@ -699,11 +710,11 @@ void main() {
       });
 
       test('lastAddedBib reflects the newly added bib', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         expect(controller.lastAddedBib, 101);
       });
@@ -711,11 +722,11 @@ void main() {
       test('does not vibrate on duplicate — haptic is handled at recognition time', () async {
         final mockHaptic = MockIHapticFeedback();
         when(mockHaptic.vibrate()).thenAnswer((_) async {});
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: mockHaptic,
-        );
+        ));
         controller.addBib(101);
         // Wait 2 ms so the second entry gets a distinct id.
         await Future.delayed(const Duration(milliseconds: 2));
@@ -725,11 +736,11 @@ void main() {
 
       test('does not vibrate when bib is clean (no roster, no duplicates)', () {
         final mockHaptic = MockIHapticFeedback();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: mockHaptic,
-        );
+        ));
         controller.addBib(101);
         verifyNever(mockHaptic.vibrate());
       });
@@ -737,11 +748,11 @@ void main() {
 
     group('reRecordLast', () {
       test('lastAddedBib returns null after reRecordLast', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         expect(controller.lastAddedBib, 101);
         controller.reRecordLast();
@@ -749,11 +760,11 @@ void main() {
       });
 
       test('lastAddedBib resumes after next addBib', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         controller.reRecordLast();
         controller.addBib(202);
@@ -761,11 +772,11 @@ void main() {
       });
 
       test('is a no-op when entries is empty', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.reRecordLast();
         expect(controller.lastAddedBib, isNull);
         expect(controller.entries, isEmpty);
@@ -774,11 +785,11 @@ void main() {
 
     group('deleteEntry / editEntry / clearEntries', () {
       test('deleteEntry removes entry from list', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         final id = controller.entries.first.id;
         controller.deleteEntry(id);
@@ -786,11 +797,11 @@ void main() {
       });
 
       test('editEntry updates bib in list', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         final id = controller.entries.first.id;
         controller.editEntry(id, 202);
@@ -798,22 +809,22 @@ void main() {
       });
 
       test('editEntry is a no-op for unknown id', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         controller.editEntry(999, 202);
         expect(controller.entries.first.bib, 101);
       });
 
       test('clearEntries empties the list', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         controller.addBib(202);
         controller.clearEntries();
@@ -821,11 +832,11 @@ void main() {
       });
 
       test('restoreEntry re-inserts entry at correct index', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         final entry = controller.entries.first;
         controller.deleteEntry(entry.id);
@@ -837,11 +848,11 @@ void main() {
       });
 
       test('restoreEntry clamps index when out of bounds', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         final entry = controller.entries.first;
         controller.deleteEntry(entry.id);
@@ -854,11 +865,11 @@ void main() {
 
     group('flagFor', () {
       test('returns null when roster is empty (no unknown flag without roster)', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         expect(controller.flagFor(999), isNull);
       });
 
@@ -879,11 +890,11 @@ void main() {
           name: 'Test Race',
           type: 'bibRecorderV2',
         );
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.selectRace(race);
         await Future.microtask(() {});
         expect(controller.flagFor(101), isNull);
@@ -906,11 +917,11 @@ void main() {
           name: 'Test Race',
           type: 'bibRecorderV2',
         );
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.selectRace(race);
         await Future.microtask(() {});
         expect(controller.flagFor(999), 'unknown');
@@ -947,11 +958,11 @@ void main() {
         when(mockVoice.stop()).thenAnswer((_) async {});
         when(mockStorage.getRaces(any))
             .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: mockVoice,
           haptic: MockIHapticFeedback(),
-        );
+        ));
         await controller.initialize();
         return controller;
       }
@@ -1013,11 +1024,11 @@ void main() {
         when(mockVoice.stop()).thenAnswer((_) async {});
         when(mockStorage.getRaces(any))
             .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: mockVoice,
           haptic: mockHaptic,
-        );
+        ));
         await controller.initialize();
         await controller.startListening();
         await controller.stopListening();
@@ -1029,11 +1040,11 @@ void main() {
 
     group('leaveRace', () {
       test('clears entries, transcript, and listening state', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         controller.addBib(202);
         controller.leaveRace();
@@ -1046,11 +1057,11 @@ void main() {
       });
 
       test('lastAddedBib is null after leaveRace', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.addBib(101);
         controller.leaveRace();
         expect(controller.lastAddedBib, isNull);
@@ -1148,11 +1159,11 @@ void main() {
 
       test('returns Failure when data cannot be parsed', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
 
         final result = await controller.processLoadedRaceData('not valid json');
 
@@ -1161,11 +1172,11 @@ void main() {
 
       test('returns Failure when runner section is invalid', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         final data = '${testRace.encode()}---invalid-runner-data';
 
         final result = await controller.processLoadedRaceData(data);
@@ -1178,11 +1189,11 @@ void main() {
         when(mockStorage.saveNewRace(any)).thenAnswer(
           (_) async => Failure<void>(const AppError(userMessage: 'Save failed')),
         );
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
 
         final result = await controller.processLoadedRaceData(testRace.encode());
 
@@ -1192,11 +1203,11 @@ void main() {
 
       test('returns Success and reloads race list on valid data without runners', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
 
         final result = await controller.processLoadedRaceData(testRace.encode());
 
@@ -1209,11 +1220,11 @@ void main() {
 
       test('returns Success and calls saveRunners on valid data with runners', () async {
         final mockStorage = makeStorage();
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: mockStorage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         final data = '${testRace.encode()}---$validRunnerJson';
 
         final result = await controller.processLoadedRaceData(data);
@@ -1227,11 +1238,11 @@ void main() {
     group('attachSession', () {
       test('subscribes to incoming messages after construction without session',
           () async {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
 
         controller.attachSession(mockSession);
 
@@ -1252,11 +1263,11 @@ void main() {
       });
 
       test('sends bib messages via newly attached session', () {
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
 
         controller.attachSession(mockSession);
         controller.addBib(55);
@@ -1276,12 +1287,12 @@ void main() {
             .thenAnswer((_) => secondController.stream);
         when(secondSession.sendMessage(any, any)).thenAnswer((_) async {});
 
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: MockIAssistantStorageService(),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
           session: mockSession,
-        );
+        ));
 
         // Replace with second session.
         controller.attachSession(secondSession);
@@ -1333,11 +1344,11 @@ void main() {
           BibRecord(raceId: 1, bibId: 1001, bibNumber: '101', createdAt: DateTime(2026)),
           BibRecord(raceId: 1, bibId: 1002, bibNumber: '102', createdAt: DateTime(2026)),
         ];
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: makeStorage(records),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
-        );
+        ));
         controller.attachSession(mockSession);
         controller.selectRace(makeRace());
         await Future.microtask(() {});
@@ -1363,12 +1374,12 @@ void main() {
           BibRecord(raceId: 1, bibId: 2001, bibNumber: '50', createdAt: DateTime(2026)),
           BibRecord(raceId: 1, bibId: 2002, bibNumber: '51', createdAt: DateTime(2026)),
         ];
-        final controller = BibRecorderV2Controller(
+        final controller = track(BibRecorderV2Controller(
           storage: makeStorage(records),
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
           session: mockSession,
-        );
+        ));
         controller.selectRace(makeRace());
         await Future.microtask(() {});
 

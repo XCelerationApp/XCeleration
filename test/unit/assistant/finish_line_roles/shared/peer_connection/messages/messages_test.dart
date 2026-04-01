@@ -371,5 +371,43 @@ void main() {
         expect(envelope.decode(), isNull);
       });
     });
+
+    group('fromJson', () {
+      test('fromJson with missing required fields throws', () {
+        final json = <String, dynamic>{
+          'version': messageSchemaVersion,
+          'payload': <String, dynamic>{},
+        };
+        expect(() => MessageEnvelope.fromJson(json), throwsA(isA<TypeError>()));
+      });
+    });
+
+    group('ACK', () {
+      test('ACK with valid sequence decodes correctly', () {
+        final envelope = MessageEnvelope.wrapAck(7);
+        final decoded = MessageEnvelope.fromJson(envelope.toJson());
+        final msg = decoded.decode();
+
+        expect(msg, isA<AckMessage>());
+        expect((msg as AckMessage).sequence, 7);
+      });
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // BibEntryMessage — malformed input
+  // ---------------------------------------------------------------------------
+
+  group('BibEntryMessage', () {
+    group('fromJson', () {
+      test('fromJson with missing bib field throws', () {
+        final json = <String, dynamic>{
+          'finish_position': 1,
+          'status': 'resolved',
+          'timestamp': DateTime.utc(2026, 3, 20).toIso8601String(),
+        };
+        expect(() => BibEntryMessage.fromJson(json), throwsA(isA<TypeError>()));
+      });
+    });
   });
 }
