@@ -55,6 +55,8 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   // Monotonically increasing finish position — incremented on every bib insert.
   int _nextPosition = 0;
+  // Monotonically increasing entry ID — avoids collisions from rapid adds.
+  int _nextEntryId = 0;
   // Maps finish position → BibEntry.id for applying Fixer corrections.
   final Map<int, int> _positionToEntryId = {};
 
@@ -179,6 +181,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _entries.clear();
     _runners.clear();
     _nextPosition = 0;
+    _nextEntryId = 0;
     _positionToEntryId.clear();
     _transcript = '';
     _isListening = false;
@@ -233,18 +236,23 @@ class BibRecorderV2Controller extends ChangeNotifier {
         _entries.clear();
         _positionToEntryId.clear();
         _nextPosition = 0;
+        _nextEntryId = 0;
         for (final BibRecord record in value) {
           final bib = int.tryParse(record.bibNumber);
           if (bib != null) {
             _entries.add(BibEntry(id: record.bibId, bib: bib));
             _nextPosition++;
             _positionToEntryId[_nextPosition] = record.bibId;
+            if (record.bibId >= _nextEntryId) {
+              _nextEntryId = record.bibId + 1;
+            }
           }
         }
         notifyListeners();
       case Failure(:final error):
         _positionToEntryId.clear();
         _nextPosition = 0;
+        _nextEntryId = 0;
         Logger.e('[BibRecorderV2Controller._loadBibRecords] ${error.originalException}');
     }
   }
@@ -317,7 +325,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
       onBibPending!(bibStr);
       return;
     }
-    final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
+    final entry = BibEntry(id: _nextEntryId++, bib: bib);
     _entries.insert(0, entry);
     if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
     _nextPosition++;
@@ -332,7 +340,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
   /// Adds a bib entry directly (used by manual mode).
   void addBib(int bib) {
     _awaitingRecord = false;
-    final entry = BibEntry(id: DateTime.now().millisecondsSinceEpoch, bib: bib);
+    final entry = BibEntry(id: _nextEntryId++, bib: bib);
     _entries.insert(0, entry);
     _nextPosition++;
     _positionToEntryId[_nextPosition] = entry.id;
@@ -475,6 +483,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
   /// before subscribing to [session]'s incoming messages.
   void attachSession(P2PSessionService session) {
     _sessionSub?.cancel();
+    if (_session != null && _session != session) _session!.dispose();
     _session = session;
     _sessionSub = session.incomingMessages.listen(_onSessionMessage);
   }

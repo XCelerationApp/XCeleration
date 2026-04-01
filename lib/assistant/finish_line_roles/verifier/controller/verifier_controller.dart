@@ -237,6 +237,7 @@ class VerifierController extends ChangeNotifier {
   /// before subscribing to [session]'s incoming messages.
   void attachSession(P2PSessionService session) {
     _sessionSub?.cancel();
+    if (_session != null && _session != session) _session!.dispose();
     _session = session;
     _sessionSub = session.incomingMessages.listen(_onSessionMessage);
   }
