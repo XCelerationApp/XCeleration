@@ -146,6 +146,7 @@ class VerifierController extends ChangeNotifier {
           bib: e.bib,
           status: _bibEntryStatusFor(e.flag),
           timestamp: DateTime.now(),
+          entryId: e.entryId,
         ),
         reason: reason,
       ));
