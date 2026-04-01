@@ -809,6 +809,138 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
+    group('race_participants pull — equal-timestamp conflict detection', () {
+      test('no-op when timestamps are equal and data is identical', () async {
+        const participantUuid = 'participant-uuid-1';
+        const raceUuid = 'race-uuid-1';
+        const runnerUuid = 'runner-uuid-1';
+        const ts = '2024-06-01T12:00:00.000Z';
+
+        final remoteRow = {
+          'uuid': participantUuid,
+          'race_uuid': raceUuid,
+          'runner_uuid': runnerUuid,
+          'team_uuid': null,
+          'updated_at': ts,
+          'owner_user_id': 'user-1',
+        };
+        final localRow = {
+          'uuid': participantUuid,
+          'race_uuid': raceUuid,
+          'runner_uuid': runnerUuid,
+          'team_uuid': null,
+          'updated_at': ts,
+          'is_dirty': 0,
+          'race_id': 10,
+          'runner_id': 1,
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'race_participants',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [remoteRow]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('race_id FROM races')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': raceUuid, 'race_id': 10}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('runner_id FROM runners')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': runnerUuid, 'runner_id': 1}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('FROM race_participants WHERE')),
+          any,
+        )).thenAnswer((_) async => [localRow]);
+
+        await service.pullAll();
+
+        verifyNever(mockDatabase.update(
+          'race_participants',
+          any,
+          where: anyNamed('where'),
+          whereArgs: anyNamed('whereArgs'),
+        ));
+      });
+
+      test('updates local when timestamps are equal but team_uuid differs',
+          () async {
+        const participantUuid = 'participant-uuid-1';
+        const raceUuid = 'race-uuid-1';
+        const runnerUuid = 'runner-uuid-1';
+        const ts = '2024-06-01T12:00:00.000Z';
+
+        final remoteRow = {
+          'uuid': participantUuid,
+          'race_uuid': raceUuid,
+          'runner_uuid': runnerUuid,
+          'team_uuid': 'team-uuid-new',
+          'updated_at': ts,
+          'owner_user_id': 'user-1',
+        };
+        final localRow = {
+          'uuid': participantUuid,
+          'race_uuid': raceUuid,
+          'runner_uuid': runnerUuid,
+          'team_uuid': 'team-uuid-old',
+          'updated_at': ts,
+          'is_dirty': 0,
+          'race_id': 10,
+          'runner_id': 1,
+          'team_id': 5,
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'race_participants',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [remoteRow]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('race_id FROM races')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': raceUuid, 'race_id': 10}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('runner_id FROM runners')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': runnerUuid, 'runner_id': 1}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('team_id FROM teams')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': 'team-uuid-new', 'team_id': 6}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('FROM race_participants WHERE')),
+          any,
+        )).thenAnswer((_) async => [localRow]);
+
+        await service.pullAll();
+
+        verify(mockDatabase.update(
+          'race_participants',
+          argThat(containsPair('team_uuid', 'team-uuid-new')),
+          where: anyNamed('where'),
+          whereArgs: anyNamed('whereArgs'),
+        )).called(1);
+      });
+    });
+
+    // -------------------------------------------------------------------------
     group('syncEvents stream', () {
       test('exposes a broadcast stream', () {
         expect(service.syncEvents.isBroadcast, isTrue);
