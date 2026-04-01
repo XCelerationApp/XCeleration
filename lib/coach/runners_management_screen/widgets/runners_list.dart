@@ -171,7 +171,7 @@ class _RunnersListState extends State<RunnersList> {
             child: expanded
                 ? DecoratedBox(
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceColor,
+                      color: AppColors.backgroundColor,
                       border: Border(
                         bottom: BorderSide(color: borderColor),
                         left: BorderSide(color: borderColor),
@@ -305,7 +305,7 @@ class _TeamSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
       child: ColoredBox(
         // Fills the full rectangle (including corner notches) so scrolling
         // content never bleeds through the ClipRRect's transparent corners.
-        color: AppColors.surfaceColor,
+        color: AppColors.backgroundColor,
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: AppColors.surfaceColor,
