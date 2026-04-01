@@ -56,13 +56,14 @@ class _VerifierScreenState extends State<VerifierScreen> {
     super.initState();
     _controller = VerifierController(storage: widget.storage);
     _controller.initialize();
-    SharedPreferences.getInstance().then((p) => _prefs = p);
+    SharedPreferences.getInstance().then((p) { if (mounted) _prefs = p; });
   }
 
   Future<void> _onJoinTapped(RaceRecord race) async {
     _selectedRaceName = race.name;
     _selectedRaceId = race.raceId;
     _prefs ??= await SharedPreferences.getInstance();
+    if (!mounted) return;
     final session = P2PSessionService(
       localRole: Role.verifier,
       raceId: race.raceId,

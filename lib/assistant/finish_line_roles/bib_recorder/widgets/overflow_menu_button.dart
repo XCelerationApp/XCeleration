@@ -121,6 +121,7 @@ class _OverflowMenuButtonState extends State<OverflowMenuButton> {
 
   void _close() {
     _overlay?.remove();
+    _overlay?.dispose();
     _overlay = null;
     if (mounted) setState(() {});
   }
@@ -128,6 +129,7 @@ class _OverflowMenuButtonState extends State<OverflowMenuButton> {
   @override
   void dispose() {
     _overlay?.remove();
+    _overlay?.dispose();
     super.dispose();
   }
 
