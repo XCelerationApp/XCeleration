@@ -233,14 +233,17 @@ class _RaceScreenContent extends StatelessWidget {
           right: 0,
           bottom: 0,
           child: Selector<RaceScreenController,
-              ({bool hasUnsaved, bool runnersEmpty, String flowState})>(
+              ({bool hasUnsaved, bool runnersEmpty, String flowState, bool showingRunners})>(
             selector: (_, c) => (
               hasUnsaved: c.form.hasUnsavedChanges,
               runnersEmpty: c.raceRunners.isEmpty,
               flowState: c.flowState,
+              showingRunners: c.showingRunnersManagement,
             ),
-            builder: (_, __, ___) =>
-                UnsavedChangesBar(controller: controller),
+            builder: (_, state, _) {
+              if (state.showingRunners) return const SizedBox.shrink();
+              return UnsavedChangesBar(controller: controller);
+            },
           ),
         ),
       ],

@@ -13,6 +13,7 @@ class RaceHeaderWidget extends StatelessWidget {
   final VoidCallback? onShowOtherRaces;
   final VoidCallback? onDeleteRace;
   final VoidCallback? onShowRunners;
+  final VoidCallback? onDownloadRace;
 
   const RaceHeaderWidget({
     super.key,
@@ -22,6 +23,7 @@ class RaceHeaderWidget extends StatelessWidget {
     this.onShowOtherRaces,
     this.onDeleteRace,
     this.onShowRunners,
+    this.onDownloadRace,
   });
 
   @override
@@ -194,6 +196,22 @@ class RaceHeaderWidget extends StatelessWidget {
                     );
                   }
 
+                  // Show "Download Race" when a race is loaded
+                  if (onDownloadRace != null) {
+                    items.add(
+                      const PopupMenuItem<String>(
+                        value: 'download_race',
+                        child: Row(
+                          children: [
+                            Icon(Icons.download_outlined, size: 18),
+                            SizedBox(width: 8),
+                            Text('Download Race'),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
                   // Always show "Delete Race"
                   if (onDeleteRace != null) {
                     items.add(
@@ -232,6 +250,9 @@ class RaceHeaderWidget extends StatelessWidget {
         break;
       case 'load_new':
         onLoadRace?.call();
+        break;
+      case 'download_race':
+        onDownloadRace?.call();
         break;
       case 'delete_race':
         _showDeleteConfirmation(context);

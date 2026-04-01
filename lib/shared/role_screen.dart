@@ -107,7 +107,7 @@ class _RoleRow extends StatefulWidget {
 class _RoleRowState extends State<_RoleRow> {
   bool _pressed = false;
 
-  void _onTapUp(_) {
+  void _onTapUp(TapUpDetails _) {
     setState(() => _pressed = false);
     widget.data.onPressed();
   }
@@ -227,7 +227,7 @@ class _SubRoleCard extends StatefulWidget {
 class _SubRoleCardState extends State<_SubRoleCard> {
   bool _pressed = false;
 
-  void _onTapUp(_) {
+  void _onTapUp(TapUpDetails _) {
     setState(() => _pressed = false);
     widget.onPressed();
   }

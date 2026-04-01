@@ -16,6 +16,7 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 - **Writing or modifying tests:** Read `skills/TESTING_SKILL.md`
 - **Building or modifying any UI file (widgets, screens, components):** Read `skills/UI_STANDARD_SKILL.md`
 - **Interacting with a Linear issue (creating, updating, closing):** Read `skills/LINEAR_WORKFLOW_SKILL.md`
+- **Using any Supabase MCP tool:** Read `skills/SUPABASE_MCP_SKILL.md`
 - **Committing changes, creating branches, or opening/updating a PR:** Read `skills/GIT_WORKFLOW_SKILL.md` — **MUST be read before any git action, no exceptions**
 
 ## Always
@@ -69,12 +70,29 @@ Do NOT use `flutter test` directly for reading results — its raw output exceed
 ## Issue Worktree Workflow
 
 Start an issue: `python3 scripts/start_issue.py 123` (from the main repo).
-Finish an issue: `/done` (from Claude Code inside the worktree).
+Finish an issue: `/done` (from Claude Code inside the worktree) — marks the Linear issue Done.
+Clean up worktree: `python3 scripts/remove_worktree.py 123` (from the main repo) — removes the local worktree and branch. Leaves the remote branch and PR open.
 
 See `skills/GIT_WORKFLOW_SKILL.md` and `skills/LINEAR_WORKFLOW_SKILL.md` for full details.
 
 ---
 
+## Web Search
+
+When the user asks you to look something up, research a library, find documentation, or says anything like "go search…" / "find out how to…" / "look up…", use the `/search` skill immediately. Do not attempt to answer from memory alone for questions about external APIs, packages, or anything that may have changed — search first.
+
 ## When Unsure — Ask First
 
 If a request is unclear, ambiguous, or could be interpreted multiple ways, always ask (using the AskUserQuestion tool) for clarification before starting. Do not make assumptions and proceed. A short question upfront is better than work that needs to be redone.
+
+## Tool Failures and Missing Tools
+
+**If a task-execution tool stops working** (e.g. `test_runner.py` fails, `start_issue.py` errors, a Linear/GitHub MCP tool returns unexpected errors): stop immediately, flag the exact error to the user, and do not attempt Bash workarounds. Broken tooling should be fixed at the source, not routed around.
+
+**If a task-execution tool is missing** — you notice mid-task that a tool would make the workflow meaningfully better (e.g. no script to do X, no shortcut for a repeated operation), ask the user with AskUserQuestion whether to create a Linear issue to build it. Examples of things that warrant this prompt:
+
+- Running a repeated multi-step operation with no dedicated script
+- A workflow step that requires manual Bash commands where a script clearly belongs
+- An MCP capability gap that causes repeated friction
+
+Do not file the issue yourself — ask first. One question, one prompt.

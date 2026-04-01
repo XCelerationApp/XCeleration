@@ -1,16 +1,59 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_web_auth_2/flutter_web_auth_2.dart';
+import 'package:http/http.dart' as http;
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'google_auth_service.dart';
 import 'google_sheets_service.dart';
 import 'google_drive_service.dart';
+import 'recent_drive_selection_service.dart';
 
-/// A service that handles picking files from Google Drive using the Google Picker API
+/// A service that handles picking files from Google Drive using Google's native
+/// Picker API for desktop/mobile apps (OAuth redirect flow, currently in beta).
+///
+/// ## Architecture overview
+///
+/// Rather than embedding the Google Picker JS (which requires cross-origin iframes
+/// and is blocked by ITP in all iOS embedded browsers), this implementation uses
+/// Google's newer OAuth-redirect-based picker flow. The file picker UI is shown
+/// inside the OAuth authorization screen, opened via ASWebAuthenticationSession
+/// on iOS.
+///
+/// ## Flow
+///
+/// 1. Build an OAuth authorization URL with `trigger_onepick=true` and
+///    `mimetypes=` filtering for spreadsheet types.
+/// 2. Open the URL in ASWebAuthenticationSession via `flutter_web_auth_2`.
+///    The session shares Safari's cookie store — if the user is already signed
+///    into Google in Safari, the sign-in step may be skipped.
+/// 3. After the user selects a file, Google redirects to the registered
+///    `redirect_uri` (`xcelerationapp://picker`) with
+///    `picked_file_ids=FILE_ID&code=AUTH_CODE`. ASWebAuthenticationSession
+///    automatically intercepts the redirect and returns the full callback URL.
+/// 4. The file ID is extracted from the callback. Drive REST API metadata is then
+///    fetched using the existing `iosAccessToken` to obtain the file name and
+///    MIME type needed for download.
+///
+/// ## Setup requirements
+///
+/// Uses the iOS OAuth client (`GOOGLE_IOS_OAUTH_CLIENT_ID`). The reverse-DNS
+/// redirect URI scheme (`com.googleusercontent.apps.<ID>:/oauthredirect`) is
+/// pre-configured on iOS OAuth clients in Google Cloud Console and is already
+/// registered in `ios/Runner/Info.plist` — no Cloud Console changes needed.
+///
+/// ## Auth note
+///
+/// Refresh tokens are not supported for reopening the Picker UI — the user must
+/// go through the OAuth flow each time they pick a file. The `code` returned in
+/// the callback can optionally be exchanged for tokens to access the picked file,
+/// but the existing `iosAccessToken` (from `google_sign_in`) is used instead
+/// since both carry `drive.file` scope for the same user.
 class GooglePickerService {
   static GooglePickerService? _instance;
   static GooglePickerService get instance =>
@@ -20,73 +63,121 @@ class GooglePickerService {
   final GoogleSheetsService _sheetsService = GoogleSheetsService.instance;
   final GoogleDriveService _driveService = GoogleDriveService.instance;
 
-  // Google Picker API constants
-  static String get _apiKey => dotenv.env['GOOGLE_WEB_API_KEY'] ?? '';
-  static String get _developerKey => _apiKey;
-  static String get _appId => dotenv.env['GOOGLE_APP_ID'] ?? '';
+  static String get _clientId =>
+      dotenv.env['GOOGLE_IOS_OAUTH_CLIENT_ID'] ?? '';
+
+  /// Derives the reverse-DNS URL scheme from the full iOS OAuth client ID.
+  /// e.g. "529...3.apps.googleusercontent.com" → "com.googleusercontent.apps.529...3"
+  static String _callbackScheme(String iosClientId) {
+    const suffix = '.apps.googleusercontent.com';
+    if (!iosClientId.endsWith(suffix)) return iosClientId;
+    final id = iosClientId.substring(0, iosClientId.length - suffix.length);
+    return 'com.googleusercontent.apps.$id';
+  }
+
+  static const _mimeTypes =
+      'application/vnd.google-apps.spreadsheet,'
+      'application/vnd.ms-excel,'
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,'
+      'text/csv';
 
   GooglePickerService._();
 
-  /// Static method to pick a file from Google Drive
-  /// Returns the result of the picker operation
+  /// Opens the Google Drive file picker via ASWebAuthenticationSession.
+  ///
+  /// Uses Google's native Picker OAuth redirect flow (`trigger_onepick=true`),
+  /// which shows the file browser inside the OAuth authorization screen — no
+  /// iframes, no cross-origin cookies, no ITP issues.
+  ///
+  /// Returns a map with `action` set to `'picked'`, `'canceled'`, or `'error'`.
+  /// On `'picked'`, the map contains `'data'` with the `id` of the selected
+  /// file. Name and MIME type are resolved separately via the Drive API in
+  /// [pickGoogleDriveFile].
   static Future<Map<String, dynamic>?> showPicker(
       {required BuildContext context}) async {
-    Logger.d('Opening Google Picker dialog');
-    Logger.d('Context mounted: ${context.mounted}');
+    final clientId = _clientId;
+    if (clientId.isEmpty) {
+      Logger.e('[Picker] GOOGLE_IOS_OAUTH_CLIENT_ID is not set');
+      return {'action': 'error', 'message': 'Google Authentication Failed'};
+    }
+
+    final scheme = _callbackScheme(clientId);
+    final redirectUri = '$scheme:/oauthredirect';
+
+    final codeVerifier = _generateCodeVerifier();
+    final codeChallenge = _generateCodeChallenge(codeVerifier);
+
+    final uri = Uri.https('accounts.google.com', '/o/oauth2/v2/auth', {
+      'client_id': clientId,
+      'redirect_uri': redirectUri,
+      'response_type': 'code',
+      'scope': 'https://www.googleapis.com/auth/drive.file',
+      'trigger_onepick': 'true',
+      'mimetypes': _mimeTypes,
+      'prompt': 'consent',
+      'code_challenge': codeChallenge,
+      'code_challenge_method': 'S256',
+    });
+
+    Logger.d('Opening Google Picker via ASWebAuthenticationSession');
+
     try {
-      final instance = GooglePickerService.instance;
-      final accessToken = await instance._authService.webAccessToken;
-      if (accessToken == null) {
-        return {'action': 'error', 'message': 'Google Authentication Failed'};
-      }
-      if (!context.mounted) {
-        return {'action': 'error'};
+      final result = await FlutterWebAuth2.authenticate(
+        url: uri.toString(),
+        callbackUrlScheme: scheme,
+      );
+
+      final callbackUri = Uri.parse(result);
+      final error = callbackUri.queryParameters['error'];
+
+      if (error != null) {
+        Logger.d('[Picker] OAuth error: $error');
+        if (error == 'access_denied') {
+          return {'action': 'canceled'};
+        }
+        return {'action': 'error', 'message': error};
       }
 
-      return showDialog<Map<String, dynamic>>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => GooglePickerDialog(
-          accessToken: accessToken,
-          developerKey: _developerKey,
-          appId: _appId,
-        ),
-      );
+      final fileIdsParam = callbackUri.queryParameters['picked_file_ids'];
+      Logger.d('[Picker] picked_file_ids: $fileIdsParam');
+
+      if (fileIdsParam == null || fileIdsParam.isEmpty) {
+        return {'action': 'canceled'};
+      }
+
+      final fileId = fileIdsParam.split(',').first.trim();
+      final code = callbackUri.queryParameters['code'];
+      return {
+        'action': 'picked',
+        'data': {'id': fileId},
+        'code': code,
+        'code_verifier': codeVerifier,
+      };
+    } on PlatformException catch (e) {
+      if (e.code == 'CANCELED') {
+        Logger.d('[Picker] User canceled ASWebAuthenticationSession');
+        return {'action': 'canceled'};
+      }
+      Logger.e('[Picker] PlatformException: ${e.code} — ${e.message}');
+      return {'action': 'error', 'message': e.message ?? 'Unknown error'};
     } catch (e) {
-      Logger.e('Error showing picker dialog: $e');
+      Logger.e('[Picker] Unexpected error: $e');
       return {'action': 'error'};
     }
   }
 
-  /// Rest of the GooglePickerService class remains the same...
-  /// [Previous implementation continues here]
-
-  /// Opens a file picker that allows the user to select a file from Google Drive
-  /// Returns the selected file as a temporary file downloaded to the device
-  /// Only allows selection of spreadsheet files (Google Sheets, CSV, XLSX)
+  /// Opens a file picker that allows the user to select a file from Google Drive.
+  /// Returns the selected file as a temporary file downloaded to the device.
+  /// Only allows selection of spreadsheet files (Google Sheets, CSV, XLSX).
   Future<File?> pickGoogleDriveFile(BuildContext context) async {
     try {
-      // Directly proceed with Google Drive flow without showing the source selection dialog
-      Logger.d('Proceeding directly with Google Drive picker');
+      Logger.d('Proceeding with Google Drive picker');
 
-      // Get access token for Google Drive
-      final accessToken = await _authService.webAccessToken;
-      if (accessToken == null) {
-        Logger.e('Failed to get access token');
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Failed to authenticate with Google Drive');
-        }
-        return null;
-      }
-
-      // Show picker dialog with loading indicator
       Map<String, dynamic>? pickerResult;
       if (context.mounted) {
         pickerResult = await GooglePickerService.showPicker(context: context);
       }
 
-      // Validate picker result
       if (pickerResult == null || pickerResult['action'] != 'picked') {
         if (pickerResult != null && pickerResult['action'] == 'canceled') {
           Logger.d('User canceled Google Drive picker');
@@ -103,20 +194,48 @@ class GooglePickerService {
         return null;
       }
 
+      // Exchange the picker code for an access token so Drive API calls below
+      // work without a prior google_sign_in session.
+      final code = pickerResult['code'] as String?;
+      final codeVerifier = pickerResult['code_verifier'] as String?;
+      if (code != null && codeVerifier != null) {
+        final token = await _exchangePickerCode(code, codeVerifier);
+        if (token != null) {
+          await _authService.setPickerTokens(
+            token,
+            DateTime.now().add(const Duration(minutes: 55)),
+          );
+        }
+      }
+
       final doc = pickerResult['data'] as Map<String, dynamic>?;
       if (doc == null) {
-        Logger.d('No documents selected');
+        Logger.d('No document data in picker result');
         return null;
       }
 
       final fileId = doc['id'] as String?;
-      final fileName = doc['name'] as String?;
-      final mimeType = doc['mimeType'] as String?;
-
-      Logger.d('Selected file: id=$fileId, name=$fileName, mimeType=$mimeType');
-
-      if (fileId == null || fileName == null || mimeType == null) {
+      if (fileId == null) {
         Logger.d('Invalid document data: $doc');
+        return null;
+      }
+
+      // The new picker only returns file IDs — fetch name and MIME type from
+      // the Drive API before proceeding with download.
+      final fileInfo = await _driveService.getFileInfo(fileId);
+      final fileName = fileInfo?.name;
+      final mimeType = fileInfo?.mimeType;
+
+      Logger.d(
+          'Selected file: id=$fileId, name=$fileName, mimeType=$mimeType');
+
+      if (fileName == null || mimeType == null) {
+        Logger.e('Failed to get file metadata for: $fileId');
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message:
+                  'Could not read file information. Please try again.');
+        }
         return null;
       }
 
@@ -133,31 +252,30 @@ class GooglePickerService {
       }
 
       try {
-        // For Google Sheets, use the dedicated Google Sheets Service
+        File? downloaded;
+
         if (mimeType == 'application/vnd.google-apps.spreadsheet') {
           Logger.d('Using GoogleSheetsService for downloading Google Sheet');
           if (context.mounted) {
-            return await _sheetsService.downloadGoogleSheet(
+            downloaded = await _sheetsService.downloadGoogleSheet(
               fileId: fileId,
               fileName: fileName,
               context: context,
             );
           }
-          return null;
-        }
-
-        // Download other file types with loading dialog
-        if (context.mounted) {
-          final tempFile = await DialogUtils.executeWithLoadingDialog<File?>(
+        } else if (context.mounted) {
+          downloaded = await DialogUtils.executeWithLoadingDialog<File?>(
             context,
             loadingMessage: 'Downloading file from Google Drive...',
             operation: () => _driveService.downloadFile(fileId, fileName),
             allowCancel: true,
           );
+        }
 
-          if (tempFile != null) {
-            return tempFile;
-          }
+        if (downloaded != null) {
+          await RecentDriveSelectionService.instance
+              .record(fileId, fileName, mimeType);
+          return downloaded;
         }
 
         return null;
@@ -185,14 +303,9 @@ class GooglePickerService {
     }
   }
 
-  /// Check if the file type is supported
   bool _isSupportedFileType(String mimeType, String fileName) {
-    // Support Google Sheets
-    if (mimeType == 'application/vnd.google-apps.spreadsheet') {
-      return true;
-    }
+    if (mimeType == 'application/vnd.google-apps.spreadsheet') return true;
 
-    // Support Excel files
     if (mimeType.contains('excel') ||
         mimeType ==
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
@@ -200,19 +313,16 @@ class GooglePickerService {
       return true;
     }
 
-    // Support CSV files
     if (mimeType == 'text/csv' || fileName.toLowerCase().endsWith('.csv')) {
       return true;
     }
 
-    // Support Excel files by extension
     if (fileName.toLowerCase().endsWith('.xlsx') ||
         fileName.toLowerCase().endsWith('.xls') ||
         fileName.toLowerCase().endsWith('.ods')) {
       return true;
     }
 
-    // Support Google Sheets direct links
     if (fileName.toLowerCase().endsWith('.gsheet') ||
         fileName.toLowerCase().endsWith('.gsf')) {
       return true;
@@ -220,217 +330,53 @@ class GooglePickerService {
 
     return false;
   }
-}
 
-/// A dialog widget that displays the Google Picker in a WebView
-class GooglePickerDialog extends StatefulWidget {
-  /// Function to get Google OAuth2 access token
-  final String accessToken;
-
-  /// Google API developer key
-  final String developerKey;
-
-  /// Google API app ID
-  final String appId;
-
-  const GooglePickerDialog({
-    required this.accessToken,
-    required this.developerKey,
-    required this.appId,
-    super.key,
-  });
-
-  @override
-  State<GooglePickerDialog> createState() => _GooglePickerDialogState();
-}
-
-class _GooglePickerDialogState extends State<GooglePickerDialog> {
-  WebViewController? _webViewController;
-  bool _isLoading = true;
-  Timer? _timeoutTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadWebView();
-
-    // Set a timeout to show fallback if picker doesn't load in 15 seconds
-    _timeoutTimer = Timer(const Duration(seconds: 15), () {
-      if (mounted && _isLoading) {
-        Navigator.of(context)
-            .pop({'action': 'error', 'message': 'Google Drive Picker Timeout'});
-      }
-    });
+  static String _generateCodeVerifier() {
+    final random = Random.secure();
+    final bytes = List<int>.generate(32, (_) => random.nextInt(256));
+    return base64UrlEncode(bytes).replaceAll('=', '');
   }
 
-  @override
-  void dispose() {
-    _timeoutTimer?.cancel();
-    _webViewController = null;
-    super.dispose();
+  static String _generateCodeChallenge(String codeVerifier) {
+    final digest = sha256.convert(utf8.encode(codeVerifier));
+    return base64UrlEncode(digest.bytes).replaceAll('=', '');
   }
 
-  Future<void> _loadWebView() async {
+  /// Exchanges the authorization code returned by the picker for an access
+  /// token using the iOS OAuth client (public client — no secret required).
+  static Future<String?> _exchangePickerCode(
+      String code, String codeVerifier) async {
+    final clientId = _clientId;
+    final scheme = _callbackScheme(clientId);
+    final redirectUri = '$scheme:/oauthredirect';
+
     try {
-      Logger.d('Loading HTML from assets');
-      final pickerUrl = dotenv.env['GOOGLE_PICKER_URL'];
-      if (pickerUrl == null) {
-        Logger.e('GOOGLE_PICKER_URL is not set');
-        Navigator.of(context).pop(
-            {'action': 'error', 'message': 'Google Authentication Failed'});
-        return;
-      }
-
-      if (!mounted) return;
-
-      // Validate that we have the required values
-      if (widget.accessToken.isEmpty) {
-        Logger.e('Access token is null or empty when trying to load WebView');
-        Navigator.of(context).pop(
-            {'action': 'error', 'message': 'Google Authentication Failed'});
-        return;
-      }
-
-      if (widget.developerKey.isEmpty) {
-        Logger.e('Developer key is empty');
-        Navigator.of(context).pop(
-            {'action': 'error', 'message': 'Google Authentication Failed'});
-        return;
-      }
-
-      // Create WebViewController with all settings at once
-      final controller = WebViewController();
-
-      // Set JavaScript mode
-      controller.setJavaScriptMode(JavaScriptMode.unrestricted);
-
-      // Add JavaScript channels
-      controller.addJavaScriptChannel(
-        'PickerChannel',
-        onMessageReceived: (JavaScriptMessage message) {
-          try {
-            Logger.d('Received message from WebView: ${message.message}');
-            final data = jsonDecode(message.message);
-
-            // Check if this is an error message
-            if (data['action'] == 'error') {
-              Logger.e('Error from picker: ${data['message']}');
-              Navigator.of(context).pop({
-                'action': 'error',
-                'message': data['type'] ?? 'Unknown Error'
-              });
-              return;
-            }
-
-            Navigator.of(context).pop(data);
-          } catch (e) {
-            Logger.e('Error parsing picker result: $e');
-            Navigator.of(context)
-                .pop({'action': 'error', 'message': 'Unknown Error'});
-          }
+      final response = await http.post(
+        Uri.parse('https://oauth2.googleapis.com/token'),
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+        body: {
+          'code': code,
+          'client_id': clientId,
+          'redirect_uri': redirectUri,
+          'grant_type': 'authorization_code',
+          'code_verifier': codeVerifier,
         },
       );
 
-      controller.addJavaScriptChannel(
-        'LogChannel',
-        onMessageReceived: (message) {
-          Logger.d('WebView: ${message.message}');
-        },
-      );
-
-      // Set navigation delegate
-      controller.setNavigationDelegate(
-        NavigationDelegate(
-          onPageStarted: (String url) {
-            Logger.d('WebView started loading: $url');
-          },
-          onPageFinished: (String url) {
-            Logger.d('WebView finished loading');
-            Logger.d('Context mounted: ${context.mounted}');
-
-            // Set the variables using the new method
-            controller.runJavaScript('''
-              if (window.setPickerVariables) {
-                window.setPickerVariables("${widget.developerKey}", "${widget.accessToken}", "${widget.appId}", "PickerChannel");
-              } else {
-                console.error('setPickerVariables function not found');
-              }
-            ''');
-
-            Logger.d('WebView variables set via setPickerVariables');
-
-            if (mounted) {
-              setState(() {
-                _isLoading = false;
-              });
-            }
-          },
-          onWebResourceError: (WebResourceError error) {
-            Logger.e(
-                'WebView error: ${error.description} (${error.errorCode})');
-            Navigator.of(context).pop({
-              'action': 'error',
-              'message': 'Failed to load Google Drive Picker'
-            });
-          },
-        ),
-      );
-
-      // Load the HTML content
-      await controller.loadRequest(Uri.parse(pickerUrl));
-
-      if (mounted) {
-        setState(() {
-          _webViewController = controller;
-        });
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>;
+        final token = json['access_token'] as String?;
+        Logger.d('[Picker] Token exchange: '
+            'access_token ${token != null ? "present (length=${token.length})" : "MISSING"}');
+        return token;
+      } else {
+        Logger.e('[Picker] Token exchange failed: '
+            '${response.statusCode} ${response.body}');
+        return null;
       }
-
-      Logger.d('WebView controller initialized successfully');
     } catch (e) {
-      Logger.e('Error initializing WebView: $e');
-      if (mounted) {
-        Navigator.of(context).pop({
-          'action': 'error',
-          'message': 'Failed to initialize Google Drive Picker: $e'
-        });
-      }
+      Logger.e('[Picker] Token exchange error: $e');
+      return null;
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Use a completely full-screen dialog with no margins
-    return Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15.0),
-              color: Colors.transparent,
-            ),
-            clipBehavior: Clip.antiAlias,
-            constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.9,
-              maxHeight: MediaQuery.of(context).size.height * 0.55,
-            ),
-            child: Column(children: [
-              // Show loading indicator when WebView is not ready
-              if (_isLoading || _webViewController == null)
-                const Center(child: CircularProgressIndicator()),
-
-              // Show WebView when controller is ready
-              if (_webViewController != null && !_isLoading)
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(15.0),
-                    color: Colors.transparent,
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  constraints: BoxConstraints(
-                    maxWidth: MediaQuery.of(context).size.width * 0.9,
-                    maxHeight: MediaQuery.of(context).size.height * 0.55,
-                  ),
-                  child: WebViewWidget(controller: _webViewController!),
-                )
-            ])));
   }
 }

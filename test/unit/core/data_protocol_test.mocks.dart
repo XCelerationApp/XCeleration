@@ -38,26 +38,22 @@ class MockDeviceConnectionServiceInterface extends _i1.Mock
   }
 
   @override
-  bool get isActive => (super.noSuchMethod(
-        Invocation.getter(#isActive),
-        returnValue: false,
-      ) as bool);
+  bool get isActive =>
+      (super.noSuchMethod(Invocation.getter(#isActive), returnValue: false)
+          as bool);
 
   @override
-  _i3.Future<_i4.Result<bool>> init() => (super.noSuchMethod(
-        Invocation.method(
-          #init,
-          [],
-        ),
-        returnValue:
-            _i3.Future<_i4.Result<bool>>.value(_i5.dummyValue<_i4.Result<bool>>(
-          this,
-          Invocation.method(
-            #init,
-            [],
-          ),
-        )),
-      ) as _i3.Future<_i4.Result<bool>>);
+  _i3.Future<_i4.Result<bool>> init() =>
+      (super.noSuchMethod(
+            Invocation.method(#init, []),
+            returnValue: _i3.Future<_i4.Result<bool>>.value(
+              _i5.dummyValue<_i4.Result<bool>>(
+                this,
+                Invocation.method(#init, []),
+              ),
+            ),
+          )
+          as _i3.Future<_i4.Result<bool>>);
 
   @override
   _i3.Future<void> monitorDevicesConnectionStatus({
@@ -68,20 +64,17 @@ class MockDeviceConnectionServiceInterface extends _i1.Mock
     _i3.Future<void> Function()? timeoutCallback,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #monitorDevicesConnectionStatus,
-          [],
-          {
-            #deviceFoundCallback: deviceFoundCallback,
-            #deviceConnectingCallback: deviceConnectingCallback,
-            #deviceConnectedCallback: deviceConnectedCallback,
-            #timeout: timeout,
-            #timeoutCallback: timeoutCallback,
-          },
-        ),
-        returnValue: _i3.Future<void>.value(),
-        returnValueForMissingStub: _i3.Future<void>.value(),
-      ) as _i3.Future<void>);
+            Invocation.method(#monitorDevicesConnectionStatus, [], {
+              #deviceFoundCallback: deviceFoundCallback,
+              #deviceConnectingCallback: deviceConnectingCallback,
+              #deviceConnectedCallback: deviceConnectedCallback,
+              #timeout: timeout,
+              #timeoutCallback: timeoutCallback,
+            }),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 
   @override
   _i3.Future<bool> sendMessageToDevice(
@@ -89,77 +82,62 @@ class MockDeviceConnectionServiceInterface extends _i1.Mock
     _i7.Package? package,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #sendMessageToDevice,
-          [
-            device,
-            package,
-          ],
-        ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
+            Invocation.method(#sendMessageToDevice, [device, package]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
 
   @override
   _i3.Future<String?> monitorMessageReceives(
     _i6.Device? device, {
-    required dynamic Function(
-      _i7.Package,
-      String,
-    )? messageReceivedCallback,
+    required dynamic Function(_i7.Package, String)? messageReceivedCallback,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #monitorMessageReceives,
-          [device],
-          {#messageReceivedCallback: messageReceivedCallback},
-        ),
-        returnValue: _i3.Future<String?>.value(),
-      ) as _i3.Future<String?>);
+            Invocation.method(
+              #monitorMessageReceives,
+              [device],
+              {#messageReceivedCallback: messageReceivedCallback},
+            ),
+            returnValue: _i3.Future<String?>.value(),
+          )
+          as _i3.Future<String?>);
 
   @override
   void stopMessageMonitoring(String? token) => super.noSuchMethod(
-        Invocation.method(
-          #stopMessageMonitoring,
-          [token],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#stopMessageMonitoring, [token]),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i3.Future<bool> inviteDevice(_i6.Device? device) => (super.noSuchMethod(
-        Invocation.method(
-          #inviteDevice,
-          [device],
-        ),
-        returnValue: _i3.Future<bool>.value(false),
-      ) as _i3.Future<bool>);
-
-  @override
-  _i3.Future<_i4.Result<bool>> checkIfNearbyConnectionsWorks(
-          {Duration? timeout = const Duration(seconds: 5)}) =>
+  _i3.Future<bool> inviteDevice(_i6.Device? device) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #checkIfNearbyConnectionsWorks,
-          [],
-          {#timeout: timeout},
-        ),
-        returnValue:
-            _i3.Future<_i4.Result<bool>>.value(_i5.dummyValue<_i4.Result<bool>>(
-          this,
-          Invocation.method(
-            #checkIfNearbyConnectionsWorks,
-            [],
-            {#timeout: timeout},
-          ),
-        )),
-      ) as _i3.Future<_i4.Result<bool>>);
+            Invocation.method(#inviteDevice, [device]),
+            returnValue: _i3.Future<bool>.value(false),
+          )
+          as _i3.Future<bool>);
+
+  @override
+  _i3.Future<_i4.Result<bool>> checkIfNearbyConnectionsWorks({
+    Duration? timeout = const Duration(seconds: 5),
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#checkIfNearbyConnectionsWorks, [], {
+              #timeout: timeout,
+            }),
+            returnValue: _i3.Future<_i4.Result<bool>>.value(
+              _i5.dummyValue<_i4.Result<bool>>(
+                this,
+                Invocation.method(#checkIfNearbyConnectionsWorks, [], {
+                  #timeout: timeout,
+                }),
+              ),
+            ),
+          )
+          as _i3.Future<_i4.Result<bool>>);
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 }

@@ -31,24 +31,14 @@ import 'package:xceleration/core/utils/platform_checker.dart' as _i7;
 
 class _FakeDevicesManager_0 extends _i1.SmartFake
     implements _i2.DevicesManager {
-  _FakeDevicesManager_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeDevicesManager_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeStreamSubscription_1<T> extends _i1.SmartFake
     implements _i3.StreamSubscription<T> {
-  _FakeStreamSubscription_1(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeStreamSubscription_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [DevicesManager].
@@ -60,83 +50,79 @@ class MockDevicesManager extends _i1.Mock implements _i2.DevicesManager {
   }
 
   @override
-  _i4.DeviceName get currentDeviceName => (super.noSuchMethod(
-        Invocation.getter(#currentDeviceName),
-        returnValue: _i4.DeviceName.coach,
-      ) as _i4.DeviceName);
+  _i4.DeviceName get currentDeviceName =>
+      (super.noSuchMethod(
+            Invocation.getter(#currentDeviceName),
+            returnValue: _i4.DeviceName.coach,
+          )
+          as _i4.DeviceName);
 
   @override
-  _i4.DeviceType get currentDeviceType => (super.noSuchMethod(
-        Invocation.getter(#currentDeviceType),
-        returnValue: _i4.DeviceType.advertiserDevice,
-      ) as _i4.DeviceType);
+  _i4.DeviceType get currentDeviceType =>
+      (super.noSuchMethod(
+            Invocation.getter(#currentDeviceType),
+            returnValue: _i4.DeviceType.advertiserDevice,
+          )
+          as _i4.DeviceType);
 
   @override
-  bool get toSpectator => (super.noSuchMethod(
-        Invocation.getter(#toSpectator),
-        returnValue: false,
-      ) as bool);
+  bool get toSpectator =>
+      (super.noSuchMethod(Invocation.getter(#toSpectator), returnValue: false)
+          as bool);
 
   @override
-  List<_i2.ConnectedDevice> get devices => (super.noSuchMethod(
-        Invocation.getter(#devices),
-        returnValue: <_i2.ConnectedDevice>[],
-      ) as List<_i2.ConnectedDevice>);
+  List<_i2.ConnectedDevice> get devices =>
+      (super.noSuchMethod(
+            Invocation.getter(#devices),
+            returnValue: <_i2.ConnectedDevice>[],
+          )
+          as List<_i2.ConnectedDevice>);
 
   @override
-  List<_i2.ConnectedDevice> get otherDevices => (super.noSuchMethod(
-        Invocation.getter(#otherDevices),
-        returnValue: <_i2.ConnectedDevice>[],
-      ) as List<_i2.ConnectedDevice>);
+  List<_i2.ConnectedDevice> get otherDevices =>
+      (super.noSuchMethod(
+            Invocation.getter(#otherDevices),
+            returnValue: <_i2.ConnectedDevice>[],
+          )
+          as List<_i2.ConnectedDevice>);
 
   @override
   void reset() => super.noSuchMethod(
-        Invocation.method(
-          #reset,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#reset, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  bool hasDevice(_i4.DeviceName? name) => (super.noSuchMethod(
-        Invocation.method(
-          #hasDevice,
-          [name],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool hasDevice(_i4.DeviceName? name) =>
+      (super.noSuchMethod(
+            Invocation.method(#hasDevice, [name]),
+            returnValue: false,
+          )
+          as bool);
 
   @override
   _i2.ConnectedDevice? getDevice(_i4.DeviceName? name) =>
-      (super.noSuchMethod(Invocation.method(
-        #getDevice,
-        [name],
-      )) as _i2.ConnectedDevice?);
+      (super.noSuchMethod(Invocation.method(#getDevice, [name]))
+          as _i2.ConnectedDevice?);
 
   @override
-  bool allDevicesFinished() => (super.noSuchMethod(
-        Invocation.method(
-          #allDevicesFinished,
-          [],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool allDevicesFinished() =>
+      (super.noSuchMethod(
+            Invocation.method(#allDevicesFinished, []),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  _i2.DevicesManager copy() => (super.noSuchMethod(
-        Invocation.method(
-          #copy,
-          [],
-        ),
-        returnValue: _FakeDevicesManager_0(
-          this,
-          Invocation.method(
-            #copy,
-            [],
-          ),
-        ),
-      ) as _i2.DevicesManager);
+  _i2.DevicesManager copy() =>
+      (super.noSuchMethod(
+            Invocation.method(#copy, []),
+            returnValue: _FakeDevicesManager_0(
+              this,
+              Invocation.method(#copy, []),
+            ),
+          )
+          as _i2.DevicesManager);
 }
 
 /// A class which mocks [NearbyConnections].
@@ -155,91 +141,74 @@ class MockNearbyConnections extends _i1.Mock implements _i5.NearbyConnections {
     required Function? callback,
   }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #init,
-          [],
-          {
-            #serviceType: serviceType,
-            #deviceName: deviceName,
-            #strategy: strategy,
-            #callback: callback,
-          },
-        ),
-        returnValue: _i3.Future<dynamic>.value(),
-      ) as _i3.Future<dynamic>);
+            Invocation.method(#init, [], {
+              #serviceType: serviceType,
+              #deviceName: deviceName,
+              #strategy: strategy,
+              #callback: callback,
+            }),
+            returnValue: _i3.Future<dynamic>.value(),
+          )
+          as _i3.Future<dynamic>);
 
   @override
-  _i3.StreamSubscription<dynamic> stateChangedSubscription(
-          {required dynamic Function(List<_i6.Device>)? callback}) =>
+  _i3.StreamSubscription<dynamic> stateChangedSubscription({
+    required dynamic Function(List<_i6.Device>)? callback,
+  }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #stateChangedSubscription,
-          [],
-          {#callback: callback},
-        ),
-        returnValue: _FakeStreamSubscription_1<dynamic>(
-          this,
-          Invocation.method(
-            #stateChangedSubscription,
-            [],
-            {#callback: callback},
-          ),
-        ),
-      ) as _i3.StreamSubscription<dynamic>);
+            Invocation.method(#stateChangedSubscription, [], {
+              #callback: callback,
+            }),
+            returnValue: _FakeStreamSubscription_1<dynamic>(
+              this,
+              Invocation.method(#stateChangedSubscription, [], {
+                #callback: callback,
+              }),
+            ),
+          )
+          as _i3.StreamSubscription<dynamic>);
 
   @override
   _i3.FutureOr<dynamic> invitePeer({
     required String? deviceID,
     required String? deviceName,
   }) =>
-      (super.noSuchMethod(Invocation.method(
-        #invitePeer,
-        [],
-        {
-          #deviceID: deviceID,
-          #deviceName: deviceName,
-        },
-      )) as _i3.FutureOr<dynamic>);
+      (super.noSuchMethod(
+            Invocation.method(#invitePeer, [], {
+              #deviceID: deviceID,
+              #deviceName: deviceName,
+            }),
+          )
+          as _i3.FutureOr<dynamic>);
 
   @override
   _i3.FutureOr<dynamic> disconnectPeer({required String? deviceID}) =>
-      (super.noSuchMethod(Invocation.method(
-        #disconnectPeer,
-        [],
-        {#deviceID: deviceID},
-      )) as _i3.FutureOr<dynamic>);
-
-  @override
-  _i3.FutureOr<dynamic> sendMessage(
-    String? deviceID,
-    String? message,
-  ) =>
-      (super.noSuchMethod(Invocation.method(
-        #sendMessage,
-        [
-          deviceID,
-          message,
-        ],
-      )) as _i3.FutureOr<dynamic>);
-
-  @override
-  _i3.StreamSubscription<dynamic> dataReceivedSubscription(
-          {required dynamic Function(dynamic)? callback}) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #dataReceivedSubscription,
-          [],
-          {#callback: callback},
-        ),
-        returnValue: _FakeStreamSubscription_1<dynamic>(
-          this,
-          Invocation.method(
-            #dataReceivedSubscription,
-            [],
-            {#callback: callback},
-          ),
-        ),
-      ) as _i3.StreamSubscription<dynamic>);
+            Invocation.method(#disconnectPeer, [], {#deviceID: deviceID}),
+          )
+          as _i3.FutureOr<dynamic>);
+
+  @override
+  _i3.FutureOr<dynamic> sendMessage(String? deviceID, String? message) =>
+      (super.noSuchMethod(Invocation.method(#sendMessage, [deviceID, message]))
+          as _i3.FutureOr<dynamic>);
+
+  @override
+  _i3.StreamSubscription<dynamic> dataReceivedSubscription({
+    required dynamic Function(dynamic)? callback,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(#dataReceivedSubscription, [], {
+              #callback: callback,
+            }),
+            returnValue: _FakeStreamSubscription_1<dynamic>(
+              this,
+              Invocation.method(#dataReceivedSubscription, [], {
+                #callback: callback,
+              }),
+            ),
+          )
+          as _i3.StreamSubscription<dynamic>);
 }
 
 /// A class which mocks [PlatformCheckerInterface].
@@ -252,14 +221,12 @@ class MockPlatformCheckerInterface extends _i1.Mock
   }
 
   @override
-  bool get isAndroid => (super.noSuchMethod(
-        Invocation.getter(#isAndroid),
-        returnValue: false,
-      ) as bool);
+  bool get isAndroid =>
+      (super.noSuchMethod(Invocation.getter(#isAndroid), returnValue: false)
+          as bool);
 
   @override
-  bool get isIOS => (super.noSuchMethod(
-        Invocation.getter(#isIOS),
-        returnValue: false,
-      ) as bool);
+  bool get isIOS =>
+      (super.noSuchMethod(Invocation.getter(#isIOS), returnValue: false)
+          as bool);
 }

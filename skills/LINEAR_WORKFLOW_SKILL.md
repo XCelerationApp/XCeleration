@@ -32,13 +32,18 @@ The agent reads the issue, implements the work, commits, pushes, and updates the
 - The user asks to create an issue → follow the creation rules below
 - A significant unexpected blocker is hit → add a comment before stopping
 
-Do not move issues through statuses (In Progress, In Review, etc.) except for the Done transition described above.
+The only status changes the agent makes are:
+
+- **In Progress** — set this when starting work on an issue
+- **Done** is always the user's step via `/done`
+
+Do not move issues to In Review or any other status.
 
 ---
 
 ## Starting Work on an Issue
 
-Read the issue carefully using `mcp__linear__get_issue`. Check whether it has a parent issue.
+Read the issue carefully using `mcp__linear__get_issue`. Then immediately mark it **In Progress** using `mcp__linear__save_issue` (set the status to "In Progress"). Check whether it has a parent issue.
 
 - **If it has a parent** — it is a subissue. The worktree already exists for the parent. Work within the current worktree; do not create a new one.
 - **If it has no parent** — it is a top-level issue. The worktree was created by `start_issue.py` and the branch name is the issue ID.
@@ -137,6 +142,6 @@ Once all subissues are Done, the user runs `/done` (no argument, or with the par
 ## What Not to Do
 
 - Don't create issues for things already in scope of the current issue
-- Don't move issues through statuses other than Done
+- Don't move issues to In Review or any other status — only In Progress (on start) is the agent's to set
 - Don't post comments just to say work is in progress
 - Don't mark top-level issues Done — that is always the user's step via `/done`
