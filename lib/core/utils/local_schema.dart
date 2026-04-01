@@ -25,8 +25,7 @@ CREATE TABLE IF NOT EXISTS teams (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT,
-  is_dirty INTEGER NOT NULL DEFAULT 0,
-  UNIQUE (name)
+  is_dirty INTEGER NOT NULL DEFAULT 0
 );
 
 -- 3. TEAM_ROSTERS (local adds timestamps + is_dirty)
@@ -62,6 +61,7 @@ CREATE TABLE IF NOT EXISTS race_participants (
   race_id INTEGER NOT NULL,
   runner_id INTEGER NOT NULL,
   team_id INTEGER NOT NULL,
+  uuid TEXT UNIQUE,
   race_uuid TEXT,
   runner_uuid TEXT,
   team_uuid TEXT,
@@ -110,8 +110,7 @@ CREATE TABLE IF NOT EXISTS race_results (
   FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
   FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
   FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE,
-  UNIQUE (race_id, runner_id),
-  UNIQUE (race_id, place)
+  UNIQUE (race_id, runner_id)
 );
 
 -- 8. SYNC STATE (no is_dirty; internal key-value store)
