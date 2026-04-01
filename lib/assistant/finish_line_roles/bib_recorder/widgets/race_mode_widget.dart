@@ -136,7 +136,7 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
     _waveTimer?.cancel();
     _waveTimer = Timer.periodic(
       const Duration(milliseconds: 80),
-      (_) => setState(() => _wavePhase += 1),
+      (_) { if (mounted) setState(() => _wavePhase += 1); },
     );
   }
 
