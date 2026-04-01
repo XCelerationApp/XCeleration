@@ -352,29 +352,24 @@ class AssistantStorageService implements IAssistantStorageService {
   Future<Result<void>> deleteRace(int raceId, String type) async {
     try {
       final db = await database;
-      // Delete dependent tables first (foreign key constraints)
-      await db.delete(
-        'timing_chunks',
-        where: 'race_id = ?',
-        whereArgs: [raceId],
-      );
-      await db.delete(
-        'verifier_entries',
-        where: 'race_id = ?',
-        whereArgs: [raceId],
-      );
-      await db.delete(
-        'fixer_entries',
-        where: 'race_id = ?',
-        whereArgs: [raceId],
-      );
-
-      // Delete the race
-      await db.delete(
-        'race_history',
-        where: 'race_id = ? AND type = ?',
-        whereArgs: [raceId, type],
-      );
+      await db.transaction((txn) async {
+        // Delete all child tables first
+        for (final table in [
+          'timing_chunks',
+          'bib_records',
+          'runners',
+          'verifier_entries',
+          'fixer_entries',
+        ]) {
+          await txn.delete(table, where: 'race_id = ?', whereArgs: [raceId]);
+        }
+        // Delete the race
+        await txn.delete(
+          'race_history',
+          where: 'race_id = ? AND type = ?',
+          whereArgs: [raceId, type],
+        );
+      });
       return const Success(null);
     } catch (e) {
       return Failure(AppError(
@@ -571,23 +566,15 @@ class AssistantStorageService implements IAssistantStorageService {
 
   @override
   Future<Result<void>> updateChunkConflict(
-      String chunkId, TimingDatum? conflictRecord) async {
+      int raceId, int chunkId, TimingDatum? conflictRecord) async {
     try {
       final db = await database;
-      if (conflictRecord == null) {
-        await db.delete(
-          'chunk_conflicts',
-          where: 'chunk_id = ?',
-          whereArgs: [chunkId],
-        );
-      } else {
-        await db.update(
-          'chunk_conflicts',
-          {'conflict_data': conflictRecord.encode()},
-          where: 'chunk_id = ?',
-          whereArgs: [chunkId],
-        );
-      }
+      await db.update(
+        'timing_chunks',
+        {'conflict_record': conflictRecord?.encode()},
+        where: 'race_id = ? AND chunk_id = ?',
+        whereArgs: [raceId, chunkId],
+      );
       return const Success(null);
     } catch (e) {
       return Failure(AppError(
@@ -598,20 +585,20 @@ class AssistantStorageService implements IAssistantStorageService {
   }
 
   @override
-  Future<Result<String?>> getChunkConflict(String chunkId) async {
+  Future<Result<String?>> getChunkConflict(int raceId, int chunkId) async {
     try {
       final db = await database;
-      final conflicts = await db.query(
-        'chunk_conflicts',
-        columns: ['conflict_data'],
-        where: 'chunk_id = ?',
-        whereArgs: [chunkId],
+      final chunks = await db.query(
+        'timing_chunks',
+        columns: ['conflict_record'],
+        where: 'race_id = ? AND chunk_id = ?',
+        whereArgs: [raceId, chunkId],
         limit: 1,
       );
 
-      return Success(conflicts.isEmpty
+      return Success(chunks.isEmpty
           ? null
-          : conflicts.first['conflict_data'] as String?);
+          : chunks.first['conflict_record'] as String?);
     } catch (e) {
       return Failure(AppError(
         userMessage: 'Could not load conflict record.',
@@ -624,19 +611,16 @@ class AssistantStorageService implements IAssistantStorageService {
 
   @override
   Future<Result<void>> saveChunkTimingData(
-      String chunkId, List<String> encodedRecords) async {
+      int raceId, int chunkId, List<String> encodedRecords) async {
     try {
       final db = await database;
-      for (final record in encodedRecords) {
-        await db.insert(
-          'chunk_timing_data',
-          {
-            'chunk_id': chunkId,
-            'record_data': record,
-            'created_at': DateTime.now().millisecondsSinceEpoch,
-          },
-        );
-      }
+      final joined = encodedRecords.join(',');
+      await db.update(
+        'timing_chunks',
+        {'timing_data': joined},
+        where: 'race_id = ? AND chunk_id = ?',
+        whereArgs: [raceId, chunkId],
+      );
       return const Success(null);
     } catch (e) {
       return Failure(AppError(
@@ -713,11 +697,36 @@ class AssistantStorageService implements IAssistantStorageService {
           .subtract(olderThan ?? const Duration(days: 7))
           .millisecondsSinceEpoch;
 
-      await db.delete(
+      // Find race IDs to delete
+      final oldRaces = await db.query(
         'race_history',
+        columns: ['race_id'],
         where: 'date < ?',
         whereArgs: [cutoff],
       );
+
+      if (oldRaces.isEmpty) return const Success(null);
+
+      await db.transaction((txn) async {
+        for (final race in oldRaces) {
+          final raceId = race['race_id'] as int;
+          for (final table in [
+            'timing_chunks',
+            'bib_records',
+            'runners',
+            'verifier_entries',
+            'fixer_entries',
+          ]) {
+            await txn
+                .delete(table, where: 'race_id = ?', whereArgs: [raceId]);
+          }
+        }
+        await txn.delete(
+          'race_history',
+          where: 'date < ?',
+          whereArgs: [cutoff],
+        );
+      });
       return const Success(null);
     } catch (e) {
       return Failure(AppError(
