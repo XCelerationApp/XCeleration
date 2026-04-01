@@ -44,331 +44,251 @@ class MockBibRecorderV2Controller extends _i1.Mock
   }
 
   @override
-  List<_i3.RaceRecord> get races => (super.noSuchMethod(
-        Invocation.getter(#races),
-        returnValue: <_i3.RaceRecord>[],
-      ) as List<_i3.RaceRecord>);
+  List<_i3.RaceRecord> get races =>
+      (super.noSuchMethod(
+            Invocation.getter(#races),
+            returnValue: <_i3.RaceRecord>[],
+          )
+          as List<_i3.RaceRecord>);
 
   @override
-  bool get raceStarted => (super.noSuchMethod(
-        Invocation.getter(#raceStarted),
-        returnValue: false,
-      ) as bool);
+  bool get raceStarted =>
+      (super.noSuchMethod(Invocation.getter(#raceStarted), returnValue: false)
+          as bool);
 
   @override
-  bool get raceStopped => (super.noSuchMethod(
-        Invocation.getter(#raceStopped),
-        returnValue: false,
-      ) as bool);
+  bool get raceStopped =>
+      (super.noSuchMethod(Invocation.getter(#raceStopped), returnValue: false)
+          as bool);
 
   @override
-  List<_i4.BibEntry> get entries => (super.noSuchMethod(
-        Invocation.getter(#entries),
-        returnValue: <_i4.BibEntry>[],
-      ) as List<_i4.BibEntry>);
+  List<_i4.BibEntry> get entries =>
+      (super.noSuchMethod(
+            Invocation.getter(#entries),
+            returnValue: <_i4.BibEntry>[],
+          )
+          as List<_i4.BibEntry>);
 
   @override
-  List<_i5.Runner> get runners => (super.noSuchMethod(
-        Invocation.getter(#runners),
-        returnValue: <_i5.Runner>[],
-      ) as List<_i5.Runner>);
+  List<_i5.Runner> get runners =>
+      (super.noSuchMethod(
+            Invocation.getter(#runners),
+            returnValue: <_i5.Runner>[],
+          )
+          as List<_i5.Runner>);
 
   @override
-  bool get voiceReady => (super.noSuchMethod(
-        Invocation.getter(#voiceReady),
-        returnValue: false,
-      ) as bool);
+  bool get voiceReady =>
+      (super.noSuchMethod(Invocation.getter(#voiceReady), returnValue: false)
+          as bool);
 
   @override
-  bool get isListening => (super.noSuchMethod(
-        Invocation.getter(#isListening),
-        returnValue: false,
-      ) as bool);
+  bool get isListening =>
+      (super.noSuchMethod(Invocation.getter(#isListening), returnValue: false)
+          as bool);
 
   @override
-  bool get isProcessing => (super.noSuchMethod(
-        Invocation.getter(#isProcessing),
-        returnValue: false,
-      ) as bool);
+  bool get isProcessing =>
+      (super.noSuchMethod(Invocation.getter(#isProcessing), returnValue: false)
+          as bool);
 
   @override
-  String get transcript => (super.noSuchMethod(
-        Invocation.getter(#transcript),
-        returnValue: _i6.dummyValue<String>(
-          this,
-          Invocation.getter(#transcript),
-        ),
-      ) as String);
+  String get transcript =>
+      (super.noSuchMethod(
+            Invocation.getter(#transcript),
+            returnValue: _i6.dummyValue<String>(
+              this,
+              Invocation.getter(#transcript),
+            ),
+          )
+          as String);
 
   @override
   set onBibPending(_i7.ValueChanged<String>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #onBibPending,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#onBibPending, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-      ) as bool);
+  bool get hasListeners =>
+      (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
+          as bool);
 
   @override
-  _i8.Future<void> initialize() => (super.noSuchMethod(
-        Invocation.method(
-          #initialize,
-          [],
-        ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+  _i8.Future<void> initialize() =>
+      (super.noSuchMethod(
+            Invocation.method(#initialize, []),
+            returnValue: _i8.Future<void>.value(),
+            returnValueForMissingStub: _i8.Future<void>.value(),
+          )
+          as _i8.Future<void>);
 
   @override
   void selectRace(_i3.RaceRecord? race) => super.noSuchMethod(
-        Invocation.method(
-          #selectRace,
-          [race],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#selectRace, [race]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void beginRace() => super.noSuchMethod(
-        Invocation.method(
-          #beginRace,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#beginRace, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void stopRace() => super.noSuchMethod(
-        Invocation.method(
-          #stopRace,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#stopRace, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void resumeRace() => super.noSuchMethod(
-        Invocation.method(
-          #resumeRace,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#resumeRace, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void leaveRace() => super.noSuchMethod(
-        Invocation.method(
-          #leaveRace,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#leaveRace, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i8.Future<void> deleteRace() => (super.noSuchMethod(
-        Invocation.method(
-          #deleteRace,
-          [],
-        ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+  _i8.Future<void> deleteRace() =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteRace, []),
+            returnValue: _i8.Future<void>.value(),
+            returnValueForMissingStub: _i8.Future<void>.value(),
+          )
+          as _i8.Future<void>);
 
   @override
-  _i8.Future<void> deleteRaceFromLobby(int? raceId) => (super.noSuchMethod(
-        Invocation.method(
-          #deleteRaceFromLobby,
-          [raceId],
-        ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+  _i8.Future<void> deleteRaceFromLobby(int? raceId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteRaceFromLobby, [raceId]),
+            returnValue: _i8.Future<void>.value(),
+            returnValueForMissingStub: _i8.Future<void>.value(),
+          )
+          as _i8.Future<void>);
 
   @override
-  String? flagFor(
-    int? bib, {
-    int? excludeId,
-  }) =>
-      (super.noSuchMethod(Invocation.method(
-        #flagFor,
-        [bib],
-        {#excludeId: excludeId},
-      )) as String?);
+  String? flagFor(int? bib, {int? excludeId}) =>
+      (super.noSuchMethod(
+            Invocation.method(#flagFor, [bib], {#excludeId: excludeId}),
+          )
+          as String?);
 
   @override
-  _i5.Runner? runnerFor(int? bib) => (super.noSuchMethod(Invocation.method(
-        #runnerFor,
-        [bib],
-      )) as _i5.Runner?);
+  _i5.Runner? runnerFor(int? bib) =>
+      (super.noSuchMethod(Invocation.method(#runnerFor, [bib])) as _i5.Runner?);
 
   @override
-  _i8.Future<void> startListening() => (super.noSuchMethod(
-        Invocation.method(
-          #startListening,
-          [],
-        ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+  _i8.Future<void> startListening() =>
+      (super.noSuchMethod(
+            Invocation.method(#startListening, []),
+            returnValue: _i8.Future<void>.value(),
+            returnValueForMissingStub: _i8.Future<void>.value(),
+          )
+          as _i8.Future<void>);
 
   @override
-  _i8.Future<void> stopListening() => (super.noSuchMethod(
-        Invocation.method(
-          #stopListening,
-          [],
-        ),
-        returnValue: _i8.Future<void>.value(),
-        returnValueForMissingStub: _i8.Future<void>.value(),
-      ) as _i8.Future<void>);
+  _i8.Future<void> stopListening() =>
+      (super.noSuchMethod(
+            Invocation.method(#stopListening, []),
+            returnValue: _i8.Future<void>.value(),
+            returnValueForMissingStub: _i8.Future<void>.value(),
+          )
+          as _i8.Future<void>);
 
   @override
   void addBib(int? bib) => super.noSuchMethod(
-        Invocation.method(
-          #addBib,
-          [bib],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addBib, [bib]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void reRecordLast() => super.noSuchMethod(
-        Invocation.method(
-          #reRecordLast,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#reRecordLast, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void deleteEntry(int? id) => super.noSuchMethod(
-        Invocation.method(
-          #deleteEntry,
-          [id],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#deleteEntry, [id]),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  void editEntry(
-    int? id,
-    int? newBib,
-  ) =>
-      super.noSuchMethod(
-        Invocation.method(
-          #editEntry,
-          [
-            id,
-            newBib,
-          ],
-        ),
-        returnValueForMissingStub: null,
-      );
+  void editEntry(int? id, int? newBib) => super.noSuchMethod(
+    Invocation.method(#editEntry, [id, newBib]),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  void restoreEntry(
-    _i4.BibEntry? entry,
-    int? index,
-  ) =>
-      super.noSuchMethod(
-        Invocation.method(
-          #restoreEntry,
-          [
-            entry,
-            index,
-          ],
-        ),
-        returnValueForMissingStub: null,
-      );
+  void restoreEntry(_i4.BibEntry? entry, int? index) => super.noSuchMethod(
+    Invocation.method(#restoreEntry, [entry, index]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void clearEntries() => super.noSuchMethod(
-        Invocation.method(
-          #clearEntries,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#clearEntries, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   _i8.Future<_i9.Result<void>> processLoadedRaceData(String? data) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #processLoadedRaceData,
-          [data],
-        ),
-        returnValue:
-            _i8.Future<_i9.Result<void>>.value(_i6.dummyValue<_i9.Result<void>>(
-          this,
-          Invocation.method(
-            #processLoadedRaceData,
-            [data],
-          ),
-        )),
-      ) as _i8.Future<_i9.Result<void>>);
+            Invocation.method(#processLoadedRaceData, [data]),
+            returnValue: _i8.Future<_i9.Result<void>>.value(
+              _i6.dummyValue<_i9.Result<void>>(
+                this,
+                Invocation.method(#processLoadedRaceData, [data]),
+              ),
+            ),
+          )
+          as _i8.Future<_i9.Result<void>>);
 
   @override
-  _i8.Future<String> getEncodedBibData() => (super.noSuchMethod(
-        Invocation.method(
-          #getEncodedBibData,
-          [],
-        ),
-        returnValue: _i8.Future<String>.value(_i6.dummyValue<String>(
-          this,
-          Invocation.method(
-            #getEncodedBibData,
-            [],
-          ),
-        )),
-      ) as _i8.Future<String>);
+  _i8.Future<String> getEncodedBibData() =>
+      (super.noSuchMethod(
+            Invocation.method(#getEncodedBibData, []),
+            returnValue: _i8.Future<String>.value(
+              _i6.dummyValue<String>(
+                this,
+                Invocation.method(#getEncodedBibData, []),
+              ),
+            ),
+          )
+          as _i8.Future<String>);
 
   @override
   void attachSession(_i10.P2PSessionService? session) => super.noSuchMethod(
-        Invocation.method(
-          #attachSession,
-          [session],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#attachSession, [session]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }
