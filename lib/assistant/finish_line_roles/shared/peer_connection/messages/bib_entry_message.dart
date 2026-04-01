@@ -6,8 +6,19 @@ enum BibEntryStatus {
 
   String get wireValue => name;
 
-  static BibEntryStatus fromWireValue(String value) =>
-      BibEntryStatus.values.byName(value);
+  static const _fromWire = {
+    'resolved': BibEntryStatus.resolved,
+    'unknown': BibEntryStatus.unknown,
+    'duplicate': BibEntryStatus.duplicate,
+  };
+
+  static BibEntryStatus fromWireValue(String value) {
+    final result = _fromWire[value];
+    if (result == null) {
+      throw ArgumentError('Unknown BibEntryStatus wire value: $value');
+    }
+    return result;
+  }
 }
 
 /// A single bib recording sent from BibRecorderV2 → Verifier.
