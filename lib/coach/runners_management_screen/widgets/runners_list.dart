@@ -232,12 +232,9 @@ class _RunnersListState extends State<RunnersList> {
       const SliverPadding(padding: EdgeInsets.only(bottom: AppSpacing.sm)),
     );
 
-    return ColoredBox(
-      color: AppColors.surfaceColor,
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: slivers,
-      ),
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: slivers,
     );
   }
 }
