@@ -115,13 +115,13 @@ class GoogleDriveService {
         return null;
       }
 
-      // Make sure we're signed in first
-      final signedIn = await _authService.signIn();
+      // Connectivity check only — the picker handles its own OAuth flow.
+      final signedIn = await _authService.signIn(requireWebToken: false);
       if (!signedIn) {
         if (context.mounted) {
           DialogUtils.showErrorDialog(context,
               message:
-                  'Sign-in Failed: Unable to sign in to Google. Please try again.');
+                  'No internet connection. Please check your connection and try again.');
         }
         return null;
       }
@@ -300,7 +300,8 @@ class GoogleDriveService {
 
         // Create a temporary file
         final directory = await getTemporaryDirectory();
-        String filePath = '${directory.path}/$fileName';
+        final safeFileName = fileName.replaceAll(RegExp(r'[/\\:*?"<>|]'), '-');
+        String filePath = '${directory.path}/$safeFileName';
 
         final file = File(filePath);
         await file.writeAsBytes(response.bodyBytes);

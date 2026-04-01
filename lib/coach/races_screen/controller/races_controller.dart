@@ -28,6 +28,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   // Subscription to event bus events
   StreamSubscription? _eventSubscription;
   StreamSubscription? _syncSubscription;
+  Timer? _debounceTimer;
 
   final Stream<SyncEvent>? _syncStream;
 
@@ -121,13 +122,13 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     // Subscribe to race flow state change events
     _eventSubscription =
         _eventBus.on(EventTypes.raceFlowStateChanged, (event) {
-      loadRaces();
+      _debouncedLoadRaces();
     });
 
     // Reload races when a sync pull writes new race data
     _syncSubscription = _syncStream
         ?.where((event) => event.changedTables.contains('races'))
-        .listen((_) => loadRaces());
+        .listen((_) => _debouncedLoadRaces());
   }
 
   void setupTutorials() {
@@ -361,6 +362,11 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     await loadRaces(); // Refresh the races list
   }
 
+  void _debouncedLoadRaces() {
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 300), loadRaces);
+  }
+
   @override
   Future<void> loadRaces() async {
     races = await _racesService.loadRaces();
@@ -371,6 +377,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   void dispose() {
     form.dispose();
     tutorialManager.dispose();
+    _debounceTimer?.cancel();
     _eventSubscription?.cancel();
     _syncSubscription?.cancel();
     super.dispose();

@@ -32,6 +32,16 @@
 				<string>com.googleusercontent.apps.529053126812-57bnskrrh3n15j364ftmc4p9n6vtrcs3</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.xceleration.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>xcelerationapp</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>

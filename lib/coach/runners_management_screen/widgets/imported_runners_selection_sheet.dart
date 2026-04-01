@@ -102,7 +102,7 @@ class _ImportedRunnersSelectionSheetState
               child: ListView.separated(
                 shrinkWrap: true,
                 itemCount: visible.length,
-                separatorBuilder: (_, __) => const Divider(height: 1),
+                separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, index) {
                   final actualIndex = visible[index];
                   final row = widget.importedRunners[actualIndex];

@@ -34,24 +34,14 @@ import 'package:xceleration/shared/models/timing_records/timing_chunk.dart'
 // ignore_for_file: invalid_use_of_internal_member
 
 class _FakeMasterRace_0 extends _i1.SmartFake implements _i2.MasterRace {
-  _FakeMasterRace_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeMasterRace_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeDevicesManager_1 extends _i1.SmartFake
     implements _i3.DevicesManager {
-  _FakeDevicesManager_1(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeDevicesManager_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [LoadResultsController].
@@ -64,249 +54,210 @@ class MockLoadResultsController extends _i1.Mock
   }
 
   @override
-  _i2.MasterRace get masterRace => (super.noSuchMethod(
-        Invocation.getter(#masterRace),
-        returnValue: _FakeMasterRace_0(
-          this,
-          Invocation.getter(#masterRace),
-        ),
-      ) as _i2.MasterRace);
+  _i2.MasterRace get masterRace =>
+      (super.noSuchMethod(
+            Invocation.getter(#masterRace),
+            returnValue: _FakeMasterRace_0(
+              this,
+              Invocation.getter(#masterRace),
+            ),
+          )
+          as _i2.MasterRace);
 
   @override
-  List<_i5.RaceResult> get results => (super.noSuchMethod(
-        Invocation.getter(#results),
-        returnValue: <_i5.RaceResult>[],
-      ) as List<_i5.RaceResult>);
+  List<_i5.RaceResult> get results =>
+      (super.noSuchMethod(
+            Invocation.getter(#results),
+            returnValue: <_i5.RaceResult>[],
+          )
+          as List<_i5.RaceResult>);
 
   @override
-  _i3.DevicesManager get devices => (super.noSuchMethod(
-        Invocation.getter(#devices),
-        returnValue: _FakeDevicesManager_1(
-          this,
-          Invocation.getter(#devices),
-        ),
-      ) as _i3.DevicesManager);
+  _i3.DevicesManager get devices =>
+      (super.noSuchMethod(
+            Invocation.getter(#devices),
+            returnValue: _FakeDevicesManager_1(
+              this,
+              Invocation.getter(#devices),
+            ),
+          )
+          as _i3.DevicesManager);
 
   @override
-  bool get resultsLoaded => (super.noSuchMethod(
-        Invocation.getter(#resultsLoaded),
-        returnValue: false,
-      ) as bool);
+  bool get resultsLoaded =>
+      (super.noSuchMethod(Invocation.getter(#resultsLoaded), returnValue: false)
+          as bool);
 
   @override
-  bool get hasBibConflicts => (super.noSuchMethod(
-        Invocation.getter(#hasBibConflicts),
-        returnValue: false,
-      ) as bool);
+  bool get hasBibConflicts =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasBibConflicts),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  bool get hasTimingConflicts => (super.noSuchMethod(
-        Invocation.getter(#hasTimingConflicts),
-        returnValue: false,
-      ) as bool);
+  bool get hasTimingConflicts =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasTimingConflicts),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  bool get hasError => (super.noSuchMethod(
-        Invocation.getter(#hasError),
-        returnValue: false,
-      ) as bool);
+  bool get hasError =>
+      (super.noSuchMethod(Invocation.getter(#hasError), returnValue: false)
+          as bool);
 
   @override
   set results(List<_i5.RaceResult>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #results,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#results, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set timingChunks(List<_i6.TimingChunk>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #timingChunks,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#timingChunks, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set raceRunners(List<dynamic>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #raceRunners,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#raceRunners, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set resultsLoaded(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #resultsLoaded,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#resultsLoaded, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set hasBibConflicts(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #hasBibConflicts,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#hasBibConflicts, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set hasTimingConflicts(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #hasTimingConflicts,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#hasTimingConflicts, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-      ) as bool);
+  bool get hasListeners =>
+      (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
+          as bool);
 
   @override
   void initialize() => super.noSuchMethod(
-        Invocation.method(
-          #initialize,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#initialize, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i7.Future<void> resetDevices() => (super.noSuchMethod(
-        Invocation.method(
-          #resetDevices,
-          [],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+  _i7.Future<void> resetDevices() =>
+      (super.noSuchMethod(
+            Invocation.method(#resetDevices, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
-  _i7.Future<void> loadResults() => (super.noSuchMethod(
-        Invocation.method(
-          #loadResults,
-          [],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+  _i7.Future<void> loadResults() =>
+      (super.noSuchMethod(
+            Invocation.method(#loadResults, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
   _i7.Future<void> saveRaceResults(List<_i5.RaceResult>? results) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveRaceResults,
-          [results],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+            Invocation.method(#saveRaceResults, [results]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
-  _i7.Future<void> saveCurrentResults() => (super.noSuchMethod(
-        Invocation.method(
-          #saveCurrentResults,
-          [],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+  _i7.Future<void> saveCurrentResults() =>
+      (super.noSuchMethod(
+            Invocation.method(#saveCurrentResults, []),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
   _i7.Future<void> processReceivedData(_i8.BuildContext? context) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #processReceivedData,
-          [context],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+            Invocation.method(#processReceivedData, [context]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
   _i7.Future<void> showBibConflictsSheet(_i8.BuildContext? context) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #showBibConflictsSheet,
-          [context],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+            Invocation.method(#showBibConflictsSheet, [context]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
   _i7.Future<void> showTimingConflictsSheet(_i8.BuildContext? context) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #showTimingConflictsSheet,
-          [context],
-        ),
-        returnValue: _i7.Future<void>.value(),
-        returnValueForMissingStub: _i7.Future<void>.value(),
-      ) as _i7.Future<void>);
+            Invocation.method(#showTimingConflictsSheet, [context]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
 
   @override
-  bool containsBibConflicts() => (super.noSuchMethod(
-        Invocation.method(
-          #containsBibConflicts,
-          [],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool containsBibConflicts() =>
+      (super.noSuchMethod(
+            Invocation.method(#containsBibConflicts, []),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  bool containsTimingConflicts() => (super.noSuchMethod(
-        Invocation.method(
-          #containsTimingConflicts,
-          [],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool containsTimingConflicts() =>
+      (super.noSuchMethod(
+            Invocation.method(#containsTimingConflicts, []),
+            returnValue: false,
+          )
+          as bool);
 
   @override
   void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [DevicesManager].
@@ -318,81 +269,77 @@ class MockDevicesManager extends _i1.Mock implements _i3.DevicesManager {
   }
 
   @override
-  _i10.DeviceName get currentDeviceName => (super.noSuchMethod(
-        Invocation.getter(#currentDeviceName),
-        returnValue: _i10.DeviceName.coach,
-      ) as _i10.DeviceName);
+  _i10.DeviceName get currentDeviceName =>
+      (super.noSuchMethod(
+            Invocation.getter(#currentDeviceName),
+            returnValue: _i10.DeviceName.coach,
+          )
+          as _i10.DeviceName);
 
   @override
-  _i10.DeviceType get currentDeviceType => (super.noSuchMethod(
-        Invocation.getter(#currentDeviceType),
-        returnValue: _i10.DeviceType.advertiserDevice,
-      ) as _i10.DeviceType);
+  _i10.DeviceType get currentDeviceType =>
+      (super.noSuchMethod(
+            Invocation.getter(#currentDeviceType),
+            returnValue: _i10.DeviceType.advertiserDevice,
+          )
+          as _i10.DeviceType);
 
   @override
-  bool get toSpectator => (super.noSuchMethod(
-        Invocation.getter(#toSpectator),
-        returnValue: false,
-      ) as bool);
+  bool get toSpectator =>
+      (super.noSuchMethod(Invocation.getter(#toSpectator), returnValue: false)
+          as bool);
 
   @override
-  List<_i3.ConnectedDevice> get devices => (super.noSuchMethod(
-        Invocation.getter(#devices),
-        returnValue: <_i3.ConnectedDevice>[],
-      ) as List<_i3.ConnectedDevice>);
+  List<_i3.ConnectedDevice> get devices =>
+      (super.noSuchMethod(
+            Invocation.getter(#devices),
+            returnValue: <_i3.ConnectedDevice>[],
+          )
+          as List<_i3.ConnectedDevice>);
 
   @override
-  List<_i3.ConnectedDevice> get otherDevices => (super.noSuchMethod(
-        Invocation.getter(#otherDevices),
-        returnValue: <_i3.ConnectedDevice>[],
-      ) as List<_i3.ConnectedDevice>);
+  List<_i3.ConnectedDevice> get otherDevices =>
+      (super.noSuchMethod(
+            Invocation.getter(#otherDevices),
+            returnValue: <_i3.ConnectedDevice>[],
+          )
+          as List<_i3.ConnectedDevice>);
 
   @override
   void reset() => super.noSuchMethod(
-        Invocation.method(
-          #reset,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#reset, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  bool hasDevice(_i10.DeviceName? name) => (super.noSuchMethod(
-        Invocation.method(
-          #hasDevice,
-          [name],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool hasDevice(_i10.DeviceName? name) =>
+      (super.noSuchMethod(
+            Invocation.method(#hasDevice, [name]),
+            returnValue: false,
+          )
+          as bool);
 
   @override
   _i3.ConnectedDevice? getDevice(_i10.DeviceName? name) =>
-      (super.noSuchMethod(Invocation.method(
-        #getDevice,
-        [name],
-      )) as _i3.ConnectedDevice?);
+      (super.noSuchMethod(Invocation.method(#getDevice, [name]))
+          as _i3.ConnectedDevice?);
 
   @override
-  bool allDevicesFinished() => (super.noSuchMethod(
-        Invocation.method(
-          #allDevicesFinished,
-          [],
-        ),
-        returnValue: false,
-      ) as bool);
+  bool allDevicesFinished() =>
+      (super.noSuchMethod(
+            Invocation.method(#allDevicesFinished, []),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  _i3.DevicesManager copy() => (super.noSuchMethod(
-        Invocation.method(
-          #copy,
-          [],
-        ),
-        returnValue: _FakeDevicesManager_1(
-          this,
-          Invocation.method(
-            #copy,
-            [],
-          ),
-        ),
-      ) as _i3.DevicesManager);
+  _i3.DevicesManager copy() =>
+      (super.noSuchMethod(
+            Invocation.method(#copy, []),
+            returnValue: _FakeDevicesManager_1(
+              this,
+              Invocation.method(#copy, []),
+            ),
+          )
+          as _i3.DevicesManager);
 }

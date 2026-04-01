@@ -27,13 +27,8 @@ import 'package:xceleration/core/services/sync_service.dart' as _i6;
 // ignore_for_file: invalid_use_of_internal_member
 
 class _FakeAuthResponse_0 extends _i1.SmartFake implements _i2.AuthResponse {
-  _FakeAuthResponse_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeAuthResponse_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [IAuthService].
@@ -45,10 +40,9 @@ class MockIAuthService extends _i1.Mock implements _i3.IAuthService {
   }
 
   @override
-  bool get isSignedIn => (super.noSuchMethod(
-        Invocation.getter(#isSignedIn),
-        returnValue: false,
-      ) as bool);
+  bool get isSignedIn =>
+      (super.noSuchMethod(Invocation.getter(#isSignedIn), returnValue: false)
+          as bool);
 
   @override
   _i4.Future<_i2.AuthResponse> signInWithEmailPassword(
@@ -56,24 +50,15 @@ class MockIAuthService extends _i1.Mock implements _i3.IAuthService {
     String? password,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #signInWithEmailPassword,
-          [
-            email,
-            password,
-          ],
-        ),
-        returnValue: _i4.Future<_i2.AuthResponse>.value(_FakeAuthResponse_0(
-          this,
-          Invocation.method(
-            #signInWithEmailPassword,
-            [
-              email,
-              password,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i2.AuthResponse>);
+            Invocation.method(#signInWithEmailPassword, [email, password]),
+            returnValue: _i4.Future<_i2.AuthResponse>.value(
+              _FakeAuthResponse_0(
+                this,
+                Invocation.method(#signInWithEmailPassword, [email, password]),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.AuthResponse>);
 
   @override
   _i4.Future<_i2.AuthResponse> signUpWithEmailPassword(
@@ -81,34 +66,24 @@ class MockIAuthService extends _i1.Mock implements _i3.IAuthService {
     String? password,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #signUpWithEmailPassword,
-          [
-            email,
-            password,
-          ],
-        ),
-        returnValue: _i4.Future<_i2.AuthResponse>.value(_FakeAuthResponse_0(
-          this,
-          Invocation.method(
-            #signUpWithEmailPassword,
-            [
-              email,
-              password,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i2.AuthResponse>);
+            Invocation.method(#signUpWithEmailPassword, [email, password]),
+            returnValue: _i4.Future<_i2.AuthResponse>.value(
+              _FakeAuthResponse_0(
+                this,
+                Invocation.method(#signUpWithEmailPassword, [email, password]),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.AuthResponse>);
 
   @override
-  _i4.Future<void> sendPasswordResetEmail(String? email) => (super.noSuchMethod(
-        Invocation.method(
-          #sendPasswordResetEmail,
-          [email],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> sendPasswordResetEmail(String? email) =>
+      (super.noSuchMethod(
+            Invocation.method(#sendPasswordResetEmail, [email]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 }
 
 /// A class which mocks [ISyncService].
@@ -120,28 +95,28 @@ class MockISyncService extends _i1.Mock implements _i5.ISyncService {
   }
 
   @override
-  _i4.Stream<_i6.SyncEvent> get syncEvents => (super.noSuchMethod(
-        Invocation.getter(#syncEvents),
-        returnValue: _i4.Stream<_i6.SyncEvent>.empty(),
-      ) as _i4.Stream<_i6.SyncEvent>);
+  _i4.Stream<_i6.SyncEvent> get syncEvents =>
+      (super.noSuchMethod(
+            Invocation.getter(#syncEvents),
+            returnValue: _i4.Stream<_i6.SyncEvent>.empty(),
+          )
+          as _i4.Stream<_i6.SyncEvent>);
 
   @override
-  _i4.Future<void> syncAll() => (super.noSuchMethod(
-        Invocation.method(
-          #syncAll,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> syncAll() =>
+      (super.noSuchMethod(
+            Invocation.method(#syncAll, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 
   @override
-  _i4.Future<void> dispose() => (super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> dispose() =>
+      (super.noSuchMethod(
+            Invocation.method(#dispose, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 }

@@ -35,95 +35,85 @@ class MockPermissionsService extends _i1.Mock
   }
 
   @override
-  List<_i3.Permission> get allPermissions => (super.noSuchMethod(
-        Invocation.getter(#allPermissions),
-        returnValue: <_i3.Permission>[],
-      ) as List<_i3.Permission>);
+  List<_i3.Permission> get allPermissions =>
+      (super.noSuchMethod(
+            Invocation.getter(#allPermissions),
+            returnValue: <_i3.Permission>[],
+          )
+          as List<_i3.Permission>);
 
   @override
-  String getPermissionName(_i3.Permission? permission) => (super.noSuchMethod(
-        Invocation.method(
-          #getPermissionName,
-          [permission],
-        ),
-        returnValue: _i4.dummyValue<String>(
-          this,
-          Invocation.method(
-            #getPermissionName,
-            [permission],
-          ),
-        ),
-      ) as String);
+  String getPermissionName(_i3.Permission? permission) =>
+      (super.noSuchMethod(
+            Invocation.method(#getPermissionName, [permission]),
+            returnValue: _i4.dummyValue<String>(
+              this,
+              Invocation.method(#getPermissionName, [permission]),
+            ),
+          )
+          as String);
 
   @override
   _i5.Future<bool> isPermissionGranted(_i3.Permission? permission) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #isPermissionGranted,
-          [permission],
-        ),
-        returnValue: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+            Invocation.method(#isPermissionGranted, [permission]),
+            returnValue: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
 
   @override
   _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>> checkAllPermissions() =>
       (super.noSuchMethod(
-        Invocation.method(
-          #checkAllPermissions,
-          [],
-        ),
-        returnValue:
-            _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>>.value(
-                <_i3.Permission, _i3.PermissionStatus>{}),
-      ) as _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>>);
+            Invocation.method(#checkAllPermissions, []),
+            returnValue:
+                _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>>.value(
+                  <_i3.Permission, _i3.PermissionStatus>{},
+                ),
+          )
+          as _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>>);
 
   @override
   _i5.Future<bool> requestPermission(_i3.Permission? permission) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #requestPermission,
-          [permission],
-        ),
-        returnValue: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+            Invocation.method(#requestPermission, [permission]),
+            returnValue: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
 
   @override
   _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>> requestPermissions(
-          List<_i3.Permission>? permissions) =>
+    List<_i3.Permission>? permissions,
+  ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #requestPermissions,
-          [permissions],
-        ),
-        returnValue:
-            _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>>.value(
-                <_i3.Permission, _i3.PermissionStatus>{}),
-      ) as _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>>);
+            Invocation.method(#requestPermissions, [permissions]),
+            returnValue:
+                _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>>.value(
+                  <_i3.Permission, _i3.PermissionStatus>{},
+                ),
+          )
+          as _i5.Future<Map<_i3.Permission, _i3.PermissionStatus>>);
 
   @override
-  _i5.Future<bool> isLocationPermissionGranted() => (super.noSuchMethod(
-        Invocation.method(
-          #isLocationPermissionGranted,
-          [],
-        ),
-        returnValue: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+  _i5.Future<bool> isLocationPermissionGranted() =>
+      (super.noSuchMethod(
+            Invocation.method(#isLocationPermissionGranted, []),
+            returnValue: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
 
   @override
-  _i5.Future<bool> requestLocationPermission() => (super.noSuchMethod(
-        Invocation.method(
-          #requestLocationPermission,
-          [],
-        ),
-        returnValue: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+  _i5.Future<bool> requestLocationPermission() =>
+      (super.noSuchMethod(
+            Invocation.method(#requestLocationPermission, []),
+            returnValue: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
 
   @override
-  _i5.Future<bool> openSystemSettings() => (super.noSuchMethod(
-        Invocation.method(
-          #openSystemSettings,
-          [],
-        ),
-        returnValue: _i5.Future<bool>.value(false),
-      ) as _i5.Future<bool>);
+  _i5.Future<bool> openSystemSettings() =>
+      (super.noSuchMethod(
+            Invocation.method(#openSystemSettings, []),
+            returnValue: _i5.Future<bool>.value(false),
+          )
+          as _i5.Future<bool>);
 }
