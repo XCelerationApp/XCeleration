@@ -32,17 +32,21 @@ class RaceHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                raceName,
-                style: AppTypography.smallBodySemibold.copyWith(
-                  color: AppColors.darkColor,
+          Flexible(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  raceName,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.smallBodySemibold.copyWith(
+                    color: AppColors.darkColor,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: AppSpacing.sm),
           Row(
             children: [
               raceStarted ? const LiveBadge() : const NotStartedBadge(),
