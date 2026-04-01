@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -26,7 +27,6 @@ class RunnersList extends StatefulWidget {
 }
 
 class _RunnersListState extends State<RunnersList> {
-  // teamId → expanded; default true (all sections start open)
   final Map<int, bool> _expanded = {};
   Future<Map<Team, List<RaceRunner>>>? _filteredFuture;
 
@@ -113,11 +113,7 @@ class _RunnersListState extends State<RunnersList> {
         }
 
         final teamMap = snapshot.requireData;
-
-        if (teamMap.isEmpty) {
-          return _EmptyState(controller: widget.controller);
-        }
-
+        if (teamMap.isEmpty) return _EmptyState(controller: widget.controller);
         return _buildList(context, teamMap);
       },
     );
@@ -127,15 +123,21 @@ class _RunnersListState extends State<RunnersList> {
     final teams = teamMap.keys.toList()
       ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
+    final borderColor = AppColors.mediumColor.withValues(alpha: AppOpacity.medium);
+    final cardRadius = Radius.circular(AppBorderRadius.md);
+
     final slivers = <Widget>[
       const SliverPadding(padding: EdgeInsets.only(top: AppSpacing.sm)),
     ];
 
-    for (var i = 0; i < teams.length; i++) {
-      final team = teams[i];
+    for (final team in teams) {
       final raceRunners = teamMap[team] ?? [];
       final expanded = _isExpanded(team);
-      final showTitles = expanded && raceRunners.isNotEmpty;
+      final hasRunners = raceRunners.isNotEmpty;
+      final showTitles = expanded && hasRunners;
+      // When collapsed or empty: full card rounding on the header.
+      // When expanded with runners: header is the top half — round top corners only.
+      final headerIsFullCard = !expanded || !hasRunners;
 
       slivers.add(
         SliverPersistentHeader(
@@ -146,6 +148,9 @@ class _RunnersListState extends State<RunnersList> {
             controller: widget.controller,
             isExpanded: expanded,
             showTitles: showTitles,
+            headerIsFullCard: headerIsFullCard,
+            borderColor: borderColor,
+            cardRadius: cardRadius,
             onToggleExpand: () => _toggleExpanded(team),
             onAddRunner: () =>
                 widget.controller.showAddRunnerChoiceSheet(context, team),
@@ -154,43 +159,72 @@ class _RunnersListState extends State<RunnersList> {
         ),
       );
 
+      // Content: bottom half of the card, or spacing gap when collapsed.
       slivers.add(
         SliverToBoxAdapter(
-          child: AnimatedSize(
-            duration: AppAnimations.standard,
-            curve: AppAnimations.spring,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.sm,
+              0,
+              AppSpacing.sm,
+              AppSpacing.sm,
+            ),
             child: expanded
-                ? Column(
-                    children: [
-                      if (raceRunners.isEmpty)
-                        _EmptyTeamState(
-                          isViewMode: widget.controller.isViewMode,
-                        )
-                      else
-                        ListView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          itemCount: raceRunners.length,
-                          itemBuilder: (context, j) {
-                            final raceRunner = raceRunners[j];
-                            return RunnerListItem(
-                              key: ValueKey(raceRunner.runner.bibNumber),
-                              runner: raceRunner.runner,
-                              team: team,
-                              controller: widget.controller,
-                              onAction: (action) =>
-                                  widget.controller.handleRaceRunnerAction(
-                                context,
-                                action,
-                                raceRunner,
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.mediumColor
+                          .withValues(alpha: AppOpacity.faint),
+                      border: Border(
+                        bottom: BorderSide(color: borderColor),
+                        left: BorderSide(color: borderColor),
+                        right: BorderSide(color: borderColor),
+                      ),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: cardRadius,
+                        bottomRight: cardRadius,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: cardRadius,
+                        bottomRight: cardRadius,
+                      ),
+                      child: AnimatedSize(
+                        duration: AppAnimations.standard,
+                        curve: AppAnimations.spring,
+                        child: hasRunners
+                            ? ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: raceRunners.length,
+                                itemBuilder: (context, j) {
+                                  final raceRunner = raceRunners[j];
+                                  return RunnerListItem(
+                                    key: ValueKey(raceRunner.runner.bibNumber),
+                                    runner: raceRunner.runner,
+                                    team: team,
+                                    controller: widget.controller,
+                                    onAction: (action) =>
+                                        widget.controller.handleRaceRunnerAction(
+                                      context,
+                                      action,
+                                      raceRunner,
+                                    ),
+                                    isViewMode: widget.controller.isViewMode,
+                                  );
+                                },
+                              )
+                            : _EmptyTeamState(
+                                isViewMode: widget.controller.isViewMode,
                               ),
-                              isViewMode: widget.controller.isViewMode,
-                            );
-                          },
-                        ),
-                    ],
+                      ),
+                    ),
                   )
-                : const SizedBox.shrink(),
+                : AnimatedSize(
+                    duration: AppAnimations.standard,
+                    curve: AppAnimations.spring,
+                    child: const SizedBox.shrink(),
+                  ),
           ),
         ),
       );
@@ -207,9 +241,6 @@ class _RunnersListState extends State<RunnersList> {
   }
 }
 
-/// `SliverPersistentHeaderDelegate` for the team section header.
-/// Renders the team name row and optionally the column titles row.
-/// Both rows use the same widgets as the inline card — no duplication.
 class _TeamSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   const _TeamSectionHeaderDelegate({
     required this.team,
@@ -217,6 +248,9 @@ class _TeamSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
     required this.controller,
     required this.isExpanded,
     required this.showTitles,
+    required this.headerIsFullCard,
+    required this.borderColor,
+    required this.cardRadius,
     required this.onToggleExpand,
     required this.onAddRunner,
     required this.isViewMode,
@@ -227,6 +261,9 @@ class _TeamSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
   final RunnersManagementController controller;
   final bool isExpanded;
   final bool showTitles;
+  final bool headerIsFullCard;
+  final Color borderColor;
+  final Radius cardRadius;
   final VoidCallback onToggleExpand;
   final VoidCallback onAddRunner;
   final bool isViewMode;
@@ -244,6 +281,7 @@ class _TeamSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
       old.runnerCount != runnerCount ||
       old.isExpanded != isExpanded ||
       old.showTitles != showTitles ||
+      old.headerIsFullCard != headerIsFullCard ||
       old.isViewMode != isViewMode;
 
   @override
@@ -252,30 +290,49 @@ class _TeamSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
     double shrinkOffset,
     bool overlapsContent,
   ) {
-    return ColoredBox(
-      color: AppColors.mediumColor.withValues(alpha: AppOpacity.faint),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          SizedBox(
-            height: _kHeaderExtent,
-            child: TeamHeaderTile(
-              team: team,
-              runnerCount: runnerCount,
-              controller: controller,
-              isExpanded: isExpanded,
-              onToggleExpand: onToggleExpand,
-              onAddRunner: onAddRunner,
-              isViewMode: isViewMode,
-            ),
+    final borderRadius = headerIsFullCard
+        ? BorderRadius.circular(AppBorderRadius.md)
+        : BorderRadius.only(topLeft: cardRadius, topRight: cardRadius);
+
+    final border = headerIsFullCard
+        ? Border.all(color: borderColor)
+        : Border(
+            top: BorderSide(color: borderColor),
+            left: BorderSide(color: borderColor),
+            right: BorderSide(color: borderColor),
+          );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: AppColors.backgroundColor,
+          border: border,
+          borderRadius: borderRadius,
+        ),
+        child: ClipRRect(
+          borderRadius: borderRadius,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              SizedBox(
+                height: _kHeaderExtent,
+                child: TeamHeaderTile(
+                  team: team,
+                  runnerCount: runnerCount,
+                  controller: controller,
+                  isExpanded: isExpanded,
+                  onToggleExpand: onToggleExpand,
+                  onAddRunner: onAddRunner,
+                  isViewMode: isViewMode,
+                ),
+              ),
+              if (showTitles)
+                SizedBox(height: _kTitlesExtent, child: const ListTitles()),
+            ],
           ),
-          if (showTitles)
-            SizedBox(
-              height: _kTitlesExtent,
-              child: const ListTitles(),
-            ),
-        ],
+        ),
       ),
     );
   }
