@@ -232,9 +232,12 @@ class _RunnersListState extends State<RunnersList> {
       const SliverPadding(padding: EdgeInsets.only(bottom: AppSpacing.sm)),
     );
 
-    return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
-      slivers: slivers,
+    return ColoredBox(
+      color: AppColors.surfaceColor,
+      child: CustomScrollView(
+        physics: const BouncingScrollPhysics(),
+        slivers: slivers,
+      ),
     );
   }
 }
@@ -302,33 +305,38 @@ class _TeamSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceColor,
-          border: border,
-          borderRadius: borderRadius,
-        ),
-        child: ClipRRect(
-          borderRadius: borderRadius,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              SizedBox(
-                height: _kHeaderExtent,
-                child: TeamHeaderTile(
-                  team: team,
-                  runnerCount: runnerCount,
-                  controller: controller,
-                  isExpanded: isExpanded,
-                  onToggleExpand: onToggleExpand,
-                  onAddRunner: onAddRunner,
-                  isViewMode: isViewMode,
+      child: ColoredBox(
+        // Fills the full rectangle (including corner notches) so scrolling
+        // content never bleeds through the ClipRRect's transparent corners.
+        color: AppColors.surfaceColor,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceColor,
+            border: border,
+            borderRadius: borderRadius,
+          ),
+          child: ClipRRect(
+            borderRadius: borderRadius,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  height: _kHeaderExtent,
+                  child: TeamHeaderTile(
+                    team: team,
+                    runnerCount: runnerCount,
+                    controller: controller,
+                    isExpanded: isExpanded,
+                    onToggleExpand: onToggleExpand,
+                    onAddRunner: onAddRunner,
+                    isViewMode: isViewMode,
+                  ),
                 ),
-              ),
-              if (showTitles)
-                SizedBox(height: _kTitlesExtent, child: const ListTitles()),
-            ],
+                if (showTitles)
+                  SizedBox(height: _kTitlesExtent, child: const ListTitles()),
+              ],
+            ),
           ),
         ),
       ),
