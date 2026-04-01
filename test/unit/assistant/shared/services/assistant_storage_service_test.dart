@@ -22,6 +22,8 @@ void main() {
     final db = await AssistantStorageService.instance.database;
     await db.delete('bib_records');
     await db.delete('timing_chunks');
+    await db.delete('verifier_entries');
+    await db.delete('fixer_entries');
     await db.delete('runners');
     await db.delete('race_history');
   });

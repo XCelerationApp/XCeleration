@@ -117,13 +117,15 @@ class MockVerifierController extends _i1.Mock
       ) as _i5.Future<_i6.Result<void>>);
 
   @override
-  void joinRace() => super.noSuchMethod(
+  _i5.Future<void> joinRace({required int? raceId}) => (super.noSuchMethod(
         Invocation.method(
           #joinRace,
           [],
+          {#raceId: raceId},
         ),
-        returnValueForMissingStub: null,
-      );
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
 
   @override
   void verify(int? id) => super.noSuchMethod(

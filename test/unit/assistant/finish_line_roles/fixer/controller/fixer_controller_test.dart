@@ -23,6 +23,7 @@ void main() {
     provideDummy<Result<void>>(Failure<void>(const AppError(userMessage: '')));
     provideDummy<Result<List<Runner>>>(const Success([]));
     provideDummy<Result<List<RaceRecord>>>(const Success([]));
+    provideDummy<Result<List<FixerEntry>>>(const Success([]));
     provideDummy<Runner>(Runner(raceId: 0, bibNumber: '', createdAt: DateTime(2026)));
   });
 
@@ -51,6 +52,18 @@ void main() {
         .thenAnswer((_) async => const Success<void>(null));
     when(mockStorage.saveRunner(any))
         .thenAnswer((_) async => const Success<void>(null));
+    when(mockStorage.getFixerEntries(any))
+        .thenAnswer((_) async => const Success<List<FixerEntry>>([]));
+    when(mockStorage.saveFixerEntry(any, any))
+        .thenAnswer((_) async => const Success<void>(null));
+    when(mockStorage.updateFixerEntryResolution(
+      any, any,
+      isResolved: anyNamed('isResolved'),
+      correctedBib: anyNamed('correctedBib'),
+      resolvedName: anyNamed('resolvedName'),
+      isNewRunner: anyNamed('isNewRunner'),
+      correctionType: anyNamed('correctionType'),
+    )).thenAnswer((_) async => const Success<void>(null));
   });
 
   tearDown(() async {

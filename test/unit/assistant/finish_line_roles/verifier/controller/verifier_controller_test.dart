@@ -52,12 +52,19 @@ void main() {
         .thenAnswer((_) async => const Success<void>(null));
     when(mockStorage.saveRunners(any, any))
         .thenAnswer((_) async => const Success<void>(null));
+    when(mockStorage.getVerifierEntries(any))
+        .thenAnswer((_) async => const Success<List<VerifierEntry>>([]));
+    when(mockStorage.saveVerifierEntry(any, any))
+        .thenAnswer((_) async => const Success<void>(null));
+    when(mockStorage.updateVerifierEntryStatus(any, any, any))
+        .thenAnswer((_) async => const Success<void>(null));
   });
 
   setUpAll(() {
     provideDummy<Result<void>>(Failure<void>(const AppError(userMessage: '')));
     provideDummy<Result<List<RaceRecord>>>(const Success([]));
     provideDummy<Result<List<Runner>>>(const Success([]));
+    provideDummy<Result<List<VerifierEntry>>>(const Success([]));
   });
 
   tearDown(() async {
@@ -367,7 +374,7 @@ void main() {
       test('does not send message when no session is set', () {
         fakeAsync((fake) {
           final controller = VerifierController(haptic: mockHaptic);
-          controller.joinRace();
+          controller.joinRace(raceId: 1);
 
           controller.flag(1); // no session — flag is a no-op for P2P
 
@@ -640,7 +647,7 @@ void main() {
       test('clears entries, history, and sets isInRace to false', () async {
         final controller = VerifierController(session: mockSession, haptic: mockHaptic);
         controller.initialize();
-        controller.joinRace();
+        controller.joinRace(raceId: 1);
         incomingController.add((
           Role.bibRecorderV2,
           MessageEnvelope.wrapBibEntry(BibEntryMessage(

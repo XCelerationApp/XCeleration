@@ -271,6 +271,22 @@ class MockBibRecorderV2Controller extends _i1.Mock
       );
 
   @override
+  void restoreEntry(
+    _i4.BibEntry? entry,
+    int? index,
+  ) =>
+      super.noSuchMethod(
+        Invocation.method(
+          #restoreEntry,
+          [
+            entry,
+            index,
+          ],
+        ),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   void clearEntries() => super.noSuchMethod(
         Invocation.method(
           #clearEntries,

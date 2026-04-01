@@ -8,23 +8,27 @@ import 'dart:async' as _i3;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:mockito/src/dummies.dart' as _i6;
 import 'package:xceleration/assistant/bib_number_recorder/services/i_voice_recognition_service.dart'
+    as _i13;
+import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart'
+    as _i12;
+import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart'
     as _i11;
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart'
-    as _i15;
+    as _i17;
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart'
-    as _i13;
+    as _i15;
 import 'package:xceleration/assistant/shared/models/bib_record.dart' as _i10;
 import 'package:xceleration/assistant/shared/models/race_record.dart' as _i5;
 import 'package:xceleration/assistant/shared/models/runner.dart' as _i9;
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart'
     as _i2;
 import 'package:xceleration/core/result.dart' as _i4;
-import 'package:xceleration/core/services/haptic_feedback_service.dart' as _i12;
+import 'package:xceleration/core/services/haptic_feedback_service.dart' as _i14;
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart'
     as _i7;
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart'
     as _i8;
-import 'package:xceleration/shared/role_bar/models/role_enums.dart' as _i14;
+import 'package:xceleration/shared/role_bar/models/role_enums.dart' as _i16;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -965,13 +969,208 @@ class MockIAssistantStorageService extends _i1.Mock
           ),
         )),
       ) as _i3.Future<_i4.Result<int>>);
+
+  @override
+  _i3.Future<_i4.Result<void>> saveVerifierEntry(
+    int? raceId,
+    _i11.VerifierEntry? entry,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #saveVerifierEntry,
+          [
+            raceId,
+            entry,
+          ],
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<void>>.value(_i6.dummyValue<_i4.Result<void>>(
+          this,
+          Invocation.method(
+            #saveVerifierEntry,
+            [
+              raceId,
+              entry,
+            ],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<void>>);
+
+  @override
+  _i3.Future<_i4.Result<void>> updateVerifierEntryStatus(
+    int? raceId,
+    int? entryId,
+    _i11.VerificationStatus? status,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateVerifierEntryStatus,
+          [
+            raceId,
+            entryId,
+            status,
+          ],
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<void>>.value(_i6.dummyValue<_i4.Result<void>>(
+          this,
+          Invocation.method(
+            #updateVerifierEntryStatus,
+            [
+              raceId,
+              entryId,
+              status,
+            ],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<void>>);
+
+  @override
+  _i3.Future<_i4.Result<List<_i11.VerifierEntry>>> getVerifierEntries(
+          int? raceId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getVerifierEntries,
+          [raceId],
+        ),
+        returnValue: _i3.Future<_i4.Result<List<_i11.VerifierEntry>>>.value(
+            _i6.dummyValue<_i4.Result<List<_i11.VerifierEntry>>>(
+          this,
+          Invocation.method(
+            #getVerifierEntries,
+            [raceId],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<List<_i11.VerifierEntry>>>);
+
+  @override
+  _i3.Future<_i4.Result<void>> deleteVerifierEntries(int? raceId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #deleteVerifierEntries,
+          [raceId],
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<void>>.value(_i6.dummyValue<_i4.Result<void>>(
+          this,
+          Invocation.method(
+            #deleteVerifierEntries,
+            [raceId],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<void>>);
+
+  @override
+  _i3.Future<_i4.Result<void>> saveFixerEntry(
+    int? raceId,
+    _i12.FixerEntry? entry,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #saveFixerEntry,
+          [
+            raceId,
+            entry,
+          ],
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<void>>.value(_i6.dummyValue<_i4.Result<void>>(
+          this,
+          Invocation.method(
+            #saveFixerEntry,
+            [
+              raceId,
+              entry,
+            ],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<void>>);
+
+  @override
+  _i3.Future<_i4.Result<void>> updateFixerEntryResolution(
+    int? raceId,
+    int? entryId, {
+    required bool? isResolved,
+    int? correctedBib,
+    String? resolvedName,
+    required bool? isNewRunner,
+    required String? correctionType,
+  }) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #updateFixerEntryResolution,
+          [
+            raceId,
+            entryId,
+          ],
+          {
+            #isResolved: isResolved,
+            #correctedBib: correctedBib,
+            #resolvedName: resolvedName,
+            #isNewRunner: isNewRunner,
+            #correctionType: correctionType,
+          },
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<void>>.value(_i6.dummyValue<_i4.Result<void>>(
+          this,
+          Invocation.method(
+            #updateFixerEntryResolution,
+            [
+              raceId,
+              entryId,
+            ],
+            {
+              #isResolved: isResolved,
+              #correctedBib: correctedBib,
+              #resolvedName: resolvedName,
+              #isNewRunner: isNewRunner,
+              #correctionType: correctionType,
+            },
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<void>>);
+
+  @override
+  _i3.Future<_i4.Result<List<_i12.FixerEntry>>> getFixerEntries(int? raceId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #getFixerEntries,
+          [raceId],
+        ),
+        returnValue: _i3.Future<_i4.Result<List<_i12.FixerEntry>>>.value(
+            _i6.dummyValue<_i4.Result<List<_i12.FixerEntry>>>(
+          this,
+          Invocation.method(
+            #getFixerEntries,
+            [raceId],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<List<_i12.FixerEntry>>>);
+
+  @override
+  _i3.Future<_i4.Result<void>> deleteFixerEntries(int? raceId) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #deleteFixerEntries,
+          [raceId],
+        ),
+        returnValue:
+            _i3.Future<_i4.Result<void>>.value(_i6.dummyValue<_i4.Result<void>>(
+          this,
+          Invocation.method(
+            #deleteFixerEntries,
+            [raceId],
+          ),
+        )),
+      ) as _i3.Future<_i4.Result<void>>);
 }
 
 /// A class which mocks [IVoiceRecognitionService].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIVoiceRecognitionService extends _i1.Mock
-    implements _i11.IVoiceRecognitionService {
+    implements _i13.IVoiceRecognitionService {
   MockIVoiceRecognitionService() {
     _i1.throwOnMissingStub(this);
   }
@@ -1038,7 +1237,7 @@ class MockIVoiceRecognitionService extends _i1.Mock
 /// A class which mocks [IHapticFeedback].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIHapticFeedback extends _i1.Mock implements _i12.IHapticFeedback {
+class MockIHapticFeedback extends _i1.Mock implements _i14.IHapticFeedback {
   MockIHapticFeedback() {
     _i1.throwOnMissingStub(this);
   }
@@ -1067,16 +1266,16 @@ class MockIHapticFeedback extends _i1.Mock implements _i12.IHapticFeedback {
 /// A class which mocks [P2PSessionService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockP2PSessionService extends _i1.Mock implements _i13.P2PSessionService {
+class MockP2PSessionService extends _i1.Mock implements _i15.P2PSessionService {
   MockP2PSessionService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i14.Role get localRole => (super.noSuchMethod(
+  _i16.Role get localRole => (super.noSuchMethod(
         Invocation.getter(#localRole),
-        returnValue: _i14.Role.timer,
-      ) as _i14.Role);
+        returnValue: _i16.Role.timer,
+      ) as _i16.Role);
 
   @override
   int get raceId => (super.noSuchMethod(
@@ -1085,17 +1284,17 @@ class MockP2PSessionService extends _i1.Mock implements _i13.P2PSessionService {
       ) as int);
 
   @override
-  _i3.Stream<(_i14.Role, _i15.MessageEnvelope)> get incomingMessages =>
+  _i3.Stream<(_i16.Role, _i17.MessageEnvelope)> get incomingMessages =>
       (super.noSuchMethod(
         Invocation.getter(#incomingMessages),
-        returnValue: _i3.Stream<(_i14.Role, _i15.MessageEnvelope)>.empty(),
-      ) as _i3.Stream<(_i14.Role, _i15.MessageEnvelope)>);
+        returnValue: _i3.Stream<(_i16.Role, _i17.MessageEnvelope)>.empty(),
+      ) as _i3.Stream<(_i16.Role, _i17.MessageEnvelope)>);
 
   @override
-  _i3.Stream<_i13.PeerStateEvent> get peerStateEvents => (super.noSuchMethod(
+  _i3.Stream<_i15.PeerStateEvent> get peerStateEvents => (super.noSuchMethod(
         Invocation.getter(#peerStateEvents),
-        returnValue: _i3.Stream<_i13.PeerStateEvent>.empty(),
-      ) as _i3.Stream<_i13.PeerStateEvent>);
+        returnValue: _i3.Stream<_i15.PeerStateEvent>.empty(),
+      ) as _i3.Stream<_i15.PeerStateEvent>);
 
   @override
   _i3.Future<void> init() => (super.noSuchMethod(
@@ -1109,8 +1308,8 @@ class MockP2PSessionService extends _i1.Mock implements _i13.P2PSessionService {
 
   @override
   _i3.Future<void> sendMessage(
-    _i14.Role? target,
-    _i15.MessageEnvelope? msg,
+    _i16.Role? target,
+    _i17.MessageEnvelope? msg,
   ) =>
       (super.noSuchMethod(
         Invocation.method(
@@ -1125,7 +1324,7 @@ class MockP2PSessionService extends _i1.Mock implements _i13.P2PSessionService {
       ) as _i3.Future<void>);
 
   @override
-  int pendingCount(_i14.Role? peer) => (super.noSuchMethod(
+  int pendingCount(_i16.Role? peer) => (super.noSuchMethod(
         Invocation.method(
           #pendingCount,
           [peer],
