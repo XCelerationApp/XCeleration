@@ -94,10 +94,25 @@ class VerifierController extends ChangeNotifier {
     );
   }
 
-  /// Enter a race session.
-  void joinRace() {
+  int _raceId = 0;
+
+  /// Enter a race session and recover any persisted entries.
+  Future<void> joinRace({required int raceId}) async {
+    _raceId = raceId;
     _inRace = true;
     notifyListeners();
+    if (_storage == null) return;
+    final result = await _storage.getVerifierEntries(raceId);
+    if (result case Success(:final value)) {
+      for (final entry in value) {
+        if (entry.status == VerificationStatus.pending) {
+          _entries.add(entry);
+        } else {
+          _history.add(entry);
+        }
+      }
+      notifyListeners();
+    }
   }
 
   // ── Actions ───────────────────────────────────────────────────────────────
@@ -150,6 +165,13 @@ class VerifierController extends ChangeNotifier {
     final idx = _entries.indexWhere((e) => e.id == id);
     if (idx == -1) return;
     _entries[idx] = _entries[idx].copyWith(status: VerificationStatus.pending);
+    if (_storage != null) {
+      unawaited(_storage.updateVerifierEntryStatus(_raceId, id, VerificationStatus.pending).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[VerifierController.undo] ${error.originalException}');
+        }
+      }));
+    }
     notifyListeners();
   }
 
@@ -157,6 +179,13 @@ class VerifierController extends ChangeNotifier {
     final idx = _entries.indexWhere((e) => e.id == id);
     if (idx == -1) return;
     _entries[idx] = _entries[idx].copyWith(status: status);
+    if (_storage != null) {
+      unawaited(_storage.updateVerifierEntryStatus(_raceId, id, status).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[VerifierController._act] ${error.originalException}');
+        }
+      }));
+    }
     notifyListeners();
 
     _undoTimers[id]?.cancel();
@@ -220,7 +249,15 @@ class VerifierController extends ChangeNotifier {
   }
 
   void _addEntryFromMessage(BibEntryMessage msg) {
-    _entries.insert(0, VerifierEntry.fromMessage(msg));
+    final entry = VerifierEntry.fromMessage(msg);
+    _entries.insert(0, entry);
+    if (_storage != null) {
+      unawaited(_storage.saveVerifierEntry(_raceId, entry).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[VerifierController._addEntryFromMessage] ${error.originalException}');
+        }
+      }));
+    }
     notifyListeners();
   }
 

@@ -48,6 +48,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   PeerDiscoveryNotifier? _peerNotifier;
   P2PSessionService? _session;
   String? _selectedRaceName;
+  int _selectedRaceId = 0;
   SharedPreferences? _prefs;
 
   @override
@@ -60,6 +61,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
 
   Future<void> _onJoinTapped(RaceRecord race) async {
     _selectedRaceName = race.name;
+    _selectedRaceId = race.raceId;
     _prefs ??= await SharedPreferences.getInstance();
     final session = P2PSessionService(
       localRole: Role.verifier,
@@ -84,7 +86,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
   void _onConnectionReady() {
     // Keep notifier alive for PeerStatusStrip during the race.
     setState(() => _connecting = false);
-    _controller.joinRace();
+    _controller.joinRace(raceId: _selectedRaceId);
   }
 
   void _onConnectionSkip() {
@@ -96,7 +98,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
       _peerNotifier = null;
       _session = null;
     });
-    _controller.joinRace();
+    _controller.joinRace(raceId: _selectedRaceId);
   }
 
   void _onConnectionLeave() {
