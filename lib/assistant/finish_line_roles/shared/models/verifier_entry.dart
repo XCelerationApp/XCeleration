@@ -14,6 +14,7 @@ class VerifierEntry {
     required this.id,
     required this.position,
     required this.bib,
+    this.entryId,
     this.runnerName,
     this.teamAbbreviation,
     this.teamColor,
@@ -23,6 +24,10 @@ class VerifierEntry {
 
   /// Matches [BibEntry.id] from the Bib Recorder.
   final int id;
+
+  /// Original entry ID from the Bib Recorder, preserved for the correction
+  /// chain back through the Fixer.
+  final int? entryId;
 
   /// Finish-line position (1 = first across).
   final int position;
@@ -45,9 +50,10 @@ class VerifierEntry {
       BibEntryStatus.resolved => BibFlag.none,
     };
     return VerifierEntry(
-      id: msg.finishPosition,
+      id: msg.entryId ?? msg.finishPosition,
       position: msg.finishPosition,
       bib: msg.bib,
+      entryId: msg.entryId,
       runnerName: msg.runnerName,
       teamAbbreviation: msg.teamAbbreviation,
       teamColor: msg.teamColor != null ? Color(msg.teamColor!) : null,
@@ -59,6 +65,7 @@ class VerifierEntry {
         id: id,
         position: position,
         bib: bib,
+        entryId: entryId,
         runnerName: runnerName,
         teamAbbreviation: teamAbbreviation,
         teamColor: teamColor,
