@@ -143,6 +143,7 @@ class SyncService implements ISyncService {
     await assignUuids('teams', 'team_id');
     await assignUuids('races', 'race_id');
     await assignUuids('race_results', 'result_id');
+    await assignUuids('race_participants', 'rowid');
 
     // Populate runner_uuid and race_uuid for race_results rows that are missing them
     await db.rawUpdate('''

@@ -43,39 +43,7 @@ CREATE TABLE IF NOT EXISTS team_rosters (
   FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE
 );
 
--- 4. RACE_TEAM_PARTICIPATION (local adds timestamps + is_dirty)
-CREATE TABLE IF NOT EXISTS race_team_participation (
-  race_id INTEGER NOT NULL,
-  team_id INTEGER NOT NULL,
-  team_color_override INTEGER,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TEXT,
-  is_dirty INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (race_id, team_id),
-  FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
-  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE
-);
-
--- 5. RACE_PARTICIPANTS
-CREATE TABLE IF NOT EXISTS race_participants (
-  race_id INTEGER NOT NULL,
-  runner_id INTEGER NOT NULL,
-  team_id INTEGER NOT NULL,
-  race_uuid TEXT,
-  runner_uuid TEXT,
-  team_uuid TEXT,
-  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
-  deleted_at TEXT,
-  is_dirty INTEGER NOT NULL DEFAULT 0,
-  PRIMARY KEY (race_id, runner_id),
-  FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
-  FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
-  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE
-);
-
--- 6. RACES
+-- 4. RACES (moved before tables that reference it)
 CREATE TABLE IF NOT EXISTS races (
   race_id INTEGER PRIMARY KEY AUTOINCREMENT,
   uuid TEXT UNIQUE,
@@ -92,7 +60,40 @@ CREATE TABLE IF NOT EXISTS races (
   is_dirty INTEGER NOT NULL DEFAULT 0
 );
 
--- 7. RACE_RESULTS
+-- 5. RACE_TEAM_PARTICIPATION (local adds timestamps + is_dirty)
+CREATE TABLE IF NOT EXISTS race_team_participation (
+  race_id INTEGER NOT NULL,
+  team_id INTEGER NOT NULL,
+  team_color_override INTEGER,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TEXT,
+  is_dirty INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (race_id, team_id),
+  FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
+  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE
+);
+
+-- 6. RACE_PARTICIPANTS
+CREATE TABLE IF NOT EXISTS race_participants (
+  race_id INTEGER NOT NULL,
+  runner_id INTEGER NOT NULL,
+  team_id INTEGER NOT NULL,
+  uuid TEXT UNIQUE,
+  race_uuid TEXT,
+  runner_uuid TEXT,
+  team_uuid TEXT,
+  created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
+  deleted_at TEXT,
+  is_dirty INTEGER NOT NULL DEFAULT 0,
+  PRIMARY KEY (race_id, runner_id),
+  FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
+  FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
+  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE
+);
+
+-- 8. RACE_RESULTS
 CREATE TABLE IF NOT EXISTS race_results (
   result_id INTEGER PRIMARY KEY AUTOINCREMENT,
   uuid TEXT UNIQUE,
@@ -114,7 +115,7 @@ CREATE TABLE IF NOT EXISTS race_results (
   UNIQUE (race_id, place)
 );
 
--- 8. SYNC STATE (no is_dirty; internal key-value store)
+-- 9. SYNC STATE (no is_dirty; internal key-value store)
 CREATE TABLE IF NOT EXISTS sync_state (
   key TEXT PRIMARY KEY,
   value TEXT NOT NULL
