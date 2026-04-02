@@ -288,6 +288,12 @@ class SyncService implements ISyncService {
     return rows.isNotEmpty ? rows.first['value'] as String : null;
   }
 
+  @override
+  Future<void> clearSyncCursors() async {
+    final db = await _db.database;
+    await db.delete('sync_state', where: "key LIKE 'cursor.%'");
+  }
+
   /// Fields excluded from conflict detection: sync metadata and local-only PKs/FKs
   /// that are not present on the remote row.
   static const _conflictExcludedFields = {
@@ -1067,11 +1073,23 @@ class SyncService implements ISyncService {
     // Once any row is skipped due to unresolved UUID foreign keys, stop
     // advancing the cursor so those rows are re-fetched on the next sync.
     bool hasUnresolvedSkip = false;
+    // Track the cursor value at the start of each timestamp group so that if a
+    // skip occurs within the group we can roll back to before that group —
+    // preventing same-timestamp rows from being missed on the next sync.
+    String? cursorBeforeGroup = cursor;
+    String? currentGroupTimestamp;
 
     for (final row in data) {
       final remote = Map<String, dynamic>.from(row);
       final uuid = remote['uuid'] as String?;
       if (uuid == null) continue;
+
+      // Checkpoint cursor at each new timestamp group boundary.
+      final rowTimestamp = remote['updated_at']?.toString();
+      if (rowTimestamp != currentGroupTimestamp) {
+        cursorBeforeGroup = newCursor;
+        currentGroupTimestamp = rowTimestamp;
+      }
 
       remote.remove('owner_user_id');
       // result_id on remote is a bigserial with its own sequence; strip it so
@@ -1093,6 +1111,9 @@ class SyncService implements ISyncService {
       if (runnerId == null || raceId == null) {
         Logger.d(
             'Skipping race_result UUID:$uuid — runner_uuid=$runnerUuid or race_uuid=$raceUuid not yet pulled locally. Will retry on next sync.');
+        // Roll back to before this timestamp group so same-timestamp rows
+        // that were already processed don't block re-fetching this row.
+        newCursor = cursorBeforeGroup;
         hasUnresolvedSkip = true;
         continue;
       }
@@ -1290,10 +1311,22 @@ class SyncService implements ISyncService {
     // Once any row is skipped due to unresolved UUID foreign keys, stop
     // advancing the cursor so those rows are re-fetched on the next sync.
     bool hasUnresolvedSkip = false;
+    // Track the cursor value at the start of each timestamp group so that if a
+    // skip occurs within the group we can roll back to before that group —
+    // preventing same-timestamp rows from being missed on the next sync.
+    String? cursorBeforeGroup = cursor;
+    String? currentGroupTimestamp;
 
     for (final row in data) {
       final remote = Map<String, dynamic>.from(row);
       remote.remove('owner_user_id');
+
+      // Checkpoint cursor at each new timestamp group boundary.
+      final rowTimestamp = remote['updated_at']?.toString();
+      if (rowTimestamp != currentGroupTimestamp) {
+        cursorBeforeGroup = newCursor;
+        currentGroupTimestamp = rowTimestamp;
+      }
 
       final uuid = remote['uuid'] as String?;
       final raceUuid = remote['race_uuid'] as String?;
@@ -1312,6 +1345,9 @@ class SyncService implements ISyncService {
       if (raceId == null || runnerId == null) {
         Logger.d(
             'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — not yet pulled locally. Will retry on next sync.');
+        // Roll back to before this timestamp group so same-timestamp rows
+        // that were already processed don't block re-fetching this row.
+        newCursor = cursorBeforeGroup;
         hasUnresolvedSkip = true;
         continue;
       }
