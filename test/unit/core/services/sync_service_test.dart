@@ -296,6 +296,21 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
+    group('clearSyncCursors', () {
+      test('deletes all cursor.* rows from sync_state', () async {
+        when(mockDatabase.delete(any, where: anyNamed('where')))
+            .thenAnswer((_) async => 0);
+
+        await service.clearSyncCursors();
+
+        verify(mockDatabase.delete(
+          'sync_state',
+          where: "key LIKE 'cursor.%'",
+        )).called(1);
+      });
+    });
+
+    // -------------------------------------------------------------------------
     group('pullAll', () {
       setUp(() {
         // Common setup for pullAll tests: schema exists, user authenticated
@@ -734,6 +749,79 @@ void main() {
         expect(cursorSave['value'], t1,
             reason: 'cursor must not advance past the skipped row at t2');
       });
+
+      test(
+          'rolls back cursor when skipped row shares the same timestamp as a processed row',
+          () async {
+        const runnerUuidExists = 'runner-uuid-exists';
+        const runnerUuidMissing = 'runner-uuid-missing';
+        const raceUuid = 'race-uuid-1';
+        const t1 = '2024-01-01T10:00:00.000Z';
+
+        final row1 = {
+          'uuid': 'result-uuid-1',
+          'runner_uuid': runnerUuidExists,
+          'race_uuid': raceUuid,
+          'updated_at': t1,
+          'owner_user_id': 'user-1',
+        };
+        // row2 has the SAME updated_at as row1 but an unresolvable runner_uuid
+        final row2 = {
+          'uuid': 'result-uuid-2',
+          'runner_uuid': runnerUuidMissing,
+          'race_uuid': raceUuid,
+          'updated_at': t1,
+          'owner_user_id': 'user-1',
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'race_results',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [row1, row2]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('runner_id FROM runners')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': runnerUuidExists, 'runner_id': 1}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('race_id FROM races')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': raceUuid, 'race_id': 10}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('FROM race_results WHERE')),
+          any,
+        )).thenAnswer((_) async => []);
+
+        // Capture all sync_state inserts so we can assert on them.
+        final syncStateInserts = <Map<String, dynamic>>[];
+        when(mockDatabase.insert(
+          'sync_state',
+          any,
+          conflictAlgorithm: anyNamed('conflictAlgorithm'),
+        )).thenAnswer((inv) {
+          syncStateInserts
+              .add(Map<String, dynamic>.from(inv.positionalArguments[1] as Map));
+          return Future.value(1);
+        });
+
+        await service.pullAll();
+
+        final cursorSaves = syncStateInserts
+            .where((m) => m['key'] == 'cursor.race_results')
+            .toList();
+        // Cursor must not have been saved at t1 — it must remain at its
+        // previous value (null/empty) so row2 is re-fetched on the next sync.
+        expect(cursorSaves, isEmpty,
+            reason:
+                'cursor must not advance when a same-timestamp row is skipped');
+      });
     });
 
     // -------------------------------------------------------------------------
@@ -805,6 +893,81 @@ void main() {
             .firstWhere((m) => m['key'] == 'cursor.race_participants');
         expect(cursorSave['value'], t1,
             reason: 'cursor must not advance past the skipped row at t2');
+      });
+
+      test(
+          'rolls back cursor when skipped row shares the same timestamp as a processed row',
+          () async {
+        const runnerUuid = 'runner-uuid-1';
+        const raceUuidExists = 'race-uuid-exists';
+        const raceUuidMissing = 'race-uuid-missing';
+        const t1 = '2024-02-01T10:00:00.000Z';
+
+        final row1 = {
+          'uuid': 'participant-uuid-1',
+          'race_uuid': raceUuidExists,
+          'runner_uuid': runnerUuid,
+          'team_uuid': null,
+          'updated_at': t1,
+          'owner_user_id': 'user-1',
+        };
+        // row2 has the SAME updated_at as row1 but an unresolvable race_uuid
+        final row2 = {
+          'uuid': 'participant-uuid-2',
+          'race_uuid': raceUuidMissing,
+          'runner_uuid': runnerUuid,
+          'team_uuid': null,
+          'updated_at': t1,
+          'owner_user_id': 'user-1',
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'race_participants',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [row1, row2]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('race_id FROM races')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': raceUuidExists, 'race_id': 10}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('runner_id FROM runners')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': runnerUuid, 'runner_id': 1}
+            ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('FROM race_participants WHERE')),
+          any,
+        )).thenAnswer((_) async => []);
+
+        // Capture all sync_state inserts so we can assert on them.
+        final syncStateInserts = <Map<String, dynamic>>[];
+        when(mockDatabase.insert(
+          'sync_state',
+          any,
+          conflictAlgorithm: anyNamed('conflictAlgorithm'),
+        )).thenAnswer((inv) {
+          syncStateInserts
+              .add(Map<String, dynamic>.from(inv.positionalArguments[1] as Map));
+          return Future.value(1);
+        });
+
+        await service.pullAll();
+
+        final cursorSaves = syncStateInserts
+            .where((m) => m['key'] == 'cursor.race_participants')
+            .toList();
+        // Cursor must not have been saved at t1 — it must remain at its
+        // previous value (null/empty) so row2 is re-fetched on the next sync.
+        expect(cursorSaves, isEmpty,
+            reason:
+                'cursor must not advance when a same-timestamp row is skipped');
       });
     });
 
