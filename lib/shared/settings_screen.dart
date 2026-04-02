@@ -242,6 +242,7 @@ class SettingsScreen extends StatelessWidget {
       Icons.logout,
       isSelected: false,
       onTap: () async {
+        await context.read<ISyncService>().clearSyncCursors();
         await ServiceLocator.get<IDatabaseConnectionProvider>().close();
         await AuthService.instance.signOut();
         if (!context.mounted) return;
