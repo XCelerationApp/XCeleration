@@ -24,7 +24,7 @@ create table if not exists public.runners (
   owner_user_id uuid not null,
   name          text not null check (char_length(name) > 0),
   grade         integer check (grade between 9 and 12),
-  bib_number    text not null unique,
+  bib_number    text not null,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   deleted_at    timestamptz
@@ -34,6 +34,9 @@ drop trigger if exists runners_set_updated_at on public.runners;
 create trigger runners_set_updated_at
 before update on public.runners
 for each row execute procedure trigger_set_timestamp();
+
+alter table public.runners drop constraint if exists runners_bib_number_key;
+alter table public.runners add constraint if not exists runners_bib_number_owner_key unique (bib_number, owner_user_id);
 
 create index if not exists idx_runners_name_grade on public.runners(name, grade);
 create index if not exists idx_runners_name on public.runners(name);
@@ -46,7 +49,7 @@ create table if not exists public.teams (
   team_id       bigserial primary key,
   uuid          uuid not null default gen_random_uuid() unique,
   owner_user_id uuid not null,
-  name          text not null unique,
+  name          text not null,
   abbreviation  text check (char_length(abbreviation) <= 3),
   color         bigint not null default 0,  -- ARGB 32-bit unsigned int encoded in app; bigint avoids signed overflow
   created_at    timestamptz not null default now(),
@@ -59,6 +62,9 @@ create trigger teams_set_updated_at
 before update on public.teams
 for each row execute procedure trigger_set_timestamp();
 
+alter table public.teams drop constraint if exists teams_name_key;
+alter table public.teams add constraint if not exists teams_name_owner_key unique (name, owner_user_id);
+
 create index if not exists idx_teams_name on public.teams(name);
 create index if not exists idx_teams_abbreviation on public.teams(abbreviation);
 
@@ -68,12 +74,33 @@ create index if not exists idx_teams_abbreviation on public.teams(abbreviation);
 create table if not exists public.team_rosters (
   team_id       bigint not null references public.teams(team_id) on delete cascade,
   runner_id     bigint not null references public.runners(runner_id) on delete cascade,
+  uuid          text unique,
+  team_uuid     text,
+  runner_uuid   text,
+  owner_user_id uuid,
   joined_date   timestamptz not null default now(),
-  primary key (team_id, runner_id)
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz,
+  primary key (team_id, runner_id),
+  unique (team_uuid, runner_uuid)
 );
+
+drop trigger if exists team_rosters_set_updated_at on public.team_rosters;
+create trigger team_rosters_set_updated_at
+before update on public.team_rosters
+for each row execute procedure trigger_set_timestamp();
 
 create index if not exists idx_team_rosters_team on public.team_rosters(team_id);
 create index if not exists idx_team_rosters_runner on public.team_rosters(runner_id);
+create index if not exists idx_team_rosters_updated_at on public.team_rosters(updated_at);
+create index if not exists idx_team_rosters_owner on public.team_rosters(owner_user_id);
+
+alter table public.team_rosters enable row level security;
+create policy tr_select_own on public.team_rosters for select using (owner_user_id = auth.uid());
+create policy tr_insert_own on public.team_rosters for insert with check (owner_user_id = auth.uid());
+create policy tr_update_own on public.team_rosters for update using (owner_user_id = auth.uid()) with check (owner_user_id = auth.uid());
+create policy tr_delete_own on public.team_rosters for delete using (owner_user_id = auth.uid());
 
 -------------------------------------------------------------------------------
 -- RACES - Core race information
@@ -106,11 +133,32 @@ create index if not exists idx_races_date on public.races(race_date);
 create table if not exists public.race_team_participation (
   race_id             bigint not null references public.races(race_id) on delete cascade,
   team_id             bigint not null references public.teams(team_id) on delete cascade,
+  uuid                text unique,
+  race_uuid           text,
+  team_uuid           text,
+  owner_user_id       uuid,
   team_color_override integer,
-  primary key (race_id, team_id)
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  deleted_at          timestamptz,
+  primary key (race_id, team_id),
+  unique (race_uuid, team_uuid)
 );
 
+drop trigger if exists race_team_participation_set_updated_at on public.race_team_participation;
+create trigger race_team_participation_set_updated_at
+before update on public.race_team_participation
+for each row execute procedure trigger_set_timestamp();
+
 create index if not exists idx_race_team_participation_race on public.race_team_participation(race_id);
+create index if not exists idx_race_team_participation_updated_at on public.race_team_participation(updated_at);
+create index if not exists idx_race_team_participation_owner on public.race_team_participation(owner_user_id);
+
+alter table public.race_team_participation enable row level security;
+create policy rtp_select_own on public.race_team_participation for select using (owner_user_id = auth.uid());
+create policy rtp_insert_own on public.race_team_participation for insert with check (owner_user_id = auth.uid());
+create policy rtp_update_own on public.race_team_participation for update using (owner_user_id = auth.uid()) with check (owner_user_id = auth.uid());
+create policy rtp_delete_own on public.race_team_participation for delete using (owner_user_id = auth.uid());
 
 -------------------------------------------------------------------------------
 -- RACE_PARTICIPANTS - Individual runner participation
@@ -121,6 +169,7 @@ create table if not exists public.race_participants (
   race_uuid     text        not null,
   runner_uuid   text        not null,
   team_uuid     text,
+  uuid          text,
   owner_user_id uuid        not null,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
@@ -169,6 +218,7 @@ create index if not exists idx_race_results_owner     on public.race_results(own
 
 -------------------------------------------------------------------------------
 -- Row Level Security (RLS) - per-user ownership policies
+-- (team_rosters and race_team_participation RLS defined inline above)
 alter table public.runners enable row level security;
 alter table public.teams enable row level security;
 alter table public.races enable row level security;
@@ -238,18 +288,6 @@ alter table public.coach_links enable row level security;
 create policy coach_links_view on public.coach_links for select using (viewer_user_id = auth.uid() or coach_user_id = auth.uid());
 create policy coach_links_insert_self on public.coach_links for insert with check (viewer_user_id = auth.uid());
 create policy coach_links_delete_self on public.coach_links for delete using (viewer_user_id = auth.uid() or coach_user_id = auth.uid());
-
--------------------------------------------------------------------------------
--- alter table public.runners enable row level security;
--- alter table public.teams enable row level security;
--- alter table public.team_rosters enable row level security;
--- alter table public.races enable row level security;
--- alter table public.race_team_participation enable row level security;
--- alter table public.race_participants enable row level security;
--- alter table public.race_results enable row level security;
---
--- Example policy (adjust to your auth model):
--- create policy "allow all" on public.runners for all using (true);
 
 commit;
 
