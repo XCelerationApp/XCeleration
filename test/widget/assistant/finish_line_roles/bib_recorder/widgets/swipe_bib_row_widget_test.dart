@@ -83,34 +83,32 @@ void main() {
         expect(struckText.style?.decoration, TextDecoration.lineThrough);
       });
 
-      testWidgets('shows Corrected badge', (tester) async {
+      testWidgets('does not show Corrected badge', (tester) async {
         await tester.pumpWidget(
             wrap(const BibEntry(id: 1, bib: 101, correctedTo: 114)));
         await tester.pump();
 
-        expect(find.text('Corrected'), findsOneWidget);
+        expect(find.text('Corrected'), findsNothing);
       });
 
-      testWidgets('hides duplicate flag chip', (tester) async {
-        when(mockController.flagFor(101, excludeId: 1)).thenReturn('duplicate');
+      testWidgets('uses corrected bib for flag lookup', (tester) async {
+        when(mockController.flagFor(114, excludeId: 1)).thenReturn('duplicate');
 
         await tester.pumpWidget(
             wrap(const BibEntry(id: 1, bib: 101, correctedTo: 114)));
         await tester.pump();
 
-        expect(find.textContaining('Duplicate'), findsNothing);
-        expect(find.text('Corrected'), findsOneWidget);
+        expect(find.textContaining('Duplicate'), findsOneWidget);
       });
 
-      testWidgets('hides unknown flag chip', (tester) async {
-        when(mockController.flagFor(101, excludeId: 1)).thenReturn('unknown');
+      testWidgets('uses corrected bib for unknown flag lookup', (tester) async {
+        when(mockController.flagFor(114, excludeId: 1)).thenReturn('unknown');
 
         await tester.pumpWidget(
             wrap(const BibEntry(id: 1, bib: 101, correctedTo: 114)));
         await tester.pump();
 
-        expect(find.textContaining('Not in roster'), findsNothing);
-        expect(find.text('Corrected'), findsOneWidget);
+        expect(find.textContaining('Not in roster'), findsOneWidget);
       });
     });
   });
