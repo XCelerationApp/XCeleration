@@ -170,6 +170,7 @@ class BibRecorderV2Controller extends ChangeNotifier {
   }
 
   void resumeRace() {
+    _raceStarted = true;
     _raceStopped = false;
     notifyListeners();
   }
