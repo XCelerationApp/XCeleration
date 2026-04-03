@@ -67,6 +67,16 @@ Use `-v` when the default output truncates the error and more context is needed.
 
 Do NOT use `flutter test` directly for reading results — its raw output exceeds the Bash tool's readable limit. Do NOT add `2>&1` to the runner command.
 
+## Disk Cleanup
+
+If a build fails with `No space left on device`, run the disk cleanup script:
+
+```sh
+bash scripts/disk_cleanup.sh
+```
+
+It scans common dev caches (Xcode, simulators, CocoaPods, Flutter, npm, etc.), shows sizes sorted largest-first, and prints ready-to-run cleanup commands with safety labels.
+
 ## Issue Worktree Workflow
 
 Start an issue: `python3 scripts/start_issue.py 123` (from the main repo).
