@@ -21,17 +21,20 @@ CREATE TABLE IF NOT EXISTS teams (
   uuid TEXT UNIQUE,
   name TEXT NOT NULL CHECK(length(name) > 0),
   abbreviation TEXT CHECK(length(abbreviation) <= 3),
-  color INTEGER NOT NULL DEFAULT 0,
+  color INTEGER NOT NULL DEFAULT 0,  -- ARGB 32-bit unsigned int encoded in app; SQLite INTEGER is 64-bit internally, no signed overflow
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT,
   is_dirty INTEGER NOT NULL DEFAULT 0
 );
 
--- 3. TEAM_ROSTERS (local adds timestamps + is_dirty)
+-- 3. TEAM_ROSTERS (local adds timestamps + is_dirty + uuid FK columns)
 CREATE TABLE IF NOT EXISTS team_rosters (
   team_id INTEGER NOT NULL,
   runner_id INTEGER NOT NULL,
+  uuid TEXT UNIQUE,
+  team_uuid TEXT,
+  runner_uuid TEXT,
   joined_date TEXT DEFAULT CURRENT_TIMESTAMP,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -42,11 +45,14 @@ CREATE TABLE IF NOT EXISTS team_rosters (
   FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE
 );
 
--- 4. RACE_TEAM_PARTICIPATION (local adds timestamps + is_dirty)
+-- 4. RACE_TEAM_PARTICIPATION (local adds timestamps + is_dirty + uuid FK columns)
 CREATE TABLE IF NOT EXISTS race_team_participation (
   race_id INTEGER NOT NULL,
   team_id INTEGER NOT NULL,
-  team_color_override INTEGER,
+  uuid TEXT UNIQUE,
+  race_uuid TEXT,
+  team_uuid TEXT,
+  team_color_override INTEGER,  -- ARGB 32-bit unsigned int; same encoding as teams.color
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT,
