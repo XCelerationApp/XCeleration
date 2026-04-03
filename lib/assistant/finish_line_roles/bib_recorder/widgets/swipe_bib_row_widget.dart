@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:xceleration/assistant/finish_line_roles/bib_recorder/controller/bib_recorder_v2_controller.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/bib_entry.dart';
 import 'package:xceleration/core/theme/app_animations.dart';
-import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/app_opacity.dart';
 import 'package:xceleration/core/theme/app_spacing.dart';
@@ -84,11 +83,12 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBib = widget.entry.correctedTo ?? widget.entry.bib;
     final flag = widget.controller.flagFor(
-      widget.entry.bib,
+      effectiveBib,
       excludeId: widget.entry.id,
     );
-    final runner = widget.controller.runnerFor(widget.entry.bib);
+    final runner = widget.controller.runnerFor(effectiveBib);
 
     return Dismissible(
       key: ValueKey(widget.entry.id),
@@ -244,25 +244,6 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
   }
 
   Widget _buildTrailing(String? flag, dynamic runner) {
-    if (widget.entry.correctedTo != null) {
-      return Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm,
-          vertical: AppSpacing.xs,
-        ),
-        decoration: BoxDecoration(
-          color: AppColors.statusFinished.withValues(alpha: AppOpacity.light),
-          borderRadius: BorderRadius.circular(AppBorderRadius.xs),
-        ),
-        child: Text(
-          'Corrected',
-          style: AppTypography.caption.copyWith(
-            color: AppColors.statusFinished,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      );
-    }
     if (flag == null && runner != null) {
       return Row(
         children: [
