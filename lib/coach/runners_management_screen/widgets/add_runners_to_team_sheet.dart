@@ -68,6 +68,7 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
   }
 
   Future<void> _submit() async {
+    if (_isSubmitting) return;
     if (!_formKey.currentState!.validate()) return;
     if (_selectedGrade == null) {
       ScaffoldMessenger.of(context).showSnackBar(

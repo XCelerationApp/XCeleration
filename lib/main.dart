@@ -101,13 +101,6 @@ Future<void> _runApp() async {
       child: const MyApp(),
     ),
   );
-
-  // Kick off a background sync shortly after startup
-  WidgetsBinding.instance.addPostFrameCallback((_) async {
-    try {
-      await syncService.syncAll();
-    } catch (_) {}
-  });
 }
 
 class MyApp extends StatelessWidget {
