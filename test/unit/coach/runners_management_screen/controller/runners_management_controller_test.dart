@@ -193,39 +193,44 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('createTeam', () {
-      test('does nothing when team name is null', () async {
-        await controller.createTeam(const Team());
+      test('returns null when team name is null', () async {
+        final error = await controller.createTeam(const Team());
 
+        expect(error, isNull);
         verifyNever(mockTeams.createTeam(any));
       });
 
-      test('does nothing when team name is empty', () async {
-        await controller.createTeam(const Team(name: '  '));
+      test('returns null when team name is empty', () async {
+        final error = await controller.createTeam(const Team(name: '  '));
 
+        expect(error, isNull);
         verifyNever(mockTeams.createTeam(any));
       });
 
-      test('does nothing when team already exists', () async {
+      test('returns AppError when team already exists', () async {
         const existingTeam = Team(teamId: 1, name: 'Team A', abbreviation: 'TA');
         when(mockMasterRace.getTeamByName('Team A')).thenAnswer((_) async => existingTeam);
 
-        await controller.createTeam(const Team(name: 'Team A', abbreviation: 'TA'));
+        final error = await controller.createTeam(const Team(name: 'Team A', abbreviation: 'TA'));
 
+        expect(error, isNotNull);
+        expect(error!.userMessage, contains('already exists'));
         verifyNever(mockTeams.createTeam(any));
       });
 
-      test('creates team and adds team participant when team does not exist', () async {
+      test('creates team and returns null on success', () async {
         when(mockMasterRace.getTeamByName('New Team')).thenAnswer((_) async => null);
         when(mockTeams.createTeam(any)).thenAnswer((_) async => 2);
         when(mockMasterRace.addTeamParticipant(any)).thenAnswer((_) async {});
 
-        await controller.createTeam(const Team(
+        final error = await controller.createTeam(const Team(
           teamId: 2,
           name: 'New Team',
           abbreviation: 'NT',
           color: Color(0xFF2196F3),
         ));
 
+        expect(error, isNull);
         verify(mockTeams.createTeam(any)).called(1);
         verify(mockMasterRace.addTeamParticipant(any)).called(1);
 

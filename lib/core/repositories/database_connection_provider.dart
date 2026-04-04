@@ -35,7 +35,7 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
     return await openDatabase(
       path,
-      version: 20,
+      version: 22,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );

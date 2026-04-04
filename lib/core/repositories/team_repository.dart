@@ -20,19 +20,26 @@ class TeamRepository implements ITeamRepository {
   Future<int> createTeam(Team team) async {
     if (!team.isValid) throw Exception('Team is not valid');
     if (await getTeamByName(team.name!) != null) {
-      throw Exception('Team with name ${team.name} already exists');
+      throw Exception('A team named "${team.name}" already exists');
     }
     final db = await _db;
-    final id = await db.insert('teams', {
-      'name': team.name,
-      'abbreviation':
-          team.abbreviation ?? Team.generateAbbreviation(team.name!),
-      'color': team.color?.toARGB32() ?? 0,
-      'is_dirty': 1,
-      'updated_at': DateTime.now().toIso8601String(),
-    });
-    _writeBus?.notify();
-    return id;
+    try {
+      final id = await db.insert('teams', {
+        'name': team.name,
+        'abbreviation':
+            team.abbreviation ?? Team.generateAbbreviation(team.name!),
+        'color': team.color?.toARGB32() ?? 0,
+        'is_dirty': 1,
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+      _writeBus?.notify();
+      return id;
+    } on DatabaseException catch (e) {
+      if (e.isUniqueConstraintError()) {
+        throw Exception('A team named "${team.name}" already exists');
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -79,6 +86,12 @@ class TeamRepository implements ITeamRepository {
     if (!team.isValid) throw Exception('Team is not valid');
     if (await getTeam(team.teamId!) == null) {
       throw Exception('Team with id ${team.teamId} not found');
+    }
+    if (team.name != null) {
+      final existing = await getTeamByName(team.name!);
+      if (existing != null && existing.teamId != team.teamId) {
+        throw Exception('A team named "${team.name}" already exists');
+      }
     }
     final db = await _db;
     final updates = <String, dynamic>{};
