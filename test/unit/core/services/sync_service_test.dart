@@ -142,7 +142,8 @@ void main() {
         // No dirty rows for any table
         when(mockDatabase.query(any, where: anyNamed('where')))
             .thenAnswer((_) async => []);
-        when(mockSyncClient.fetchByUuids(any, any))
+        when(mockSyncClient.fetchByUuids(any, any,
+                ownerIds: anyNamed('ownerIds')))
             .thenAnswer((_) async => []);
 
         await service.pushAll();
@@ -729,6 +730,11 @@ void main() {
               {'uuid': raceUuid, 'race_id': 10}
             ]);
 
+        // Missing runner not found on remote either — targeted fetch returns empty
+        when(mockSyncClient.fetchByUuids('runners', any,
+                ownerIds: anyNamed('ownerIds')))
+            .thenAnswer((_) async => []);
+
         // No existing local race_results
         when(mockDatabase.rawQuery(
           argThat(contains('FROM race_results WHERE')),
@@ -793,6 +799,11 @@ void main() {
         )).thenAnswer((_) async => [
               {'uuid': raceUuid, 'race_id': 10}
             ]);
+
+        // Missing runner not found on remote either — targeted fetch returns empty
+        when(mockSyncClient.fetchByUuids('runners', any,
+                ownerIds: anyNamed('ownerIds')))
+            .thenAnswer((_) async => []);
 
         when(mockDatabase.rawQuery(
           argThat(contains('FROM race_results WHERE')),
@@ -874,6 +885,11 @@ void main() {
               {'uuid': runnerUuid, 'runner_id': 1}
             ]);
 
+        // Missing race not found on remote either — targeted fetch returns empty
+        when(mockSyncClient.fetchByUuids('races', any,
+                ownerIds: anyNamed('ownerIds')))
+            .thenAnswer((_) async => []);
+
         // No existing local race_participants
         when(mockDatabase.rawQuery(
           argThat(contains('FROM race_participants WHERE')),
@@ -941,6 +957,11 @@ void main() {
               {'uuid': runnerUuid, 'runner_id': 1}
             ]);
 
+        // Missing race not found on remote either — targeted fetch returns empty
+        when(mockSyncClient.fetchByUuids('races', any,
+                ownerIds: anyNamed('ownerIds')))
+            .thenAnswer((_) async => []);
+
         when(mockDatabase.rawQuery(
           argThat(contains('FROM race_participants WHERE')),
           any,
@@ -968,6 +989,150 @@ void main() {
         expect(cursorSaves, isEmpty,
             reason:
                 'cursor must not advance when a same-timestamp row is skipped');
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('targeted fetch — resolves missing dependencies from remote', () {
+      test(
+          'race_results: fetches missing runner from remote and inserts result',
+          () async {
+        const runnerUuid = 'runner-uuid-missing';
+        const raceUuid = 'race-uuid-1';
+        const t1 = '2024-01-01T10:00:00.000Z';
+
+        final remoteResult = {
+          'uuid': 'result-uuid-1',
+          'runner_uuid': runnerUuid,
+          'race_uuid': raceUuid,
+          'updated_at': t1,
+          'owner_user_id': 'user-1',
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'race_results',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [remoteResult]);
+
+        // Runner not in local DB on first query; resolves after targeted fetch
+        var runnerQueryCalls = 0;
+        when(mockDatabase.rawQuery(
+          argThat(contains('runner_id FROM runners')),
+          any,
+        )).thenAnswer((_) async {
+          runnerQueryCalls++;
+          if (runnerQueryCalls == 1) return [];
+          return [{'uuid': runnerUuid, 'runner_id': 5}];
+        });
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('race_id FROM races')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': raceUuid, 'race_id': 10}
+            ]);
+
+        when(mockSyncClient.fetchByUuids('runners', any,
+                ownerIds: anyNamed('ownerIds')))
+            .thenAnswer((_) async => [
+                  {
+                    'uuid': runnerUuid,
+                    'runner_id': 5,
+                    'name': 'Test Runner',
+                    'updated_at': t1,
+                    'owner_user_id': 'user-1',
+                  }
+                ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('FROM race_results WHERE')),
+          any,
+        )).thenAnswer((_) async => []);
+
+        await service.pullAll();
+
+        verify(mockSyncClient.fetchByUuids('runners',
+                argThat(contains(runnerUuid)),
+                ownerIds: anyNamed('ownerIds')))
+            .called(1);
+        verify(mockDatabase.insert('runners', any,
+                conflictAlgorithm: anyNamed('conflictAlgorithm')))
+            .called(1);
+        verify(mockDatabase.insert('race_results', any,
+                conflictAlgorithm: anyNamed('conflictAlgorithm')))
+            .called(greaterThanOrEqualTo(1));
+      });
+
+      test(
+          'race_participants: fetches missing race from remote and inserts participant',
+          () async {
+        const runnerUuid = 'runner-uuid-1';
+        const raceUuid = 'race-uuid-missing';
+        const t1 = '2024-02-01T10:00:00.000Z';
+
+        final remoteParticipant = {
+          'uuid': 'participant-uuid-1',
+          'race_uuid': raceUuid,
+          'runner_uuid': runnerUuid,
+          'team_uuid': null,
+          'updated_at': t1,
+          'owner_user_id': 'user-1',
+        };
+
+        when(mockSyncClient.fetchTableRows(
+          'race_participants',
+          any,
+          cursor: anyNamed('cursor'),
+        )).thenAnswer((_) async => [remoteParticipant]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('runner_id FROM runners')),
+          any,
+        )).thenAnswer((_) async => [
+              {'uuid': runnerUuid, 'runner_id': 1}
+            ]);
+
+        // Race not in local DB on first query; resolves after targeted fetch
+        var raceQueryCalls = 0;
+        when(mockDatabase.rawQuery(
+          argThat(contains('race_id FROM races')),
+          any,
+        )).thenAnswer((_) async {
+          raceQueryCalls++;
+          if (raceQueryCalls == 1) return [];
+          return [{'uuid': raceUuid, 'race_id': 20}];
+        });
+
+        when(mockSyncClient.fetchByUuids('races', any,
+                ownerIds: anyNamed('ownerIds')))
+            .thenAnswer((_) async => [
+                  {
+                    'uuid': raceUuid,
+                    'race_id': 20,
+                    'name': 'Test Race',
+                    'updated_at': t1,
+                    'owner_user_id': 'user-1',
+                  }
+                ]);
+
+        when(mockDatabase.rawQuery(
+          argThat(contains('FROM race_participants WHERE')),
+          any,
+        )).thenAnswer((_) async => []);
+
+        await service.pullAll();
+
+        verify(mockSyncClient.fetchByUuids('races',
+                argThat(contains(raceUuid)),
+                ownerIds: anyNamed('ownerIds')))
+            .called(1);
+        verify(mockDatabase.insert('races', any,
+                conflictAlgorithm: anyNamed('conflictAlgorithm')))
+            .called(1);
+        verify(mockDatabase.insert('race_participants', any,
+                conflictAlgorithm: anyNamed('conflictAlgorithm')))
+            .called(greaterThanOrEqualTo(1));
       });
     });
 

@@ -16,11 +16,14 @@ abstract interface class IRemoteSyncClient {
   });
 
   /// Fetches rows from [table] whose `uuid` column matches any value in [uuids].
+  /// When [ownerIds] is provided, additionally filters by `owner_user_id IN ownerIds`
+  /// so that coach-linked rows (blocked by RLS alone) are returned.
   /// Returns an empty list when [uuids] is empty.
   Future<List<Map<String, dynamic>>> fetchByUuids(
     String table,
-    List<String> uuids,
-  );
+    List<String> uuids, {
+    List<String>? ownerIds,
+  });
 
   /// Upserts [rows] into [table], using [onConflict] column(s) for deduplication.
   Future<void> upsertRows(
