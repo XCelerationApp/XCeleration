@@ -8,4 +8,8 @@ abstract interface class IAuthService {
   Future<AuthResponse> signInWithEmailPassword(String email, String password);
   Future<AuthResponse> signUpWithEmailPassword(String email, String password);
   Future<void> sendPasswordResetEmail(String email);
+  Future<AuthResponse> verifyEmailOtp(String email, String token);
+  Future<AuthResponse> verifyPasswordResetOtp(String email, String token);
+  Future<void> updatePassword(String newPassword);
+  Future<void> resendEmailConfirmation(String email);
 }

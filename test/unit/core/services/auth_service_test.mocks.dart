@@ -7,6 +7,7 @@ import 'dart:async' as _i4;
 
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:supabase_flutter/supabase_flutter.dart' as _i2;
+import 'package:xceleration/core/services/connectivity_service.dart' as _i5;
 import 'package:xceleration/core/services/i_remote_api_client.dart' as _i3;
 
 // ignore_for_file: type=lint
@@ -67,4 +68,23 @@ class MockIRemoteApiClient extends _i1.Mock implements _i3.IRemoteApiClient {
         returnValue: _i4.Future<void>.value(),
         returnValueForMissingStub: _i4.Future<void>.value(),
       ) as _i4.Future<void>);
+}
+
+/// A class which mocks [ConnectivityService].
+///
+/// See the documentation for Mockito's code generation for more information.
+class MockConnectivityService extends _i1.Mock
+    implements _i5.ConnectivityService {
+  MockConnectivityService() {
+    _i1.throwOnMissingStub(this);
+  }
+
+  @override
+  _i4.Future<bool> isOnline() => (super.noSuchMethod(
+        Invocation.method(
+          #isOnline,
+          [],
+        ),
+        returnValue: _i4.Future<bool>.value(false),
+      ) as _i4.Future<bool>);
 }

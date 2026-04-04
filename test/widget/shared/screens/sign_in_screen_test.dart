@@ -513,7 +513,8 @@ void main() {
       verifyNever(mockAuth.sendPasswordResetEmail(any));
     });
 
-    testWidgets('tapping with filled email calls sendPasswordResetEmail',
+    testWidgets(
+        'tapping with filled email calls sendPasswordResetEmail and navigates to OTP screen',
         (tester) async {
       await tester.pumpWidget(_wrap(
         SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
@@ -527,7 +528,7 @@ void main() {
       await _settle(tester);
 
       verify(mockAuth.sendPasswordResetEmail('reset@test.com')).called(1);
-      expect(find.text('Reset email sent'), findsOneWidget);
+      expect(find.text('We sent a 6-digit code to:'), findsOneWidget);
     });
   });
 }
