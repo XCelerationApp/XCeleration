@@ -322,8 +322,9 @@ class MockIRemoteSyncClient extends _i1.Mock implements _i7.IRemoteSyncClient {
   @override
   _i4.Future<List<Map<String, dynamic>>> fetchByUuids(
     String? table,
-    List<String>? uuids,
-  ) =>
+    List<String>? uuids, {
+    List<String>? ownerIds,
+  }) =>
       (super.noSuchMethod(
         Invocation.method(
           #fetchByUuids,
@@ -331,6 +332,7 @@ class MockIRemoteSyncClient extends _i1.Mock implements _i7.IRemoteSyncClient {
             table,
             uuids,
           ],
+          {#ownerIds: ownerIds},
         ),
         returnValue: _i4.Future<List<Map<String, dynamic>>>.value(
             <Map<String, dynamic>>[]),

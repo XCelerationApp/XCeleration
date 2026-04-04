@@ -966,8 +966,6 @@ class SyncService implements ISyncService {
                 .update(table, update, where: 'uuid = ?', whereArgs: [uuid]);
             Logger.d('Updated $table UUID:$uuid from remote ($conflictReason)');
             hadWrites = true;
-          } else {
-            Logger.d('Kept local $table UUID:$uuid ($conflictReason)');
           }
         }
         final updatedAtStr = remote['updated_at']?.toString();
@@ -1004,6 +1002,51 @@ class SyncService implements ISyncService {
         changedTables: changedTables,
         changedRaceIds: changedRaceIds,
       ));
+    }
+  }
+
+  /// Fetches rows from [table] by UUID for any [allUuids] entries missing from
+  /// [resolvedMap], inserts them into [db], then re-populates [resolvedMap]
+  /// with the newly inserted rows' [idColumn] values.
+  ///
+  /// Allows pull methods to resolve dependency rows whose [updated_at]
+  /// predates the current cursor so a single sync cycle completes without
+  /// relying on a retry.
+  Future<void> _fetchAndInsertMissingDependencies({
+    required String table,
+    required String idColumn,
+    required List<String> allUuids,
+    required Map<String, int> resolvedMap,
+    required Database db,
+    required List<String> accessibleOwnerIds,
+  }) async {
+    final unresolvedUuids =
+        allUuids.where((u) => !resolvedMap.containsKey(u)).toList();
+    if (unresolvedUuids.isEmpty) return;
+
+    Logger.d(
+        'Fetching ${unresolvedUuids.length} missing $table rows from remote by UUID');
+    final remoteRows = await _syncClient.fetchByUuids(
+      table,
+      unresolvedUuids,
+      ownerIds: accessibleOwnerIds,
+    );
+    if (remoteRows.isEmpty) return;
+
+    for (final row in remoteRows) {
+      final insert = Map<String, dynamic>.from(row);
+      insert.remove('owner_user_id');
+      insert['is_dirty'] = 0;
+      await db.insert(table, insert,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    final qMarks = List.filled(unresolvedUuids.length, '?').join(',');
+    final newRows = await db.rawQuery(
+        'SELECT uuid, $idColumn FROM $table WHERE uuid IN ($qMarks)',
+        unresolvedUuids);
+    for (final r in newRows) {
+      resolvedMap[r['uuid'] as String] = r[idColumn] as int;
     }
   }
 
@@ -1053,6 +1096,25 @@ class SyncService implements ISyncService {
         raceUuidToId[r['uuid'] as String] = r['race_id'] as int;
       }
     }
+
+    // Fetch any dependency rows not yet in local DB (e.g. their updated_at
+    // predates the current cursor) so a single sync resolves everything.
+    await _fetchAndInsertMissingDependencies(
+      table: 'runners',
+      idColumn: 'runner_id',
+      allUuids: runnerUuids,
+      resolvedMap: runnerUuidToId,
+      db: db,
+      accessibleOwnerIds: accessibleOwnerIds,
+    );
+    await _fetchAndInsertMissingDependencies(
+      table: 'races',
+      idColumn: 'race_id',
+      allUuids: raceUuids,
+      resolvedMap: raceUuidToId,
+      db: db,
+      accessibleOwnerIds: accessibleOwnerIds,
+    );
 
     // Batch-fetch all matching local rows in a single query.
     final resultUuids =
@@ -1110,7 +1172,7 @@ class SyncService implements ISyncService {
 
       if (runnerId == null || raceId == null) {
         Logger.d(
-            'Skipping race_result UUID:$uuid — runner_uuid=$runnerUuid or race_uuid=$raceUuid not yet pulled locally. Will retry on next sync.');
+            'Skipping race_result UUID:$uuid — runner_uuid=$runnerUuid or race_uuid=$raceUuid not found on remote.');
         // Roll back to before this timestamp group so same-timestamp rows
         // that were already processed don't block re-fetching this row.
         newCursor = cursorBeforeGroup;
@@ -1207,8 +1269,6 @@ class SyncService implements ISyncService {
           Logger.d('Updated $table UUID:$uuid from remote ($conflictReason)');
           hadWrites = true;
           changedRaceIds.add(raceId);
-        } else {
-          Logger.d('Kept local $table UUID:$uuid ($conflictReason)');
         }
       }
 
@@ -1291,6 +1351,25 @@ class SyncService implements ISyncService {
       }
     }
 
+    // Fetch any dependency rows not yet in local DB (e.g. their updated_at
+    // predates the current cursor) so a single sync resolves everything.
+    await _fetchAndInsertMissingDependencies(
+      table: 'runners',
+      idColumn: 'runner_id',
+      allUuids: runnerUuids,
+      resolvedMap: runnerUuidToId,
+      db: db,
+      accessibleOwnerIds: accessibleOwnerIds,
+    );
+    await _fetchAndInsertMissingDependencies(
+      table: 'races',
+      idColumn: 'race_id',
+      allUuids: raceUuids,
+      resolvedMap: raceUuidToId,
+      db: db,
+      accessibleOwnerIds: accessibleOwnerIds,
+    );
+
     // Batch-fetch all matching local race_participant rows by UUID in a single
     // query to avoid N per-row round-trips.
     final participantUuids =
@@ -1344,7 +1423,7 @@ class SyncService implements ISyncService {
 
       if (raceId == null || runnerId == null) {
         Logger.d(
-            'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — not yet pulled locally. Will retry on next sync.');
+            'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — not found on remote.');
         // Roll back to before this timestamp group so same-timestamp rows
         // that were already processed don't block re-fetching this row.
         newCursor = cursorBeforeGroup;
@@ -1480,9 +1559,6 @@ class SyncService implements ISyncService {
           Logger.d(
               'Updated $table race_uuid=$raceUuid runner_uuid=$runnerUuid from remote ($conflictReason)');
           hadWrites = true;
-        } else {
-          Logger.d(
-              'Kept local $table race_uuid=$raceUuid runner_uuid=$runnerUuid ($conflictReason)');
         }
       }
 
@@ -1554,6 +1630,25 @@ class SyncService implements ISyncService {
       }
     }
 
+    // Fetch any dependency rows not yet in local DB (e.g. their updated_at
+    // predates the current cursor) so a single sync resolves everything.
+    await _fetchAndInsertMissingDependencies(
+      table: 'teams',
+      idColumn: 'team_id',
+      allUuids: teamUuids,
+      resolvedMap: teamUuidToId,
+      db: db,
+      accessibleOwnerIds: accessibleOwnerIds,
+    );
+    await _fetchAndInsertMissingDependencies(
+      table: 'runners',
+      idColumn: 'runner_id',
+      allUuids: runnerUuids,
+      resolvedMap: runnerUuidToId,
+      db: db,
+      accessibleOwnerIds: accessibleOwnerIds,
+    );
+
     // Batch-fetch all matching local rows by UUID
     final rosterUuids =
         data.map((r) => r['uuid']).whereType<String>().toList();
@@ -1590,7 +1685,7 @@ class SyncService implements ISyncService {
 
       if (teamId == null || runnerId == null) {
         Logger.d(
-            'Skipping team_roster team_uuid=$teamUuid runner_uuid=$runnerUuid — not yet pulled locally. Will retry on next sync.');
+            'Skipping team_roster team_uuid=$teamUuid runner_uuid=$runnerUuid — not found on remote.');
         hasUnresolvedSkip = true;
         continue;
       }
@@ -1701,9 +1796,6 @@ class SyncService implements ISyncService {
           Logger.d(
               'Updated $table team_uuid=$teamUuid runner_uuid=$runnerUuid from remote ($conflictReason)');
           hadWrites = true;
-        } else {
-          Logger.d(
-              'Kept local $table team_uuid=$teamUuid runner_uuid=$runnerUuid ($conflictReason)');
         }
       }
 
@@ -1774,6 +1866,25 @@ class SyncService implements ISyncService {
       }
     }
 
+    // Fetch any dependency rows not yet in local DB (e.g. their updated_at
+    // predates the current cursor) so a single sync resolves everything.
+    await _fetchAndInsertMissingDependencies(
+      table: 'races',
+      idColumn: 'race_id',
+      allUuids: raceUuids,
+      resolvedMap: raceUuidToId,
+      db: db,
+      accessibleOwnerIds: accessibleOwnerIds,
+    );
+    await _fetchAndInsertMissingDependencies(
+      table: 'teams',
+      idColumn: 'team_id',
+      allUuids: teamUuids,
+      resolvedMap: teamUuidToId,
+      db: db,
+      accessibleOwnerIds: accessibleOwnerIds,
+    );
+
     // Batch-fetch all matching local rows by UUID
     final rtpUuids =
         data.map((r) => r['uuid']).whereType<String>().toList();
@@ -1811,7 +1922,7 @@ class SyncService implements ISyncService {
 
       if (raceId == null || teamId == null) {
         Logger.d(
-            'Skipping race_team_participation race_uuid=$raceUuid team_uuid=$teamUuid — not yet pulled locally. Will retry on next sync.');
+            'Skipping race_team_participation race_uuid=$raceUuid team_uuid=$teamUuid — not found on remote.');
         hasUnresolvedSkip = true;
         continue;
       }
@@ -1922,9 +2033,6 @@ class SyncService implements ISyncService {
           Logger.d(
               'Updated $table race_uuid=$raceUuid team_uuid=$teamUuid from remote ($conflictReason)');
           hadWrites = true;
-        } else {
-          Logger.d(
-              'Kept local $table race_uuid=$raceUuid team_uuid=$teamUuid ($conflictReason)');
         }
       }
 

@@ -55,11 +55,20 @@ class SupabaseRemoteSyncClient implements IRemoteSyncClient {
   @override
   Future<List<Map<String, dynamic>>> fetchByUuids(
     String table,
-    List<String> uuids,
-  ) async {
+    List<String> uuids, {
+    List<String>? ownerIds,
+  }) async {
     if (uuids.isEmpty) return [];
-    final rows =
-        await _remote.client.from(table).select().inFilter('uuid', uuids);
+    final query = _remote.client.from(table).select().inFilter('uuid', uuids);
+    if (ownerIds != null && ownerIds.isNotEmpty) {
+      if (ownerIds.length == 1) {
+        query.eq('owner_user_id', ownerIds.first);
+      } else {
+        final orExpr = ownerIds.map((id) => 'owner_user_id.eq.$id').join(',');
+        query.or(orExpr);
+      }
+    }
+    final rows = await query;
     return rows.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
