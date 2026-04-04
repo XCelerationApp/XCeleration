@@ -137,7 +137,7 @@ create table if not exists public.race_team_participation (
   race_uuid           uuid,
   team_uuid           uuid,
   owner_user_id       uuid,
-  team_color_override integer,
+  team_color_override bigint,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz,
