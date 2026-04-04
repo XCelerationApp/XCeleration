@@ -8,6 +8,7 @@ import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/team_participant.dart';
+import '../../../core/app_error.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
 import '../../../core/utils/file_processing.dart';
@@ -386,18 +387,16 @@ class RunnersManagementController with ChangeNotifier {
   // TEAM OPERATIONS
   // ============================================================================
 
-  Future<void> createTeam(Team team) async {
-    if (team.name == null || team.name!.trim().isEmpty) return;
+  Future<AppError?> createTeam(Team team) async {
+    if (team.name == null || team.name!.trim().isEmpty) return null;
 
     try {
-      // Check if team already exists
       final existingTeam = await masterRace.getTeamByName(team.name!);
       if (existingTeam != null) {
-        // Team already exists, do nothing
-        return;
+        return AppError(
+            userMessage: 'A team named "${team.name}" already exists.');
       }
 
-      // Persist team and capture newly assigned id
       final newTeamId = await _teams.createTeam(team);
 
       await masterRace.addTeamParticipant(TeamParticipant(
@@ -406,9 +405,13 @@ class RunnersManagementController with ChangeNotifier {
         colorOverride: team.color?.toARGB32(),
       ));
       await forceRefresh();
+      return null;
     } catch (e) {
       Logger.e('Error creating team: $e');
-      throw Exception('Failed to create team: $e');
+      return AppError(
+        userMessage: 'Failed to create team. Please try again.',
+        originalException: e,
+      );
     }
   }
 

@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS runners (
 CREATE TABLE IF NOT EXISTS teams (
   team_id INTEGER PRIMARY KEY AUTOINCREMENT,
   uuid TEXT UNIQUE,
-  name TEXT NOT NULL CHECK(length(name) > 0),
+  name TEXT NOT NULL CHECK(length(name) > 0) UNIQUE,
   abbreviation TEXT CHECK(length(abbreviation) <= 3),
   color INTEGER NOT NULL DEFAULT 0,  -- ARGB 32-bit unsigned int encoded in app; SQLite INTEGER is 64-bit internally, no signed overflow
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -155,16 +155,14 @@ CREATE INDEX IF NOT EXISTS idx_team_rosters_active ON team_rosters(team_id) WHER
 ''';
 
 /// Utility to split and execute the schema script safely
-/// - Strips out single-line comments starting with '--'
+/// - Strips out single-line comments (full-line and inline '--' comments)
 /// - Splits on semicolons
 List<String> splitSqlStatements(String script) {
   final buffer = StringBuffer();
   for (final line in script.split('\n')) {
-    final trimmed = line.trim();
-    if (trimmed.startsWith('--')) {
-      continue; // drop SQL comment lines entirely
-    }
-    buffer.writeln(line);
+    final commentIdx = line.indexOf('--');
+    final stripped = commentIdx >= 0 ? line.substring(0, commentIdx) : line;
+    buffer.writeln(stripped);
   }
   final cleaned = buffer.toString();
   return cleaned

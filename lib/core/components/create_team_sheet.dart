@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import '../app_error.dart';
 import '../repositories/i_team_repository.dart';
 import '../services/service_locator.dart';
 import '../theme/app_animations.dart';
@@ -14,7 +15,7 @@ import '../../shared/models/database/team.dart';
 
 class CreateTeamSheet extends StatefulWidget {
   final IMasterRaceResolver masterRace;
-  final Future<void> Function(Team) createTeam;
+  final Future<AppError?> Function(Team) createTeam;
 
   const CreateTeamSheet({
     super.key,
@@ -194,8 +195,15 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
     setState(() {
       _isCreating = true;
     });
-    await widget.createTeam(team);
-    if (!mounted) return; // Parent may have popped the sheet in the callback
+    final error = await widget.createTeam(team);
+    if (!mounted) return;
+    if (error != null) {
+      setState(() {
+        _isCreating = false;
+        _teamNameError = error.userMessage;
+      });
+      return;
+    }
     setState(() {
       _isCreating = false;
     });
