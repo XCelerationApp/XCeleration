@@ -237,6 +237,77 @@ class MockIAuthService extends _i1.Mock implements _i8.IAuthService {
         returnValue: _i3.Future<void>.value(),
         returnValueForMissingStub: _i3.Future<void>.value(),
       ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<_i2.AuthResponse> verifyEmailOtp(
+    String? email,
+    String? token,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #verifyEmailOtp,
+          [
+            email,
+            token,
+          ],
+        ),
+        returnValue: _i3.Future<_i2.AuthResponse>.value(_FakeAuthResponse_0(
+          this,
+          Invocation.method(
+            #verifyEmailOtp,
+            [
+              email,
+              token,
+            ],
+          ),
+        )),
+      ) as _i3.Future<_i2.AuthResponse>);
+
+  @override
+  _i3.Future<_i2.AuthResponse> verifyPasswordResetOtp(
+    String? email,
+    String? token,
+  ) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #verifyPasswordResetOtp,
+          [
+            email,
+            token,
+          ],
+        ),
+        returnValue: _i3.Future<_i2.AuthResponse>.value(_FakeAuthResponse_0(
+          this,
+          Invocation.method(
+            #verifyPasswordResetOtp,
+            [
+              email,
+              token,
+            ],
+          ),
+        )),
+      ) as _i3.Future<_i2.AuthResponse>);
+
+  @override
+  _i3.Future<void> updatePassword(String? newPassword) => (super.noSuchMethod(
+        Invocation.method(
+          #updatePassword,
+          [newPassword],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> resendEmailConfirmation(String? email) =>
+      (super.noSuchMethod(
+        Invocation.method(
+          #resendEmailConfirmation,
+          [email],
+        ),
+        returnValue: _i3.Future<void>.value(),
+        returnValueForMissingStub: _i3.Future<void>.value(),
+      ) as _i3.Future<void>);
 }
 
 /// A class which mocks [IEventBus].
