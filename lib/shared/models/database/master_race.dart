@@ -108,7 +108,10 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
       return _teamRaceRunnersMap!;
     }
 
-    _teamRaceRunnersMap = {};
+    // Build into a local map so that a concurrent invalidateCache() call
+    // mid-build cannot cause a second caller to also run the append loop
+    // on the same map instance (which would double all entries).
+    final localMap = <Team, List<RaceRunner>>{};
 
     // 1) Start with all teams participating in the race so teams with
     //    zero runners are still shown in the UI
@@ -116,18 +119,20 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
 
     final teamIdToTeam = {for (final t in teamsList) t.teamId: t};
     for (final team in teamsList) {
-      _teamRaceRunnersMap![team] = [];
+      localMap[team] = [];
     }
 
     // 2) Add runners, ensuring we use the same Team instance as in teamsList
     final raceRunnersList = await raceRunners;
-
     for (final raceRunner in raceRunnersList) {
       final teamKey = teamIdToTeam[raceRunner.team.teamId] ?? raceRunner.team;
-      _teamRaceRunnersMap![teamKey] ??= [];
-      _teamRaceRunnersMap![teamKey]!.add(raceRunner);
+      localMap[teamKey] ??= [];
+      localMap[teamKey]!.add(raceRunner);
     }
 
+    // Assign atomically — if another caller already finished and set
+    // _teamRaceRunnersMap, keep theirs and discard our local copy.
+    _teamRaceRunnersMap ??= localMap;
     return _teamRaceRunnersMap!;
   }
 
@@ -542,7 +547,6 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
 
   Future<void> _loadRaceRunners() async {
     final participants = await raceParticipants;
-
     if (participants.isEmpty) {
       _raceRunners = [];
     } else {
