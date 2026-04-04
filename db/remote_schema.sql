@@ -74,9 +74,9 @@ create index if not exists idx_teams_abbreviation on public.teams(abbreviation);
 create table if not exists public.team_rosters (
   team_id       bigint not null references public.teams(team_id) on delete cascade,
   runner_id     bigint not null references public.runners(runner_id) on delete cascade,
-  uuid          text unique,
-  team_uuid     text,
-  runner_uuid   text,
+  uuid          uuid unique,
+  team_uuid     uuid,
+  runner_uuid   uuid,
   owner_user_id uuid,
   joined_date   timestamptz not null default now(),
   created_at    timestamptz not null default now(),
@@ -133,9 +133,9 @@ create index if not exists idx_races_date on public.races(race_date);
 create table if not exists public.race_team_participation (
   race_id             bigint not null references public.races(race_id) on delete cascade,
   team_id             bigint not null references public.teams(team_id) on delete cascade,
-  uuid                text unique,
-  race_uuid           text,
-  team_uuid           text,
+  uuid                uuid unique,
+  race_uuid           uuid,
+  team_uuid           uuid,
   owner_user_id       uuid,
   team_color_override integer,
   created_at          timestamptz not null default now(),
@@ -164,12 +164,13 @@ create policy rtp_delete_own on public.race_team_participation for delete using 
 -- RACE_PARTICIPANTS - Individual runner participation
 -- PK is (race_uuid, runner_uuid) — app upserts on this pair.
 -- No integer FK columns: cross-device identity is UUID-based.
+-- Referential integrity enforced via native FKs on the uuid columns.
 -------------------------------------------------------------------------------
 create table if not exists public.race_participants (
-  race_uuid     text        not null,
-  runner_uuid   text        not null,
-  team_uuid     text,
-  uuid          text,
+  race_uuid     uuid        not null references public.races(uuid)   on delete cascade,
+  runner_uuid   uuid        not null references public.runners(uuid) on delete cascade,
+  team_uuid     uuid                 references public.teams(uuid)   on delete set null,
+  uuid          uuid,
   owner_user_id uuid        not null,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
@@ -185,59 +186,27 @@ for each row execute procedure trigger_set_timestamp();
 create index if not exists idx_race_participants_race  on public.race_participants(race_uuid);
 create index if not exists idx_race_participants_owner on public.race_participants(owner_user_id);
 
--- Referential integrity: race_uuid and runner_uuid must reference existing rows.
--- Native FKs are not possible (text vs uuid column types), so we use a trigger.
-create or replace function public.check_race_participant_refs()
-returns trigger language plpgsql as $$
-begin
-  if not exists (
-    select 1 from public.races
-    where uuid = new.race_uuid::uuid
-      and owner_user_id = new.owner_user_id
-  ) then
-    raise exception
-      'race_participants: race_uuid % does not reference a valid race for owner %',
-      new.race_uuid, new.owner_user_id;
-  end if;
-
-  if not exists (
-    select 1 from public.runners
-    where uuid = new.runner_uuid::uuid
-      and owner_user_id = new.owner_user_id
-  ) then
-    raise exception
-      'race_participants: runner_uuid % does not reference a valid runner for owner %',
-      new.runner_uuid, new.owner_user_id;
-  end if;
-
-  return new;
-end $$;
-
-drop trigger if exists race_participants_check_refs on public.race_participants;
-create trigger race_participants_check_refs
-before insert or update on public.race_participants
-for each row execute function public.check_race_participant_refs();
-
 -------------------------------------------------------------------------------
 -- RACE_RESULTS - Pure results data
 -- uuid is the primary key. result_id is a legacy bigserial (kept for history
 -- but stripped from app push/pull payloads). runner_id/race_id are nullable
 -- legacy columns; identity is carried by runner_uuid/race_uuid.
+-- Referential integrity enforced via native FKs on the uuid columns.
 -------------------------------------------------------------------------------
 create table if not exists public.race_results (
-  result_id   bigserial,            -- legacy; not used as PK by app
-  uuid        uuid        not null primary key default gen_random_uuid(),
-  runner_uuid text,                 -- cross-device runner identity
-  race_uuid   text,                 -- cross-device race identity
-  runner_id   bigint,               -- nullable legacy FK (app no longer sends)
-  race_id     bigint,               -- nullable legacy FK (app no longer sends)
-  team_id     bigint,               -- optional team association
-  owner_user_id uuid       not null,
-  place       integer,
-  finish_time integer,              -- milliseconds
-  created_at  timestamptz not null default now(),
-  updated_at  timestamptz not null default now(),
-  deleted_at  timestamptz,
+  result_id     bigserial,          -- legacy; not used as PK by app
+  uuid          uuid        not null primary key default gen_random_uuid(),
+  runner_uuid   uuid                references public.runners(uuid) on delete cascade,
+  race_uuid     uuid                references public.races(uuid)   on delete cascade,
+  runner_id     bigint,             -- nullable legacy FK (app no longer sends)
+  race_id       bigint,             -- nullable legacy FK (app no longer sends)
+  team_id       bigint,             -- optional team association
+  owner_user_id uuid        not null,
+  place         integer,
+  finish_time   integer,            -- milliseconds
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz,
   unique (race_uuid, runner_uuid)   -- one result per runner per race
 );
 
@@ -248,39 +217,6 @@ for each row execute procedure trigger_set_timestamp();
 
 create index if not exists idx_race_results_race_uuid on public.race_results(race_uuid);
 create index if not exists idx_race_results_owner     on public.race_results(owner_user_id);
-
--- Referential integrity: race_uuid and runner_uuid (both nullable) must reference
--- existing rows when set. Same approach as race_participants — trigger-based.
-create or replace function public.check_race_result_refs()
-returns trigger language plpgsql as $$
-begin
-  if new.race_uuid is not null and not exists (
-    select 1 from public.races
-    where uuid = new.race_uuid::uuid
-      and owner_user_id = new.owner_user_id
-  ) then
-    raise exception
-      'race_results: race_uuid % does not reference a valid race for owner %',
-      new.race_uuid, new.owner_user_id;
-  end if;
-
-  if new.runner_uuid is not null and not exists (
-    select 1 from public.runners
-    where uuid = new.runner_uuid::uuid
-      and owner_user_id = new.owner_user_id
-  ) then
-    raise exception
-      'race_results: runner_uuid % does not reference a valid runner for owner %',
-      new.runner_uuid, new.owner_user_id;
-  end if;
-
-  return new;
-end $$;
-
-drop trigger if exists race_results_check_refs on public.race_results;
-create trigger race_results_check_refs
-before insert or update on public.race_results
-for each row execute function public.check_race_result_refs();
 
 -------------------------------------------------------------------------------
 -- Row Level Security (RLS) - per-user ownership policies
