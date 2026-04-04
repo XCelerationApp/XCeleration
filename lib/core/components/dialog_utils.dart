@@ -262,9 +262,6 @@ class DialogUtils {
     Color iconColor = AppColors.darkColor,
     Duration duration = AppAnimations.toastShort,
   }) {
-    // Log the message for debugging
-    Logger.d(message);
-
     // Create FToast instance
     final FToast fToast = FToast();
 
