@@ -15,7 +15,7 @@ dependencies:
   flutter_portal: ^1.1.4
 
   # File & Data Processing
-  file_picker: ^10.3.10
+  file_picker: ^11.0.1
   csv: ^6.0.0
   excel: ^4.0.6
   path_provider: ^2.0.15
