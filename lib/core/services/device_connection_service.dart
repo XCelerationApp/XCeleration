@@ -71,6 +71,9 @@ class DevicesManager {
   ConnectedDevice? _bibRecorder;
   ConnectedDevice? _raceTimer;
   ConnectedDevice? _spectator;
+  ConnectedDevice? _verifier;
+  ConnectedDevice? _fixer;
+  ConnectedDevice? _bibRecorderV2;
 
   /// Creates a device manager for the current device name and type
   ///
@@ -83,6 +86,42 @@ class DevicesManager {
   }
 
   void _initializeDevices() {
+    // Finish-line roles: when browsing (pre-race "Receive from Coach" mode),
+    // connect to _coach — mirroring the bibRecorder browser path. When
+    // advertising or acting as finish-line peers (race phase), set up the
+    // finish-line mesh instead.
+    if (_currentDeviceName == DeviceName.bibRecorderV2) {
+      if (_currentDeviceType == DeviceType.browserDevice) {
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+        _coach = ConnectedDevice(DeviceName.coach);
+      } else {
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _fixer = ConnectedDevice(DeviceName.fixer);
+      }
+      return;
+    } else if (_currentDeviceName == DeviceName.verifier) {
+      if (_currentDeviceType == DeviceType.browserDevice) {
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _coach = ConnectedDevice(DeviceName.coach);
+      } else {
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+        _fixer = ConnectedDevice(DeviceName.fixer);
+      }
+      return;
+    } else if (_currentDeviceName == DeviceName.fixer) {
+      if (_currentDeviceType == DeviceType.browserDevice) {
+        _fixer = ConnectedDevice(DeviceName.fixer);
+        _coach = ConnectedDevice(DeviceName.coach);
+      } else {
+        _fixer = ConnectedDevice(DeviceName.fixer);
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+      }
+      return;
+    }
+
     if (_currentDeviceType == DeviceType.advertiserDevice) {
       if (_data == null) {
         throw Exception(
@@ -104,6 +143,9 @@ class DevicesManager {
         }
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder, data: bibData);
         _raceTimer = ConnectedDevice(DeviceName.raceTimer, data: timerData);
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2, data: bibData);
+        _verifier = ConnectedDevice(DeviceName.verifier, data: bibData);
+        _fixer = ConnectedDevice(DeviceName.fixer, data: bibData);
       } else if (_currentDeviceName == DeviceName.coach && _toSpectator) {
         _coach = ConnectedDevice(DeviceName.coach);
         _spectator = ConnectedDevice(DeviceName.spectator, data: _data);
@@ -124,6 +166,9 @@ class DevicesManager {
         _coach = ConnectedDevice(DeviceName.coach);
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
+        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
+        _verifier = ConnectedDevice(DeviceName.verifier);
+        _fixer = ConnectedDevice(DeviceName.fixer);
       } else if (_currentDeviceName == DeviceName.spectator) {
         // Spectator receiving: choose either Coach or Spectator based on flag
         if (_toSpectator) {
@@ -164,6 +209,15 @@ class DevicesManager {
   /// Get the spectator device if available
   ConnectedDevice? get spectator => _spectator;
 
+  /// Get the bib recorder v2 device if available
+  ConnectedDevice? get bibRecorderV2 => _bibRecorderV2;
+
+  /// Get the verifier device if available
+  ConnectedDevice? get verifier => _verifier;
+
+  /// Get the fixer device if available
+  ConnectedDevice? get fixer => _fixer;
+
   /// Whether coach is targeting spectator broadcast mode
   bool get toSpectator => _toSpectator;
 
@@ -173,6 +227,9 @@ class DevicesManager {
         ?_bibRecorder,
         ?_raceTimer,
         ?_spectator,
+        ?_verifier,
+        ?_fixer,
+        ?_bibRecorderV2,
       ];
 
   List<ConnectedDevice> get otherDevices {
@@ -231,6 +288,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
   final String _serviceType;
   final String _deviceName;
   final DeviceType _deviceType;
+  final Strategy _strategy;
 
   // Subscription for data received
   StreamSubscription? receivedDataSubscription;
@@ -261,9 +319,11 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     this._deviceName,
     this._deviceType,
     this._nearbyConnections, {
+    Strategy strategy = Strategy.P2P_STAR,
     PlatformCheckerInterface? platformChecker,
     NearbyConnectionsInterface Function()? nearbyConnectionsFactory,
-  })  : _platformChecker = platformChecker ?? const PlatformChecker(),
+  })  : _strategy = strategy,
+        _platformChecker = platformChecker ?? const PlatformChecker(),
         _nearbyConnectionsFactory =
             nearbyConnectionsFactory ?? NearbyConnections.new;
 
@@ -333,7 +393,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
           await testService.init(
             serviceType: 'test',
             deviceName: 'test',
-            strategy: Strategy.P2P_STAR,
+            strategy: _strategy,
             callback: (isRunning) {
               if (!completer.isCompleted) {
                 nearbyConnectionsInitialized = true;
@@ -395,7 +455,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
       await _nearbyConnections.init(
           serviceType: _serviceType,
           deviceName: _deviceName,
-          strategy: Strategy.P2P_STAR,
+          strategy: _strategy,
           callback: (isRunning) async {
             // Check if we've been disposed or cancelled while initializing
             if (_shouldCancel(token) || !isRunning) {
@@ -874,10 +934,18 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     _stagnationTimer?.cancel();
     _stagnationTimer = null;
 
-    // Disconnect from all devices in the state map
+    // Disconnect from all devices in the state map, awaiting each future so
+    // failures are not silently swallowed.
     final devicesCopy = _deviceStateMap.values.toList();
-    for (var device in devicesCopy) {
-      disconnectDevice(device);
+    if (devicesCopy.isNotEmpty) {
+      unawaited(Future.wait(
+        devicesCopy.map(
+          (device) => disconnectDevice(device).catchError((Object e) {
+            Logger.e('Error disconnecting device: $e');
+            return false;
+          }),
+        ),
+      ));
     }
     _deviceStateMap.clear();
 

@@ -214,8 +214,10 @@ void main() {
         await onNext();
 
         expect(devices.raceTimer!.data, raceEncoded);
-        expect(
-            devices.bibRecorder!.data, '$raceEncoded---$bibEncoded');
+        expect(devices.bibRecorder!.data, '$raceEncoded---$bibEncoded');
+        expect(devices.bibRecorderV2!.data, '$raceEncoded---$bibEncoded');
+        expect(devices.verifier!.data, '$raceEncoded---$bibEncoded');
+        expect(devices.fixer!.data, '$raceEncoded---$bibEncoded');
       });
 
       test('returns early without setting device data when race encoding is empty',

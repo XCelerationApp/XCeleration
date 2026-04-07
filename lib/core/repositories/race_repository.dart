@@ -39,15 +39,16 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<Race?> getRace(int raceId) async {
     final db = await _db;
-    final rows =
-        await db.query('races', where: 'race_id = ?', whereArgs: [raceId]);
+    final rows = await db.query('races',
+        where: 'race_id = ? AND deleted_at IS NULL', whereArgs: [raceId]);
     return rows.isNotEmpty ? Race.fromJson(rows.first) : null;
   }
 
   @override
   Future<List<Race>> getAllRaces() async {
     final db = await _db;
-    final rows = await db.query('races', orderBy: 'race_date DESC');
+    final rows = await db.query('races',
+        where: 'deleted_at IS NULL', orderBy: 'race_date DESC');
     return rows.map((m) => Race.fromJson(m)).toList();
   }
 
@@ -69,8 +70,15 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<void> deleteRace(int raceId) async {
     final db = await _db;
-    final affectedRows =
-        await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
+    final affectedRows = await db.update(
+      'races',
+      {
+        'deleted_at': DateTime.now().toUtc().toIso8601String(),
+        'is_dirty': 1,
+      },
+      where: 'race_id = ?',
+      whereArgs: [raceId],
+    );
     if (affectedRows == 0) {
       throw Exception('Race with id $raceId not found');
     }
@@ -126,7 +134,7 @@ class RaceRepository implements IRaceRepository {
       SELECT t.*, rtp.team_color_override
       FROM teams t
       JOIN race_team_participation rtp ON t.team_id = rtp.team_id
-      WHERE rtp.race_id = ? AND rtp.team_id = ?
+      WHERE rtp.race_id = ? AND rtp.team_id = ? AND t.deleted_at IS NULL
     ''', [teamParticipant.raceId!, teamParticipant.teamId!]);
     return rows.isNotEmpty ? Team.fromRaceParticipationMap(rows.first) : null;
   }
@@ -138,7 +146,7 @@ class RaceRepository implements IRaceRepository {
       SELECT t.*, rtp.team_color_override
       FROM teams t
       JOIN race_team_participation rtp ON t.team_id = rtp.team_id
-      WHERE rtp.race_id = ?
+      WHERE rtp.race_id = ? AND t.deleted_at IS NULL
       ORDER BY t.name
     ''', [raceId]);
     return rows.map((m) => Team.fromRaceParticipationMap(m)).toList();
@@ -208,7 +216,7 @@ class RaceRepository implements IRaceRepository {
     final db = await _db;
     final rows = await db.query(
       'race_participants',
-      where: 'race_id = ? AND runner_id = ?',
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
     );
     return rows.isNotEmpty ? RaceParticipant.fromMap(rows.first) : null;
@@ -222,7 +230,7 @@ class RaceRepository implements IRaceRepository {
     final db = await _db;
     final rows = await db.query(
       'race_participants',
-      where: 'race_id = ?',
+      where: 'race_id = ? AND deleted_at IS NULL',
       whereArgs: [raceId],
       orderBy: 'runner_id',
     );
@@ -237,7 +245,7 @@ class RaceRepository implements IRaceRepository {
       SELECT rp.race_id, rp.runner_id, rp.team_id
       FROM race_participants rp
       JOIN runners r ON r.runner_id = rp.runner_id
-      WHERE rp.race_id = ? AND r.bib_number = ?
+      WHERE rp.race_id = ? AND r.bib_number = ? AND rp.deleted_at IS NULL AND r.deleted_at IS NULL
       LIMIT 1
     ''', [raceId, bibNumber]);
     return rows.isNotEmpty ? RaceParticipant.fromMap(rows.first) : null;
@@ -253,7 +261,7 @@ class RaceRepository implements IRaceRepository {
       SELECT rp.race_id, rp.runner_id, rp.team_id
       FROM race_participants rp
       JOIN runners r ON r.runner_id = rp.runner_id
-      WHERE rp.race_id = ? AND r.bib_number IN ($qMarks)
+      WHERE rp.race_id = ? AND r.bib_number IN ($qMarks) AND rp.deleted_at IS NULL AND r.deleted_at IS NULL
     ''', [raceId, ...bibNumbers]);
     return rows.map((m) => RaceParticipant.fromMap(m)).toList();
   }
@@ -290,7 +298,7 @@ class RaceRepository implements IRaceRepository {
       FROM race_participants rp
       JOIN runners r ON r.runner_id = rp.runner_id
       JOIN teams t ON rp.team_id = t.team_id
-      WHERE $whereClause
+      WHERE $whereClause AND rp.deleted_at IS NULL AND r.deleted_at IS NULL AND t.deleted_at IS NULL
       ORDER BY r.bib_number
     ''', whereArgs);
 

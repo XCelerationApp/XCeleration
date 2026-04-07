@@ -27,4 +27,13 @@ abstract final class AppShadows {
       offset: Offset(0, 8),
     ),
   ];
+
+  /// Primary-colour glow — active mic and recording indicators.
+  static const List<BoxShadow> glow = [
+    BoxShadow(
+      color: Color(0x4DE2572B), // primaryColor at 30%
+      blurRadius: 20,
+      spreadRadius: 4,
+    ),
+  ];
 }

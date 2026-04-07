@@ -439,25 +439,25 @@ class Protocol implements ProtocolInterface {
         ));
       }
 
-      // Wait for either completion or termination with resilience to transient state changes
-      await Future.any([
-        Future.doWhile(() async {
-          // Check if we've finished or should terminate
-          if (_finishedDevices.contains(deviceId) || _isTerminated) {
-            return false;
-          }
+      // Wait for completion or termination — the doWhile already checks
+      // _isTerminated each iteration, so there is no need to race against
+      // _terminationController.stream.first (which throws StateError if
+      // dispose() closes the controller while awaited).
+      await Future.doWhile(() async {
+        // Check if we've finished or should terminate
+        if (_finishedDevices.contains(deviceId) || _isTerminated) {
+          return false;
+        }
 
-          // Use our robust state checker
-          if (shouldAbort()) {
-            // State has been bad for 3 seconds - shouldAbort will handle logging
-            return false;
-          }
+        // Use our robust state checker
+        if (shouldAbort()) {
+          // State has been bad for 3 seconds - shouldAbort will handle logging
+          return false;
+        }
 
-          await Future.delayed(Duration(milliseconds: 100));
-          return true;
-        }),
-        _terminationController.stream.first,
-      ]);
+        await Future.delayed(Duration(milliseconds: 100));
+        return true;
+      });
 
       // Check again with our timer-based state checker
       if (shouldAbort()) {

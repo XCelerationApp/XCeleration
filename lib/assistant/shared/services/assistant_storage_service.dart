@@ -1,5 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart';
 import '../models/race_record.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
@@ -31,7 +33,7 @@ class AssistantStorageService implements IAssistantStorageService {
 
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: (db, version) async {
         // Race history table with composite primary key (race_id, type)
         await db.execute('''
@@ -87,6 +89,84 @@ class AssistantStorageService implements IAssistantStorageService {
             FOREIGN KEY (race_id, bib_number) REFERENCES runners(race_id, bib_number) ON DELETE CASCADE
           )
         ''');
+
+        // Verifier entries for crash recovery
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS verifier_entries (
+            race_id INTEGER NOT NULL,
+            entry_id INTEGER NOT NULL,
+            position INTEGER NOT NULL,
+            bib_number TEXT NOT NULL,
+            flag TEXT NOT NULL,
+            status TEXT NOT NULL,
+            runner_name TEXT,
+            team_abbreviation TEXT,
+            team_color INTEGER,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (race_id, entry_id),
+            FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
+          )
+        ''');
+
+        // Fixer entries for crash recovery and audit trail
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS fixer_entries (
+            race_id INTEGER NOT NULL,
+            entry_id INTEGER NOT NULL,
+            position INTEGER NOT NULL,
+            original_bib TEXT NOT NULL,
+            runner_name TEXT,
+            reason TEXT NOT NULL,
+            is_resolved INTEGER NOT NULL DEFAULT 0,
+            corrected_bib TEXT,
+            resolved_name TEXT,
+            is_new_runner INTEGER NOT NULL DEFAULT 0,
+            correction_type TEXT,
+            resolved_at INTEGER,
+            created_at INTEGER NOT NULL,
+            PRIMARY KEY (race_id, entry_id),
+            FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
+          )
+        ''');
+      },
+      onUpgrade: (db, oldVersion, newVersion) async {
+        if (oldVersion < 2) {
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS verifier_entries (
+              race_id INTEGER NOT NULL,
+              entry_id INTEGER NOT NULL,
+              position INTEGER NOT NULL,
+              bib_number TEXT NOT NULL,
+              flag TEXT NOT NULL,
+              status TEXT NOT NULL,
+              runner_name TEXT,
+              team_abbreviation TEXT,
+              team_color INTEGER,
+              created_at INTEGER NOT NULL,
+              PRIMARY KEY (race_id, entry_id),
+              FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
+            )
+          ''');
+          await db.execute('''
+            CREATE TABLE IF NOT EXISTS fixer_entries (
+              race_id INTEGER NOT NULL,
+              entry_id INTEGER NOT NULL,
+              position INTEGER NOT NULL,
+              original_bib TEXT NOT NULL,
+              runner_name TEXT,
+              reason TEXT NOT NULL,
+              is_resolved INTEGER NOT NULL DEFAULT 0,
+              corrected_bib TEXT,
+              resolved_name TEXT,
+              is_new_runner INTEGER NOT NULL DEFAULT 0,
+              correction_type TEXT,
+              resolved_at INTEGER,
+              created_at INTEGER NOT NULL,
+              PRIMARY KEY (race_id, entry_id),
+              FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
+            )
+          ''');
+        }
       },
     );
   }
@@ -111,7 +191,7 @@ class AssistantStorageService implements IAssistantStorageService {
       await db.insert(
         'race_history',
         race.toMap(),
-        conflictAlgorithm: ConflictAlgorithm.replace,
+        conflictAlgorithm: ConflictAlgorithm.abort,
       );
       return const Success(null);
     } catch (e) {
@@ -272,19 +352,24 @@ class AssistantStorageService implements IAssistantStorageService {
   Future<Result<void>> deleteRace(int raceId, String type) async {
     try {
       final db = await database;
-      // Delete all chunks first (foreign key constraint)
-      await db.delete(
-        'timing_chunks',
-        where: 'race_id = ?',
-        whereArgs: [raceId],
-      );
-
-      // Delete the race
-      await db.delete(
-        'race_history',
-        where: 'race_id = ? AND type = ?',
-        whereArgs: [raceId, type],
-      );
+      await db.transaction((txn) async {
+        // Delete all child tables first
+        for (final table in [
+          'timing_chunks',
+          'bib_records',
+          'runners',
+          'verifier_entries',
+          'fixer_entries',
+        ]) {
+          await txn.delete(table, where: 'race_id = ?', whereArgs: [raceId]);
+        }
+        // Delete the race
+        await txn.delete(
+          'race_history',
+          where: 'race_id = ? AND type = ?',
+          whereArgs: [raceId, type],
+        );
+      });
       return const Success(null);
     } catch (e) {
       return Failure(AppError(
@@ -481,23 +566,15 @@ class AssistantStorageService implements IAssistantStorageService {
 
   @override
   Future<Result<void>> updateChunkConflict(
-      String chunkId, TimingDatum? conflictRecord) async {
+      int raceId, int chunkId, TimingDatum? conflictRecord) async {
     try {
       final db = await database;
-      if (conflictRecord == null) {
-        await db.delete(
-          'chunk_conflicts',
-          where: 'chunk_id = ?',
-          whereArgs: [chunkId],
-        );
-      } else {
-        await db.update(
-          'chunk_conflicts',
-          {'conflict_data': conflictRecord.encode()},
-          where: 'chunk_id = ?',
-          whereArgs: [chunkId],
-        );
-      }
+      await db.update(
+        'timing_chunks',
+        {'conflict_record': conflictRecord?.encode()},
+        where: 'race_id = ? AND chunk_id = ?',
+        whereArgs: [raceId, chunkId],
+      );
       return const Success(null);
     } catch (e) {
       return Failure(AppError(
@@ -508,20 +585,20 @@ class AssistantStorageService implements IAssistantStorageService {
   }
 
   @override
-  Future<Result<String?>> getChunkConflict(String chunkId) async {
+  Future<Result<String?>> getChunkConflict(int raceId, int chunkId) async {
     try {
       final db = await database;
-      final conflicts = await db.query(
-        'chunk_conflicts',
-        columns: ['conflict_data'],
-        where: 'chunk_id = ?',
-        whereArgs: [chunkId],
+      final chunks = await db.query(
+        'timing_chunks',
+        columns: ['conflict_record'],
+        where: 'race_id = ? AND chunk_id = ?',
+        whereArgs: [raceId, chunkId],
         limit: 1,
       );
 
-      return Success(conflicts.isEmpty
+      return Success(chunks.isEmpty
           ? null
-          : conflicts.first['conflict_data'] as String?);
+          : chunks.first['conflict_record'] as String?);
     } catch (e) {
       return Failure(AppError(
         userMessage: 'Could not load conflict record.',
@@ -534,19 +611,16 @@ class AssistantStorageService implements IAssistantStorageService {
 
   @override
   Future<Result<void>> saveChunkTimingData(
-      String chunkId, List<String> encodedRecords) async {
+      int raceId, int chunkId, List<String> encodedRecords) async {
     try {
       final db = await database;
-      for (final record in encodedRecords) {
-        await db.insert(
-          'chunk_timing_data',
-          {
-            'chunk_id': chunkId,
-            'record_data': record,
-            'created_at': DateTime.now().millisecondsSinceEpoch,
-          },
-        );
-      }
+      final joined = encodedRecords.join(',');
+      await db.update(
+        'timing_chunks',
+        {'timing_data': joined},
+        where: 'race_id = ? AND chunk_id = ?',
+        whereArgs: [raceId, chunkId],
+      );
       return const Success(null);
     } catch (e) {
       return Failure(AppError(
@@ -623,11 +697,36 @@ class AssistantStorageService implements IAssistantStorageService {
           .subtract(olderThan ?? const Duration(days: 7))
           .millisecondsSinceEpoch;
 
-      await db.delete(
+      // Find race IDs to delete
+      final oldRaces = await db.query(
         'race_history',
+        columns: ['race_id'],
         where: 'date < ?',
         whereArgs: [cutoff],
       );
+
+      if (oldRaces.isEmpty) return const Success(null);
+
+      await db.transaction((txn) async {
+        for (final race in oldRaces) {
+          final raceId = race['race_id'] as int;
+          for (final table in [
+            'timing_chunks',
+            'bib_records',
+            'runners',
+            'verifier_entries',
+            'fixer_entries',
+          ]) {
+            await txn
+                .delete(table, where: 'race_id = ?', whereArgs: [raceId]);
+          }
+        }
+        await txn.delete(
+          'race_history',
+          where: 'date < ?',
+          whereArgs: [cutoff],
+        );
+      });
       return const Success(null);
     } catch (e) {
       return Failure(AppError(
@@ -1034,6 +1133,186 @@ class AssistantStorageService implements IAssistantStorageService {
       Logger.e('Failed to get next bib ID: $e');
       return Failure(AppError(
         userMessage: 'Could not determine next bib ID.',
+        originalException: e,
+      ));
+    }
+  }
+
+  // Verifier Entry Methods
+  // ============================================================================
+
+  @override
+  Future<Result<void>> saveVerifierEntry(int raceId, VerifierEntry entry) async {
+    try {
+      final db = await database;
+      await db.insert(
+        'verifier_entries',
+        entry.toMap(raceId),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to save verifier entry: $e');
+      return Failure(AppError(
+        userMessage: 'Could not save verifier entry.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> updateVerifierEntryStatus(
+      int raceId, int entryId, VerificationStatus status) async {
+    try {
+      final db = await database;
+      await db.update(
+        'verifier_entries',
+        {'status': status.name},
+        where: 'race_id = ? AND entry_id = ?',
+        whereArgs: [raceId, entryId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to update verifier entry status: $e');
+      return Failure(AppError(
+        userMessage: 'Could not update verifier entry.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<List<VerifierEntry>>> getVerifierEntries(int raceId) async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> records = await db.query(
+        'verifier_entries',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+        orderBy: 'created_at ASC',
+      );
+      return Success(
+          records.map((record) => VerifierEntry.fromMap(record)).toList());
+    } catch (e) {
+      Logger.e('Failed to get verifier entries: $e');
+      return Failure(AppError(
+        userMessage: 'Could not load verifier entries.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteVerifierEntries(int raceId) async {
+    try {
+      final db = await database;
+      await db.delete(
+        'verifier_entries',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to delete verifier entries: $e');
+      return Failure(AppError(
+        userMessage: 'Could not delete verifier entries.',
+        originalException: e,
+      ));
+    }
+  }
+
+  // Fixer Entry Methods
+  // ============================================================================
+
+  @override
+  Future<Result<void>> saveFixerEntry(int raceId, FixerEntry entry) async {
+    try {
+      final db = await database;
+      await db.insert(
+        'fixer_entries',
+        entry.toMap(raceId),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to save fixer entry: $e');
+      return Failure(AppError(
+        userMessage: 'Could not save fixer entry.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> updateFixerEntryResolution(
+    int raceId,
+    int entryId, {
+    required bool isResolved,
+    int? correctedBib,
+    String? resolvedName,
+    required bool isNewRunner,
+    required String correctionType,
+  }) async {
+    try {
+      final db = await database;
+      await db.update(
+        'fixer_entries',
+        {
+          'is_resolved': isResolved ? 1 : 0,
+          'corrected_bib': correctedBib?.toString(),
+          'resolved_name': resolvedName,
+          'is_new_runner': isNewRunner ? 1 : 0,
+          'correction_type': correctionType,
+          'resolved_at': DateTime.now().millisecondsSinceEpoch,
+        },
+        where: 'race_id = ? AND entry_id = ?',
+        whereArgs: [raceId, entryId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to update fixer entry resolution: $e');
+      return Failure(AppError(
+        userMessage: 'Could not update fixer entry.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<List<FixerEntry>>> getFixerEntries(int raceId) async {
+    try {
+      final db = await database;
+      final List<Map<String, dynamic>> records = await db.query(
+        'fixer_entries',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+        orderBy: 'created_at ASC',
+      );
+      return Success(
+          records.map((record) => FixerEntry.fromMap(record)).toList());
+    } catch (e) {
+      Logger.e('Failed to get fixer entries: $e');
+      return Failure(AppError(
+        userMessage: 'Could not load fixer entries.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteFixerEntries(int raceId) async {
+    try {
+      final db = await database;
+      await db.delete(
+        'fixer_entries',
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to delete fixer entries: $e');
+      return Failure(AppError(
+        userMessage: 'Could not delete fixer entries.',
         originalException: e,
       ));
     }

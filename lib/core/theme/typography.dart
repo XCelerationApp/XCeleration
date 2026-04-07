@@ -166,6 +166,34 @@ class AppTypography {
     fontFamily: fontFamily,
   );
 
+  /// Extra-small bold — section labels, category chips, stat labels.
+  static const TextStyle labelTiny = TextStyle(
+    fontSize: extraSmallSize, // 10
+    fontWeight: FontWeight.w700,
+    height: smallBodyLineHeight,
+    fontFamily: fontFamily,
+  );
+
+  // Bib number display styles
+  static const double bibCompactSize = 22;
+  static const double bibStandardSize = 26;
+
+  /// Compact bib number — used in Fixer queue cards.
+  static const TextStyle bibCompact = TextStyle(
+    fontSize: bibCompactSize,
+    fontWeight: FontWeight.w900,
+    height: 1.0,
+    fontFamily: fontFamily,
+  );
+
+  /// Standard bib number — used in ResolveSheet entry header.
+  static const TextStyle bibStandard = TextStyle(
+    fontSize: bibStandardSize,
+    fontWeight: FontWeight.w900,
+    height: 1.0,
+    fontFamily: fontFamily,
+  );
+
   // Button text
   static const TextStyle buttonText = TextStyle(
     fontSize: bodySize,

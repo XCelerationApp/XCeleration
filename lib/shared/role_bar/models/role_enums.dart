@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../assistant/finish_line_roles/bib_recorder/screen/bib_recorder_v2_screen.dart';
+import '../../../assistant/finish_line_roles/verifier/screen/verifier_screen.dart';
+import '../../../assistant/finish_line_roles/fixer/screen/fixer_screen.dart';
 import '../../../assistant/race_timer/screen/timing_screen.dart';
 import '../../../assistant/bib_number_recorder/screen/bib_number_screen.dart';
 import '../../../assistant/bib_number_recorder/controller/bib_number_controller.dart';
@@ -14,6 +17,9 @@ import '../../../spectator/races_screen/screen/spectator_races_screen.dart';
 enum Role {
   timer,
   bibRecorder,
+  bibRecorderV2,
+  verifier,
+  fixer,
   coach,
   spectator;
 
@@ -23,6 +29,12 @@ enum Role {
         return 'Timer';
       case Role.bibRecorder:
         return 'Bib Recorder';
+      case Role.bibRecorderV2:
+        return 'Bib Recorder (New)';
+      case Role.verifier:
+        return 'Verifier';
+      case Role.fixer:
+        return 'Fixer';
       case Role.coach:
         return 'Coach';
       case Role.spectator:
@@ -36,6 +48,12 @@ enum Role {
         return 'Time a race';
       case Role.bibRecorder:
         return 'Record bib numbers';
+      case Role.bibRecorderV2:
+        return 'Record bib numbers (new UI)';
+      case Role.verifier:
+        return 'Confirm runner names at chute exit';
+      case Role.fixer:
+        return 'Resolve flagged bib conflicts';
       case Role.coach:
         return 'Manage races';
       case Role.spectator:
@@ -49,6 +67,12 @@ enum Role {
         return Icons.timer;
       case Role.bibRecorder:
         return Icons.numbers;
+      case Role.bibRecorderV2:
+        return Icons.mic;
+      case Role.verifier:
+        return Icons.check_circle_outline;
+      case Role.fixer:
+        return Icons.build_circle_outlined;
       case Role.coach:
         return Icons.person;
       case Role.spectator:
@@ -70,6 +94,12 @@ enum Role {
             scheduler: const PostFrameScheduler(),
           ),
         );
+      case Role.bibRecorderV2:
+        return BibRecorderV2Screen(storage: AssistantStorageService.instance);
+      case Role.verifier:
+        return VerifierScreen(storage: AssistantStorageService.instance);
+      case Role.fixer:
+        return FixerScreen(storage: AssistantStorageService.instance);
       case Role.coach:
         return const RacesScreen();
       case Role.spectator:
@@ -84,6 +114,12 @@ enum Role {
         return Role.timer;
       case 'bib recorder':
         return Role.bibRecorder;
+      case 'bib recorder (new)':
+        return Role.bibRecorderV2;
+      case 'verifier':
+        return Role.verifier;
+      case 'fixer':
+        return Role.fixer;
       case 'coach':
         return Role.coach;
       case 'spectator':
@@ -100,6 +136,12 @@ enum Role {
         return 'timer';
       case Role.bibRecorder:
         return 'bib recorder';
+      case Role.bibRecorderV2:
+        return 'bib recorder (new)';
+      case Role.verifier:
+        return 'verifier';
+      case Role.fixer:
+        return 'fixer';
       case Role.coach:
         return 'coach';
       case Role.spectator:

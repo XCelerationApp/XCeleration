@@ -206,6 +206,43 @@ void main() {
     });
   });
 
+  group('Strategy configuration', () {
+    test('init uses P2P_POINT_TO_POINT when injected via constructor', () async {
+      final svc = DeviceConnectionService(
+        mockDevicesManager,
+        'wirelessconn',
+        'verifier',
+        DeviceType.browserDevice,
+        mockNearbyConnections,
+        strategy: Strategy.P2P_POINT_TO_POINT,
+        platformChecker: mockPlatformChecker,
+        nearbyConnectionsFactory: () => mockNearbyConnections,
+      );
+      clearInteractions(mockNearbyConnections);
+      await svc.init();
+
+      verify(mockNearbyConnections.init(
+        serviceType: anyNamed('serviceType'),
+        deviceName: anyNamed('deviceName'),
+        strategy: Strategy.P2P_POINT_TO_POINT,
+        callback: anyNamed('callback'),
+      )).called(1);
+      svc.dispose();
+    });
+
+    test('init defaults to P2P_STAR when no strategy is provided', () async {
+      clearInteractions(mockNearbyConnections);
+      await deviceConnectionService.init();
+
+      verify(mockNearbyConnections.init(
+        serviceType: anyNamed('serviceType'),
+        deviceName: anyNamed('deviceName'),
+        strategy: Strategy.P2P_STAR,
+        callback: anyNamed('callback'),
+      )).called(1);
+    });
+  });
+
   group('Device scanning', () {
     test('init should initialize nearby service', () async {
       // Act
@@ -513,6 +550,94 @@ void main() {
       expect(result.currentDeviceType, equals(deviceType));
       expect(result.otherDevices.any((device) => device.name == deviceName),
           isFalse);
+    });
+  });
+
+  group('DevicesManager initialization — finish-line roles', () {
+    test('bibRecorderV2 in browserDevice mode connects to coach only', () {
+      final dm = DevicesManager(
+        DeviceName.bibRecorderV2,
+        DeviceType.browserDevice,
+      );
+
+      expect(dm.coach, isNotNull);
+      expect(dm.bibRecorderV2, isNotNull);
+      expect(dm.verifier, isNull);
+      expect(dm.fixer, isNull);
+      expect(dm.otherDevices.map((d) => d.name),
+          containsAll([DeviceName.coach]));
+      expect(dm.otherDevices.map((d) => d.name),
+          isNot(contains(DeviceName.verifier)));
+      expect(dm.otherDevices.map((d) => d.name),
+          isNot(contains(DeviceName.fixer)));
+    });
+
+    test('verifier in browserDevice mode connects to coach only', () {
+      final dm = DevicesManager(
+        DeviceName.verifier,
+        DeviceType.browserDevice,
+      );
+
+      expect(dm.coach, isNotNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.bibRecorderV2, isNull);
+      expect(dm.fixer, isNull);
+      expect(dm.otherDevices.map((d) => d.name),
+          containsAll([DeviceName.coach]));
+      expect(dm.otherDevices.map((d) => d.name),
+          isNot(contains(DeviceName.bibRecorderV2)));
+    });
+
+    test('fixer in browserDevice mode connects to coach only', () {
+      final dm = DevicesManager(
+        DeviceName.fixer,
+        DeviceType.browserDevice,
+      );
+
+      expect(dm.coach, isNotNull);
+      expect(dm.fixer, isNotNull);
+      expect(dm.bibRecorderV2, isNull);
+      expect(dm.verifier, isNull);
+      expect(dm.otherDevices.map((d) => d.name),
+          containsAll([DeviceName.coach]));
+      expect(dm.otherDevices.map((d) => d.name),
+          isNot(contains(DeviceName.verifier)));
+    });
+
+    test('bibRecorderV2 in advertiserDevice mode uses finish-line mesh', () {
+      final dm = DevicesManager(
+        DeviceName.bibRecorderV2,
+        DeviceType.advertiserDevice,
+      );
+
+      expect(dm.coach, isNull);
+      expect(dm.bibRecorderV2, isNotNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.fixer, isNotNull);
+    });
+
+    test('verifier in advertiserDevice mode uses finish-line mesh', () {
+      final dm = DevicesManager(
+        DeviceName.verifier,
+        DeviceType.advertiserDevice,
+      );
+
+      expect(dm.coach, isNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.bibRecorderV2, isNotNull);
+      expect(dm.fixer, isNotNull);
+    });
+
+    test('fixer in advertiserDevice mode uses finish-line mesh', () {
+      final dm = DevicesManager(
+        DeviceName.fixer,
+        DeviceType.advertiserDevice,
+      );
+
+      expect(dm.coach, isNull);
+      expect(dm.fixer, isNotNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.bibRecorderV2, isNotNull);
     });
   });
 
@@ -828,6 +953,76 @@ void main() {
 
       expect(result, isA<Success<bool>>());
       expect((result as Success<bool>).value, isFalse);
+    });
+  });
+
+  group('DevicesManager initialization — coach advertiser path', () {
+    test('initialises bibRecorderV2, verifier, and fixer alongside bibRecorder and raceTimer', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'bibdata  timerdata',
+      );
+
+      expect(dm.bibRecorder, isNotNull);
+      expect(dm.raceTimer, isNotNull);
+      expect(dm.bibRecorderV2, isNotNull);
+      expect(dm.verifier, isNotNull);
+      expect(dm.fixer, isNotNull);
+    });
+
+    test('assigns bibData to bibRecorderV2, verifier, and fixer', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'mybibdata  mytimerdata',
+      );
+
+      expect(dm.bibRecorder!.data, 'mybibdata');
+      expect(dm.bibRecorderV2!.data, 'mybibdata');
+      expect(dm.verifier!.data, 'mybibdata');
+      expect(dm.fixer!.data, 'mybibdata');
+    });
+
+    test('assigns timerData to raceTimer only', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'mybibdata  mytimerdata',
+      );
+
+      expect(dm.raceTimer!.data, 'mytimerdata');
+    });
+
+    test('otherDevices includes bibRecorderV2, verifier, and fixer', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'bibdata  timerdata',
+      );
+
+      final names = dm.otherDevices.map((d) => d.name).toList();
+      expect(names, containsAll([
+        DeviceName.bibRecorder,
+        DeviceName.raceTimer,
+        DeviceName.bibRecorderV2,
+        DeviceName.verifier,
+        DeviceName.fixer,
+      ]));
+    });
+
+    test('falls back to empty data when payload has no double-space separator', () {
+      final dm = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: 'malformed-no-separator',
+      );
+
+      expect(dm.bibRecorder!.data, '');
+      expect(dm.raceTimer!.data, '');
+      expect(dm.bibRecorderV2!.data, '');
+      expect(dm.verifier!.data, '');
+      expect(dm.fixer!.data, '');
     });
   });
 }

@@ -33,9 +33,9 @@ void _inferenceIsolateEntry(({
       debug: false,
     ),
     decodingMethod: 'modified_beam_search',
-    maxActivePaths: 4,
+    maxActivePaths: 8,
     hotwordsFile: args.hotwordsFile,
-    hotwordsScore: 5,
+    hotwordsScore: 10,
   );
 
   final recognizer = sherpa.OfflineRecognizer(config);
@@ -58,7 +58,24 @@ void _inferenceIsolateEntry(({
 
     try {
       final wave = sherpa.readWave(wavPath);
+      assert(() {
+        final durationSec = wave.samples.isEmpty
+            ? 0.0
+            : wave.samples.length / wave.sampleRate;
+        // ignore: avoid_print — Logger.d is unavailable in isolates.
+        print('[SherpaOnnx] WAV loaded: '
+            '${wave.samples.length} samples, '
+            'rate=${wave.sampleRate} Hz, '
+            'duration=${durationSec.toStringAsFixed(2)}s');
+        return true;
+      }());
+
       if (wave.samples.isEmpty) {
+        assert(() {
+          // ignore: avoid_print
+          print('[SherpaOnnx] Empty WAV — returning blank transcript');
+          return true;
+        }());
         replyPort.send('');
         return;
       }
@@ -67,12 +84,25 @@ void _inferenceIsolateEntry(({
         stream.acceptWaveform(
             samples: wave.samples, sampleRate: wave.sampleRate);
         recognizer.decode(stream);
-        replyPort.send(
-            recognizer.getResult(stream).text.trim().toLowerCase());
+        final rawResult = recognizer.getResult(stream);
+        final transcript = rawResult.text.trim().toLowerCase();
+        assert(() {
+          // ignore: avoid_print
+          print('[SherpaOnnx] Raw model text: "${rawResult.text}"');
+          // ignore: avoid_print
+          print('[SherpaOnnx] Normalised transcript: "$transcript"');
+          return true;
+        }());
+        replyPort.send(transcript);
       } finally {
         stream.free();
       }
-    } catch (_) {
+    } catch (e, st) {
+      assert(() {
+        // ignore: avoid_print
+        print('[SherpaOnnx] Transcription error: $e\n$st');
+        return true;
+      }());
       replyPort.send('');
     }
   });
@@ -85,18 +115,23 @@ void _inferenceIsolateEntry(({
 /// [ISpeechRecognitionService] implementation backed by a long-lived
 /// background [Isolate].
 ///
-/// The ONNX model is loaded once in [initialize] and kept resident for the
-/// lifetime of the service. Each [transcribe] call sends the WAV path to the
-/// isolate and awaits the transcript — no model-reload overhead per call.
+/// The ONNX model is loaded once in [initialize] and kept resident across
+/// instances via a static cache. This avoids reloading the ~28 MB model every
+/// time the bib recorder screen is revisited. Each [transcribe] call sends
+/// the WAV path to the isolate and awaits the transcript.
 class SpeechRecognitionService implements ISpeechRecognitionService {
-  SendPort? _sendPort;
-  Isolate? _isolate;
+  // Static cache — the send-port survives across instances so the model is
+  // loaded only once per app session.
+  static SendPort? _cachedSendPort;
 
   @override
   Future<void> initialize(ModelAssets assets) async {
+    // Reuse the existing isolate if one is already running.
+    if (_cachedSendPort != null) return;
+
     final ready = ReceivePort();
 
-    _isolate = await Isolate.spawn(
+    await Isolate.spawn(
       _inferenceIsolateEntry,
       (
         encoder: p.join(assets.modelDir, 'encoder-epoch-99-avg-1.int8.onnx'),
@@ -109,26 +144,33 @@ class SpeechRecognitionService implements ISpeechRecognitionService {
     );
 
     // Wait until the isolate signals it has loaded the model.
-    _sendPort = await ready.first as SendPort;
+    _cachedSendPort = await ready.first as SendPort;
     ready.close();
   }
 
   @override
   Future<String> transcribe(String wavPath) async {
-    if (_sendPort == null) return '';
+    if (_cachedSendPort == null) return '';
 
     final reply = ReceivePort();
-    _sendPort!.send((wavPath: wavPath, replyPort: reply.sendPort));
-    final result = await reply.first as String;
-    reply.close();
-    return result;
+    try {
+      _cachedSendPort!.send((wavPath: wavPath, replyPort: reply.sendPort));
+      final result = await reply.first
+          .timeout(const Duration(seconds: 30)) as String;
+      return result;
+    } catch (_) {
+      // Isolate may have crashed — clear the stale SendPort so the next
+      // initialize() call respawns it.
+      _cachedSendPort = null;
+      return '';
+    } finally {
+      reply.close();
+    }
   }
 
   @override
   Future<void> dispose() async {
-    _sendPort?.send(null); // shutdown signal
-    _isolate?.kill(priority: Isolate.immediate);
-    _sendPort = null;
-    _isolate = null;
+    // No-op: the isolate is intentionally kept alive across screen visits.
+    // It will be cleaned up when the app process exits.
   }
 }
