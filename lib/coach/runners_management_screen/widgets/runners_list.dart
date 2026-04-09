@@ -12,6 +12,12 @@ import '../controller/runners_management_controller.dart';
 import 'runner_list_item.dart';
 import 'team_header_tile.dart';
 
+// Height of the TeamHeaderTile row — driven by the PopupMenuButton's 48px
+// minimum touch target, which is the tallest element in the header row.
+const double _kHeaderExtent = 48.0;
+// Height of the ListTitles row: 8+8 vertical padding + ~16px line height.
+const double _kTitlesExtent = 36.0;
+
 class RunnersList extends StatefulWidget {
   const RunnersList({super.key, required this.controller});
 
@@ -22,7 +28,6 @@ class RunnersList extends StatefulWidget {
 }
 
 class _RunnersListState extends State<RunnersList> {
-  // teamId → expanded; default true (all sections start open)
   final Map<int, bool> _expanded = {};
   Future<Map<Team, List<RaceRunner>>>? _filteredFuture;
 
@@ -57,8 +62,7 @@ class _RunnersListState extends State<RunnersList> {
     });
   }
 
-  bool _isExpanded(Team team) =>
-      _expanded[team.teamId ?? -1] ?? true;
+  bool _isExpanded(Team team) => _expanded[team.teamId ?? -1] ?? true;
 
   void _toggleExpanded(Team team) {
     setState(() {
@@ -104,165 +108,235 @@ class _RunnersListState extends State<RunnersList> {
         if (!snapshot.hasData) {
           return Center(
             child: CircularProgressIndicator(
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
             ),
           );
         }
 
         final teamMap = snapshot.requireData;
-
-        if (teamMap.isEmpty) {
-          return _EmptyState(controller: widget.controller);
-        }
-
+        if (teamMap.isEmpty) return _EmptyState(controller: widget.controller);
         return _buildList(context, teamMap);
       },
     );
   }
 
-  Widget _buildList(
-    BuildContext context,
-    Map<Team, List<RaceRunner>> teamMap,
-  ) {
+  Widget _buildList(BuildContext context, Map<Team, List<RaceRunner>> teamMap) {
     final teams = teamMap.keys.toList()
       ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
-    return ListView.builder(
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      itemCount: teams.length,
-      itemBuilder: (context, index) {
-          final team = teams[index];
-          final raceRunners = teamMap[team] ?? [];
-          final expanded = _isExpanded(team);
+    final borderColor = AppColors.mediumColor.withValues(alpha: AppOpacity.medium);
+    final cardRadius = Radius.circular(AppBorderRadius.md);
 
-          return _AnimatedTeamSection(
-            index: index,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.mediumColor.withValues(alpha: AppOpacity.faint),
-                  border: Border.all(
-                    color: AppColors.mediumColor.withValues(alpha: AppOpacity.medium),
-                  ),
-                  borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TeamHeaderTile(
-                        team: team,
-                        runnerCount: raceRunners.length,
-                        controller: widget.controller,
-                        isExpanded: expanded,
-                        onToggleExpand: () => _toggleExpanded(team),
-                        onAddRunner: () =>
-                            widget.controller.showAddRunnerChoiceSheet(
-                          context,
-                          team,
-                        ),
-                        isViewMode: widget.controller.isViewMode,
+    final slivers = <Widget>[];
+
+    for (final team in teams) {
+      final raceRunners = teamMap[team] ?? [];
+      final expanded = _isExpanded(team);
+      final hasRunners = raceRunners.isNotEmpty;
+      final showTitles = expanded && hasRunners;
+      // When collapsed or empty: full card rounding on the header.
+      // When expanded with runners: header is the top half — round top corners only.
+      final headerIsFullCard = !expanded || !hasRunners;
+
+      slivers.add(
+        SliverPersistentHeader(
+          pinned: true,
+          delegate: _TeamSectionHeaderDelegate(
+            team: team,
+            runnerCount: raceRunners.length,
+            controller: widget.controller,
+            isExpanded: expanded,
+            showTitles: showTitles,
+            headerIsFullCard: headerIsFullCard,
+            borderColor: borderColor,
+            cardRadius: cardRadius,
+            onToggleExpand: () => _toggleExpanded(team),
+            onAddRunner: () =>
+                widget.controller.showAddRunnerChoiceSheet(context, team),
+            isViewMode: widget.controller.isViewMode,
+          ),
+        ),
+      );
+
+      // Content: bottom half of the card, or spacing gap when collapsed.
+      slivers.add(
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.sm,
+              0,
+              AppSpacing.sm,
+              AppSpacing.sm,
+            ),
+            child: expanded
+                ? DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundColor,
+                      border: Border(
+                        bottom: BorderSide(color: borderColor),
+                        left: BorderSide(color: borderColor),
+                        right: BorderSide(color: borderColor),
                       ),
-                      // Collapsible runner rows with column headers
-                      AnimatedSize(
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: cardRadius,
+                        bottomRight: cardRadius,
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: cardRadius,
+                        bottomRight: cardRadius,
+                      ),
+                      child: AnimatedSize(
                         duration: AppAnimations.standard,
                         curve: AppAnimations.spring,
-                        child: expanded
-                            ? Column(
-                                  children: [
-                                    if (raceRunners.isNotEmpty) const ListTitles(),
-                                    if (raceRunners.isEmpty)
-                                      _EmptyTeamState(
-                                        isViewMode: widget.controller.isViewMode,
-                                      )
-                                    else
-                                      ListView.builder(
-                                        shrinkWrap: true,
-                                        physics: const NeverScrollableScrollPhysics(),
-                                        itemCount: raceRunners.length,
-                                        itemBuilder: (context, i) {
-                                          final raceRunner = raceRunners[i];
-                                          return RunnerListItem(
-                                            key: ValueKey(raceRunner.runner.bibNumber),
-                                            runner: raceRunner.runner,
-                                            team: team,
-                                            controller: widget.controller,
-                                            onAction: (action) =>
-                                                widget.controller.handleRaceRunnerAction(
-                                              context,
-                                              action,
-                                              raceRunner,
-                                            ),
-                                            isViewMode: widget.controller.isViewMode,
-                                          );
-                                        },
-                                      ),
-                                  ],
-                                )
-                            : const SizedBox.shrink(),
+                        child: hasRunners
+                            ? ListView.builder(
+                                shrinkWrap: true,
+                                physics: const NeverScrollableScrollPhysics(),
+                                itemCount: raceRunners.length,
+                                itemBuilder: (context, j) {
+                                  final raceRunner = raceRunners[j];
+                                  return RunnerListItem(
+                                    key: ValueKey(raceRunner.runner.bibNumber),
+                                    runner: raceRunner.runner,
+                                    team: team,
+                                    controller: widget.controller,
+                                    onAction: (action) =>
+                                        widget.controller.handleRaceRunnerAction(
+                                      context,
+                                      action,
+                                      raceRunner,
+                                    ),
+                                    isViewMode: widget.controller.isViewMode,
+                                  );
+                                },
+                              )
+                            : _EmptyTeamState(
+                                isViewMode: widget.controller.isViewMode,
+                              ),
                       ),
-                    ],
+                    ),
+                  )
+                : AnimatedSize(
+                    duration: AppAnimations.standard,
+                    curve: AppAnimations.spring,
+                    child: const SizedBox.shrink(),
+                  ),
+          ),
+        ),
+      );
+    }
+
+    slivers.add(
+      const SliverPadding(padding: EdgeInsets.only(bottom: AppSpacing.sm)),
+    );
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: slivers,
+    );
+  }
+}
+
+class _TeamSectionHeaderDelegate extends SliverPersistentHeaderDelegate {
+  const _TeamSectionHeaderDelegate({
+    required this.team,
+    required this.runnerCount,
+    required this.controller,
+    required this.isExpanded,
+    required this.showTitles,
+    required this.headerIsFullCard,
+    required this.borderColor,
+    required this.cardRadius,
+    required this.onToggleExpand,
+    required this.onAddRunner,
+    required this.isViewMode,
+  });
+
+  final Team team;
+  final int runnerCount;
+  final RunnersManagementController controller;
+  final bool isExpanded;
+  final bool showTitles;
+  final bool headerIsFullCard;
+  final Color borderColor;
+  final Radius cardRadius;
+  final VoidCallback onToggleExpand;
+  final VoidCallback onAddRunner;
+  final bool isViewMode;
+
+  @override
+  double get minExtent => maxExtent;
+
+  @override
+  double get maxExtent =>
+      showTitles ? _kHeaderExtent + _kTitlesExtent : _kHeaderExtent;
+
+  @override
+  bool shouldRebuild(_TeamSectionHeaderDelegate old) =>
+      old.team != team ||
+      old.runnerCount != runnerCount ||
+      old.isExpanded != isExpanded ||
+      old.showTitles != showTitles ||
+      old.headerIsFullCard != headerIsFullCard ||
+      old.isViewMode != isViewMode;
+
+  @override
+  Widget build(
+    BuildContext context,
+    double shrinkOffset,
+    bool overlapsContent,
+  ) {
+    final borderRadius = headerIsFullCard
+        ? BorderRadius.circular(AppBorderRadius.md)
+        : BorderRadius.only(topLeft: cardRadius, topRight: cardRadius);
+
+    final border = headerIsFullCard
+        ? Border.all(color: borderColor)
+        : Border(
+            top: BorderSide(color: borderColor),
+            left: BorderSide(color: borderColor),
+            right: BorderSide(color: borderColor),
+          );
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      child: ColoredBox(
+        // Fills the full rectangle (including corner notches) so scrolling
+        // content never bleeds through the ClipRRect's transparent corners.
+        color: AppColors.backgroundColor,
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceColor,
+            border: border,
+            borderRadius: borderRadius,
+          ),
+          child: ClipRRect(
+            borderRadius: borderRadius,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  height: _kHeaderExtent,
+                  child: TeamHeaderTile(
+                    team: team,
+                    runnerCount: runnerCount,
+                    controller: controller,
+                    isExpanded: isExpanded,
+                    onToggleExpand: onToggleExpand,
+                    onAddRunner: onAddRunner,
+                    isViewMode: isViewMode,
                   ),
                 ),
-              ),
+                if (showTitles)
+                  SizedBox(height: _kTitlesExtent, child: const ListTitles()),
+              ],
             ),
-          );
-      },
-    );
-  }
-}
-
-/// Staggered fade-in wrapper for each team section.
-class _AnimatedTeamSection extends StatefulWidget {
-  const _AnimatedTeamSection({required this.index, required this.child});
-
-  final int index;
-  final Widget child;
-
-  @override
-  State<_AnimatedTeamSection> createState() => _AnimatedTeamSectionState();
-}
-
-class _AnimatedTeamSectionState extends State<_AnimatedTeamSection>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
-
-  @override
-  void initState() {
-    super.initState();
-    final staggerMs = widget.index * 40;
-    final totalMs = staggerMs + AppAnimations.reveal.inMilliseconds;
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: totalMs),
-    );
-    _opacity = CurvedAnimation(
-      parent: _controller,
-      curve: Interval(
-        staggerMs / totalMs,
-        1.0,
-        curve: AppAnimations.enter,
+          ),
+        ),
       ),
-    );
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacity,
-      child: widget.child,
     );
   }
 }
