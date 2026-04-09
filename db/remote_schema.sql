@@ -170,12 +170,11 @@ create table if not exists public.race_participants (
   race_uuid     uuid        not null references public.races(uuid)   on delete cascade,
   runner_uuid   uuid        not null references public.runners(uuid) on delete cascade,
   team_uuid     uuid                 references public.teams(uuid)   on delete set null,
-  uuid          uuid,
   owner_user_id uuid        not null,
+  uuid          uuid        not null default gen_random_uuid() unique,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   deleted_at    timestamptz,
-  uuid          uuid        not null default gen_random_uuid() unique,
   primary key (race_uuid, runner_uuid)
 );
 
