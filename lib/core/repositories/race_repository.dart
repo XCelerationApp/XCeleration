@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
@@ -9,6 +10,7 @@ class RaceRepository implements IRaceRepository {
   final IDatabaseConnectionProvider _conn;
   final IRunnerRepository _runnerRepo;
   final DatabaseWriteBus? _writeBus;
+  final _uuid = const Uuid();
 
   RaceRepository({
     required IDatabaseConnectionProvider conn,
@@ -97,12 +99,25 @@ class RaceRepository implements IRaceRepository {
           'Team ${teamParticipant.teamId} already in race ${teamParticipant.raceId}');
     }
     final db = await _db;
+    final raceRows = await db.query('races',
+        columns: ['uuid'],
+        where: 'race_id = ?',
+        whereArgs: [teamParticipant.raceId],
+        limit: 1);
+    final teamRows = await db.query('teams',
+        columns: ['uuid'],
+        where: 'team_id = ?',
+        whereArgs: [teamParticipant.teamId],
+        limit: 1);
     await db.insert(
       'race_team_participation',
       {
         'race_id': teamParticipant.raceId,
         'team_id': teamParticipant.teamId,
         'team_color_override': teamParticipant.colorOverride,
+        'uuid': _uuid.v4(),
+        'race_uuid': raceRows.isNotEmpty ? raceRows.first['uuid'] : null,
+        'team_uuid': teamRows.isNotEmpty ? teamRows.first['uuid'] : null,
         'is_dirty': 1,
         'updated_at': DateTime.now().toIso8601String(),
       },
@@ -170,12 +185,33 @@ class RaceRepository implements IRaceRepository {
           'Runner ${raceParticipant.runnerId} already in race ${raceParticipant.raceId}');
     }
     final db = await _db;
+    final raceRows = await db.query('races',
+        columns: ['uuid'],
+        where: 'race_id = ?',
+        whereArgs: [raceParticipant.raceId],
+        limit: 1);
+    final runnerRows = await db.query('runners',
+        columns: ['uuid'],
+        where: 'runner_id = ?',
+        whereArgs: [raceParticipant.runnerId],
+        limit: 1);
+    final teamRows = raceParticipant.teamId != null
+        ? await db.query('teams',
+            columns: ['uuid'],
+            where: 'team_id = ?',
+            whereArgs: [raceParticipant.teamId],
+            limit: 1)
+        : <Map<String, Object?>>[];
     await db.insert(
       'race_participants',
       {
         'race_id': raceParticipant.raceId,
         'runner_id': raceParticipant.runnerId,
         'team_id': raceParticipant.teamId,
+        'uuid': _uuid.v4(),
+        'race_uuid': raceRows.isNotEmpty ? raceRows.first['uuid'] : null,
+        'runner_uuid': runnerRows.isNotEmpty ? runnerRows.first['uuid'] : null,
+        'team_uuid': teamRows.isNotEmpty ? teamRows.first['uuid'] : null,
         'is_dirty': 1,
         'updated_at': DateTime.now().toIso8601String(),
       },

@@ -252,6 +252,20 @@ void main() {
         await repo.addRunnerToTeam(teamId, runnerId);
         await expectLater(repo.addRunnerToTeam(teamId, runnerId), completes);
       });
+
+      test('sets uuid and is_dirty=1 on insert', () async {
+        final runnerId = await repo.createRunner(validRunner);
+        final teamId = await insertTeam('Eagles');
+        await repo.addRunnerToTeam(teamId, runnerId);
+        final db = await connProvider.database;
+        final rows = await db.query('team_rosters',
+            where: 'team_id = ? AND runner_id = ?',
+            whereArgs: [teamId, runnerId]);
+        expect(rows, hasLength(1));
+        expect(rows.first['uuid'], isNotNull);
+        expect(rows.first['uuid'].toString(), isNotEmpty);
+        expect(rows.first['is_dirty'], 1);
+      });
     });
 
     group('removeRunnerFromTeam', () {
@@ -288,6 +302,20 @@ void main() {
       test('throws when team does not exist', () async {
         final runnerId = await repo.createRunner(validRunner);
         expect(() => repo.setRunnerTeam(runnerId, 9999), throwsException);
+      });
+
+      test('sets uuid and is_dirty=1 on new roster insert', () async {
+        final runnerId = await repo.createRunner(validRunner);
+        final teamId = await insertTeam('Eagles');
+        await repo.setRunnerTeam(runnerId, teamId);
+        final db = await connProvider.database;
+        final rows = await db.query('team_rosters',
+            where: 'team_id = ? AND runner_id = ? AND deleted_at IS NULL',
+            whereArgs: [teamId, runnerId]);
+        expect(rows, hasLength(1));
+        expect(rows.first['uuid'], isNotNull);
+        expect(rows.first['uuid'].toString(), isNotEmpty);
+        expect(rows.first['is_dirty'], 1);
       });
     });
 
