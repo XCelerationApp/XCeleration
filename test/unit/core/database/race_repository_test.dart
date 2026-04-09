@@ -233,6 +233,21 @@ void main() {
         final tp = TeamParticipant(raceId: null, teamId: null);
         expect(() => repo.addTeamParticipantToRace(tp), throwsException);
       });
+
+      test('sets uuid and is_dirty=1 on insert', () async {
+        final raceId = await repo.createRace(validRace());
+        final teamId = await insertTeam('Eagles');
+        final tp = TeamParticipant(raceId: raceId, teamId: teamId);
+        await repo.addTeamParticipantToRace(tp);
+        final db = await connProvider.database;
+        final rows = await db.query('race_team_participation',
+            where: 'race_id = ? AND team_id = ?',
+            whereArgs: [raceId, teamId]);
+        expect(rows, hasLength(1));
+        expect(rows.first['uuid'], isNotNull);
+        expect(rows.first['uuid'].toString(), isNotEmpty);
+        expect(rows.first['is_dirty'], 1);
+      });
     });
 
     group('removeTeamParticipantFromRace', () {
@@ -319,6 +334,23 @@ void main() {
       test('throws when RaceParticipant is invalid', () async {
         final rp = RaceParticipant(raceId: null, runnerId: null, teamId: null);
         expect(() => repo.addRaceParticipant(rp), throwsException);
+      });
+
+      test('sets uuid and is_dirty=1 on insert', () async {
+        final raceId = await repo.createRace(validRace());
+        final runnerId = await insertRunner();
+        final teamId = await insertTeam('Eagles');
+        final rp =
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId);
+        await repo.addRaceParticipant(rp);
+        final db = await connProvider.database;
+        final rows = await db.query('race_participants',
+            where: 'race_id = ? AND runner_id = ?',
+            whereArgs: [raceId, runnerId]);
+        expect(rows, hasLength(1));
+        expect(rows.first['uuid'], isNotNull);
+        expect(rows.first['uuid'].toString(), isNotEmpty);
+        expect(rows.first['is_dirty'], 1);
       });
     });
 

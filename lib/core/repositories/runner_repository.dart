@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import 'package:uuid/uuid.dart';
 import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
@@ -7,6 +8,7 @@ import 'i_runner_repository.dart';
 class RunnerRepository implements IRunnerRepository {
   final IDatabaseConnectionProvider _conn;
   final DatabaseWriteBus? _writeBus;
+  final _uuid = const Uuid();
 
   RunnerRepository({
     required IDatabaseConnectionProvider conn,
@@ -149,11 +151,21 @@ class RunnerRepository implements IRunnerRepository {
   Future<void> addRunnerToTeam(int teamId, int runnerId) async {
     if (await getTeamRunner(teamId, runnerId) != null) return;
     final db = await _db;
+    final teamRows = await db.query('teams',
+        columns: ['uuid'], where: 'team_id = ?', whereArgs: [teamId], limit: 1);
+    final runnerRows = await db.query('runners',
+        columns: ['uuid'],
+        where: 'runner_id = ?',
+        whereArgs: [runnerId],
+        limit: 1);
     await db.insert(
       'team_rosters',
       {
         'team_id': teamId,
         'runner_id': runnerId,
+        'uuid': _uuid.v4(),
+        'team_uuid': teamRows.isNotEmpty ? teamRows.first['uuid'] : null,
+        'runner_uuid': runnerRows.isNotEmpty ? runnerRows.first['uuid'] : null,
         'is_dirty': 1,
         'updated_at': DateTime.now().toIso8601String(),
       },
@@ -190,6 +202,14 @@ class RunnerRepository implements IRunnerRepository {
         whereArgs: [newTeamId],
         limit: 1);
     if (teamRows.isEmpty) throw Exception('Team with id $newTeamId not found');
+    final teamUuid = teamRows.first['uuid'] as String?;
+    final runnerRows = await db.query('runners',
+        columns: ['uuid'],
+        where: 'runner_id = ?',
+        whereArgs: [runnerId],
+        limit: 1);
+    final runnerUuid =
+        runnerRows.isNotEmpty ? runnerRows.first['uuid'] as String? : null;
     final now = DateTime.now().toIso8601String();
     await db.transaction((txn) async {
       await txn.rawUpdate(
@@ -201,6 +221,9 @@ class RunnerRepository implements IRunnerRepository {
         {
           'team_id': newTeamId,
           'runner_id': runnerId,
+          'uuid': _uuid.v4(),
+          'team_uuid': teamUuid,
+          'runner_uuid': runnerUuid,
           'is_dirty': 1,
           'updated_at': now,
         },
