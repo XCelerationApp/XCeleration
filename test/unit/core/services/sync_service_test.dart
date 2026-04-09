@@ -1269,6 +1269,256 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
+    group('ensureLocalUuids — race_participants', () {
+      test('assigns UUIDs to race_participants rows with null uuid', () async {
+        _stubSchemaExists(mockDatabase);
+
+        // Return one null-uuid row for 'race_participants', empty for all others
+        when(mockDatabase.query(
+          'race_participants',
+          columns: anyNamed('columns'),
+          where: anyNamed('where'),
+          limit: anyNamed('limit'),
+        )).thenAnswer((_) async => [
+              {'race_id': 1, 'runner_id': 2}
+            ]);
+        when(mockDatabase.query(
+          argThat(isNot('race_participants')),
+          columns: anyNamed('columns'),
+          where: anyNamed('where'),
+          limit: anyNamed('limit'),
+        )).thenAnswer((_) async => []);
+
+        when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 0);
+        when(mockDatabase.rawUpdate(any)).thenAnswer((_) async => 0);
+
+        final mockTxn = MockTransaction();
+        when(mockTxn.update(any, any,
+                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
+            .thenAnswer((_) async => 1);
+        when(mockDatabase.transaction<void>(any,
+                exclusive: anyNamed('exclusive')))
+            .thenAnswer((invocation) {
+          final callback = invocation.positionalArguments[0]
+              as Future<void> Function(Transaction);
+          return callback(mockTxn).then<Null>((_) => null);
+        });
+
+        await service.ensureLocalUuids();
+
+        final captured = verify(mockTxn.update(
+          'race_participants',
+          captureAny,
+          where: anyNamed('where'),
+          whereArgs: anyNamed('whereArgs'),
+        )).captured;
+
+        expect(captured.first, isA<Map<String, dynamic>>());
+        final updatedValues = captured.first as Map<String, dynamic>;
+        expect(updatedValues.containsKey('uuid'), isTrue);
+        expect(updatedValues['uuid'], isA<String>());
+        expect((updatedValues['uuid'] as String).isNotEmpty, isTrue);
+      });
+
+      test('identifies race_participants rows by composite PK (race_id, runner_id)',
+          () async {
+        _stubSchemaExists(mockDatabase);
+
+        when(mockDatabase.query(
+          'race_participants',
+          columns: anyNamed('columns'),
+          where: anyNamed('where'),
+          limit: anyNamed('limit'),
+        )).thenAnswer((_) async => [
+              {'race_id': 10, 'runner_id': 20}
+            ]);
+        when(mockDatabase.query(
+          argThat(isNot('race_participants')),
+          columns: anyNamed('columns'),
+          where: anyNamed('where'),
+          limit: anyNamed('limit'),
+        )).thenAnswer((_) async => []);
+
+        when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 0);
+        when(mockDatabase.rawUpdate(any)).thenAnswer((_) async => 0);
+
+        final mockTxn = MockTransaction();
+        when(mockTxn.update(any, any,
+                where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
+            .thenAnswer((_) async => 1);
+        when(mockDatabase.transaction<void>(any,
+                exclusive: anyNamed('exclusive')))
+            .thenAnswer((invocation) {
+          final callback = invocation.positionalArguments[0]
+              as Future<void> Function(Transaction);
+          return callback(mockTxn).then<Null>((_) => null);
+        });
+
+        await service.ensureLocalUuids();
+
+        verify(mockTxn.update(
+          'race_participants',
+          any,
+          where: 'race_id = ? AND runner_id = ?',
+          whereArgs: [10, 20],
+        )).called(1);
+      });
+
+      test('skips UUID assignment for race_participants when all rows have UUIDs',
+          () async {
+        _stubSchemaExists(mockDatabase);
+
+        when(mockDatabase.query(
+          any,
+          columns: anyNamed('columns'),
+          where: anyNamed('where'),
+          limit: anyNamed('limit'),
+        )).thenAnswer((_) async => []);
+
+        when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 0);
+        when(mockDatabase.rawUpdate(any)).thenAnswer((_) async => 0);
+
+        await service.ensureLocalUuids();
+
+        // No transaction should be started when there are no null-uuid rows
+        verifyNever(mockDatabase.transaction<void>(any,
+            exclusive: anyNamed('exclusive')));
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('_pushRaceParticipants', () {
+      setUp(() {
+        _stubSchemaExists(mockDatabase);
+        when(mockAuth.currentUserId).thenReturn('user-1');
+      });
+
+      test('skips row and clears dirty flag when remote is newer (LWW)', () async {
+        const uuid = 'rp-uuid-1';
+        const raceUuid = 'race-uuid-1';
+        const runnerUuid = 'runner-uuid-1';
+
+        // Dirty local row (older timestamp)
+        when(mockDatabase.query(
+          'race_participants',
+          where: anyNamed('where'),
+        )).thenAnswer((_) async => [
+              {
+                'race_id': 1,
+                'runner_id': 2,
+                'team_id': 3,
+                'uuid': uuid,
+                'race_uuid': raceUuid,
+                'runner_uuid': runnerUuid,
+                'team_uuid': 'team-uuid-1',
+                'updated_at': '2024-01-01T00:00:00.000Z',
+                'created_at': '2024-01-01T00:00:00.000Z',
+                'is_dirty': 1,
+              }
+            ]);
+
+        // Other tables return no dirty rows
+        when(mockDatabase.query(
+          argThat(isNot('race_participants')),
+          where: anyNamed('where'),
+        )).thenAnswer((_) async => []);
+
+        when(mockSyncClient.fetchByUuids(any, any))
+            .thenAnswer((_) async => []);
+
+        // Remote row is newer
+        when(mockSyncClient.fetchByUuids('race_participants', [uuid]))
+            .thenAnswer((_) async => [
+                  {
+                    'uuid': uuid,
+                    'race_uuid': raceUuid,
+                    'runner_uuid': runnerUuid,
+                    'updated_at': '2024-12-01T00:00:00.000Z',
+                  }
+                ]);
+
+        when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 1);
+
+        await service.pushAll();
+
+        // Should NOT upsert to remote
+        verifyNever(mockSyncClient.upsertRows(
+          'race_participants',
+          any,
+          onConflict: anyNamed('onConflict'),
+        ));
+
+        // Should clear the dirty flag via rawUpdate
+        verify(mockDatabase.rawUpdate(
+          'UPDATE race_participants SET is_dirty = 0 WHERE uuid = ?',
+          [uuid],
+        )).called(1);
+      });
+
+      test('pushes row and clears dirty flag when local is newer', () async {
+        const uuid = 'rp-uuid-2';
+        const raceUuid = 'race-uuid-2';
+        const runnerUuid = 'runner-uuid-2';
+
+        when(mockDatabase.query(
+          'race_participants',
+          where: anyNamed('where'),
+        )).thenAnswer((_) async => [
+              {
+                'race_id': 1,
+                'runner_id': 2,
+                'team_id': 3,
+                'uuid': uuid,
+                'race_uuid': raceUuid,
+                'runner_uuid': runnerUuid,
+                'team_uuid': 'team-uuid-2',
+                'updated_at': '2024-12-01T00:00:00.000Z',
+                'created_at': '2024-01-01T00:00:00.000Z',
+                'is_dirty': 1,
+              }
+            ]);
+
+        when(mockDatabase.query(
+          argThat(isNot('race_participants')),
+          where: anyNamed('where'),
+        )).thenAnswer((_) async => []);
+
+        when(mockSyncClient.fetchByUuids(any, any))
+            .thenAnswer((_) async => []);
+
+        // Remote row is older
+        when(mockSyncClient.fetchByUuids('race_participants', [uuid]))
+            .thenAnswer((_) async => [
+                  {
+                    'uuid': uuid,
+                    'race_uuid': raceUuid,
+                    'runner_uuid': runnerUuid,
+                    'updated_at': '2024-01-01T00:00:00.000Z',
+                  }
+                ]);
+
+        when(mockSyncClient.upsertRows(any, any,
+                onConflict: anyNamed('onConflict')))
+            .thenAnswer((_) async {});
+        when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 1);
+
+        await service.pushAll();
+
+        verify(mockSyncClient.upsertRows(
+          'race_participants',
+          argThat(isA<List>()),
+          onConflict: 'race_uuid,runner_uuid',
+        )).called(1);
+
+        // Dirty flag cleared via uuid-based rawUpdate
+        verify(mockDatabase.rawUpdate(
+          argThat(contains('is_dirty = 0')),
+          argThat(contains(uuid)),
+        )).called(1);
+      });
+    });
+
+    // -------------------------------------------------------------------------
     group('syncEvents stream', () {
       test('exposes a broadcast stream', () {
         expect(service.syncEvents.isBroadcast, isTrue);

@@ -148,7 +148,11 @@ class SyncService implements ISyncService {
     await assignUuids('races', 'race_id');
     await assignUuids('race_results', 'result_id');
 
-    // Assign UUIDs to race_participants rows (composite PK — can't use assignUuids)
+    // race_participants has a composite PK (race_id, runner_id), so the generic
+    // assignUuids helper cannot be used. Assign UUIDs row-by-row in a single
+    // transaction using both PK columns to identify each row.
+    // Also sets is_dirty=1 and updated_at so newly-UUID-assigned rows are queued
+    // for sync on the next push.
     final rpWithoutUuid = await db.query(
       'race_participants',
       columns: ['race_id', 'runner_id'],

@@ -175,6 +175,7 @@ create table if not exists public.race_participants (
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   deleted_at    timestamptz,
+  uuid          uuid        not null default gen_random_uuid() unique,
   primary key (race_uuid, runner_uuid)
 );
 
