@@ -24,10 +24,19 @@ class ResultsRepository implements IResultsRepository {
       }
     }
     final db = await _db;
+    final now = DateTime.now().toIso8601String();
     await db.transaction((txn) async {
-      await txn.delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
+      await txn.rawUpdate(
+        'UPDATE race_results SET deleted_at = ?, is_dirty = 1, updated_at = ? WHERE race_id = ? AND deleted_at IS NULL',
+        [now, now, raceId],
+      );
       for (final result in results) {
-        await txn.insert('race_results', result.toMap());
+        final map = result.toMap();
+        map['is_dirty'] = 1;
+        map['updated_at'] = now;
+        map['deleted_at'] = null;
+        await txn.insert('race_results', map,
+            conflictAlgorithm: ConflictAlgorithm.replace);
       }
     });
     _writeBus?.notify();
@@ -39,7 +48,7 @@ class ResultsRepository implements IResultsRepository {
       final db = await _db;
       final existing = await db.query(
         'race_results',
-        where: 'race_id = ? AND runner_id = ?',
+        where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
         whereArgs: [result.raceId, result.runner!.runnerId],
       );
       if (existing.isNotEmpty) throw Exception('RaceResult already exists');
@@ -48,7 +57,9 @@ class ResultsRepository implements IResultsRepository {
     final map = result.toMap();
     map['is_dirty'] = 1;
     map['updated_at'] = DateTime.now().toIso8601String();
-    await db.insert('race_results', map);
+    map['deleted_at'] = null;
+    await db.insert('race_results', map,
+        conflictAlgorithm: ConflictAlgorithm.replace);
     _writeBus?.notify();
   }
 
@@ -61,7 +72,7 @@ class ResultsRepository implements IResultsRepository {
     final db = await _db;
     final rows = await db.query(
       'race_results',
-      where: 'race_id = ? AND runner_id = ?',
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
     );
     return rows.isNotEmpty ? RaceResult.fromMap(rows.first) : null;
@@ -86,7 +97,7 @@ class ResultsRepository implements IResultsRepository {
       FROM race_results rr
       JOIN runners r ON rr.runner_id = r.runner_id
       LEFT JOIN teams t ON rr.team_id = t.team_id
-      WHERE rr.race_id = ?
+      WHERE rr.race_id = ? AND rr.deleted_at IS NULL
       ORDER BY rr.place
     ''', [raceId]);
     return rows.map((m) => RaceResult.fromMap(m)).toList();
@@ -118,9 +129,11 @@ class ResultsRepository implements IResultsRepository {
           'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found');
     }
     final db = await _db;
-    await db.delete(
+    final now = DateTime.now().toIso8601String();
+    await db.update(
       'race_results',
-      where: 'race_id = ? AND runner_id = ?',
+      {'deleted_at': now, 'is_dirty': 1, 'updated_at': now},
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
     );
     _writeBus?.notify();

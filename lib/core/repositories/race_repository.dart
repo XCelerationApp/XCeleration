@@ -39,15 +39,16 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<Race?> getRace(int raceId) async {
     final db = await _db;
-    final rows =
-        await db.query('races', where: 'race_id = ?', whereArgs: [raceId]);
+    final rows = await db.query('races',
+        where: 'race_id = ? AND deleted_at IS NULL', whereArgs: [raceId]);
     return rows.isNotEmpty ? Race.fromJson(rows.first) : null;
   }
 
   @override
   Future<List<Race>> getAllRaces() async {
     final db = await _db;
-    final rows = await db.query('races', orderBy: 'race_date DESC');
+    final rows = await db.query('races',
+        where: 'deleted_at IS NULL', orderBy: 'race_date DESC');
     return rows.map((m) => Race.fromJson(m)).toList();
   }
 
@@ -69,8 +70,13 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<void> deleteRace(int raceId) async {
     final db = await _db;
-    final affectedRows =
-        await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
+    final now = DateTime.now().toIso8601String();
+    final affectedRows = await db.update(
+      'races',
+      {'deleted_at': now, 'is_dirty': 1, 'updated_at': now},
+      where: 'race_id = ? AND deleted_at IS NULL',
+      whereArgs: [raceId],
+    );
     if (affectedRows == 0) {
       throw Exception('Race with id $raceId not found');
     }
@@ -97,6 +103,8 @@ class RaceRepository implements IRaceRepository {
         'race_id': teamParticipant.raceId,
         'team_id': teamParticipant.teamId,
         'team_color_override': teamParticipant.colorOverride,
+        'is_dirty': 1,
+        'updated_at': DateTime.now().toIso8601String(),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -111,9 +119,11 @@ class RaceRepository implements IRaceRepository {
           'Team ${teamParticipant.teamId} not in race ${teamParticipant.raceId}');
     }
     final db = await _db;
-    await db.delete(
+    final now = DateTime.now().toIso8601String();
+    await db.update(
       'race_team_participation',
-      where: 'race_id = ? AND team_id = ?',
+      {'deleted_at': now, 'is_dirty': 1, 'updated_at': now},
+      where: 'race_id = ? AND team_id = ? AND deleted_at IS NULL',
       whereArgs: [teamParticipant.raceId!, teamParticipant.teamId!],
     );
     _writeBus?.notify();
@@ -127,6 +137,7 @@ class RaceRepository implements IRaceRepository {
       FROM teams t
       JOIN race_team_participation rtp ON t.team_id = rtp.team_id
       WHERE rtp.race_id = ? AND rtp.team_id = ?
+        AND rtp.deleted_at IS NULL AND t.deleted_at IS NULL
     ''', [teamParticipant.raceId!, teamParticipant.teamId!]);
     return rows.isNotEmpty ? Team.fromRaceParticipationMap(rows.first) : null;
   }
@@ -139,6 +150,7 @@ class RaceRepository implements IRaceRepository {
       FROM teams t
       JOIN race_team_participation rtp ON t.team_id = rtp.team_id
       WHERE rtp.race_id = ?
+        AND rtp.deleted_at IS NULL AND t.deleted_at IS NULL
       ORDER BY t.name
     ''', [raceId]);
     return rows.map((m) => Team.fromRaceParticipationMap(m)).toList();
@@ -194,9 +206,11 @@ class RaceRepository implements IRaceRepository {
           'Runner ${raceParticipant.runnerId} not in race ${raceParticipant.raceId}');
     }
     final db = await _db;
-    await db.delete(
+    final now = DateTime.now().toIso8601String();
+    await db.update(
       'race_participants',
-      where: 'race_id = ? AND runner_id = ?',
+      {'deleted_at': now, 'is_dirty': 1, 'updated_at': now},
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
     );
     _writeBus?.notify();
@@ -208,7 +222,7 @@ class RaceRepository implements IRaceRepository {
     final db = await _db;
     final rows = await db.query(
       'race_participants',
-      where: 'race_id = ? AND runner_id = ?',
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
     );
     return rows.isNotEmpty ? RaceParticipant.fromMap(rows.first) : null;
@@ -222,7 +236,7 @@ class RaceRepository implements IRaceRepository {
     final db = await _db;
     final rows = await db.query(
       'race_participants',
-      where: 'race_id = ?',
+      where: 'race_id = ? AND deleted_at IS NULL',
       whereArgs: [raceId],
       orderBy: 'runner_id',
     );
@@ -238,6 +252,7 @@ class RaceRepository implements IRaceRepository {
       FROM race_participants rp
       JOIN runners r ON r.runner_id = rp.runner_id
       WHERE rp.race_id = ? AND r.bib_number = ?
+        AND rp.deleted_at IS NULL AND r.deleted_at IS NULL
       LIMIT 1
     ''', [raceId, bibNumber]);
     return rows.isNotEmpty ? RaceParticipant.fromMap(rows.first) : null;
@@ -254,6 +269,7 @@ class RaceRepository implements IRaceRepository {
       FROM race_participants rp
       JOIN runners r ON r.runner_id = rp.runner_id
       WHERE rp.race_id = ? AND r.bib_number IN ($qMarks)
+        AND rp.deleted_at IS NULL AND r.deleted_at IS NULL
     ''', [raceId, ...bibNumbers]);
     return rows.map((m) => RaceParticipant.fromMap(m)).toList();
   }
@@ -269,13 +285,13 @@ class RaceRepository implements IRaceRepository {
 
     if (searchParameter == 'all') {
       whereClause =
-          'rp.race_id = ? AND (r.name LIKE ? OR r.bib_number LIKE ? OR r.grade LIKE ? OR t.name LIKE ?)';
+          'rp.race_id = ? AND rp.deleted_at IS NULL AND r.deleted_at IS NULL AND t.deleted_at IS NULL AND (r.name LIKE ? OR r.bib_number LIKE ? OR r.grade LIKE ? OR t.name LIKE ?)';
       whereArgs.addAll(['%$query%', '%$query%', '%$query%', '%$query%']);
     } else if (searchParameter == 'team_name') {
-      whereClause = 'rp.race_id = ? AND t.name LIKE ?';
+      whereClause = 'rp.race_id = ? AND rp.deleted_at IS NULL AND r.deleted_at IS NULL AND t.deleted_at IS NULL AND t.name LIKE ?';
       whereArgs.add('%$query%');
     } else if (_allowedRunnerColumns.contains(searchParameter)) {
-      whereClause = 'rp.race_id = ? AND r.$searchParameter LIKE ?';
+      whereClause = 'rp.race_id = ? AND rp.deleted_at IS NULL AND r.deleted_at IS NULL AND t.deleted_at IS NULL AND r.$searchParameter LIKE ?';
       whereArgs.add('%$query%');
     } else {
       throw ArgumentError.value(
