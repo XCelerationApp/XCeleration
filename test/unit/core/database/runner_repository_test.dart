@@ -214,15 +214,16 @@ void main() {
         expect(await repo.getRunner(id), isNull);
       });
 
-      test('removes associated team_rosters rows', () async {
+      test('soft-deletes associated team_rosters rows', () async {
         final runnerId = await repo.createRunner(validRunner);
         final teamId = await insertTeam('Eagles');
         await repo.addRunnerToTeam(teamId, runnerId);
         await repo.deleteRunnerEverywhere(runnerId);
         final db = await connProvider.database;
         final rows = await db.query('team_rosters',
-            where: 'runner_id = ?', whereArgs: [runnerId]);
-        expect(rows, isEmpty);
+            where: 'runner_id = ? AND deleted_at IS NOT NULL',
+            whereArgs: [runnerId]);
+        expect(rows, hasLength(1));
       });
     });
 
