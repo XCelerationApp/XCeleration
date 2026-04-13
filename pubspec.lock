@@ -285,18 +285,18 @@ packages:
     dependency: "direct main"
     description:
       name: connectivity_plus
-      sha256: "33bae12a398f841c6cda09d1064212957265869104c478e5ad51e2fb26c3973c"
+      sha256: "62ffa266d9a23b79fb3fcbc206afc00bb979417ba57b1324c546b5aab95ba057"
       url: "https://pub.dev"
     source: hosted
-    version: "7.0.0"
+    version: "7.1.1"
   connectivity_plus_platform_interface:
     dependency: transitive
     description:
       name: connectivity_plus_platform_interface
-      sha256: "42657c1715d48b167930d5f34d00222ac100475f73d10162ddf43e714932f204"
+      sha256: "3c09627c536d22fd24691a905cdd8b14520de69da52c7a97499c8be5284a32ed"
       url: "https://pub.dev"
     source: hosted
-    version: "2.0.1"
+    version: "2.1.0"
   convert:
     dependency: transitive
     description:
@@ -607,10 +607,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_web_auth_2
-      sha256: "432ff8c7b2834eaeec3378d99e24a0210b9ac2f453b3f7a7d739a5c09069fba3"
+      sha256: d354998934ddc338e69b999b2abaeb33c6fd09999d3a5f92ead1a6b49b49712e
       url: "https://pub.dev"
     source: hosted
-    version: "5.0.1"
+    version: "5.0.2"
   flutter_web_auth_2_platform_interface:
     dependency: transitive
     description:
@@ -1308,18 +1308,18 @@ packages:
     dependency: transitive
     description:
       name: sentry
-      sha256: "288aee3d35f252ac0dc3a4b0accbbe7212fa2867604027f2cc5bc65334afd743"
+      sha256: "682360642a7b14b36daef3b5574b7269164e7763512ac92cdafd55b695bd2183"
       url: "https://pub.dev"
     source: hosted
-    version: "9.16.0"
+    version: "9.16.1"
   sentry_flutter:
     dependency: "direct main"
     description:
       name: sentry_flutter
-      sha256: f9e87d5895cc437902aa2b081727ee7e46524fe7cc2e1910f535480a3eeb8bed
+      sha256: cf4944d02daa952aeb0e1ab01ddb3db8bfc6b7e16e9811edacf05d9eed276fda
       url: "https://pub.dev"
     source: hosted
-    version: "9.16.0"
+    version: "9.16.1"
   share_plus:
     dependency: "direct main"
     description:
@@ -1412,50 +1412,50 @@ packages:
     dependency: "direct main"
     description:
       name: sherpa_onnx
-      sha256: "0e2d256711952e9e5c9d0d77deb66f9a63085c949f248fba3f8c48c3ec57c1fd"
+      sha256: c10a1052bf03b9e68562e5be7d3a60568738c8356f3607012f0260f88ea11f08
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.34"
+    version: "1.12.36"
   sherpa_onnx_android:
     dependency: transitive
     description:
       name: sherpa_onnx_android
-      sha256: b0c1f489daf32fba17b602bac4b5eaa7f1f95b6c0c520830a87dd25fe1fe20d8
+      sha256: "03a70665e83c026ccf4d853fe87d011321bc66810c5ea108ea08a128f95d862a"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.34"
+    version: "1.12.36"
   sherpa_onnx_ios:
     dependency: transitive
     description:
       name: sherpa_onnx_ios
-      sha256: "19032ec56c4b80e0c1106548aae32fa117633445dbce051c70febeff5857dc6a"
+      sha256: a725a7e14a0be3a6d604902efe12b7c3e8c3190f0506a2635153fc419b4af021
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.34"
+    version: "1.12.38"
   sherpa_onnx_linux:
     dependency: transitive
     description:
       name: sherpa_onnx_linux
-      sha256: e9febe73fecf248b337f819616f2d00c86837330379471c3715cb814b9dfee74
+      sha256: "608146dfa2b654a7e9b6bd6c76ac407452e141c8326bf13eccd7422189e7cae6"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.34"
+    version: "1.12.38"
   sherpa_onnx_macos:
     dependency: transitive
     description:
       name: sherpa_onnx_macos
-      sha256: "7a6352c8bdaeca95ed18bc43c77ba4ee0cc3951abd66648ae353d21f0b255bae"
+      sha256: "8e2a9825081f21e53a0d94f4b83b15120624980585518feefc577313c9374042"
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.34"
+    version: "1.12.38"
   sherpa_onnx_windows:
     dependency: transitive
     description:
       name: sherpa_onnx_windows
-      sha256: da26d97fdeff6cebc06b482e02149e5104b3d1e0c88ebb47b6aa8e15638e6aec
+      sha256: fb896256baf0450f9a0919d65ea838d4445be8578f5b567f40fe32130cb9fef3
       url: "https://pub.dev"
     source: hosted
-    version: "1.12.34"
+    version: "1.12.38"
   sky_engine:
     dependency: transitive
     description: flutter
