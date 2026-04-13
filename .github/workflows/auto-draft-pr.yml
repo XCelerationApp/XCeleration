@@ -55,7 +55,7 @@ jobs:
       - name: Check for existing PR
         id: check-existing
         if: steps.determine.outputs.should-create-pr == 'true'
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         with:
           script: |
             const source = '${{ steps.determine.outputs.source-branch }}';
@@ -87,7 +87,7 @@ jobs:
 
       - name: Generate content and create PR
         id: generate-content
-        uses: actions/github-script@v8
+        uses: actions/github-script@v9
         env:
           PR_TYPE: ${{ needs.determine-pr-type.outputs.pr-type }}
           SOURCE_BRANCH: ${{ needs.determine-pr-type.outputs.source-branch }}
