@@ -17,7 +17,7 @@ jobs:
       build-changed: ${{ steps.build-changes.outputs.any_changed }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -46,7 +46,7 @@ jobs:
     if: needs.detect-changes.outputs.dart-changed == 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -82,7 +82,7 @@ jobs:
       (needs.analyze-and-test.result == 'success' || needs.analyze-and-test.result == 'skipped')
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
