@@ -365,6 +365,71 @@ void main() {
         expect(inserted.containsKey('owner_user_id'), isFalse);
       });
 
+      // Remote runners/teams/races carry their own bigserial primary key,
+      // numbered across all users. It must never reach local SQLite, where it
+      // would collide with (and REPLACE) an unrelated local row.
+      for (final (table, pkColumn) in [
+        ('runners', 'runner_id'),
+        ('teams', 'team_id'),
+        ('races', 'race_id'),
+      ]) {
+        test('strips the remote $pkColumn before inserting a new $table row',
+            () async {
+          when(mockSyncClient.fetchTableRows(table, any,
+                  cursor: anyNamed('cursor')))
+              .thenAnswer((_) async => [
+                    {
+                      pkColumn: 8123,
+                      'uuid': 'uuid-remote-1',
+                      'name': 'Remote',
+                      'updated_at': '2024-06-01T12:00:00.000Z',
+                      'owner_user_id': 'user-1',
+                    }
+                  ]);
+
+          await service.pullAll();
+
+          final inserted = verify(mockDatabase.insert(table, captureAny,
+                  conflictAlgorithm: anyNamed('conflictAlgorithm')))
+              .captured
+              .single as Map<String, dynamic>;
+          expect(inserted.containsKey(pkColumn), isFalse);
+        });
+
+        test('keeps the local $pkColumn when updating an existing $table row',
+            () async {
+          when(mockSyncClient.fetchTableRows(table, any,
+                  cursor: anyNamed('cursor')))
+              .thenAnswer((_) async => [
+                    {
+                      pkColumn: 8123,
+                      'uuid': 'uuid-1',
+                      'name': 'Remote Newer',
+                      'updated_at': '2024-06-01T12:00:00.000Z',
+                      'owner_user_id': 'user-1',
+                    }
+                  ]);
+          when(mockDatabase.rawQuery(argThat(contains('WHERE uuid IN')), any))
+              .thenAnswer((_) async => [
+                    {
+                      pkColumn: 1,
+                      'uuid': 'uuid-1',
+                      'name': 'Local',
+                      'updated_at': '2024-01-01T00:00:00.000Z',
+                      'is_dirty': 0,
+                    }
+                  ]);
+
+          await service.pullAll();
+
+          final updated = verify(mockDatabase.update(table, captureAny,
+                  where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
+              .captured
+              .single as Map<String, dynamic>;
+          expect(updated.containsKey(pkColumn), isFalse);
+        });
+      }
+
       test('updates local row when remote timestamp is newer', () async {
         const uuid = 'uuid-runner-1';
         final localRow = {

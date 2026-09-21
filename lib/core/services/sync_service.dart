@@ -552,7 +552,7 @@ class SyncService implements ISyncService {
     final changedTables = <String>{};
     final changedRaceIds = <int>{};
 
-    Future<void> pullTable(String table) async {
+    Future<void> pullTable(String table, {required String localPkColumn}) async {
       final cursorKey = 'cursor.$table';
       final cursor = await getCursor(cursorKey);
       final data = await _syncClient.fetchTableRows(
@@ -587,6 +587,10 @@ class SyncService implements ISyncService {
             : <Map<String, dynamic>>[];
         // Remove remote-only fields not present locally
         remote.remove('owner_user_id');
+        // The remote primary key comes from a sequence shared by all users, so
+        // it means nothing locally; writing it would clobber an unrelated row.
+        // Local rows are matched by uuid and keep their own SQLite id.
+        remote.remove(localPkColumn);
 
         // Handle remote tombstones: apply soft delete regardless of LWW
         if (remote['deleted_at'] != null) {
@@ -684,9 +688,9 @@ class SyncService implements ISyncService {
       }
     }
 
-    await pullTable('runners');
-    await pullTable('teams');
-    await pullTable('races');
+    await pullTable('runners', localPkColumn: 'runner_id');
+    await pullTable('teams', localPkColumn: 'team_id');
+    await pullTable('races', localPkColumn: 'race_id');
     await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
     await _pullRaceParticipants(accessibleOwnerIds, changedTables);
 
