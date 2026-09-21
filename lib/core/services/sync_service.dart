@@ -283,8 +283,31 @@ class SyncService implements ISyncService {
     await _syncEventController.close();
   }
 
+  // Only one sync runs at a time. Calls that arrive during a sync share its
+  // future and schedule one follow-up pass, so writes made mid-sync still get
+  // pushed without overlapping syncs racing on UUIDs, dirty flags and cursors.
+  Future<void>? _inFlightSync;
+  bool _followUpRequested = false;
+
   @override
-  Future<void> syncAll() async {
+  Future<void> syncAll() {
+    if (_inFlightSync != null) {
+      _followUpRequested = true;
+      return _inFlightSync!;
+    }
+    final run = _runSyncPasses();
+    _inFlightSync = run;
+    return run.whenComplete(() => _inFlightSync = null);
+  }
+
+  Future<void> _runSyncPasses() async {
+    do {
+      _followUpRequested = false;
+      await _syncOnce();
+    } while (_followUpRequested);
+  }
+
+  Future<void> _syncOnce() async {
     try {
       await _remote.init();
       if (!_remote.isInitialized) {
@@ -435,6 +458,7 @@ class SyncService implements ISyncService {
       copy.remove('result_id');
       copy.remove('runner_id');
       copy.remove('race_id');
+      copy.remove('team_id');
 
       final runnerUuid = copy['runner_uuid'];
       final raceUuid = copy['race_uuid'];
@@ -553,7 +577,7 @@ class SyncService implements ISyncService {
     final changedTables = <String>{};
     final changedRaceIds = <int>{};
 
-    Future<void> pullTable(String table) async {
+    Future<void> pullTable(String table, {required String localPkColumn}) async {
       final cursorKey = 'cursor.$table';
       final cursor = await getCursor(cursorKey);
       final data = await _syncClient.fetchTableRows(
@@ -588,6 +612,10 @@ class SyncService implements ISyncService {
             : <Map<String, dynamic>>[];
         // Remove remote-only fields not present locally
         remote.remove('owner_user_id');
+        // The remote primary key comes from a sequence shared by all users, so
+        // it means nothing locally; writing it would clobber an unrelated row.
+        // Local rows are matched by uuid and keep their own SQLite id.
+        remote.remove(localPkColumn);
 
         // Handle remote tombstones: apply soft delete regardless of LWW
         if (remote['deleted_at'] != null) {
@@ -685,9 +713,9 @@ class SyncService implements ISyncService {
       }
     }
 
-    await pullTable('runners');
-    await pullTable('teams');
-    await pullTable('races');
+    await pullTable('runners', localPkColumn: 'runner_id');
+    await pullTable('teams', localPkColumn: 'team_id');
+    await pullTable('races', localPkColumn: 'race_id');
     await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
     await _pullRaceParticipants(accessibleOwnerIds, changedTables);
 
@@ -747,6 +775,24 @@ class SyncService implements ISyncService {
       }
     }
 
+    // A result's team is the team the runner raced for, which this device
+    // records in race_participants. The team_id on the remote row is another
+    // device's local id and must not be used.
+    final participantTeamIds = <String, int>{};
+    final localRaceIds = raceUuidToId.values.toSet().toList();
+    if (localRaceIds.isNotEmpty) {
+      final qMarks = List.filled(localRaceIds.length, '?').join(',');
+      final rows = await db.rawQuery(
+          'SELECT race_id, runner_id, team_id FROM race_participants WHERE race_id IN ($qMarks)',
+          localRaceIds);
+      for (final r in rows) {
+        final teamId = r['team_id'] as int?;
+        if (teamId != null) {
+          participantTeamIds['${r['race_id']}:${r['runner_id']}'] = teamId;
+        }
+      }
+    }
+
     // Batch-fetch all matching local rows in a single query.
     final resultUuids =
         data.map((r) => r['uuid']).whereType<String>().toList();
@@ -801,6 +847,9 @@ class SyncService implements ISyncService {
       // Inject resolved local integer IDs
       remote['runner_id'] = runnerId;
       remote['race_id'] = raceId;
+      remote.remove('team_id');
+      final teamId = participantTeamIds['$raceId:$runnerId'];
+      if (teamId != null) remote['team_id'] = teamId;
 
       final locals = localsByUuid.containsKey(uuid)
           ? [localsByUuid[uuid]!]

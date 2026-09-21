@@ -292,32 +292,28 @@ class TimingData with ChangeNotifier {
       currentChunk.conflictRecord != null ||
       !_chunkCacher.isEmpty;
 
+  /// Encodes every record, oldest first, for sharing with the coach.
+  ///
+  /// Read-only: sharing can be retried (e.g. after a failed transfer), so this
+  /// must not drain the chunk cache or modify [currentChunk].
   Future<String> encodedRecords() async {
-    final List<TimingChunk> chunks = [];
-    if (!currentChunk.isEmpty) {
-      final bool shouldAddConfirm =
-          !currentChunk.hasConflict && raceDuration != null;
-      if (shouldAddConfirm) {
-        currentChunk.conflictRecord = TimingDatum(
-            time: raceDuration!.toString(),
-            conflict: Conflict(type: ConflictType.confirmRunner));
-      }
-      chunks.add(currentChunk);
-    }
-    while (true) {
-      final TimingChunk? chunk =
-          _chunkCacher.restoreLastChunkFromCache(currentChunk.id);
-      if (chunk == null) {
-        break;
-      }
-      chunks.add(chunk);
-    }
-
     final List<TimingDatum> records = [];
-    for (TimingChunk chunk in chunks.reversed) {
+    for (final chunk in _chunkCacher.cachedTimingChunks) {
       records.addAll(chunk.timingData);
       if (chunk.hasConflict) {
         records.add(chunk.conflictRecord!);
+      }
+    }
+
+    if (!currentChunk.isEmpty) {
+      records.addAll(currentChunk.timingData);
+      if (currentChunk.hasConflict) {
+        records.add(currentChunk.conflictRecord!);
+      } else if (raceDuration != null) {
+        // Closing checkpoint so the coach can confirm the final runner count.
+        records.add(TimingDatum(
+            time: raceDuration!.toString(),
+            conflict: Conflict(type: ConflictType.confirmRunner)));
       }
     }
 

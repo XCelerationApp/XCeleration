@@ -1,3 +1,5 @@
+import 'package:xceleration/core/utils/sync_timestamp.dart';
+
 /// Coach-side runner entity stored in the Coach SQLite database.
 ///
 /// **Why this differs from [lib/assistant/shared/models/runner.dart]:**
@@ -55,7 +57,7 @@ class Runner {
       'bib_number': bibNumber,
       'grade': grade,
       'created_at': createdAt?.toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': SyncTimestamp.now(),
       'deleted_at': deletedAt?.toIso8601String(),
       'is_dirty': isDirty,
     };

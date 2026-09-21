@@ -17,7 +17,7 @@ jobs:
       build-changed: ${{ steps.build-changes.outputs.any_changed }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -46,7 +46,7 @@ jobs:
     if: needs.detect-changes.outputs.dart-changed == 'true'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -60,6 +60,9 @@ jobs:
 
       - name: Create .env file
         run: touch .env
+
+      - name: Regenerate mocks
+        run: dart run build_runner build --delete-conflicting-outputs
 
       - name: Analyze changed files
         run: |
@@ -79,7 +82,7 @@ jobs:
       (needs.analyze-and-test.result == 'success' || needs.analyze-and-test.result == 'skipped')
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
@@ -95,13 +98,16 @@ jobs:
         if: github.event.pull_request.head.repo.full_name == github.repository
         run: echo "${{ secrets.DOTENV }}" > .env
 
+      - name: Check bundled .env holds no build secrets
+        run: scripts/check_bundled_env.sh .env
+
       - name: Create empty .env file for forks
         if: github.event.pull_request.head.repo.full_name != github.repository
         run: touch .env
 
       - name: Cache build artifacts
         id: build-cache
-        uses: actions/cache@v5
+        uses: actions/cache@v6
         with:
           path: |
             build/

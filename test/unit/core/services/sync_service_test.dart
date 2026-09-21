@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -113,6 +115,51 @@ void main() {
         verifyNever(mockDatabase.rawQuery(any, any));
       });
 
+      group('overlapping calls', () {
+        // Startup, connectivity changes, debounced writes and "Sync Now" can
+        // all call syncAll at once. Only one sync may run at a time.
+        late Completer<void> firstInit;
+        late int initCalls;
+
+        setUp(() {
+          firstInit = Completer<void>();
+          initCalls = 0;
+          when(mockRemote.init()).thenAnswer((_) {
+            initCalls++;
+            return initCalls == 1 ? firstInit.future : Future.value();
+          });
+        });
+
+        test('does not start a second sync while one is in flight', () async {
+          final first = service.syncAll();
+          final second = service.syncAll();
+
+          expect(initCalls, 1);
+          firstInit.complete();
+          await Future.wait([first, second]);
+        });
+
+        test('runs exactly one follow-up sync for calls made during a sync',
+            () async {
+          final calls = [service.syncAll(), service.syncAll(), service.syncAll()];
+
+          firstInit.complete();
+          await Future.wait(calls);
+
+          expect(initCalls, 2);
+        });
+
+        test('starts a fresh sync once the previous one has finished',
+            () async {
+          firstInit.complete();
+          await service.syncAll();
+
+          await service.syncAll();
+
+          expect(initCalls, 2);
+        });
+      });
+
       test('rethrows exceptions from underlying operations', () async {
         when(mockRemote.isInitialized).thenReturn(true);
         when(mockAuth.isSignedIn).thenReturn(true);
@@ -148,6 +195,44 @@ void main() {
 
         verifyNever(mockSyncClient.upsertRows(any, any,
             onConflict: anyNamed('onConflict')));
+      });
+
+      test('does not push the local team_id of a race result', () async {
+        when(mockAuth.currentUserId).thenReturn('user-1');
+        _stubSchemaExists(mockDatabase);
+        when(mockDatabase.query(any, where: anyNamed('where')))
+            .thenAnswer((_) async => []);
+        when(mockDatabase.query('race_results', where: 'is_dirty = 1'))
+            .thenAnswer((_) async => [
+                  {
+                    'result_id': 1,
+                    'uuid': 'result-1',
+                    'race_id': 7,
+                    'runner_id': 5,
+                    'team_id': 3,
+                    'race_uuid': 'race-uuid',
+                    'runner_uuid': 'runner-uuid',
+                    'place': 1,
+                    'finish_time': 1000,
+                    'updated_at': '2024-06-01T12:00:00.000Z',
+                    'is_dirty': 1,
+                  }
+                ]);
+        when(mockSyncClient.fetchByUuids(any, any))
+            .thenAnswer((_) async => []);
+        when(mockSyncClient.upsertRows(any, any,
+                onConflict: anyNamed('onConflict')))
+            .thenAnswer((_) async {});
+        when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 1);
+
+        await service.pushAll();
+
+        final payload = verify(mockSyncClient.upsertRows(
+                'race_results', captureAny,
+                onConflict: anyNamed('onConflict')))
+            .captured
+            .single as List<Map<String, dynamic>>;
+        expect(payload.single.containsKey('team_id'), isFalse);
       });
 
       test('skips push when currentUserId is null', () async {
@@ -363,6 +448,131 @@ void main() {
         expect(inserted['is_dirty'], 0);
         // owner_user_id must be stripped before local insert
         expect(inserted.containsKey('owner_user_id'), isFalse);
+      });
+
+      // Remote runners/teams/races carry their own bigserial primary key,
+      // numbered across all users. It must never reach local SQLite, where it
+      // would collide with (and REPLACE) an unrelated local row.
+      for (final (table, pkColumn) in [
+        ('runners', 'runner_id'),
+        ('teams', 'team_id'),
+        ('races', 'race_id'),
+      ]) {
+        test('strips the remote $pkColumn before inserting a new $table row',
+            () async {
+          when(mockSyncClient.fetchTableRows(table, any,
+                  cursor: anyNamed('cursor')))
+              .thenAnswer((_) async => [
+                    {
+                      pkColumn: 8123,
+                      'uuid': 'uuid-remote-1',
+                      'name': 'Remote',
+                      'updated_at': '2024-06-01T12:00:00.000Z',
+                      'owner_user_id': 'user-1',
+                    }
+                  ]);
+
+          await service.pullAll();
+
+          final inserted = verify(mockDatabase.insert(table, captureAny,
+                  conflictAlgorithm: anyNamed('conflictAlgorithm')))
+              .captured
+              .single as Map<String, dynamic>;
+          expect(inserted.containsKey(pkColumn), isFalse);
+        });
+
+        test('keeps the local $pkColumn when updating an existing $table row',
+            () async {
+          when(mockSyncClient.fetchTableRows(table, any,
+                  cursor: anyNamed('cursor')))
+              .thenAnswer((_) async => [
+                    {
+                      pkColumn: 8123,
+                      'uuid': 'uuid-1',
+                      'name': 'Remote Newer',
+                      'updated_at': '2024-06-01T12:00:00.000Z',
+                      'owner_user_id': 'user-1',
+                    }
+                  ]);
+          when(mockDatabase.rawQuery(argThat(contains('WHERE uuid IN')), any))
+              .thenAnswer((_) async => [
+                    {
+                      pkColumn: 1,
+                      'uuid': 'uuid-1',
+                      'name': 'Local',
+                      'updated_at': '2024-01-01T00:00:00.000Z',
+                      'is_dirty': 0,
+                    }
+                  ]);
+
+          await service.pullAll();
+
+          final updated = verify(mockDatabase.update(table, captureAny,
+                  where: anyNamed('where'), whereArgs: anyNamed('whereArgs')))
+              .captured
+              .single as Map<String, dynamic>;
+          expect(updated.containsKey(pkColumn), isFalse);
+        });
+      }
+
+      group('race_results team', () {
+        // Another device's local team_id is meaningless here; the team comes
+        // from this device's race_participants row for that runner and race.
+        final remoteResult = {
+          'uuid': 'result-1',
+          'race_uuid': 'race-uuid',
+          'runner_uuid': 'runner-uuid',
+          'team_id': 99,
+          'place': 1,
+          'finish_time': 1000,
+          'updated_at': '2024-06-01T12:00:00.000Z',
+          'owner_user_id': 'user-1',
+        };
+
+        setUp(() {
+          when(mockSyncClient.fetchTableRows('race_results', any,
+                  cursor: anyNamed('cursor')))
+              .thenAnswer((_) async => [remoteResult]);
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM runners WHERE uuid IN')), any))
+              .thenAnswer((_) async => [
+                    {'uuid': 'runner-uuid', 'runner_id': 5}
+                  ]);
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM races WHERE uuid IN')), any))
+              .thenAnswer((_) async => [
+                    {'uuid': 'race-uuid', 'race_id': 7}
+                  ]);
+        });
+
+        Map<String, dynamic> insertedResult() => verify(mockDatabase.insert(
+                'race_results', captureAny,
+                conflictAlgorithm: anyNamed('conflictAlgorithm')))
+            .captured
+            .single as Map<String, dynamic>;
+
+        test('takes the team from the local race participant', () async {
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM race_participants')), any))
+              .thenAnswer((_) async => [
+                    {'race_id': 7, 'runner_id': 5, 'team_id': 2}
+                  ]);
+
+          await service.pullAll();
+
+          expect(insertedResult()['team_id'], 2);
+        });
+
+        test('drops the remote team_id when the runner has no local participant row',
+            () async {
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM race_participants')), any))
+              .thenAnswer((_) async => []);
+
+          await service.pullAll();
+
+          expect(insertedResult().containsKey('team_id'), isFalse);
+        });
       });
 
       test('updates local row when remote timestamp is newer', () async {

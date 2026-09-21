@@ -150,11 +150,14 @@ def main():
     if os.path.exists(settings_local):
         os.remove(settings_local)
 
-    # Copy .env from main repo (gitignored, required for flutter test)
-    env_src = os.path.join(get_main_worktree_root(), ".env")
-    env_dst = os.path.join(worktree_path, ".env")
-    if os.path.isfile(env_src) and not os.path.exists(env_dst):
-        shutil.copy2(env_src, env_dst)
+    # Copy gitignored env files from main repo: .env (app config, required for
+    # flutter test) and ios/fastlane/.env (build secrets, for local deploys).
+    main_root = get_main_worktree_root()
+    for rel_path in (".env", os.path.join("ios", "fastlane", ".env")):
+        env_src = os.path.join(main_root, rel_path)
+        env_dst = os.path.join(worktree_path, rel_path)
+        if os.path.isfile(env_src) and not os.path.exists(env_dst):
+            shutil.copy2(env_src, env_dst)
 
     # Write .linear-issue marker so /done can find the issue ID
     marker_path = os.path.join(worktree_path, ".linear-issue")

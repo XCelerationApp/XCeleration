@@ -34,14 +34,16 @@ class ParentLinkService {
         .toList();
     if (coachIds.isEmpty) return [];
     try {
-      final query = _remoteApi.client
+      // Postgrest filters return a new builder; reassign or the filter is lost
+      // and every user's profile is fetched.
+      var query = _remoteApi.client
           .from('user_profiles')
           .select('user_id, email, display_name');
       if (coachIds.length == 1) {
-        query.eq('user_id', coachIds.first);
+        query = query.eq('user_id', coachIds.first);
       } else {
         final orExpr = coachIds.map((id) => 'user_id.eq.$id').join(',');
-        query.or(orExpr);
+        query = query.or(orExpr);
       }
       final List profiles = await query;
       final profileMap = {
@@ -68,13 +70,12 @@ class ParentLinkService {
     final viewerId = _auth.currentUserId;
     if (viewerId == null) return false;
     try {
-      final List profiles = await _remoteApi.client
-          .from('user_profiles')
-          .select('user_id')
-          .eq('email', coachEmail)
-          .limit(1);
-      if (profiles.isEmpty) return false;
-      final coachId = (profiles.first as Map)['user_id'] as String?;
+      // user_profiles is only readable for yourself and linked users, so the
+      // coach is found through a lookup function that returns just their id.
+      final coachId = await _remoteApi.client.rpc<String?>(
+        'find_user_id_by_email',
+        params: {'p_email': coachEmail},
+      );
       if (coachId == null) return false;
       await _remoteApi.client.from('coach_links').upsert({
         'coach_user_id': coachId,

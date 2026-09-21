@@ -158,7 +158,7 @@ class RaceResultsService implements IRaceResultsService {
         if (team.runners.length >= 5) team,
     ];
 
-    completeTeams.sort((a, b) => a.score.compareTo(b.score));
+    completeTeams.sort(_compareTeamsForPlacing);
 
     // Assign places to complete teams first
     for (int i = 0; i < completeTeams.length; i++) {
@@ -174,6 +174,27 @@ class RaceResultsService implements IRaceResultsService {
     teams
       ..clear()
       ..addAll([...completeTeams, ...incompleteTeams]);
+  }
+
+  /// Orders eligible teams by score, lowest first.
+  ///
+  /// A tied score is broken by the sixth runner's place (NFHS rule); a team
+  /// with a sixth runner beats a tied team without one. If neither team has a
+  /// sixth runner, the fifth runner's place decides.
+  static int _compareTeamsForPlacing(TeamRecord a, TeamRecord b) {
+    final byScore = a.score.compareTo(b.score);
+    if (byScore != 0) return byScore;
+
+    int? placeOf(TeamRecord team, int index) =>
+        team.runners.length > index ? team.runners[index].place : null;
+
+    final sixthA = placeOf(a, 5);
+    final sixthB = placeOf(b, 5);
+    if (sixthA != null && sixthB != null) return sixthA.compareTo(sixthB);
+    if (sixthA != null) return -1;
+    if (sixthB != null) return 1;
+
+    return (placeOf(a, 4) ?? 0).compareTo(placeOf(b, 4) ?? 0);
   }
 
   /// Complete race results calculation - main orchestrator function

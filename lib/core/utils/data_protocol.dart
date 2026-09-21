@@ -38,11 +38,12 @@ class Protocol implements ProtocolInterface {
 
   final Map<String, Map<int, Package>> _receivedPackages =
       {}; // Map of device ID to their packages
-  final Map<int, _TransmissionState> _pendingTransmissions = {};
+  // Keyed by device and packet number: every transfer numbers its packets
+  // from 1, so the same number can be in flight to several devices at once.
+  final Map<String, _TransmissionState> _pendingTransmissions = {};
   final StreamController<void> _terminationController =
       StreamController<void>.broadcast();
 
-  int _sequenceNumber = 0;
   final List<String> _finishedDevices = [];
   bool _isTerminated = false;
   final Map<String, int> _finishSequenceNumbers = {};
@@ -97,7 +98,7 @@ class Protocol implements ProtocolInterface {
     Logger.d(
         'Received acknowledgment for package ${package.number} from device $senderId');
 
-    final state = _pendingTransmissions[package.number];
+    final state = _pendingTransmissions[_transmissionKey(senderId, package.number)];
     if (state != null && !state.completer.isCompleted) {
       state.completer.complete();
     }
@@ -162,6 +163,9 @@ class Protocol implements ProtocolInterface {
     }
   }
 
+  static String _transmissionKey(String deviceId, int packageNumber) =>
+      '$deviceId:$packageNumber';
+
   bool _isDeviceConnected(String senderId) {
     final device = connectedDevices[senderId];
     return device != null;
@@ -179,7 +183,8 @@ class Protocol implements ProtocolInterface {
     }
 
     final state = _TransmissionState();
-    _pendingTransmissions[package.number] = state;
+    final transmissionKey = _transmissionKey(senderId, package.number);
+    _pendingTransmissions[transmissionKey] = state;
 
     Future<void> attemptSend() async {
       try {
@@ -227,7 +232,7 @@ class Protocol implements ProtocolInterface {
 
     void cleanup() {
       state.retryTimer?.cancel();
-      _pendingTransmissions.remove(package.number);
+      _pendingTransmissions.remove(transmissionKey);
     }
 
     Logger.d(
@@ -294,10 +299,12 @@ class Protocol implements ProtocolInterface {
       }
       Logger.d('Split data into ${chunks.length} chunks');
 
+      // The receiver expects DATA packets numbered 1..n and FIN n+1 for each
+      // transfer, so numbering restarts here rather than continuing from any
+      // earlier transfer this Protocol made to another device.
       for (var i = 0; i < chunks.length; i++) {
-        _sequenceNumber++;
         final package = Package(
-          number: _sequenceNumber,
+          number: i + 1,
           type: 'DATA',
           data: chunks[i],
         );
@@ -305,7 +312,7 @@ class Protocol implements ProtocolInterface {
         await _sendPackageWithRetry(package, senderId);
       }
 
-      _finishSequenceNumbers[senderId] = _sequenceNumber + 1;
+      _finishSequenceNumbers[senderId] = chunks.length + 1;
       final finPackage = Package(
         number: _finishSequenceNumbers[senderId]!,
         type: 'FIN',
@@ -573,7 +580,6 @@ class Protocol implements ProtocolInterface {
 
     _pendingTransmissions.clear();
     _receivedPackages.clear();
-    _sequenceNumber = 0;
     _finishedDevices.clear();
     _finishSequenceNumbers.clear();
   }

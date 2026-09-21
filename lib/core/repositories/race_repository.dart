@@ -4,6 +4,7 @@ import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_race_repository.dart';
 import 'i_runner_repository.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 class RaceRepository implements IRaceRepository {
   final IDatabaseConnectionProvider _conn;
@@ -30,7 +31,7 @@ class RaceRepository implements IRaceRepository {
     final db = await _db;
     final map = race.toMap();
     map['is_dirty'] = 1;
-    map['updated_at'] = DateTime.now().toIso8601String();
+    map['updated_at'] = SyncTimestamp.now();
     final id = await db.insert('races', map);
     _writeBus?.notify();
     return id;
@@ -173,7 +174,7 @@ class RaceRepository implements IRaceRepository {
         'runner_id': raceParticipant.runnerId,
         'team_id': raceParticipant.teamId,
         'is_dirty': 1,
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': SyncTimestamp.now(),
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
@@ -188,7 +189,7 @@ class RaceRepository implements IRaceRepository {
     final db = await _db;
     final map = raceParticipant.toMap();
     map['is_dirty'] = 1;
-    map['updated_at'] = DateTime.now().toIso8601String();
+    map['updated_at'] = SyncTimestamp.now();
     await db.update('race_participants', map,
         where: 'race_id = ? AND runner_id = ?',
         whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!]);
@@ -323,7 +324,7 @@ class RaceRepository implements IRaceRepository {
       {
         'flow_state': flowState,
         'is_dirty': 1,
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': SyncTimestamp.now(),
       },
       where: 'race_id = ?',
       whereArgs: [raceId],
@@ -349,7 +350,7 @@ class RaceRepository implements IRaceRepository {
       'race_participants',
       {
         'team_id': newTeamId,
-        'updated_at': DateTime.now().toIso8601String(),
+        'updated_at': SyncTimestamp.now(),
         'is_dirty': 1,
       },
       where: 'race_id = ? AND runner_id = ?',

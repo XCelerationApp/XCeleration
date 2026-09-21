@@ -163,7 +163,7 @@ void main() {
 
         await controller.saveCurrentResults();
 
-        verifyNever(mockMasterRace.addResult(any));
+        verifyNever(mockMasterRace.saveResults(any));
       });
 
       test('skips when hasTimingConflicts is true', () async {
@@ -182,7 +182,7 @@ void main() {
 
         await controller.saveCurrentResults();
 
-        verifyNever(mockMasterRace.addResult(any));
+        verifyNever(mockMasterRace.saveResults(any));
       });
 
       test('skips when timingChunks is null', () async {
@@ -191,7 +191,7 @@ void main() {
 
         await controller.saveCurrentResults();
 
-        verifyNever(mockMasterRace.addResult(any));
+        verifyNever(mockMasterRace.saveResults(any));
       });
 
       test('skips when raceRunners is null', () async {
@@ -202,13 +202,13 @@ void main() {
 
         await controller.saveCurrentResults();
 
-        verifyNever(mockMasterRace.addResult(any));
+        verifyNever(mockMasterRace.saveResults(any));
       });
 
       test('saves results when no conflicts and matching data is present',
           () async {
         when(mockMasterRace.raceId).thenReturn(1);
-        when(mockMasterRace.addResult(any)).thenAnswer((_) async {});
+        when(mockMasterRace.saveResults(any)).thenAnswer((_) async {});
 
         controller.raceRunners = [_runner(1)];
         controller.timingChunks = [
@@ -217,7 +217,42 @@ void main() {
 
         await controller.saveCurrentResults();
 
-        verify(mockMasterRace.addResult(any)).called(1);
+        verify(mockMasterRace.saveResults(any)).called(1);
+      });
+
+      test('saves every finisher in finish order in a single call', () async {
+        // One call lets a reload replace earlier results as a whole rather
+        // than being rejected runner by runner as duplicates.
+        when(mockMasterRace.raceId).thenReturn(1);
+        when(mockMasterRace.saveResults(any)).thenAnswer((_) async {});
+        controller.raceRunners = [_runner(1), _runner(2)];
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [
+            TimingDatum(time: '10:00.0'),
+            TimingDatum(time: '10:05.0'),
+          ]),
+        ];
+
+        await controller.saveCurrentResults();
+
+        final saved = verify(mockMasterRace.saveResults(captureAny))
+            .captured
+            .single as List<RaceResult>;
+        expect([for (final r in saved) r.place], [1, 2]);
+      });
+
+      test('sets an error when saving fails', () async {
+        when(mockMasterRace.raceId).thenReturn(1);
+        when(mockMasterRace.saveResults(any))
+            .thenAnswer((_) async => throw Exception('db error'));
+        controller.raceRunners = [_runner(1)];
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [TimingDatum(time: '10:00.0')]),
+        ];
+
+        await controller.saveCurrentResults();
+
+        expect(controller.hasError, isTrue);
       });
     });
 
