@@ -553,6 +553,27 @@ void main() {
     });
   });
 
+  group('DevicesManager initialization — coach receiving results', () {
+    // Only the Timer and a Bib Recorder (Bib Recorder V2 shares under the
+    // bibRecorder identity) send results to the coach. Verifier and Fixer
+    // never do, so the coach must not wait for them.
+    test('waits only for the Bib Recorder and Timer', () {
+      final dm = DevicesManager(DeviceName.coach, DeviceType.browserDevice);
+
+      expect(dm.otherDevices.map((d) => d.name).toSet(),
+          {DeviceName.bibRecorder, DeviceName.raceTimer});
+    });
+
+    test('counts as finished once the Bib Recorder and Timer have sent', () {
+      final dm = DevicesManager(DeviceName.coach, DeviceType.browserDevice);
+
+      dm.bibRecorder!.status = ConnectionStatus.finished;
+      dm.raceTimer!.status = ConnectionStatus.finished;
+
+      expect(dm.allDevicesFinished(), isTrue);
+    });
+  });
+
   group('DevicesManager initialization — finish-line roles', () {
     test('bibRecorderV2 in browserDevice mode connects to coach only', () {
       final dm = DevicesManager(

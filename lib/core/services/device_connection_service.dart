@@ -163,12 +163,13 @@ class DevicesManager {
       }
     } else {
       if (_currentDeviceName == DeviceName.coach) {
+        // Results come only from the Timer and a Bib Recorder (Bib Recorder
+        // V2 shares under the bibRecorder identity). Verifier and Fixer never
+        // send to the coach, and allDevicesFinished() waits for every device
+        // listed here, so they must not be listed.
         _coach = ConnectedDevice(DeviceName.coach);
         _bibRecorder = ConnectedDevice(DeviceName.bibRecorder);
         _raceTimer = ConnectedDevice(DeviceName.raceTimer);
-        _bibRecorderV2 = ConnectedDevice(DeviceName.bibRecorderV2);
-        _verifier = ConnectedDevice(DeviceName.verifier);
-        _fixer = ConnectedDevice(DeviceName.fixer);
       } else if (_currentDeviceName == DeviceName.spectator) {
         // Spectator receiving: choose either Coach or Spectator based on flag
         if (_toSpectator) {
