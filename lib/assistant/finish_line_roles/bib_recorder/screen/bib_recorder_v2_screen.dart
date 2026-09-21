@@ -102,16 +102,6 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
     setState(() => _connecting = false);
   }
 
-  void _onConnectionSkip() {
-    // Offline mode: discard the notifier and session.
-    _peerNotifier?.dispose();
-    _session?.dispose();
-    setState(() {
-      _connecting = false;
-      _peerNotifier = null;
-      _session = null;
-    });
-  }
 
   void _onConnectionLeave() {
     _peerNotifier?.dispose();
@@ -182,7 +172,10 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
                           raceName: _controller.selectedRace!.name,
                           notifier: _peerNotifier!,
                           onReady: _onConnectionReady,
-                          onSkip: _onConnectionSkip,
+                          // Starting without peers keeps the session running,
+                          // so phones that come into range later still
+                          // connect and catch up.
+                          onSkip: _onConnectionReady,
                           onLeave: _onConnectionLeave,
                         );
                       }

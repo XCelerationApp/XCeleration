@@ -12,7 +12,7 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 ///
 /// Displays live peer discovery status for the two peers this role connects to.
 /// Calls [onReady] when the user taps Start (at least one peer connected),
-/// [onSkip] to start fully offline, or [onLeave] to go back.
+/// [onSkip] to start without waiting for peers, or [onLeave] to go back.
 class ConnectionSetupScreen extends StatelessWidget {
   const ConnectionSetupScreen({
     super.key,
@@ -363,7 +363,7 @@ class _OfflineButton extends StatelessWidget {
         ),
         child: Center(
           child: Text(
-            'Start offline — record locally',
+            'Start now — connects when phones are in range',
             style: AppTypography.smallBodySemibold.copyWith(
               color: AppColors.mediumColor,
             ),

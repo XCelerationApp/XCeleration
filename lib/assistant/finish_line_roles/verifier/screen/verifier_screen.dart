@@ -93,17 +93,6 @@ class _VerifierScreenState extends State<VerifierScreen> {
     _controller.joinRace(raceId: _selectedRaceId);
   }
 
-  void _onConnectionSkip() {
-    // Offline mode: discard notifier and session.
-    _peerNotifier?.dispose();
-    _session?.dispose();
-    setState(() {
-      _connecting = false;
-      _peerNotifier = null;
-      _session = null;
-    });
-    _controller.joinRace(raceId: _selectedRaceId);
-  }
 
   void _onConnectionLeave() {
     _peerNotifier?.dispose();
@@ -175,7 +164,9 @@ class _VerifierScreenState extends State<VerifierScreen> {
                       raceName: _selectedRaceName ?? 'Race #${_peerNotifier!.raceId}',
                       notifier: _peerNotifier!,
                       onReady: _onConnectionReady,
-                      onSkip: _onConnectionSkip,
+                      // Starting without peers keeps the session running, so phones that
+                      // come into range later still connect and catch up.
+                      onSkip: _onConnectionReady,
                       onLeave: _onConnectionLeave,
                     );
                   }

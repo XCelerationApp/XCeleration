@@ -94,16 +94,6 @@ class _FixerScreenState extends State<FixerScreen> {
     await _controller.joinRace();
   }
 
-  Future<void> _onConnectionSkip() async {
-    // Offline mode: discard notifier and session.
-    _peerNotifier?.dispose();
-    _controller.detachSession();
-    setState(() {
-      _connecting = false;
-      _peerNotifier = null;
-    });
-    await _controller.joinRace();
-  }
 
   void _onConnectionLeave() {
     _peerNotifier?.dispose();
@@ -175,7 +165,9 @@ class _FixerScreenState extends State<FixerScreen> {
                       raceName: _selectedRaceName ?? 'Race #${_peerNotifier!.raceId}',
                       notifier: _peerNotifier!,
                       onReady: _onConnectionReady,
-                      onSkip: _onConnectionSkip,
+                      // Starting without peers keeps the session running, so phones that
+                      // come into range later still connect and catch up.
+                      onSkip: _onConnectionReady,
                       onLeave: _onConnectionLeave,
                     );
                   }
