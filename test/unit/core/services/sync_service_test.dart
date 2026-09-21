@@ -515,6 +515,136 @@ void main() {
         });
       }
 
+      group('cursor when a row\'s parent is not local yet', () {
+        // A row whose race/runner hasn't been pulled yet is skipped. The
+        // cursor must stay strictly before it (pulls ask for updated_at >
+        // cursor) so it is fetched again once its parent arrives.
+        const t1 = '2024-06-01T10:00:00.000000+00:00';
+        const t2 = '2024-06-01T11:00:00.000000+00:00';
+        const t3 = '2024-06-01T12:00:00.000000+00:00';
+
+        Map<String, dynamic> result(String uuid, String runnerUuid, String ts) => {
+              'uuid': uuid,
+              'race_uuid': 'race-uuid',
+              'runner_uuid': runnerUuid,
+              'place': 1,
+              'finish_time': 1000,
+              'updated_at': ts,
+              'owner_user_id': 'user-1',
+            };
+
+        setUp(() {
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM runners WHERE uuid IN')), any))
+              .thenAnswer((_) async => [
+                    {'uuid': 'known-runner', 'runner_id': 5}
+                  ]);
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM races WHERE uuid IN')), any))
+              .thenAnswer((_) async => [
+                    {'uuid': 'race-uuid', 'race_id': 7}
+                  ]);
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM race_participants')), any))
+              .thenAnswer((_) async => []);
+        });
+
+        List<String> savedCursors(String key) => verify(mockDatabase.insert(
+                'sync_state', captureAny,
+                conflictAlgorithm: anyNamed('conflictAlgorithm')))
+            .captured
+            .cast<Map<String, dynamic>>()
+            .where((row) => row['key'] == key)
+            .map((row) => row['value'] as String)
+            .toList();
+
+        void stubResults(List<Map<String, dynamic>> rows) =>
+            when(mockSyncClient.fetchTableRows('race_results', any,
+                    cursor: anyNamed('cursor')))
+                .thenAnswer((_) async => rows);
+
+        test('stops the race_results cursor before a skipped row', () async {
+          stubResults([
+            result('a', 'known-runner', t1),
+            result('b', 'unknown-runner', t2),
+            result('c', 'known-runner', t3),
+          ]);
+
+          await service.pullAll();
+
+          expect(savedCursors('cursor.race_results'), [t1]);
+        });
+
+        test('still applies rows after the skipped one', () async {
+          stubResults([
+            result('a', 'known-runner', t1),
+            result('b', 'unknown-runner', t2),
+            result('c', 'known-runner', t3),
+          ]);
+
+          await service.pullAll();
+
+          final inserted = verify(mockDatabase.insert('race_results', captureAny,
+                  conflictAlgorithm: anyNamed('conflictAlgorithm')))
+              .captured
+              .map((row) => (row as Map<String, dynamic>)['uuid'])
+              .toList();
+          expect(inserted, ['a', 'c']);
+        });
+
+        test('does not move the cursor onto a skipped row\'s timestamp',
+            () async {
+          stubResults([
+            result('a', 'known-runner', t1),
+            result('b', 'unknown-runner', t1),
+          ]);
+
+          await service.pullAll();
+
+          verifyNever(mockDatabase.insert(
+              'sync_state', argThat(containsPair('key', 'cursor.race_results')),
+              conflictAlgorithm: anyNamed('conflictAlgorithm')));
+        });
+
+        test('moves past rows that can never be placed (no runner uuid)',
+            () async {
+          stubResults([
+            {...result('a', 'known-runner', t1), 'runner_uuid': null},
+            result('b', 'known-runner', t2),
+          ]);
+
+          await service.pullAll();
+
+          expect(savedCursors('cursor.race_results'), [t2]);
+        });
+
+        test('stops the race_participants cursor before a skipped row',
+            () async {
+          when(mockSyncClient.fetchTableRows('race_participants', any,
+                  cursor: anyNamed('cursor')))
+              .thenAnswer((_) async => [
+                    {
+                      'uuid': 'p1',
+                      'race_uuid': 'race-uuid',
+                      'runner_uuid': 'known-runner',
+                      'updated_at': t1,
+                      'owner_user_id': 'user-1',
+                    },
+                    {
+                      'uuid': 'p2',
+                      'race_uuid': 'race-uuid',
+                      'runner_uuid': 'unknown-runner',
+                      'updated_at': t2,
+                      'owner_user_id': 'user-1',
+                    },
+                  ]);
+
+          await service.pullAll();
+
+          expect(savedCursors('cursor.race_participants'), [t1]);
+        });
+      });
+
       group('race_results team', () {
         // Another device's local team_id is meaningless here; the team comes
         // from this device's race_participants row for that runner and race.

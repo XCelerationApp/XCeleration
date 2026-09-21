@@ -28,6 +28,40 @@ class SyncEvent {
   final Set<int> changedRaceIds;
 }
 
+/// Tracks how far a pull may advance its cursor.
+///
+/// Pulls request rows with `updated_at > cursor`, oldest first. When a row is
+/// skipped because its parent race/runner isn't local yet, the cursor must
+/// stay strictly before that row so it is fetched again on the next pull,
+/// even if later rows in the batch are applied. If earlier rows share the
+/// skipped row's timestamp, the cursor falls back to before that group.
+class _PullCursor {
+  _PullCursor(String? start) : _value = start;
+
+  String? _value;
+  String? _beforeCurrentGroup;
+  bool _held = false;
+
+  String? get value => _value;
+
+  /// Call for every row that was applied or can safely be passed over.
+  void advance(String? updatedAt) {
+    if (_held || updatedAt == null) return;
+    if (_value != null && updatedAt.compareTo(_value!) <= 0) return;
+    _beforeCurrentGroup = _value;
+    _value = updatedAt;
+  }
+
+  /// Call for a row that must be fetched again later.
+  void holdBefore(String? updatedAt) {
+    if (_held) return;
+    _held = true;
+    if (updatedAt != null && _value == updatedAt) {
+      _value = _beforeCurrentGroup;
+    }
+  }
+}
+
 /// Helper class to track data conflicts
 class _DataConflictResult {
   final bool hasConflict;
@@ -806,7 +840,7 @@ class SyncService implements ISyncService {
       }
     }
 
-    String? newCursor = cursor;
+    final pullCursor = _PullCursor(cursor);
     bool hadWrites = false;
 
     for (final row in data) {
@@ -825,6 +859,7 @@ class SyncService implements ISyncService {
       if (runnerUuid == null || raceUuid == null) {
         Logger.d(
             'Skipping race_result UUID:$uuid — missing runner_uuid or race_uuid');
+        pullCursor.advance(remote['updated_at']?.toString());
         continue;
       }
 
@@ -834,6 +869,7 @@ class SyncService implements ISyncService {
       if (runnerId == null || raceId == null) {
         Logger.d(
             'Skipping race_result UUID:$uuid — runner_uuid=$runnerUuid or race_uuid=$raceUuid not yet pulled locally. Will retry on next sync.');
+        pullCursor.holdBefore(remote['updated_at']?.toString());
         continue;
       }
 
@@ -868,11 +904,7 @@ class SyncService implements ISyncService {
           hadWrites = true;
           changedRaceIds.add(raceId);
         }
-        final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
-        }
+        pullCursor.advance(remote['updated_at']?.toString());
         continue;
       }
 
@@ -924,14 +956,11 @@ class SyncService implements ISyncService {
         }
       }
 
-      final updatedAtStr = remote['updated_at']?.toString();
-      if (updatedAtStr != null &&
-          (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-        newCursor = updatedAtStr;
-      }
+      pullCursor.advance(remote['updated_at']?.toString());
     }
 
     if (hadWrites) changedTables.add(table);
+    final newCursor = pullCursor.value;
     if (newCursor != null && newCursor != cursor) {
       await setCursor(cursorKey, newCursor);
     }
@@ -1008,7 +1037,7 @@ class SyncService implements ISyncService {
       }
     }
 
-    String? newCursor = cursor;
+    final pullCursor = _PullCursor(cursor);
     bool hadWrites = false;
 
     for (final row in data) {
@@ -1023,6 +1052,7 @@ class SyncService implements ISyncService {
       if (raceUuid == null || runnerUuid == null) {
         Logger.d(
             'Skipping race_participant — missing race_uuid or runner_uuid');
+        pullCursor.advance(remote['updated_at']?.toString());
         continue;
       }
 
@@ -1032,6 +1062,7 @@ class SyncService implements ISyncService {
       if (raceId == null || runnerId == null) {
         Logger.d(
             'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — not yet pulled locally. Will retry on next sync.');
+        pullCursor.holdBefore(remote['updated_at']?.toString());
         continue;
       }
 
@@ -1065,11 +1096,7 @@ class SyncService implements ISyncService {
               'Applied remote tombstone to $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
           hadWrites = true;
         }
-        final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
-        }
+        pullCursor.advance(remote['updated_at']?.toString());
         continue;
       }
 
@@ -1114,14 +1141,11 @@ class SyncService implements ISyncService {
         }
       }
 
-      final updatedAtStr = remote['updated_at']?.toString();
-      if (updatedAtStr != null &&
-          (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-        newCursor = updatedAtStr;
-      }
+      pullCursor.advance(remote['updated_at']?.toString());
     }
 
     if (hadWrites) changedTables.add(table);
+    final newCursor = pullCursor.value;
     if (newCursor != null && newCursor != cursor) {
       await setCursor(cursorKey, newCursor);
     }
