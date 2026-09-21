@@ -39,7 +39,7 @@ class RoleSelectorSheet {
       isScrollControlled: true,
       enableDrag: true,
       builder: (context) => _RoleSelectorSheetContent(
-        roles: Role.values.toList(),
+        roles: Role.selectableRoles(),
         currentValue: currentValue,
       ),
     );

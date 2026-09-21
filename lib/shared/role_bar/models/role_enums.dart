@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../../assistant/finish_line_roles/bib_recorder/screen/bib_recorder_v2_screen.dart';
 import '../../../assistant/finish_line_roles/verifier/screen/verifier_screen.dart';
@@ -22,6 +23,23 @@ enum Role {
   fixer,
   coach,
   spectator;
+
+  /// Bib Recorder V2, Verifier and Fixer are not yet wired into the coach's
+  /// results flow, so release builds hide them unless built with
+  /// `--dart-define=FINISH_LINE_ROLES=true`. Debug builds show them.
+  static const bool finishLineRolesEnabled =
+      bool.fromEnvironment('FINISH_LINE_ROLES', defaultValue: kDebugMode);
+
+  bool get isFinishLineRole =>
+      this == Role.bibRecorderV2 || this == Role.verifier || this == Role.fixer;
+
+  /// Roles offered in the role selector.
+  static List<Role> selectableRoles(
+          {bool includeFinishLineRoles = finishLineRolesEnabled}) =>
+      [
+        for (final role in Role.values)
+          if (includeFinishLineRoles || !role.isFinishLineRole) role,
+      ];
 
   String get displayName {
     switch (this) {
