@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
@@ -37,6 +39,65 @@ void main() {
     });
 
     group('deleteCurrentUserAccount', () {
+      // Signed-in client for the configured project, with HTTP stubbed.
+      Future<List<http.Request>> signedInClient({int status = 200}) async {
+        final requests = <http.Request>[];
+        final client = SupabaseClient(
+          'https://configured-project.supabase.co',
+          'anon-key',
+          httpClient: MockClient((request) async {
+            requests.add(request);
+            return http.Response('{"success":true}', status,
+                request: request,
+                headers: {'content-type': 'application/json'});
+          }),
+        );
+        final expiresAt =
+            DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
+                1000;
+        await client.auth.recoverSession(jsonEncode({
+          'access_token': 'user-jwt',
+          'token_type': 'bearer',
+          'expires_in': 3600,
+          'expires_at': expiresAt,
+          'refresh_token': 'refresh',
+          'user': {
+            'id': 'uid-123',
+            'aud': 'authenticated',
+            'app_metadata': <String, dynamic>{},
+            'user_metadata': <String, dynamic>{},
+            'created_at': '2024-01-01T00:00:00Z',
+          },
+        }));
+        when(mockRemote.init()).thenAnswer((_) async {});
+        when(mockRemote.isInitialized).thenReturn(true);
+        when(mockRemote.client).thenReturn(client);
+        return requests;
+      }
+
+      test('calls delete-user on the configured Supabase project', () async {
+        final requests = await signedInClient();
+
+        await service.deleteCurrentUserAccount();
+
+        expect(requests.single.url.toString(),
+            'https://configured-project.supabase.co/functions/v1/delete-user');
+      });
+
+      test('sends the signed-in user\'s token', () async {
+        final requests = await signedInClient();
+
+        await service.deleteCurrentUserAccount();
+
+        expect(requests.single.headers['Authorization'], 'Bearer user-jwt');
+      });
+
+      test('throws when the function reports a failure', () async {
+        await signedInClient(status: 500);
+
+        await expectLater(service.deleteCurrentUserAccount(), throwsException);
+      });
+
       test('throws when remote is not initialized', () async {
         when(mockRemote.init()).thenAnswer((_) async {});
         when(mockRemote.isInitialized).thenReturn(false);
