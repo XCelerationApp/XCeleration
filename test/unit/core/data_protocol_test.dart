@@ -275,6 +275,76 @@ void main() {
     });
   });
 
+  group('packet numbering across transfers', () {
+    // The receiver requires DATA packets numbered 1..n followed by FIN n+1,
+    // so every transfer must start from 1 regardless of earlier transfers
+    // made by the same Protocol (e.g. the coach sharing to Timer then Bib
+    // Recorder from one connection sheet).
+    final secondDevice =
+        Device('second_id', 'second_device', SessionState.connected.index);
+
+    late Map<String, List<Package>> sentByDevice;
+
+    setUp(() {
+      protocol.addDevice(secondDevice);
+      sentByDevice = {};
+      when(mockConnectionService.sendMessageToDevice(any, any))
+          .thenAnswer((invocation) async {
+        final device = invocation.positionalArguments[0] as Device;
+        final package = invocation.positionalArguments[1] as Package;
+        sentByDevice.putIfAbsent(device.deviceId, () => []).add(package);
+        await protocol.handleMessage(
+            Package(number: package.number, type: 'ACK'), device.deviceId);
+        return true;
+      });
+    });
+
+    List<int> numbersSentTo(String deviceId, String type) => sentByDevice[deviceId]!
+        .where((p) => p.type == type)
+        .map((p) => p.number)
+        .toList();
+
+    test('numbers a second device\'s packets from 1', () async {
+      await protocol.sendData('x' * 2500, mockDevice.deviceId);
+      await protocol.sendData('x' * 2500, secondDevice.deviceId);
+
+      expect(numbersSentTo(secondDevice.deviceId, 'DATA'), [1, 2, 3]);
+      expect(numbersSentTo(secondDevice.deviceId, 'FIN'), [4]);
+    });
+
+    test('numbers a repeat transfer to the same device from 1', () async {
+      await protocol.sendData('first', mockDevice.deviceId);
+      sentByDevice.clear();
+
+      await protocol.sendData('second', mockDevice.deviceId);
+
+      expect(numbersSentTo(mockDevice.deviceId, 'DATA'), [1]);
+      expect(numbersSentTo(mockDevice.deviceId, 'FIN'), [2]);
+    });
+
+    test('an ACK from one device does not acknowledge another device\'s packet',
+        () async {
+      // mockDevice ACKs; secondDevice never does.
+      when(mockConnectionService.sendMessageToDevice(any, any))
+          .thenAnswer((invocation) async {
+        final device = invocation.positionalArguments[0] as Device;
+        final package = invocation.positionalArguments[1] as Package;
+        if (device.deviceId == mockDevice.deviceId) {
+          await protocol.handleMessage(
+              Package(number: package.number, type: 'ACK'), device.deviceId);
+        }
+        return true;
+      });
+
+      final results = await Future.wait([
+        protocol.sendData('to second', secondDevice.deviceId),
+        protocol.sendData('to first', mockDevice.deviceId),
+      ]);
+
+      expect(results[0], isA<Failure<void>>());
+    });
+  });
+
   group('handleDataTransfer()', () {
     test('returns Failure when protocol is terminated', () async {
       await protocol.terminate();
