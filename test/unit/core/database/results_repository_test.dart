@@ -117,6 +117,21 @@ void main() {
   }
 
   group('ResultsRepository', () {
+    group('updated_at stamps', () {
+      test('addRaceResult stamps updated_at in UTC', () async {
+        final raceId = await insertRace();
+        final runnerId = await insertRunner();
+        final teamId = await insertTeam();
+        await repo.addRaceResult(
+            buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId));
+        final row = (await (await connProvider.database).query('race_results',
+                where: 'race_id = ? AND runner_id = ?',
+                whereArgs: [raceId, runnerId]))
+            .single;
+        expect(row['updated_at'], endsWith('Z'));
+      });
+    });
+
     // =========================================================================
     // addRaceResult
     // =========================================================================
@@ -250,6 +265,76 @@ void main() {
             buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId));
         await repo.saveRaceResults(raceId, []);
         expect(await repo.getRaceResults(raceId), isEmpty);
+      });
+
+      Future<Map<String, Object?>> rowFor(int raceId, int runnerId) async =>
+          (await (await connProvider.database).query('race_results',
+                  where: 'race_id = ? AND runner_id = ?',
+                  whereArgs: [raceId, runnerId]))
+              .single;
+
+      test('keeps the synced uuid of a runner whose result is replaced',
+          () async {
+        final raceId = await insertRace();
+        final runnerId = await insertRunner();
+        final teamId = await insertTeam();
+        await repo.addRaceResult(buildResult(
+            raceId: raceId, runnerId: runnerId, teamId: teamId, place: 1));
+        await (await connProvider.database).update(
+            'race_results', {'uuid': 'synced-uuid'},
+            where: 'race_id = ? AND runner_id = ?',
+            whereArgs: [raceId, runnerId]);
+
+        await repo.saveRaceResults(raceId, [
+          buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId,
+              place: 1, finishTime: const Duration(minutes: 11)),
+        ]);
+
+        expect((await rowFor(raceId, runnerId))['uuid'], 'synced-uuid');
+      });
+
+      test('lets two runners swap places', () async {
+        final raceId = await insertRace();
+        final r1 = await insertRunner(name: 'Alice', bib: '1');
+        final r2 = await insertRunner(name: 'Bob', bib: '2');
+        final teamId = await insertTeam();
+        await repo.addRaceResult(
+            buildResult(raceId: raceId, runnerId: r1, teamId: teamId, place: 1));
+        await repo.addRaceResult(
+            buildResult(raceId: raceId, runnerId: r2, teamId: teamId, place: 2));
+
+        await repo.saveRaceResults(raceId, [
+          buildResult(raceId: raceId, runnerId: r2, teamId: teamId, place: 1),
+          buildResult(raceId: raceId, runnerId: r1, teamId: teamId, place: 2),
+        ]);
+
+        final results = await repo.getRaceResults(raceId);
+        expect([for (final r in results) r.runner?.runnerId], [r2, r1]);
+      });
+
+      test('marks replaced results as needing upload', () async {
+        final raceId = await insertRace();
+        final runnerId = await insertRunner();
+        final teamId = await insertTeam();
+
+        await repo.saveRaceResults(raceId, [
+          buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId)
+              .copyWith(isDirty: 0),
+        ]);
+
+        expect((await rowFor(raceId, runnerId))['is_dirty'], 1);
+      });
+
+      test('stamps replaced results with a UTC updated_at', () async {
+        final raceId = await insertRace();
+        final runnerId = await insertRunner();
+        final teamId = await insertTeam();
+
+        await repo.saveRaceResults(raceId, [
+          buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId),
+        ]);
+
+        expect((await rowFor(raceId, runnerId))['updated_at'], endsWith('Z'));
       });
 
       test('throws when any result in the list is invalid', () async {

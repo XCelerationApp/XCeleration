@@ -353,13 +353,10 @@ class LoadResultsController with ChangeNotifier {
     Logger.d(
         'LoadResultsController: Starting to save ${timingRecords.length} results');
 
-    final futures = <Future<void>>[];
+    final merged = <RaceResult>[];
     for (var i = 0; i < timingRecords.length; i++) {
       final raceRunner = raceRunners![i];
       final timingDatum = timingRecords[i];
-
-      Logger.d(
-          'LoadResultsController: Processing result ${i + 1}/${timingRecords.length}');
 
       // Convert elapsed time string to Duration
       final finishDuration =
@@ -371,26 +368,29 @@ class LoadResultsController with ChangeNotifier {
         continue;
       }
 
-      final runner = raceRunner.runner;
-      final team = raceRunner.team;
-
-      final raceResult = RaceResult(
+      merged.add(RaceResult(
         raceId: masterRace.raceId,
-        runner: runner,
-        team: team,
+        runner: raceRunner.runner,
+        team: raceRunner.team,
         place: i + 1, // 1-based place
         finishTime: finishDuration,
-      );
-      futures.add(
-        masterRace.addResult(raceResult).catchError((Object e) {
-          Logger.d(
-              'LoadResultsController: Failed to save result for runner: ${runner.name}, error: $e');
-        }),
-      );
+      ));
     }
-    await Future.wait(futures);
 
-    return results;
+    // One call so a reload after a correction replaces the earlier results
+    // as a whole instead of each runner being rejected as a duplicate.
+    try {
+      await masterRace.saveResults(merged);
+      _error = null;
+    } catch (e) {
+      _error = AppError(
+        userMessage: 'Could not save the results. Please try again.',
+        originalException: e,
+      );
+      Logger.e('[LoadResultsController._mergeBibDataWithTimingChunks] $e');
+    }
+
+    return merged;
   }
 
   /// Shows sheet for resolving bib conflicts

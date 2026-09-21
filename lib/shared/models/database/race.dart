@@ -1,3 +1,5 @@
+import 'package:xceleration/core/utils/sync_timestamp.dart';
+
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names
 
 /// Coach-side race configuration entity stored in the Coach SQLite database.
@@ -99,7 +101,7 @@ class Race {
       'distance_unit': distanceUnit,
       'flow_state': flowState,
       'created_at': createdAt?.toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': SyncTimestamp.now(),
       'deleted_at': deletedAt?.toIso8601String(),
       'is_dirty': isDirty,
     };

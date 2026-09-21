@@ -21,13 +21,19 @@ import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 
 import 'bib_number_controller_test.mocks.dart';
 
+/// FocusNode whose listeners can be fired without a widget tree, to simulate
+/// a bib field losing focus.
+class BlurrableFocusNode extends FocusNode {
+  void blur() => notifyListeners();
+}
+
 class FakeTextInputFactory implements ITextInputFactory {
   @override
   TextEditingController createController(String text) =>
       TextEditingController(text: text);
 
   @override
-  FocusNode createFocusNode() => FocusNode();
+  FocusNode createFocusNode() => BlurrableFocusNode();
 }
 
 @GenerateMocks([
@@ -821,7 +827,8 @@ void main() {
     });
 
     group('removeBibRecord', () {
-      test('removes record and calls storage when race is set', () async {
+      test('removes record and saves the remaining list when race is set',
+          () async {
         final controller = buildController();
         controller.setCurrentRace(testRace);
         await controller.addBibRecord(BibDatumRecord.blank());
@@ -829,7 +836,8 @@ void main() {
         await controller.removeBibRecord(0);
 
         expect(controller.bibRecords, isEmpty);
-        verify(mockStorage.removeBibRecord(testRace.raceId, 0)).called(1);
+        verify(mockStorage.saveBibRecords(testRace.raceId, argThat(isEmpty)))
+            .called(1);
 
         controller.dispose();
       });
@@ -841,8 +849,73 @@ void main() {
         await controller.removeBibRecord(0);
 
         expect(controller.bibRecords, isEmpty);
-        verifyNever(mockStorage.removeBibRecord(any, any));
+        verifyNever(mockStorage.saveBibRecords(any, any));
 
+        controller.dispose();
+      });
+    });
+
+    group('persisted bib order', () {
+      // bib_records are stored by finish position. Any edit or removal must
+      // leave storage matching the on-screen list, in order.
+      BibDatumRecord bib(String number) => BibDatumRecord(
+          bib: number, name: '', teamAbbreviation: '', grade: '');
+
+      List<String> savedBibs() {
+        final saved = verify(mockStorage.saveBibRecords(testRace.raceId, captureAny))
+            .captured
+            .last as List<db_models.BibRecord>;
+        return [for (final r in saved) '${r.bibId}:${r.bibNumber}'];
+      }
+
+      Future<BibNumberController> controllerWith(List<String> bibs) async {
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        for (final b in bibs) {
+          await controller.addBibRecord(bib(b));
+        }
+        return controller;
+      }
+
+      test('saves the whole list in order when a bib loses focus', () async {
+        final controller = await controllerWith(['101', '102', '103']);
+
+        (controller.focusNodes[1] as BlurrableFocusNode).blur();
+        await pumpEventQueue();
+
+        expect(savedBibs(), ['0:101', '1:102', '2:103']);
+        controller.dispose();
+      });
+
+      test('renumbers the remaining bibs after one is removed', () async {
+        final controller = await controllerWith(['101', '102', '103']);
+
+        await controller.removeBibRecord(0);
+
+        expect(savedBibs(), ['0:102', '1:103']);
+        controller.dispose();
+      });
+
+      test('saves an edit under its current position after an earlier removal',
+          () async {
+        final controller = await controllerWith(['101', '102', '103']);
+        await controller.removeBibRecord(0);
+
+        controller.updateBibRecord(1, bib('107'));
+        (controller.focusNodes[1] as BlurrableFocusNode).blur();
+        await pumpEventQueue();
+
+        expect(savedBibs(), ['0:102', '1:107']);
+        controller.dispose();
+      });
+
+      test('leaves empty bibs out of the saved list', () async {
+        final controller = await controllerWith(['101', '']);
+
+        (controller.focusNodes[0] as BlurrableFocusNode).blur();
+        await pumpEventQueue();
+
+        expect(savedBibs(), ['0:101']);
         controller.dispose();
       });
     });

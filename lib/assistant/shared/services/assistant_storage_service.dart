@@ -947,7 +947,7 @@ class AssistantStorageService implements IAssistantStorageService {
         'bib_records',
         where: 'race_id = ?',
         whereArgs: [raceId],
-        orderBy: 'created_at ASC',
+        orderBy: 'bib_id ASC',
       );
 
       return Success(

@@ -3,6 +3,7 @@ import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_results_repository.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 class ResultsRepository implements IResultsRepository {
   final IDatabaseConnectionProvider _conn;
@@ -25,10 +26,42 @@ class ResultsRepository implements IResultsRepository {
     }
     final db = await _db;
     await db.transaction((txn) async {
-      await txn.delete('race_results', where: 'race_id = ?', whereArgs: [raceId]);
+      // Replace in place rather than delete + insert: a runner who already
+      // has a result keeps its row (and synced uuid), so the next push
+      // updates the remote row instead of leaving a stale duplicate.
+      final existing = await txn.query('race_results',
+          columns: ['result_id', 'runner_id'],
+          where: 'race_id = ?',
+          whereArgs: [raceId]);
+      final existingIdByRunner = {
+        for (final row in existing)
+          row['runner_id'] as int: row['result_id'] as int,
+      };
+
+      // Park existing rows on unique negative places so new places can be
+      // assigned in any order without tripping UNIQUE(race_id, place).
+      await txn.rawUpdate(
+          'UPDATE race_results SET place = -result_id WHERE race_id = ?',
+          [raceId]);
+
       for (final result in results) {
-        await txn.insert('race_results', result.toMap());
+        final map = result.toMap()
+          ..['is_dirty'] = 1
+          ..['updated_at'] = SyncTimestamp.now();
+        final existingId = existingIdByRunner[result.runner!.runnerId];
+        if (existingId == null) {
+          await txn.insert('race_results', map);
+        } else {
+          // Don't null out created_at or the uuid FKs sync already filled in.
+          map.removeWhere((key, value) => value == null && key != 'deleted_at');
+          await txn.update('race_results', map,
+              where: 'result_id = ?', whereArgs: [existingId]);
+        }
       }
+
+      // Rows still parked belong to runners no longer in the results.
+      await txn.delete('race_results',
+          where: 'race_id = ? AND place < 0', whereArgs: [raceId]);
     });
     _writeBus?.notify();
   }
@@ -47,7 +80,7 @@ class ResultsRepository implements IResultsRepository {
     final db = await _db;
     final map = result.toMap();
     map['is_dirty'] = 1;
-    map['updated_at'] = DateTime.now().toIso8601String();
+    map['updated_at'] = SyncTimestamp.now();
     await db.insert('race_results', map);
     _writeBus?.notify();
   }

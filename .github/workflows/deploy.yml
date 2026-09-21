@@ -130,12 +130,16 @@ jobs:
           bundler-cache: true
           working-directory: ./ios
 
-      - name: Create .env file
+      - name: Create .env files
         run: |
-          echo "Creating .env file for deployment..."
+          # App config: bundled into the app, so it must hold no secrets.
           echo "${{ secrets.DOTENV }}" > .env
-          echo "✅ .env file created in $(pwd)/.env"
-          ls -la .env
+          # Build/signing secrets: read by fastlane only, never bundled.
+          echo "${{ secrets.FASTLANE_DOTENV }}" > ios/fastlane/.env
+          echo "✅ .env and ios/fastlane/.env created"
+
+      - name: Check bundled .env holds no build secrets
+        run: scripts/check_bundled_env.sh .env
 
       - name: Configure Git for Match repository access
         run: |
@@ -169,8 +173,8 @@ jobs:
                -H "Accept: application/vnd.github.v3+json" \
                https://api.github.com/user || echo "❌ GitHub API access failed"
           
-          # Extract repository URL from .env and test access
-          MATCH_REPO_URL=$(grep "FASTLANE_MATCH_REPO_URL" .env | cut -d'=' -f2 | tr -d '"' | tr -d "'" || echo "not_found")
+          # Extract repository URL from ios/fastlane/.env and test access
+          MATCH_REPO_URL=$(grep "FASTLANE_MATCH_REPO_URL" ios/fastlane/.env | cut -d'=' -f2 | tr -d '"' | tr -d "'" || echo "not_found")
           echo "📍 Match repository URL: $MATCH_REPO_URL"
           
           if [ "$MATCH_REPO_URL" != "not_found" ] && [ -n "$MATCH_REPO_URL" ]; then
@@ -183,7 +187,7 @@ jobs:
                  -H "Accept: application/vnd.github.v3+json" \
                  "https://api.github.com/repos/$REPO_PATH" > /dev/null 2>&1 && echo "✅ Match repository accessible" || echo "❌ Cannot access Match repository"
           else
-            echo "⚠️ FASTLANE_MATCH_REPO_URL not found in .env"
+            echo "⚠️ FASTLANE_MATCH_REPO_URL not found in ios/fastlane/.env"
           fi
 
       - name: Restore keychain setup

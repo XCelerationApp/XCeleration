@@ -38,6 +38,9 @@ SUPABASE_PUBLISHABLE_KEY=
 
 - Missing `SUPABASE_*` disables remote sync gracefully.
 - `APP_NAME` appears in UI.
+- This file is bundled into the app, so it must not contain secrets. Build and
+  signing secrets (App Store Connect key, match) go in `ios/fastlane/.env`. See
+  [09-ops/environment.md](09-ops/environment.md).
 
 ## Install dependencies
 
