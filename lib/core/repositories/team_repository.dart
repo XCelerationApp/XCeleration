@@ -3,6 +3,7 @@ import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_team_repository.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 class TeamRepository implements ITeamRepository {
   final IDatabaseConnectionProvider _conn;
@@ -29,7 +30,7 @@ class TeamRepository implements ITeamRepository {
           team.abbreviation ?? Team.generateAbbreviation(team.name!),
       'color': team.color?.toARGB32() ?? 0,
       'is_dirty': 1,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': SyncTimestamp.now(),
     });
     _writeBus?.notify();
     return id;
@@ -86,7 +87,7 @@ class TeamRepository implements ITeamRepository {
     if (team.abbreviation != null) updates['abbreviation'] = team.abbreviation;
     if (team.color != null) updates['color'] = team.color!.toARGB32();
     if (updates.isNotEmpty) {
-      updates['updated_at'] = DateTime.now().toIso8601String();
+      updates['updated_at'] = SyncTimestamp.now();
       updates['is_dirty'] = 1;
       await db.update('teams', updates,
           where: 'team_id = ?', whereArgs: [team.teamId]);

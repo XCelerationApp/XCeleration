@@ -3,6 +3,7 @@ import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_runner_repository.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 class RunnerRepository implements IRunnerRepository {
   final IDatabaseConnectionProvider _conn;
@@ -33,7 +34,7 @@ class RunnerRepository implements IRunnerRepository {
       'bib_number': runner.bibNumber,
       'grade': runner.grade,
       'is_dirty': 1,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': SyncTimestamp.now(),
     });
     _writeBus?.notify();
     return id;

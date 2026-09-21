@@ -3,6 +3,7 @@ import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_results_repository.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 class ResultsRepository implements IResultsRepository {
   final IDatabaseConnectionProvider _conn;
@@ -47,7 +48,7 @@ class ResultsRepository implements IResultsRepository {
     final db = await _db;
     final map = result.toMap();
     map['is_dirty'] = 1;
-    map['updated_at'] = DateTime.now().toIso8601String();
+    map['updated_at'] = SyncTimestamp.now();
     await db.insert('race_results', map);
     _writeBus?.notify();
   }

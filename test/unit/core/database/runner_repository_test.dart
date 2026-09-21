@@ -70,6 +70,16 @@ void main() {
   const validRunner = Runner(name: 'Alice', bibNumber: '100', grade: 11);
 
   group('RunnerRepository', () {
+    group('updated_at stamps', () {
+      test('createRunner stamps updated_at in UTC', () async {
+        final id = await repo.createRunner(validRunner);
+        final row = (await (await connProvider.database)
+                .query('runners', where: 'runner_id = ?', whereArgs: [id]))
+            .single;
+        expect(row['updated_at'], endsWith('Z'));
+      });
+    });
+
     group('createRunner', () {
       test('returns auto-assigned id for a valid runner', () async {
         final id = await repo.createRunner(validRunner);

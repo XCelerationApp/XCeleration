@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'runner.dart';
 import 'team.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 /// Represents a race result with runner and timing information
 class RaceResult {
@@ -115,7 +116,7 @@ class RaceResult {
       'place': place,
       'finish_time': finishTime?.inMilliseconds,
       'created_at': createdAt?.toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': SyncTimestamp.now(),
       'deleted_at': deletedAt?.toIso8601String(),
       'is_dirty': isDirty,
     };

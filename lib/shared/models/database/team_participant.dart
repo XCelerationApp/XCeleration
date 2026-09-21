@@ -1,3 +1,5 @@
+import 'package:xceleration/core/utils/sync_timestamp.dart';
+
 /// Represents a team in the racing application
 class TeamParticipant {
   final int? raceId;
@@ -41,7 +43,7 @@ class TeamParticipant {
       'team_id': teamId,
       'team_color_override': colorOverride,
       'created_at': createdAt?.toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': SyncTimestamp.now(),
       'deleted_at': deletedAt?.toIso8601String(),
       'is_dirty': isDirty,
     };

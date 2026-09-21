@@ -117,6 +117,21 @@ void main() {
   }
 
   group('ResultsRepository', () {
+    group('updated_at stamps', () {
+      test('addRaceResult stamps updated_at in UTC', () async {
+        final raceId = await insertRace();
+        final runnerId = await insertRunner();
+        final teamId = await insertTeam();
+        await repo.addRaceResult(
+            buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId));
+        final row = (await (await connProvider.database).query('race_results',
+                where: 'race_id = ? AND runner_id = ?',
+                whereArgs: [raceId, runnerId]))
+            .single;
+        expect(row['updated_at'], endsWith('Z'));
+      });
+    });
+
     // =========================================================================
     // addRaceResult
     // =========================================================================
