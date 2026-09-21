@@ -260,6 +260,50 @@ void main() {
     });
   });
 
+  group('RaceResultsService - tie breaking', () {
+    const alpha = Team(name: 'Alpha', abbreviation: 'ALP');
+    const beta = Team(name: 'Beta', abbreviation: 'BET');
+
+    /// One runner per finish place; place N finishes at 18:00 + N seconds.
+    List<db.RaceResult> finishers(Team team, List<int> places) => [
+          for (final p in places)
+            _result(
+                team: team,
+                name: '${team.abbreviation}$p',
+                bib: '${team.abbreviation}$p',
+                finish: Duration(minutes: 18, seconds: p)),
+        ];
+
+    List<String> placedTeams(List<db.RaceResult> all) {
+      const service = RaceResultsService();
+      final teams =
+          service.calculateTeamResults(service.calculateIndividualResults(all));
+      service.sortAndPlaceTeams(teams);
+      return [for (final t in teams) '${t.place} ${t.team.name} ${t.score}'];
+    }
+
+    test('breaks a tied score with the better sixth runner', () {
+      // Both score 28; Beta's 6th finishes 10th, Alpha's 12th. Alpha has the
+      // race winner, which must not decide the tie.
+      final all = [
+        ...finishers(alpha, [1, 2, 5, 9, 11, 12]),
+        ...finishers(beta, [3, 4, 6, 7, 8, 10]),
+      ];
+
+      expect(placedTeams(all), ['1 Beta 28', '2 Alpha 28']);
+    });
+
+    test('ranks a team with a sixth runner ahead of a tied team without one',
+        () {
+      final all = [
+        ...finishers(beta, [1, 2, 5, 9, 11]),
+        ...finishers(alpha, [3, 4, 6, 7, 8, 10]),
+      ];
+
+      expect(placedTeams(all), ['1 Alpha 28', '2 Beta 28']);
+    });
+  });
+
   group('RaceResultsService - calculateCompleteRaceResults', () {
     late MockMasterRace mockMasterRace;
 
