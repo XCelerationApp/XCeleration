@@ -10,9 +10,11 @@ import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p
 import 'package:xceleration/core/utils/connection_interfaces.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
+import 'memory_p2p_outbox.dart';
 import 'peer_discovery_notifier_test.mocks.dart';
 
 @GenerateMocks([NearbyConnectionsInterface, SharedPreferences])
+
 void main() {
   late MockNearbyConnectionsInterface mockNearby;
   late MockSharedPreferences mockPrefs;
@@ -49,6 +51,7 @@ void main() {
       raceId: 1,
       nearbyConnections: mockNearby,
       prefs: mockPrefs,
+      outbox: MemoryP2POutbox(),
     );
     await session.init();
 
@@ -397,6 +400,7 @@ class _FakeP2PSessionService extends P2PSessionService {
           raceId: 1,
           nearbyConnections: _NoOpNearbyConnections(),
           prefs: prefs,
+          outbox: MemoryP2POutbox(),
         );
 
   final Stream<PeerStateEvent> _events;

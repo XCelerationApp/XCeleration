@@ -1,6 +1,7 @@
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_outbox.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart';
 import '../models/race_record.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
@@ -33,7 +34,7 @@ class AssistantStorageService implements IAssistantStorageService {
 
     return await openDatabase(
       path,
-      version: 2,
+      version: 3,
       onCreate: (db, version) async {
         // Race history table with composite primary key (race_id, type)
         await db.execute('''
@@ -128,6 +129,8 @@ class AssistantStorageService implements IAssistantStorageService {
             FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
           )
         ''');
+
+        await db.execute(SqliteP2POutbox.createTableSql);
       },
       onUpgrade: (db, oldVersion, newVersion) async {
         if (oldVersion < 2) {
@@ -166,6 +169,9 @@ class AssistantStorageService implements IAssistantStorageService {
               FOREIGN KEY (race_id) REFERENCES race_history(race_id) ON DELETE CASCADE
             )
           ''');
+        }
+        if (oldVersion < 3) {
+          await db.execute(SqliteP2POutbox.createTableSql);
         }
       },
     );
@@ -360,6 +366,7 @@ class AssistantStorageService implements IAssistantStorageService {
           'runners',
           'verifier_entries',
           'fixer_entries',
+          SqliteP2POutbox.table,
         ]) {
           await txn.delete(table, where: 'race_id = ?', whereArgs: [raceId]);
         }
@@ -716,6 +723,7 @@ class AssistantStorageService implements IAssistantStorageService {
             'runners',
             'verifier_entries',
             'fixer_entries',
+            SqliteP2POutbox.table,
           ]) {
             await txn
                 .delete(table, where: 'race_id = ?', whereArgs: [raceId]);

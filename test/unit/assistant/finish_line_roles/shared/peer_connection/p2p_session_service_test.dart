@@ -12,6 +12,7 @@ import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p
 import 'package:xceleration/core/utils/connection_interfaces.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
+import 'memory_p2p_outbox.dart';
 import 'p2p_session_service_test.mocks.dart';
 
 @GenerateMocks([NearbyConnectionsInterface, SharedPreferences])
@@ -19,6 +20,7 @@ void main() {
   late MockNearbyConnectionsInterface mockNearby;
   late MockSharedPreferences mockPrefs;
   late P2PSessionService service;
+  late MemoryP2POutbox outbox;
 
   // Callbacks captured from the mock so tests can drive them directly.
   late Function(List<Device>) capturedStateCallback;
@@ -27,6 +29,7 @@ void main() {
   setUp(() async {
     mockNearby = MockNearbyConnectionsInterface();
     mockPrefs = MockSharedPreferences();
+    outbox = MemoryP2POutbox();
 
     when(mockPrefs.getInt(any)).thenReturn(null);
     when(mockPrefs.setInt(any, any)).thenAnswer((_) async => true);
@@ -37,6 +40,7 @@ void main() {
       raceId: 42,
       nearbyConnections: mockNearby,
       prefs: mockPrefs,
+      outbox: outbox,
     );
 
     when(mockNearby.init(
@@ -198,36 +202,21 @@ void main() {
       expect(captured[2], jsonEncode(e3.withSequence(2).toJson()));
     });
 
-    test('evicts oldest message when queue cap is exceeded', () async {
-      for (int i = 0; i < 500; i++) {
+    test('keeps every message while the peer is offline', () async {
+      for (int i = 0; i < 501; i++) {
         await service.sendMessage(
           Role.verifier,
           MessageEnvelope.wrapBibEntry(makeEntryAt(i)),
         );
       }
-      expect(service.pendingCount(Role.verifier), 500);
-
-      final newMsg = MessageEnvelope.wrapBibEntry(makeEntryAt(500));
-      await service.sendMessage(Role.verifier, newMsg);
-
-      expect(service.pendingCount(Role.verifier), 500);
+      expect(service.pendingCount(Role.verifier), 501);
 
       await connectVerifier();
-      final captured = verify(mockNearby.sendMessage(
-        'verifier-device-id',
-        captureAny,
-      )).captured;
 
-      // 500 messages flushed — position 500 (seq 500) must be last.
-      final envelopes = captured
-          .map((json) => MessageEnvelope.fromJson(
-                (jsonDecode(json as String) as Map).cast<String, dynamic>(),
-              ))
-          .toList();
-
+      final envelopes = captureRegularSends();
+      expect(envelopes.length, 501);
+      expect(envelopes.first.sequence, 0);
       expect(envelopes.last.sequence, 500);
-      // Sequence 0 (position 0, the evicted message) must not appear.
-      expect(envelopes.every((e) => e.sequence != 0), isTrue);
     });
 
     test('pendingCount returns 0 when peer is connected', () async {
@@ -555,6 +544,71 @@ void main() {
   // peerStateEvents
   // ---------------------------------------------------------------------------
 
+  group('outbox persistence', () {
+    test('persists each message until the peer ACKs it', () async {
+      await connectVerifier();
+      await service.sendMessage(
+          Role.verifier, MessageEnvelope.wrapBibEntry(makeEntry()));
+      expect(outbox.messages.keys.single, (42, Role.bibRecorderV2, Role.verifier, 0));
+
+      receiveFromVerifier(MessageEnvelope.wrapAck(0));
+      await Future.delayed(Duration.zero);
+
+      expect(outbox.messages, isEmpty);
+    });
+
+    test('a restarted session re-sends un-ACKed messages and continues the '
+        'sequence after them', () async {
+      final saved = MemoryP2POutbox();
+      await saved.add(42, Role.bibRecorderV2, Role.verifier,
+          MessageEnvelope.wrapBibEntry(makeEntryAt(1)).withSequence(3));
+      await saved.add(42, Role.bibRecorderV2, Role.verifier,
+          MessageEnvelope.wrapBibEntry(makeEntryAt(2)).withSequence(4));
+      final restarted = P2PSessionService(
+        localRole: Role.bibRecorderV2,
+        raceId: 42,
+        nearbyConnections: mockNearby,
+        prefs: mockPrefs,
+        outbox: saved,
+      );
+      await restarted.init();
+      expect(restarted.pendingCount(Role.verifier), 2);
+      clearInteractions(mockNearby);
+
+      await connectVerifier();
+      await restarted.sendMessage(
+          Role.verifier, MessageEnvelope.wrapBibEntry(makeEntryAt(3)));
+
+      expect(captureRegularSends().map((e) => e.sequence), [3, 4, 5]);
+      await restarted.dispose();
+    });
+
+    test('re-sends a message still un-ACKed on a live connection', () async {
+      final retrying = P2PSessionService(
+        localRole: Role.bibRecorderV2,
+        raceId: 42,
+        nearbyConnections: mockNearby,
+        prefs: mockPrefs,
+        outbox: MemoryP2POutbox(),
+        ackRetryInterval: const Duration(milliseconds: 20),
+      );
+      await retrying.init();
+      await connectVerifier();
+      await retrying.sendMessage(
+          Role.verifier, MessageEnvelope.wrapBibEntry(makeEntryAt(1)));
+      await retrying.sendMessage(
+          Role.verifier, MessageEnvelope.wrapBibEntry(makeEntryAt(2)));
+      // Only the first message is ACKed.
+      receiveFromVerifier(MessageEnvelope.wrapAck(0));
+      clearInteractions(mockNearby);
+
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      expect(captureRegularSends().map((e) => e.sequence).toSet(), {1});
+      await retrying.dispose();
+    });
+  });
+
   group('session handover', () {
     test('a new session waits for the previous one to stop before starting',
         () async {
@@ -577,6 +631,7 @@ void main() {
         raceId: 43,
         nearbyConnections: next,
         prefs: mockPrefs,
+        outbox: MemoryP2POutbox(),
       );
 
       unawaited(service.dispose());
@@ -809,6 +864,7 @@ void main() {
         raceId: 42,
         nearbyConnections: mockNearby,
         prefs: mockPrefs,
+        outbox: MemoryP2POutbox(),
       );
       await restoredService.init();
 

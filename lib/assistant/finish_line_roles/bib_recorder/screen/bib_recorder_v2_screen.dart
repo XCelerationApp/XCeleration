@@ -9,6 +9,8 @@ import 'package:xceleration/assistant/finish_line_roles/bib_recorder/widgets/rac
 import 'package:xceleration/assistant/finish_line_roles/shared/get_from_coach.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_outbox.dart';
+import 'package:xceleration/assistant/shared/services/assistant_storage_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
 import 'package:xceleration/core/services/nearby_connections.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_status_strip.dart';
@@ -77,6 +79,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
         raceId: race.raceId,
         nearbyConnections: NearbyConnections(),
         prefs: _prefs!,
+        outbox: SqliteP2POutbox(() => AssistantStorageService.instance.database),
       );
       _controller.attachSession(session);
       unawaited(session.init());

@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_outbox.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/xce_peer_name.dart';
 import 'package:xceleration/core/utils/connection_interfaces.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -26,10 +27,6 @@ class PeerStateEvent {
   final String deviceName;
 }
 
-/// Maximum number of messages buffered per peer while they are offline.
-/// When this cap is reached the oldest message is evicted to make room.
-const int _kQueueCap = 500;
-
 /// Maximum number of sequence numbers retained in the seen-sequence set per
 /// sender.  Older entries are evicted once this cap is reached.
 const int _kSeenSequenceCap = 1000;
@@ -49,7 +46,10 @@ const int _kSeenSequenceCap = 1000;
 /// - Stamps every outbound message with a monotonic sequence number and
 ///   tracks un-ACKed messages in [_pendingAck]. On disconnect the pending
 ///   messages are re-queued in front of the offline queue so they are
-///   re-delivered in order on reconnect.
+///   re-delivered in order on reconnect. Messages still un-ACKed after
+///   [ackRetryInterval] on a live connection are re-sent.
+/// - Persists every message in [IP2POutbox] until it is ACKed, so queued
+///   messages survive the app being killed and are re-sent after [init].
 /// - Receiver side deduplicates re-delivered messages using the sequence
 ///   number and sends a lightweight ACK after each processed message.
 /// - Drops messages from unrecognised device IDs silently (defence against
@@ -62,13 +62,25 @@ class P2PSessionService {
     required this.raceId,
     required NearbyConnectionsInterface nearbyConnections,
     required SharedPreferences prefs,
+    required IP2POutbox outbox,
+    this.ackRetryInterval = const Duration(seconds: 5),
   })  : _nearbyConnections = nearbyConnections,
-        _prefs = prefs;
+        _prefs = prefs,
+        _outbox = outbox;
 
   final Role localRole;
   final int raceId;
   final NearbyConnectionsInterface _nearbyConnections;
   final SharedPreferences _prefs;
+  final IP2POutbox _outbox;
+
+  /// How long a message may go un-ACKed on a live connection before it is
+  /// sent again.
+  final Duration ackRetryInterval;
+  Timer? _retryTimer;
+  // Un-ACKed messages seen on the previous retry tick; anything still
+  // un-ACKed on the next tick has waited at least [ackRetryInterval].
+  Set<(Role, int)> _unackedLastTick = {};
 
   String get _sequenceKey => 'p2p_seq_${raceId}_${localRole.name}';
 
@@ -147,6 +159,8 @@ class P2PSessionService {
   Future<void> init() async {
     await _pendingTeardown;
     _nextSequence = _prefs.getInt(_sequenceKey) ?? 0;
+    await _restoreOutbox();
+    _retryTimer = Timer.periodic(ackRetryInterval, (_) => _retryUnacked());
 
     await _nearbyConnections.init(
       serviceType: kXceServiceType,
@@ -186,33 +200,24 @@ class P2PSessionService {
   Future<void> sendMessage(Role target, MessageEnvelope msg) async {
     final stamped = msg.withSequence(_nextSequence++);
     _prefs.setInt(_sequenceKey, _nextSequence).ignore();
+    // Persist before sending so the message survives the app being killed.
+    try {
+      await _outbox.add(raceId, localRole, target, stamped);
+    } catch (e) {
+      Logger.e('[P2PSessionService] Failed to persist message for $target: $e');
+    }
     final deviceId = _roleToDeviceId[target];
     if (deviceId == null) {
-      final queue = _outboundQueues.putIfAbsent(target, () => []);
-      if (queue.length >= _kQueueCap) {
-        queue.removeAt(0);
-        Logger.d(
-            '[P2PSessionService] Queue cap hit for $target — oldest message evicted.');
-      }
-      queue.add(stamped);
+      _outboundQueues.putIfAbsent(target, () => []).add(stamped);
       return;
     }
+    // Track before sending: if the send fails the retry timer or the next
+    // disconnect re-sends it.
+    _pendingAck.putIfAbsent(target, () => {})[stamped.sequence!] = stamped;
     try {
-      final json = jsonEncode(stamped.toJson());
-      await _nearbyConnections.sendMessage(deviceId, json);
-      final ack = _pendingAck.putIfAbsent(target, () => {});
-      ack[stamped.sequence!] = stamped;
-      // Cap pending-ACK map to prevent unbounded growth if peer never ACKs.
-      if (ack.length > _kQueueCap) {
-        ack.remove(ack.keys.first);
-      }
+      await _nearbyConnections.sendMessage(deviceId, jsonEncode(stamped.toJson()));
     } catch (e) {
       Logger.e('[P2PSessionService] sendMessage to $target failed: $e');
-      // Re-queue the message for retry on next flush.
-      final queue = _outboundQueues.putIfAbsent(target, () => []);
-      if (queue.length < _kQueueCap) {
-        queue.add(stamped);
-      }
     }
   }
 
@@ -241,6 +246,7 @@ class P2PSessionService {
   }
 
   Future<void> _teardown() async {
+    _retryTimer?.cancel();
     for (final timer in _inviteTimers.values) {
       timer.cancel();
     }
@@ -348,7 +354,7 @@ class P2PSessionService {
       // ACKs are transport-level — remove from pending and do not forward.
       if (envelope.type == MessageType.ack) {
         final seq = envelope.sequence;
-        if (seq != null) _pendingAck[senderRole]?.remove(seq);
+        if (seq != null) _onAck(senderRole, seq);
         return;
       }
 
@@ -372,6 +378,52 @@ class P2PSessionService {
     } catch (e) {
       Logger.d('[P2PSessionService] Failed to parse incoming message: $e');
     }
+  }
+
+  void _onAck(Role role, int sequence) {
+    _pendingAck[role]?.remove(sequence);
+    _outboundQueues[role]?.removeWhere((m) => m.sequence == sequence);
+    _outbox.remove(raceId, localRole, role, sequence).catchError((Object e) {
+      Logger.e('[P2PSessionService] Failed to clear ACKed message: $e');
+    });
+  }
+
+  /// Loads messages left un-ACKed by an earlier run into the offline queues
+  /// and moves the sequence counter past them.
+  Future<void> _restoreOutbox() async {
+    final List<(Role, MessageEnvelope)> saved;
+    try {
+      saved = await _outbox.load(raceId, localRole);
+    } catch (e) {
+      Logger.e('[P2PSessionService] Failed to load outbox: $e');
+      return;
+    }
+    for (final (target, msg) in saved) {
+      _outboundQueues.putIfAbsent(target, () => []).add(msg);
+      final seq = msg.sequence;
+      if (seq != null && seq >= _nextSequence) _nextSequence = seq + 1;
+    }
+  }
+
+  /// Re-sends messages that have stayed un-ACKed on a live connection for a
+  /// full [ackRetryInterval] (e.g. the peer missed them without dropping).
+  void _retryUnacked() {
+    final current = <(Role, int)>{};
+    for (final MapEntry(key: role, value: pending) in _pendingAck.entries) {
+      final deviceId = _roleToDeviceId[role];
+      for (final msg in pending.values) {
+        final key = (role, msg.sequence!);
+        current.add(key);
+        if (deviceId != null && _unackedLastTick.contains(key)) {
+          unawaited(Future.sync(() => _nearbyConnections.sendMessage(
+                  deviceId, jsonEncode(msg.toJson())))
+              .catchError((Object e) {
+            Logger.e('[P2PSessionService] Retry to $role failed: $e');
+          }));
+        }
+      }
+    }
+    _unackedLastTick = current;
   }
 
   /// Sends a lightweight ACK back to [deviceId] confirming [sequence].

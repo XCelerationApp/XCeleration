@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/messages/messages.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_outbox.dart';
 import 'package:xceleration/assistant/shared/models/bib_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
@@ -12,6 +14,7 @@ import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
+import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 void main() {
   setUpAll(() {
@@ -27,6 +30,7 @@ void main() {
     await db.delete('timing_chunks');
     await db.delete('verifier_entries');
     await db.delete('fixer_entries');
+    await db.delete('p2p_outbox');
     await db.delete('runners');
     await db.delete('race_history');
   });
@@ -1210,6 +1214,59 @@ void main() {
     // =========================================================================
     // Fixer Entry Methods
     // =========================================================================
+    group('P2P outbox', () {
+      const kRaceId = 70;
+      final outbox =
+          SqliteP2POutbox(() => AssistantStorageService.instance.database);
+      MessageEnvelope entry(int seq, int bib) => MessageEnvelope.wrapBibEntry(
+            BibEntryMessage(
+              finishPosition: seq + 1,
+              bib: bib,
+              status: BibEntryStatus.resolved,
+              timestamp: DateTime.utc(2026),
+              entryId: seq,
+            ),
+          ).withSequence(seq);
+
+      test('loads saved messages in sequence order for the local role',
+          () async {
+        await outbox.add(kRaceId, Role.bibRecorderV2, Role.verifier, entry(1, 102));
+        await outbox.add(kRaceId, Role.bibRecorderV2, Role.fixer, entry(0, 101));
+        await outbox.add(kRaceId, Role.verifier, Role.fixer, entry(0, 999));
+
+        final loaded = await outbox.load(kRaceId, Role.bibRecorderV2);
+
+        expect(loaded.map((m) => (m.$1, m.$2.sequence)),
+            [(Role.fixer, 0), (Role.verifier, 1)]);
+        expect((loaded.last.$2.decode() as BibEntryMessage).bib, 102);
+      });
+
+      test('remove deletes only the acknowledged message', () async {
+        await outbox.add(kRaceId, Role.bibRecorderV2, Role.verifier, entry(0, 101));
+        await outbox.add(kRaceId, Role.bibRecorderV2, Role.verifier, entry(1, 102));
+
+        await outbox.remove(kRaceId, Role.bibRecorderV2, Role.verifier, 0);
+
+        final loaded = await outbox.load(kRaceId, Role.bibRecorderV2);
+        expect(loaded.map((m) => m.$2.sequence), [1]);
+      });
+
+      test('deleteRace clears the race outbox', () async {
+        await AssistantStorageService.instance.saveNewRace(RaceRecord(
+          raceId: kRaceId,
+          date: DateTime(2024, 1, 1),
+          name: 'Outbox Race',
+          type: DeviceName.bibRecorderV2.toString(),
+        ));
+        await outbox.add(kRaceId, Role.bibRecorderV2, Role.verifier, entry(0, 101));
+
+        await AssistantStorageService.instance
+            .deleteRace(kRaceId, DeviceName.bibRecorderV2.toString());
+
+        expect(await outbox.load(kRaceId, Role.bibRecorderV2), isEmpty);
+      });
+    });
+
     group('Fixer Entry Methods', () {
       const kRaceId = 60;
       final kRace = RaceRecord(
