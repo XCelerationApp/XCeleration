@@ -80,7 +80,7 @@ jobs:
       needs.determine-pr-type.outputs.pr-already-exists == 'false'
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           ref: ${{ needs.determine-pr-type.outputs.source-branch }}
           fetch-depth: 0
