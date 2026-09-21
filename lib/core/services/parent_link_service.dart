@@ -34,14 +34,16 @@ class ParentLinkService {
         .toList();
     if (coachIds.isEmpty) return [];
     try {
-      final query = _remoteApi.client
+      // Postgrest filters return a new builder; reassign or the filter is lost
+      // and every user's profile is fetched.
+      var query = _remoteApi.client
           .from('user_profiles')
           .select('user_id, email, display_name');
       if (coachIds.length == 1) {
-        query.eq('user_id', coachIds.first);
+        query = query.eq('user_id', coachIds.first);
       } else {
         final orExpr = coachIds.map((id) => 'user_id.eq.$id').join(',');
-        query.or(orExpr);
+        query = query.or(orExpr);
       }
       final List profiles = await query;
       final profileMap = {

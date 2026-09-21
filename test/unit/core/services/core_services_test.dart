@@ -1,9 +1,12 @@
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show SupabaseClient;
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/services/google_service.dart';
@@ -144,6 +147,47 @@ void main() {
         final result = await service.linkCoachByEmail('coach@example.com');
 
         expect(result, isFalse);
+      });
+    });
+
+    group('listLinkedCoachesWithProfiles', () {
+      late List<Uri> requestedUrls;
+
+      void stubSupabase({required List<String> linkedCoachIds}) {
+        requestedUrls = [];
+        final httpClient = MockClient((request) async {
+          requestedUrls.add(request.url);
+          final body = request.url.path.endsWith('/coach_links')
+              ? '[${linkedCoachIds.map((id) => '{"coach_user_id":"$id"}').join(',')}]'
+              : '[]';
+          return http.Response(body, 200,
+              request: request,
+              headers: {'content-type': 'application/json'});
+        });
+        when(mockRemote.client).thenReturn(SupabaseClient(
+            'https://test.supabase.co', 'anon-key',
+            httpClient: httpClient));
+        when(mockAuth.currentUserId).thenReturn('viewer-1');
+      }
+
+      Uri profilesRequest() =>
+          requestedUrls.singleWhere((u) => u.path.endsWith('/user_profiles'));
+
+      test('only requests the profile of the single linked coach', () async {
+        stubSupabase(linkedCoachIds: ['coach-1']);
+
+        await service.listLinkedCoachesWithProfiles();
+
+        expect(profilesRequest().queryParameters['user_id'], 'eq.coach-1');
+      });
+
+      test('only requests the profiles of several linked coaches', () async {
+        stubSupabase(linkedCoachIds: ['coach-1', 'coach-2']);
+
+        await service.listLinkedCoachesWithProfiles();
+
+        expect(profilesRequest().queryParameters['or'],
+            '(user_id.eq.coach-1,user_id.eq.coach-2)');
       });
     });
 
