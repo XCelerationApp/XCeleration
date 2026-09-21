@@ -84,14 +84,18 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
     }
 
     if (oldVersion < 18) {
-      // Add uuid column to race_participants for sync push/pull
+      // Add uuid column to race_participants for sync push/pull. SQLite
+      // cannot ADD COLUMN ... UNIQUE, so add it plain and enforce uniqueness
+      // with an index (fresh installs get the inline UNIQUE from the schema).
       try {
-        await db.execute(
-            'ALTER TABLE race_participants ADD COLUMN uuid TEXT UNIQUE');
+        await db.execute('ALTER TABLE race_participants ADD COLUMN uuid TEXT');
         Logger.d('Added uuid column to race_participants table');
       } catch (e) {
         Logger.d('uuid column might already exist in race_participants: $e');
       }
+      await db.execute(
+          'CREATE UNIQUE INDEX IF NOT EXISTS idx_race_participants_uuid '
+          'ON race_participants(uuid)');
 
       // Add team_id column to race_results for team-based result queries
       try {
