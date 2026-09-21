@@ -62,7 +62,7 @@
 	</dict>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_wirelessconn._tcp</string>
+		<string>_xce-finline._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>This app needs access to your camera to scan QR codes.</string>

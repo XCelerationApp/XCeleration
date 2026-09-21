@@ -3,6 +3,7 @@ import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_team_repository.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 class TeamRepository implements ITeamRepository {
   final IDatabaseConnectionProvider _conn;
@@ -29,7 +30,7 @@ class TeamRepository implements ITeamRepository {
           team.abbreviation ?? Team.generateAbbreviation(team.name!),
       'color': team.color?.toARGB32() ?? 0,
       'is_dirty': 1,
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': SyncTimestamp.now(),
     });
     _writeBus?.notify();
     return id;
@@ -38,8 +39,8 @@ class TeamRepository implements ITeamRepository {
   @override
   Future<Team?> getTeam(int teamId) async {
     final db = await _db;
-    final rows =
-        await db.query('teams', where: 'team_id = ?', whereArgs: [teamId]);
+    final rows = await db.query('teams',
+        where: 'team_id = ? AND deleted_at IS NULL', whereArgs: [teamId]);
     return rows.isNotEmpty ? Team.fromMap(rows.first) : null;
   }
 
@@ -48,7 +49,7 @@ class TeamRepository implements ITeamRepository {
     final db = await _db;
     final rows = await db.query(
       'teams',
-      where: 'name = ?',
+      where: 'name = ? AND deleted_at IS NULL',
       whereArgs: [name],
       limit: 1,
     );
@@ -58,7 +59,8 @@ class TeamRepository implements ITeamRepository {
   @override
   Future<List<Team>> getAllTeams() async {
     final db = await _db;
-    final rows = await db.query('teams', orderBy: 'name');
+    final rows =
+        await db.query('teams', where: 'deleted_at IS NULL', orderBy: 'name');
     return rows.map((m) => Team.fromMap(m)).toList();
   }
 
@@ -67,7 +69,7 @@ class TeamRepository implements ITeamRepository {
     final db = await _db;
     final rows = await db.query(
       'teams',
-      where: 'name LIKE ? OR abbreviation LIKE ?',
+      where: '(name LIKE ? OR abbreviation LIKE ?) AND deleted_at IS NULL',
       whereArgs: ['%$query%', '%$query%'],
       orderBy: 'name',
     );
@@ -86,7 +88,7 @@ class TeamRepository implements ITeamRepository {
     if (team.abbreviation != null) updates['abbreviation'] = team.abbreviation;
     if (team.color != null) updates['color'] = team.color!.toARGB32();
     if (updates.isNotEmpty) {
-      updates['updated_at'] = DateTime.now().toIso8601String();
+      updates['updated_at'] = SyncTimestamp.now();
       updates['is_dirty'] = 1;
       await db.update('teams', updates,
           where: 'team_id = ?', whereArgs: [team.teamId]);
@@ -100,7 +102,15 @@ class TeamRepository implements ITeamRepository {
       throw Exception('Team with id $teamId not found');
     }
     final db = await _db;
-    await db.delete('teams', where: 'team_id = ?', whereArgs: [teamId]);
+    await db.update(
+      'teams',
+      {
+        'deleted_at': DateTime.now().toUtc().toIso8601String(),
+        'is_dirty': 1,
+      },
+      where: 'team_id = ?',
+      whereArgs: [teamId],
+    );
     _writeBus?.notify();
   }
 }

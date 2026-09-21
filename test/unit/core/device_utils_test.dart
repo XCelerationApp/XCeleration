@@ -7,6 +7,76 @@ import 'package:xceleration/core/utils/platform_checker.dart';
 
 void main() {
   // ===========================================================================
+  // DevicesManager finish-line role behavior
+  // ===========================================================================
+  group('DevicesManager finish-line role behavior', () {
+    test('bibRecorderV2 in browserDevice mode connects to coach', () {
+      final devices = DeviceConnectionService.createDevices(
+        DeviceName.bibRecorderV2,
+        DeviceType.browserDevice,
+      );
+
+      expect(devices.otherDevices.length, 1);
+      expect(devices.otherDevices.first.name, DeviceName.coach);
+    });
+
+    test('bibRecorderV2 advertiser sets verifier and fixer as peers', () {
+      final devices = DeviceConnectionService.createDevices(
+        DeviceName.bibRecorderV2,
+        DeviceType.advertiserDevice,
+      );
+
+      expect(devices.otherDevices.length, 2);
+      final names = devices.otherDevices.map((d) => d.name).toSet();
+      expect(names, {DeviceName.verifier, DeviceName.fixer});
+    });
+
+    test('verifier in browserDevice mode connects to coach', () {
+      final devices = DeviceConnectionService.createDevices(
+        DeviceName.verifier,
+        DeviceType.browserDevice,
+      );
+
+      expect(devices.otherDevices.length, 1);
+      expect(devices.otherDevices.first.name, DeviceName.coach);
+    });
+
+    test('fixer in browserDevice mode connects to coach', () {
+      final devices = DeviceConnectionService.createDevices(
+        DeviceName.fixer,
+        DeviceType.browserDevice,
+      );
+
+      expect(devices.otherDevices.length, 1);
+      expect(devices.otherDevices.first.name, DeviceName.coach);
+    });
+
+    test('finish-line roles do not require a data payload', () {
+      expect(
+        () => DeviceConnectionService.createDevices(
+          DeviceName.bibRecorderV2,
+          DeviceType.advertiserDevice,
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => DeviceConnectionService.createDevices(
+          DeviceName.verifier,
+          DeviceType.advertiserDevice,
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => DeviceConnectionService.createDevices(
+          DeviceName.fixer,
+          DeviceType.advertiserDevice,
+        ),
+        returnsNormally,
+      );
+    });
+  });
+
+  // ===========================================================================
   // DevicesManager spectator behavior
   // ===========================================================================
   group('DevicesManager spectator behavior', () {

@@ -60,6 +60,29 @@ void main() {
   );
 
   group('TeamRepository', () {
+    group('updated_at stamps', () {
+      Future<String> teamUpdatedAt(int id) async => (await (await connProvider
+                  .database)
+              .query('teams', where: 'team_id = ?', whereArgs: [id]))
+          .single['updated_at'] as String;
+
+      test('createTeam stamps updated_at in UTC', () async {
+        final id = await repo.createTeam(validTeam);
+        expect(await teamUpdatedAt(id), endsWith('Z'));
+      });
+
+      test('updateTeam stamps updated_at in UTC', () async {
+        final id = await repo.createTeam(validTeam);
+        await repo.updateTeam(Team(
+          teamId: id,
+          name: 'Eagles',
+          abbreviation: 'EGL',
+          color: const Color(0xFFFF0000),
+        ));
+        expect(await teamUpdatedAt(id), endsWith('Z'));
+      });
+    });
+
     group('createTeam', () {
       test('returns auto-assigned id for a valid team', () async {
         final id = await repo.createTeam(validTeam);

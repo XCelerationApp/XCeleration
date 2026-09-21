@@ -69,8 +69,6 @@ class AppConstants {
   // URLs
   static const String accountDeletionUrl =
       'https://xceleration.app/delete-account';
-  static const String deleteUserFunctionUrl =
-      'https://rpxgjvafciqxjrcpwgxl.supabase.co/functions/v1/delete-user';
 }
 
 /// Event type constants for the EventBus

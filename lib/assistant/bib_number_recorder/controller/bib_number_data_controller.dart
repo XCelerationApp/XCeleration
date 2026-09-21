@@ -95,33 +95,30 @@ class BibNumberDataController extends ChangeNotifier {
     return index;
   }
 
-  /// Saves a bib record to the database when focus is lost
-  void _saveBibRecordOnFocusLoss(int index) async {
-    if (index < 0 || index >= _rows.length) return;
-
-    final record = _rows[index].record;
-    final bibValue = record.bib;
-
-    if (_currentRace != null && bibValue.isNotEmpty) {
-      // Check if this bib record already exists in the database
-      final getBibResult = await storage.getBibRecord(
-        _currentRace!.raceId,
-        index,
-      );
-      switch (getBibResult) {
-        case Success(:final value) when value == null:
-          // This is a new bib record, add it to database
-          await storage.addBibRecord(_currentRace!.raceId, index, bibValue);
-        case Success():
-          // This is an existing bib record, update it in database
-          await storage.updateBibRecordValue(
-              _currentRace!.raceId, index, bibValue);
-        case Failure(:final error):
-          Logger.e(
-              '[BibNumberController._saveBibRecordOnFocusLoss] ${error.originalException}');
-      }
-    } else {
-      return;
+  /// Saves the current bib list to the database in on-screen order.
+  ///
+  /// bib_records are keyed by finish position, so the whole list is rewritten
+  /// (in one transaction) whenever it changes. Saving a single row by index
+  /// left storage out of step after a removal shifted later rows up.
+  Future<void> _persistBibOrder() async {
+    final race = _currentRace;
+    if (race == null) return;
+    final now = DateTime.now();
+    var position = 0;
+    final records = [
+      for (final row in _rows)
+        if (row.record.bib.isNotEmpty)
+          db_models.BibRecord(
+            raceId: race.raceId,
+            bibId: position++,
+            bibNumber: row.record.bib,
+            createdAt: now,
+          ),
+    ];
+    final result = await storage.saveBibRecords(race.raceId, records);
+    if (result case Failure(:final error)) {
+      Logger.e(
+          '[BibNumberDataController._persistBibOrder] ${error.originalException}');
     }
   }
 
@@ -147,19 +144,9 @@ class BibNumberDataController extends ChangeNotifier {
 
     _rows[index].dispose();
     _rows.removeAt(index);
-
-    // Remove from database if there's a current race
-    if (_currentRace != null) {
-      try {
-        await storage.removeBibRecord(_currentRace!.raceId, index);
-      } catch (e) {
-        Logger.e('Failed to remove bib record from database: $e');
-      }
-    } else {
-      return;
-    }
-
     notifyListeners();
+
+    await _persistBibOrder();
   }
 
   void clearBibRecords() {
@@ -198,7 +185,7 @@ class BibNumberDataController extends ChangeNotifier {
     void focusListener() {
       keyboardVisibleNotifier.value = focusNode.hasFocus;
       if (!focusNode.hasFocus) {
-        _saveBibRecordOnFocusLoss(newIndex);
+        _persistBibOrder();
       }
     }
 
@@ -352,7 +339,7 @@ class BibNumberDataController extends ChangeNotifier {
     // Iterate in reverse to preserve indices while removing
     for (var i = _rows.length - 1; i >= 0; i--) {
       if (_rows[i].record.bib.isEmpty) {
-        removeBibRecord(i);
+        await removeBibRecord(i);
       }
     }
     return true;

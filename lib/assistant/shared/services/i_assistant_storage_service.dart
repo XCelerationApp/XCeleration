@@ -1,3 +1,5 @@
+import 'package:xceleration/assistant/finish_line_roles/shared/models/fixer_entry.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/models/verifier_entry.dart';
 import 'package:xceleration/assistant/shared/models/bib_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
@@ -49,12 +51,12 @@ abstract interface class IAssistantStorageService {
       int raceId, int chunkId, TimingDatum conflictRecord);
 
   Future<Result<void>> updateChunkConflict(
-      String chunkId, TimingDatum? conflictRecord);
+      int raceId, int chunkId, TimingDatum? conflictRecord);
 
-  Future<Result<String?>> getChunkConflict(String chunkId);
+  Future<Result<String?>> getChunkConflict(int raceId, int chunkId);
 
   Future<Result<void>> saveChunkTimingData(
-      String chunkId, List<String> encodedRecords);
+      int raceId, int chunkId, List<String> encodedRecords);
 
   Future<Result<void>> updateChunkTimingData(
       int raceId, int chunkId, List<TimingDatum> timingData);
@@ -102,4 +104,33 @@ abstract interface class IAssistantStorageService {
   Future<Result<void>> deleteBibRecords(int raceId);
 
   Future<Result<int>> getNextBibId(int raceId);
+
+  // Verifier Entry Methods
+
+  Future<Result<void>> saveVerifierEntry(int raceId, VerifierEntry entry);
+
+  Future<Result<void>> updateVerifierEntryStatus(
+      int raceId, int entryId, VerificationStatus status);
+
+  Future<Result<List<VerifierEntry>>> getVerifierEntries(int raceId);
+
+  Future<Result<void>> deleteVerifierEntries(int raceId);
+
+  // Fixer Entry Methods
+
+  Future<Result<void>> saveFixerEntry(int raceId, FixerEntry entry);
+
+  Future<Result<void>> updateFixerEntryResolution(
+    int raceId,
+    int entryId, {
+    required bool isResolved,
+    int? correctedBib,
+    String? resolvedName,
+    required bool isNewRunner,
+    required String correctionType,
+  });
+
+  Future<Result<List<FixerEntry>>> getFixerEntries(int raceId);
+
+  Future<Result<void>> deleteFixerEntries(int raceId);
 }

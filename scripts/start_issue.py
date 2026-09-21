@@ -27,6 +27,18 @@ def get_repo_root() -> str:
     return result.stdout.strip()
 
 
+def get_main_worktree_root() -> str:
+    """Return the main (first) worktree path, regardless of where the script is run from."""
+    result = subprocess.run(
+        ["git", "worktree", "list", "--porcelain"],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        return get_repo_root()
+    first_line = result.stdout.splitlines()[0]  # "worktree /path/to/main"
+    return first_line.split(" ", 1)[1].strip()
+
+
 def branch_exists(repo_root: str, branch: str) -> bool:
     result = subprocess.run(
         ["git", "rev-parse", "--verify", branch],
@@ -138,11 +150,14 @@ def main():
     if os.path.exists(settings_local):
         os.remove(settings_local)
 
-    # Copy .env from main repo (gitignored, required for flutter test)
-    env_src = os.path.join(repo_root, ".env")
-    env_dst = os.path.join(worktree_path, ".env")
-    if os.path.isfile(env_src) and not os.path.exists(env_dst):
-        shutil.copy2(env_src, env_dst)
+    # Copy gitignored env files from main repo: .env (app config, required for
+    # flutter test) and ios/fastlane/.env (build secrets, for local deploys).
+    main_root = get_main_worktree_root()
+    for rel_path in (".env", os.path.join("ios", "fastlane", ".env")):
+        env_src = os.path.join(main_root, rel_path)
+        env_dst = os.path.join(worktree_path, rel_path)
+        if os.path.isfile(env_src) and not os.path.exists(env_dst):
+            shutil.copy2(env_src, env_dst)
 
     # Write .linear-issue marker so /done can find the issue ID
     marker_path = os.path.join(worktree_path, ".linear-issue")

@@ -36,6 +36,18 @@ class AppColors {
   /// Warm orange — gradient end paired with [primaryColor].
   static const Color primaryGradientEnd = Color(0xFFF07A50);
 
+  /// Red-tinted pill background — used by live/ready status badges.
+  static const Color liveBackground = Color(0xFFFFEBEE);
+
+  /// Border for live/ready status badges.
+  static const Color liveBorder = Color(0xFFFFCDD2);
+
+  /// Amber — used for "create new runner" action buttons.
+  static const Color warningAmber = Color(0xFFF59E0B);
+
+  /// Subtle off-white surface (e.g. role cards, unpressed card backgrounds).
+  static const Color cardBackground = Color(0xFFFAFAFA);
+
   /// Default fallback colour for a team that has no colour set.
   static const Color defaultTeamColor = Color(0xFF2196F3);
 }

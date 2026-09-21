@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../coach/bib_conflict_resolution/screen/conflict_resolution_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
@@ -255,10 +256,9 @@ class _SubRoleCardState extends State<_SubRoleCard> {
       duration: AppAnimations.fast,
       padding: const EdgeInsets.all(AppSpacing.lg),
       decoration: BoxDecoration(
-        // TODO(ui): #fafafa is not in AppColors — closest is backgroundColor
         color: _pressed
             ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
-            : const Color(0xFFFAFAFA),
+            : AppColors.cardBackground,
         borderRadius: BorderRadius.circular(AppBorderRadius.lg),
         border: Border.all(
           color: _pressed ? AppColors.primaryColor : AppColors.lightColor,
@@ -413,26 +413,29 @@ class _AssistantScreenState extends State<_AssistantScreen>
                   Expanded(child: _buildRoleList()),
                 ],
               ),
-              SizedBox(height: 40),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: OutlinedButton(
-                  onPressed: () => Navigator.of(context).push(
-                    InitialPageRouteAnimation(
-                      child: const ConflictResolutionScreen(),
+              // Prototype entry point: debug builds only.
+              if (kDebugMode) ...[
+                SizedBox(height: 40),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: OutlinedButton(
+                    onPressed: () => Navigator.of(context).push(
+                      InitialPageRouteAnimation(
+                        child: const ConflictResolutionScreen(),
+                      ),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Colors.white54),
+                      padding: const EdgeInsets.all(14),
+                      minimumSize: const Size(300, 50),
+                    ),
+                    child: const Text(
+                      '[DEV] Conflict Resolution Prototype',
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                   ),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Colors.white54),
-                    padding: const EdgeInsets.all(14),
-                    minimumSize: const Size(300, 50),
-                  ),
-                  child: const Text(
-                    '[DEV] Conflict Resolution Prototype',
-                    style: TextStyle(color: Colors.white70, fontSize: 13),
-                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -628,32 +631,34 @@ class _RoleScreenState extends State<RoleScreen>
                   Expanded(child: _buildRoleList()),
                 ],
               ),
-              Positioned(
-                bottom: AppSpacing.sm,
-                left: AppSpacing.lg,
-                right: AppSpacing.lg,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    OutlinedButton(
-                      onPressed: () => Navigator.of(context).push(
-                        InitialPageRouteAnimation(
-                          child: const ConflictResolutionScreen(),
+              // Prototype entry point: debug builds only.
+              if (kDebugMode)
+                Positioned(
+                  bottom: AppSpacing.sm,
+                  left: AppSpacing.lg,
+                  right: AppSpacing.lg,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () => Navigator.of(context).push(
+                          InitialPageRouteAnimation(
+                            child: const ConflictResolutionScreen(),
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Colors.white54),
+                          padding: const EdgeInsets.all(14),
+                          minimumSize: const Size(300, 50),
+                        ),
+                        child: const Text(
+                          '[DEV] Conflict Resolution Prototype',
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
                         ),
                       ),
-                      style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white54),
-                        padding: const EdgeInsets.all(14),
-                        minimumSize: const Size(300, 50),
-                      ),
-                      child: const Text(
-                        '[DEV] Conflict Resolution Prototype',
-                        style: TextStyle(color: Colors.white70, fontSize: 13),
-                      ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
             ],
           ),
         ),

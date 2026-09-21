@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 /// Represents a team in the racing application
 class Team {
@@ -60,7 +61,7 @@ class Team {
       'abbreviation': abbreviation,
       'color': color?.toARGB32(),
       'created_at': createdAt?.toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': SyncTimestamp.now(),
       'deleted_at': deletedAt?.toIso8601String(),
       'is_dirty': isDirty ?? 0,
       'team_id': teamId,

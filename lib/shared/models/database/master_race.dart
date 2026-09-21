@@ -349,11 +349,23 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     notifyListeners();
   }
 
-  /// Save race results
+  /// Replaces this race's results with [results].
+  ///
+  /// Used when results are (re)loaded from the assistants, so a reload after
+  /// a correction overwrites the previous results instead of being rejected
+  /// row by row as duplicates.
   Future<void> saveResults(List<RaceResult> results) async {
-    for (final result in results) {
-      await addResult(result);
+    final forThisRace = [
+      for (final result in results)
+        result.raceId == null ? result.copyWith(raceId: raceId) : result,
+    ];
+    if (forThisRace.any((result) => result.raceId != raceId)) {
+      throw Exception('Race result race ID does not match race ID');
     }
+
+    await _resultsRepo.saveRaceResults(raceId, forThisRace);
+    _results = null;
+    notifyListeners();
   }
 
   // ============================================================================

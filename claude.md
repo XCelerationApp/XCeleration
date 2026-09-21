@@ -47,7 +47,7 @@ When adding or changing mocks (e.g. after `@GenerateMocks` changes):
 /Users/finiandonnelley/Programming_project/flutter/bin/dart run build_runner build --delete-conflicting-outputs
 ```
 
-After regenerating mocks, scan every `.mocks.dart` file for redundant per-line ignores. If the file header already has `// ignore_for_file: <diagnostic>`, remove any matching `// ignore: <diagnostic>` lines elsewhere in the file — they cause a `duplicate_ignore` lint error in CI.
+After regenerating mocks, redundant per-line ignores are fixed **automatically** by a PostToolUse hook (`scripts/fix_mock_ignores.py`). No manual cleanup required.
 
 ## Running Tests
 
@@ -66,6 +66,16 @@ Output: pass/fail/skip counts + test name and first few error lines for each fai
 Use `-v` when the default output truncates the error and more context is needed.
 
 Do NOT use `flutter test` directly for reading results — its raw output exceeds the Bash tool's readable limit. Do NOT add `2>&1` to the runner command.
+
+## Disk Cleanup
+
+If a build fails with `No space left on device`, run the disk cleanup script:
+
+```sh
+bash scripts/disk_cleanup.sh
+```
+
+It scans common dev caches (Xcode, simulators, CocoaPods, Flutter, npm, etc.), shows sizes sorted largest-first, and prints ready-to-run cleanup commands with safety labels.
 
 ## Issue Worktree Workflow
 

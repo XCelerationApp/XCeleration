@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_sign_in_platform_interface/google_sign_in_platform_interface.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show SupabaseClient;
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/services/google_service.dart';
@@ -34,6 +39,65 @@ void main() {
     });
 
     group('deleteCurrentUserAccount', () {
+      // Signed-in client for the configured project, with HTTP stubbed.
+      Future<List<http.Request>> signedInClient({int status = 200}) async {
+        final requests = <http.Request>[];
+        final client = SupabaseClient(
+          'https://configured-project.supabase.co',
+          'anon-key',
+          httpClient: MockClient((request) async {
+            requests.add(request);
+            return http.Response('{"success":true}', status,
+                request: request,
+                headers: {'content-type': 'application/json'});
+          }),
+        );
+        final expiresAt =
+            DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
+                1000;
+        await client.auth.recoverSession(jsonEncode({
+          'access_token': 'user-jwt',
+          'token_type': 'bearer',
+          'expires_in': 3600,
+          'expires_at': expiresAt,
+          'refresh_token': 'refresh',
+          'user': {
+            'id': 'uid-123',
+            'aud': 'authenticated',
+            'app_metadata': <String, dynamic>{},
+            'user_metadata': <String, dynamic>{},
+            'created_at': '2024-01-01T00:00:00Z',
+          },
+        }));
+        when(mockRemote.init()).thenAnswer((_) async {});
+        when(mockRemote.isInitialized).thenReturn(true);
+        when(mockRemote.client).thenReturn(client);
+        return requests;
+      }
+
+      test('calls delete-user on the configured Supabase project', () async {
+        final requests = await signedInClient();
+
+        await service.deleteCurrentUserAccount();
+
+        expect(requests.single.url.toString(),
+            'https://configured-project.supabase.co/functions/v1/delete-user');
+      });
+
+      test('sends the signed-in user\'s token', () async {
+        final requests = await signedInClient();
+
+        await service.deleteCurrentUserAccount();
+
+        expect(requests.single.headers['Authorization'], 'Bearer user-jwt');
+      });
+
+      test('throws when the function reports a failure', () async {
+        await signedInClient(status: 500);
+
+        await expectLater(service.deleteCurrentUserAccount(), throwsException);
+      });
+
       test('throws when remote is not initialized', () async {
         when(mockRemote.init()).thenAnswer((_) async {});
         when(mockRemote.isInitialized).thenReturn(false);
@@ -144,6 +208,107 @@ void main() {
         final result = await service.linkCoachByEmail('coach@example.com');
 
         expect(result, isFalse);
+      });
+    });
+
+    group('listLinkedCoachesWithProfiles', () {
+      late List<Uri> requestedUrls;
+
+      void stubSupabase({required List<String> linkedCoachIds}) {
+        requestedUrls = [];
+        final httpClient = MockClient((request) async {
+          requestedUrls.add(request.url);
+          final body = request.url.path.endsWith('/coach_links')
+              ? '[${linkedCoachIds.map((id) => '{"coach_user_id":"$id"}').join(',')}]'
+              : '[]';
+          return http.Response(body, 200,
+              request: request,
+              headers: {'content-type': 'application/json'});
+        });
+        when(mockRemote.client).thenReturn(SupabaseClient(
+            'https://test.supabase.co', 'anon-key',
+            httpClient: httpClient));
+        when(mockAuth.currentUserId).thenReturn('viewer-1');
+      }
+
+      Uri profilesRequest() =>
+          requestedUrls.singleWhere((u) => u.path.endsWith('/user_profiles'));
+
+      test('only requests the profile of the single linked coach', () async {
+        stubSupabase(linkedCoachIds: ['coach-1']);
+
+        await service.listLinkedCoachesWithProfiles();
+
+        expect(profilesRequest().queryParameters['user_id'], 'eq.coach-1');
+      });
+
+      test('only requests the profiles of several linked coaches', () async {
+        stubSupabase(linkedCoachIds: ['coach-1', 'coach-2']);
+
+        await service.listLinkedCoachesWithProfiles();
+
+        expect(profilesRequest().queryParameters['or'],
+            '(user_id.eq.coach-1,user_id.eq.coach-2)');
+      });
+    });
+
+    group('linkCoachByEmail (via lookup function)', () {
+      // user_profiles is no longer readable by everyone, so the coach's id is
+      // resolved through the find_user_id_by_email database function.
+      late List<http.Request> requests;
+
+      void stubSupabase({required String lookupResponse}) {
+        requests = [];
+        final httpClient = MockClient((request) async {
+          requests.add(request);
+          final body = request.url.path.endsWith('/rpc/find_user_id_by_email')
+              ? lookupResponse
+              : '[]';
+          return http.Response(body, 200,
+              request: request,
+              headers: {'content-type': 'application/json'});
+        });
+        when(mockRemote.client).thenReturn(SupabaseClient(
+            'https://test.supabase.co', 'anon-key',
+            httpClient: httpClient));
+        when(mockAuth.currentUserId).thenReturn('viewer-1');
+      }
+
+      test('looks the coach up through find_user_id_by_email', () async {
+        stubSupabase(lookupResponse: '"coach-1"');
+
+        await service.linkCoachByEmail('coach@example.com');
+
+        final lookup = requests.first;
+        expect(lookup.url.path, endsWith('/rest/v1/rpc/find_user_id_by_email'));
+        expect(jsonDecode(lookup.body), {'p_email': 'coach@example.com'});
+      });
+
+      test('does not read user_profiles directly', () async {
+        stubSupabase(lookupResponse: '"coach-1"');
+
+        await service.linkCoachByEmail('coach@example.com');
+
+        expect(requests.any((r) => r.url.path.endsWith('/user_profiles')),
+            isFalse);
+      });
+
+      test('links the viewer to the coach that was found', () async {
+        stubSupabase(lookupResponse: '"coach-1"');
+
+        final linked = await service.linkCoachByEmail('coach@example.com');
+
+        expect(linked, isTrue);
+        final upsert =
+            requests.singleWhere((r) => r.url.path.endsWith('/coach_links'));
+        expect(jsonDecode(upsert.body),
+            {'coach_user_id': 'coach-1', 'viewer_user_id': 'viewer-1'});
+      });
+
+      test('returns false when no user has that email', () async {
+        stubSupabase(lookupResponse: 'null');
+
+        expect(await service.linkCoachByEmail('nobody@example.com'), isFalse);
       });
     });
 

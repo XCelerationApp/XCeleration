@@ -94,6 +94,63 @@ void main() {
       );
 
   group('RaceRepository', () {
+    group('updated_at stamps', () {
+      Future<String> raceUpdatedAt(int id) async => (await (await connProvider
+                  .database)
+              .query('races', where: 'race_id = ?', whereArgs: [id]))
+          .single['updated_at'] as String;
+
+      Future<String> participantUpdatedAt(int raceId, int runnerId) async =>
+          (await (await connProvider.database).query('race_participants',
+                  where: 'race_id = ? AND runner_id = ?',
+                  whereArgs: [raceId, runnerId]))
+              .single['updated_at'] as String;
+
+      test('createRace stamps updated_at in UTC', () async {
+        final id = await repo.createRace(validRace());
+        expect(await raceUpdatedAt(id), endsWith('Z'));
+      });
+
+      test('updateRaceFlowState stamps updated_at in UTC', () async {
+        final id = await repo.createRace(validRace());
+        await repo.updateRaceFlowState(id, Race.FLOW_PRE_RACE);
+        expect(await raceUpdatedAt(id), endsWith('Z'));
+      });
+
+      test('addRaceParticipant stamps updated_at in UTC', () async {
+        final raceId = await repo.createRace(validRace());
+        final runnerId = await insertRunner();
+        final teamId = await insertTeam('Eagles');
+        await repo.addRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId));
+        expect(await participantUpdatedAt(raceId, runnerId), endsWith('Z'));
+      });
+
+      test('updateRaceParticipant stamps updated_at in UTC', () async {
+        final raceId = await repo.createRace(validRace());
+        final runnerId = await insertRunner();
+        final t1 = await insertTeam('Eagles');
+        final t2 = await insertTeam('Hawks');
+        await repo.addRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1));
+        await repo.updateRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t2));
+        expect(await participantUpdatedAt(raceId, runnerId), endsWith('Z'));
+      });
+
+      test('updateRaceParticipantTeam stamps updated_at in UTC', () async {
+        final raceId = await repo.createRace(validRace());
+        final runnerId = await insertRunner();
+        final t1 = await insertTeam('Eagles');
+        final t2 = await insertTeam('Hawks');
+        await repo.addRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1));
+        await repo.updateRaceParticipantTeam(
+            raceId: raceId, runnerId: runnerId, newTeamId: t2);
+        expect(await participantUpdatedAt(raceId, runnerId), endsWith('Z'));
+      });
+    });
+
     // =========================================================================
     // RACE CRUD
     // =========================================================================

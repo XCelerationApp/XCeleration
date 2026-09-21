@@ -33,6 +33,9 @@ enum DeviceName {
   raceTimer,
   assistant,
   spectator,
+  bibRecorderV2,
+  verifier,
+  fixer,
 }
 
 enum DeviceType {

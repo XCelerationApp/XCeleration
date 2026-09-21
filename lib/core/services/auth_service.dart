@@ -3,8 +3,6 @@ import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_remote_api_client.dart';
 import 'package:xceleration/core/services/remote_api_client.dart';
 import 'package:xceleration/core/utils/logger.dart';
-import 'package:xceleration/shared/constants/app_constants.dart';
-import 'package:http/http.dart' as http;
 
 export 'i_auth_service.dart';
 
@@ -42,22 +40,19 @@ class AuthService implements IAuthService {
       throw Exception('Not signed in');
     }
     try {
-      // Call the deployed Edge Function URL directly
       final jwt = _client.auth.currentSession?.accessToken;
       if (jwt == null || jwt.isEmpty) {
         throw Exception('Not signed in');
       }
-      final uri = Uri.parse(AppConstants.deleteUserFunctionUrl);
-      final resp = await http.post(
-        uri,
-        headers: {
-          'Authorization': 'Bearer $jwt',
-          'Content-Type': 'application/json',
-        },
-        body: '{}',
+      // Invoke through the configured client so the request goes to the same
+      // Supabase project that issued the user's token. (A hardcoded URL for a
+      // different project can never validate that token.)
+      final resp = await _client.functions.invoke(
+        'delete-user',
+        headers: {'Authorization': 'Bearer $jwt'},
       );
-      if (resp.statusCode < 200 || resp.statusCode >= 300) {
-        throw Exception('HTTP ${resp.statusCode}: ${resp.body}');
+      if (resp.status < 200 || resp.status >= 300) {
+        throw Exception('HTTP ${resp.status}: ${resp.data}');
       }
       Logger.d('delete-user function succeeded');
     } catch (e) {

@@ -36,19 +36,24 @@ class SupabaseRemoteSyncClient implements IRemoteSyncClient {
     List<String> ownerIds, {
     String? cursor,
   }) async {
-    final query = _remote.client.from(table).select();
+    // Postgrest filter methods return a new builder rather than mutating the
+    // receiver, so every filter must be reassigned or it is silently dropped.
+    var query = _remote.client.from(table).select();
     if (ownerIds.isNotEmpty) {
       if (ownerIds.length == 1) {
-        query.eq('owner_user_id', ownerIds.first);
+        query = query.eq('owner_user_id', ownerIds.first);
       } else {
         final orExpr = ownerIds.map((id) => 'owner_user_id.eq.$id').join(',');
-        query.or(orExpr);
+        query = query.or(orExpr);
       }
     }
     if (cursor != null && cursor.isNotEmpty) {
-      query.gt('updated_at', cursor);
+      query = query.gt('updated_at', cursor);
     }
-    final List data = await query.order('updated_at').limit(1000);
+    // Ascending, so a page that hits the limit ends at the newest row it
+    // contains and the next pull resumes from there without skipping rows.
+    final List data =
+        await query.order('updated_at', ascending: true).limit(1000);
     return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 

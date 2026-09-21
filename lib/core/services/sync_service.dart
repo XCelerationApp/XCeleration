@@ -28,6 +28,40 @@ class SyncEvent {
   final Set<int> changedRaceIds;
 }
 
+/// Tracks how far a pull may advance its cursor.
+///
+/// Pulls request rows with `updated_at > cursor`, oldest first. When a row is
+/// skipped because its parent race/runner isn't local yet, the cursor must
+/// stay strictly before that row so it is fetched again on the next pull,
+/// even if later rows in the batch are applied. If earlier rows share the
+/// skipped row's timestamp, the cursor falls back to before that group.
+class _PullCursor {
+  _PullCursor(String? start) : _value = start;
+
+  String? _value;
+  String? _beforeCurrentGroup;
+  bool _held = false;
+
+  String? get value => _value;
+
+  /// Call for every row that was applied or can safely be passed over.
+  void advance(String? updatedAt) {
+    if (_held || updatedAt == null) return;
+    if (_value != null && updatedAt.compareTo(_value!) <= 0) return;
+    _beforeCurrentGroup = _value;
+    _value = updatedAt;
+  }
+
+  /// Call for a row that must be fetched again later.
+  void holdBefore(String? updatedAt) {
+    if (_held) return;
+    _held = true;
+    if (updatedAt != null && _value == updatedAt) {
+      _value = _beforeCurrentGroup;
+    }
+  }
+}
+
 /// Helper class to track data conflicts
 class _DataConflictResult {
   final bool hasConflict;
@@ -143,6 +177,7 @@ class SyncService implements ISyncService {
     await assignUuids('teams', 'team_id');
     await assignUuids('races', 'race_id');
     await assignUuids('race_results', 'result_id');
+    await assignUuids('race_participants', 'rowid');
 
     // Populate runner_uuid and race_uuid for race_results rows that are missing them
     await db.rawUpdate('''
@@ -282,8 +317,31 @@ class SyncService implements ISyncService {
     await _syncEventController.close();
   }
 
+  // Only one sync runs at a time. Calls that arrive during a sync share its
+  // future and schedule one follow-up pass, so writes made mid-sync still get
+  // pushed without overlapping syncs racing on UUIDs, dirty flags and cursors.
+  Future<void>? _inFlightSync;
+  bool _followUpRequested = false;
+
   @override
-  Future<void> syncAll() async {
+  Future<void> syncAll() {
+    if (_inFlightSync != null) {
+      _followUpRequested = true;
+      return _inFlightSync!;
+    }
+    final run = _runSyncPasses();
+    _inFlightSync = run;
+    return run.whenComplete(() => _inFlightSync = null);
+  }
+
+  Future<void> _runSyncPasses() async {
+    do {
+      _followUpRequested = false;
+      await _syncOnce();
+    } while (_followUpRequested);
+  }
+
+  Future<void> _syncOnce() async {
     try {
       await _remote.init();
       if (!_remote.isInitialized) {
@@ -302,8 +360,8 @@ class SyncService implements ISyncService {
       }
 
       await ensureLocalUuids();
-      await pushAll();
       await pullAll();
+      await pushAll();
     } catch (e) {
       Logger.d('Sync error: $e');
       rethrow;
@@ -434,6 +492,7 @@ class SyncService implements ISyncService {
       copy.remove('result_id');
       copy.remove('runner_id');
       copy.remove('race_id');
+      copy.remove('team_id');
 
       final runnerUuid = copy['runner_uuid'];
       final raceUuid = copy['race_uuid'];
@@ -552,7 +611,7 @@ class SyncService implements ISyncService {
     final changedTables = <String>{};
     final changedRaceIds = <int>{};
 
-    Future<void> pullTable(String table) async {
+    Future<void> pullTable(String table, {required String localPkColumn}) async {
       final cursorKey = 'cursor.$table';
       final cursor = await getCursor(cursorKey);
       final data = await _syncClient.fetchTableRows(
@@ -587,6 +646,10 @@ class SyncService implements ISyncService {
             : <Map<String, dynamic>>[];
         // Remove remote-only fields not present locally
         remote.remove('owner_user_id');
+        // The remote primary key comes from a sequence shared by all users, so
+        // it means nothing locally; writing it would clobber an unrelated row.
+        // Local rows are matched by uuid and keep their own SQLite id.
+        remote.remove(localPkColumn);
 
         // Handle remote tombstones: apply soft delete regardless of LWW
         if (remote['deleted_at'] != null) {
@@ -684,9 +747,9 @@ class SyncService implements ISyncService {
       }
     }
 
-    await pullTable('runners');
-    await pullTable('teams');
-    await pullTable('races');
+    await pullTable('runners', localPkColumn: 'runner_id');
+    await pullTable('teams', localPkColumn: 'team_id');
+    await pullTable('races', localPkColumn: 'race_id');
     await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
     await _pullRaceParticipants(accessibleOwnerIds, changedTables);
 
@@ -746,6 +809,24 @@ class SyncService implements ISyncService {
       }
     }
 
+    // A result's team is the team the runner raced for, which this device
+    // records in race_participants. The team_id on the remote row is another
+    // device's local id and must not be used.
+    final participantTeamIds = <String, int>{};
+    final localRaceIds = raceUuidToId.values.toSet().toList();
+    if (localRaceIds.isNotEmpty) {
+      final qMarks = List.filled(localRaceIds.length, '?').join(',');
+      final rows = await db.rawQuery(
+          'SELECT race_id, runner_id, team_id FROM race_participants WHERE race_id IN ($qMarks)',
+          localRaceIds);
+      for (final r in rows) {
+        final teamId = r['team_id'] as int?;
+        if (teamId != null) {
+          participantTeamIds['${r['race_id']}:${r['runner_id']}'] = teamId;
+        }
+      }
+    }
+
     // Batch-fetch all matching local rows in a single query.
     final resultUuids =
         data.map((r) => r['uuid']).whereType<String>().toList();
@@ -760,7 +841,7 @@ class SyncService implements ISyncService {
       }
     }
 
-    String? newCursor = cursor;
+    final pullCursor = _PullCursor(cursor);
     bool hadWrites = false;
 
     for (final row in data) {
@@ -779,6 +860,7 @@ class SyncService implements ISyncService {
       if (runnerUuid == null || raceUuid == null) {
         Logger.d(
             'Skipping race_result UUID:$uuid — missing runner_uuid or race_uuid');
+        pullCursor.advance(remote['updated_at']?.toString());
         continue;
       }
 
@@ -788,12 +870,16 @@ class SyncService implements ISyncService {
       if (runnerId == null || raceId == null) {
         Logger.d(
             'Skipping race_result UUID:$uuid — runner_uuid=$runnerUuid or race_uuid=$raceUuid not yet pulled locally. Will retry on next sync.');
+        pullCursor.holdBefore(remote['updated_at']?.toString());
         continue;
       }
 
       // Inject resolved local integer IDs
       remote['runner_id'] = runnerId;
       remote['race_id'] = raceId;
+      remote.remove('team_id');
+      final teamId = participantTeamIds['$raceId:$runnerId'];
+      if (teamId != null) remote['team_id'] = teamId;
 
       final locals = localsByUuid.containsKey(uuid)
           ? [localsByUuid[uuid]!]
@@ -819,11 +905,7 @@ class SyncService implements ISyncService {
           hadWrites = true;
           changedRaceIds.add(raceId);
         }
-        final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
-        }
+        pullCursor.advance(remote['updated_at']?.toString());
         continue;
       }
 
@@ -875,14 +957,11 @@ class SyncService implements ISyncService {
         }
       }
 
-      final updatedAtStr = remote['updated_at']?.toString();
-      if (updatedAtStr != null &&
-          (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-        newCursor = updatedAtStr;
-      }
+      pullCursor.advance(remote['updated_at']?.toString());
     }
 
     if (hadWrites) changedTables.add(table);
+    final newCursor = pullCursor.value;
     if (newCursor != null && newCursor != cursor) {
       await setCursor(cursorKey, newCursor);
     }
@@ -959,7 +1038,7 @@ class SyncService implements ISyncService {
       }
     }
 
-    String? newCursor = cursor;
+    final pullCursor = _PullCursor(cursor);
     bool hadWrites = false;
 
     for (final row in data) {
@@ -974,6 +1053,7 @@ class SyncService implements ISyncService {
       if (raceUuid == null || runnerUuid == null) {
         Logger.d(
             'Skipping race_participant — missing race_uuid or runner_uuid');
+        pullCursor.advance(remote['updated_at']?.toString());
         continue;
       }
 
@@ -983,6 +1063,7 @@ class SyncService implements ISyncService {
       if (raceId == null || runnerId == null) {
         Logger.d(
             'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — not yet pulled locally. Will retry on next sync.');
+        pullCursor.holdBefore(remote['updated_at']?.toString());
         continue;
       }
 
@@ -1016,11 +1097,7 @@ class SyncService implements ISyncService {
               'Applied remote tombstone to $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
           hadWrites = true;
         }
-        final updatedAtStr = remote['updated_at']?.toString();
-        if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-          newCursor = updatedAtStr;
-        }
+        pullCursor.advance(remote['updated_at']?.toString());
         continue;
       }
 
@@ -1065,14 +1142,11 @@ class SyncService implements ISyncService {
         }
       }
 
-      final updatedAtStr = remote['updated_at']?.toString();
-      if (updatedAtStr != null &&
-          (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
-        newCursor = updatedAtStr;
-      }
+      pullCursor.advance(remote['updated_at']?.toString());
     }
 
     if (hadWrites) changedTables.add(table);
+    final newCursor = pullCursor.value;
     if (newCursor != null && newCursor != cursor) {
       await setCursor(cursorKey, newCursor);
     }

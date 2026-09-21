@@ -6,6 +6,7 @@ import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
@@ -310,6 +311,79 @@ void main() {
         timingData.clearRecords();
 
         expect(timingData.hasTimingData, isFalse);
+      });
+    });
+
+    group('encodedRecords', () {
+      // Three runners, a confirm checkpoint, two more runners, a confirm
+      // checkpoint, then two runners still in the current chunk.
+      void logRace() {
+        for (final t in ['5:01.00', '5:02.00', '5:03.00']) {
+          timingData.addRunnerTimeRecord(TimingDatum(time: t));
+        }
+        timingData.addConfirmRecord(TimingDatum(
+            time: '5:04.00',
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1)));
+        for (final t in ['5:05.00', '5:06.00']) {
+          timingData.addRunnerTimeRecord(TimingDatum(time: t));
+        }
+        timingData.addConfirmRecord(TimingDatum(
+            time: '5:07.00',
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1)));
+        for (final t in ['5:08.00', '5:09.00']) {
+          timingData.addRunnerTimeRecord(TimingDatum(time: t));
+        }
+      }
+
+      List<String> decode(String encoded) => decodeAndDecompress(encoded).split(',');
+
+      test('encodes every record in finish order', () async {
+        logRace();
+
+        expect(decode(await timingData.encodedRecords()), [
+          '5:01.00', '5:02.00', '5:03.00', 'CR 1 5:04.00',
+          '5:05.00', '5:06.00', 'CR 1 5:07.00',
+          '5:08.00', '5:09.00',
+        ]);
+      });
+
+      test('encodes the same records when shared a second time', () async {
+        logRace();
+        final first = await timingData.encodedRecords();
+
+        final second = await timingData.encodedRecords();
+
+        expect(decode(second), decode(first));
+      });
+
+      test('leaves the runner count unchanged', () async {
+        logRace();
+        final before = timingData.runnerCount;
+
+        await timingData.encodedRecords();
+
+        expect(timingData.runnerCount, before);
+      });
+
+      test('appends a closing confirm with the race duration once stopped',
+          () async {
+        logRace();
+        timingData.raceDuration = const Duration(minutes: 5, seconds: 10);
+
+        final records = decode(await timingData.encodedRecords());
+
+        expect(records.last, startsWith('CR '));
+        expect(records.last, endsWith('0:05:10.000000'));
+      });
+
+      test('does not add the closing confirm to the live current chunk',
+          () async {
+        logRace();
+        timingData.raceDuration = const Duration(minutes: 5, seconds: 10);
+
+        await timingData.encodedRecords();
+
+        expect(timingData.currentChunk.hasConflict, isFalse);
       });
     });
 
