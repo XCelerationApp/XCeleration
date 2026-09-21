@@ -15,6 +15,7 @@ import 'package:xceleration/assistant/shared/services/i_assistant_storage_servic
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/haptic_feedback_service.dart';
+import 'package:xceleration/core/utils/decode_utils.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
@@ -1390,6 +1391,103 @@ void main() {
             verify(mockSession.sendMessage(Role.verifier, captureAny)).captured;
         final msg = (captured.last as MessageEnvelope).decode() as BibEntryMessage;
         expect(msg.finishPosition, 3);
+      });
+    });
+
+    group('share to coach', () {
+      MockIAssistantStorageService makeStorage(List<BibRecord> records) {
+        final s = MockIAssistantStorageService();
+        when(s.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(s.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(s.getBibRecords(any))
+            .thenAnswer((_) async => Success<List<BibRecord>>(records));
+        when(s.addBibRecord(any, any, any))
+            .thenAnswer((_) async => const Success(null));
+        when(s.updateBibRecordValue(any, any, any))
+            .thenAnswer((_) async => const Success(null));
+        return s;
+      }
+
+      RaceRecord makeRace() => RaceRecord(
+            raceId: 1,
+            date: DateTime(2026),
+            name: 'Test Race',
+            type: 'bibRecorderV2',
+          );
+
+      Future<List<String>> sharedBibs(BibRecorderV2Controller c) async {
+        final decoded =
+            await BibDecodeUtils.decodeEncodedRunners(await c.getEncodedBibData());
+        return switch (decoded) {
+          Success(:final value) => value.map((b) => b.bib).toList(),
+          Failure(:final error) => fail('decode failed: ${error.userMessage}'),
+        };
+      }
+
+      test('shares bibs in finish order during a live session', () async {
+        final controller = track(BibRecorderV2Controller(
+          storage: makeStorage([]),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+
+        controller.addBib(101);
+        controller.addBib(102);
+        controller.addBib(103);
+
+        expect(controller.entries.first.bib, 103);
+        expect(await sharedBibs(controller), ['101', '102', '103']);
+      });
+
+      test('restores newest-first order and shares in finish order after reload',
+          () async {
+        final records = [
+          BibRecord(raceId: 1, bibId: 0, bibNumber: '101', createdAt: DateTime(2026)),
+          BibRecord(raceId: 1, bibId: 1, bibNumber: '102', createdAt: DateTime(2026)),
+          BibRecord(raceId: 1, bibId: 2, bibNumber: '103', createdAt: DateTime(2026)),
+        ];
+        final controller = track(BibRecorderV2Controller(
+          storage: makeStorage(records),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+
+        expect(controller.entries.map((e) => e.bib), [103, 102, 101]);
+        expect(controller.lastAddedBib, 103);
+        expect(await sharedBibs(controller), ['101', '102', '103']);
+      });
+
+      test('shares the corrected bib once the Fixer has corrected an entry',
+          () async {
+        final controller = track(BibRecorderV2Controller(
+          storage: makeStorage([]),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+        controller.attachSession(mockSession);
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+        controller.addBib(101);
+        controller.addBib(102);
+
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(await sharedBibs(controller), ['114', '102']);
       });
     });
 

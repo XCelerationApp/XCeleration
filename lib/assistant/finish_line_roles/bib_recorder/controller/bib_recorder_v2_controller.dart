@@ -241,7 +241,8 @@ class BibRecorderV2Controller extends ChangeNotifier {
         for (final BibRecord record in value) {
           final bib = int.tryParse(record.bibNumber);
           if (bib != null) {
-            _entries.add(BibEntry(id: record.bibId, bib: bib));
+            // Records come back oldest-first; the list is kept newest-first.
+            _entries.insert(0, BibEntry(id: record.bibId, bib: bib));
             _nextPosition++;
             _positionToEntryId[_nextPosition] = record.bibId;
             if (record.bibId >= _nextEntryId) {
@@ -463,10 +464,13 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   /// Encodes the current entries as bib data for sharing via [DeviceConnectionWidget].
   Future<String> getEncodedBibData() {
-    final bibData = _entries.map((entry) {
-      final runner = runnerFor(entry.bib);
+    // The coach pairs the i-th bib with the i-th finish time, so share in
+    // finish order (oldest first) with any Fixer correction applied.
+    final bibData = _entries.reversed.map((entry) {
+      final bib = entry.correctedTo ?? entry.bib;
+      final runner = runnerFor(bib);
       return BibDatum(
-        bib: entry.bib.toString(),
+        bib: bib.toString(),
         name: runner?.name,
         teamAbbreviation: runner?.teamAbbreviation,
         grade: runner?.grade,
