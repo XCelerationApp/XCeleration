@@ -70,13 +70,12 @@ class ParentLinkService {
     final viewerId = _auth.currentUserId;
     if (viewerId == null) return false;
     try {
-      final List profiles = await _remoteApi.client
-          .from('user_profiles')
-          .select('user_id')
-          .eq('email', coachEmail)
-          .limit(1);
-      if (profiles.isEmpty) return false;
-      final coachId = (profiles.first as Map)['user_id'] as String?;
+      // user_profiles is only readable for yourself and linked users, so the
+      // coach is found through a lookup function that returns just their id.
+      final coachId = await _remoteApi.client.rpc<String?>(
+        'find_user_id_by_email',
+        params: {'p_email': coachEmail},
+      );
       if (coachId == null) return false;
       await _remoteApi.client.from('coach_links').upsert({
         'coach_user_id': coachId,

@@ -252,6 +252,66 @@ void main() {
       });
     });
 
+    group('linkCoachByEmail (via lookup function)', () {
+      // user_profiles is no longer readable by everyone, so the coach's id is
+      // resolved through the find_user_id_by_email database function.
+      late List<http.Request> requests;
+
+      void stubSupabase({required String lookupResponse}) {
+        requests = [];
+        final httpClient = MockClient((request) async {
+          requests.add(request);
+          final body = request.url.path.endsWith('/rpc/find_user_id_by_email')
+              ? lookupResponse
+              : '[]';
+          return http.Response(body, 200,
+              request: request,
+              headers: {'content-type': 'application/json'});
+        });
+        when(mockRemote.client).thenReturn(SupabaseClient(
+            'https://test.supabase.co', 'anon-key',
+            httpClient: httpClient));
+        when(mockAuth.currentUserId).thenReturn('viewer-1');
+      }
+
+      test('looks the coach up through find_user_id_by_email', () async {
+        stubSupabase(lookupResponse: '"coach-1"');
+
+        await service.linkCoachByEmail('coach@example.com');
+
+        final lookup = requests.first;
+        expect(lookup.url.path, endsWith('/rest/v1/rpc/find_user_id_by_email'));
+        expect(jsonDecode(lookup.body), {'p_email': 'coach@example.com'});
+      });
+
+      test('does not read user_profiles directly', () async {
+        stubSupabase(lookupResponse: '"coach-1"');
+
+        await service.linkCoachByEmail('coach@example.com');
+
+        expect(requests.any((r) => r.url.path.endsWith('/user_profiles')),
+            isFalse);
+      });
+
+      test('links the viewer to the coach that was found', () async {
+        stubSupabase(lookupResponse: '"coach-1"');
+
+        final linked = await service.linkCoachByEmail('coach@example.com');
+
+        expect(linked, isTrue);
+        final upsert =
+            requests.singleWhere((r) => r.url.path.endsWith('/coach_links'));
+        expect(jsonDecode(upsert.body),
+            {'coach_user_id': 'coach-1', 'viewer_user_id': 'viewer-1'});
+      });
+
+      test('returns false when no user has that email', () async {
+        stubSupabase(lookupResponse: 'null');
+
+        expect(await service.linkCoachByEmail('nobody@example.com'), isFalse);
+      });
+    });
+
     group('unlinkCoach', () {
       test('returns normally when userId is null', () async {
         when(mockAuth.currentUserId).thenReturn(null);
