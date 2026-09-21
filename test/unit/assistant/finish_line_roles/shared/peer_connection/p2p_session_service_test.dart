@@ -555,6 +555,28 @@ void main() {
   // peerStateEvents
   // ---------------------------------------------------------------------------
 
+  group('stale device IDs', () {
+    test('a notConnected event for an old device ID keeps the live connection',
+        () async {
+      await capturedStateCallback([
+        Device('old-id', 'xce|VFR|42|test-phone', 2),
+      ]);
+      // The verifier reconnected under a new ID, then the native layer
+      // reports the old ID as gone.
+      await capturedStateCallback([
+        Device('new-id', 'xce|VFR|42|test-phone', 2),
+        Device('old-id', 'xce|VFR|42|test-phone', 0),
+      ]);
+      clearInteractions(mockNearby);
+
+      await service.sendMessage(
+          Role.verifier, MessageEnvelope.wrapBibEntry(makeEntry()));
+
+      verify(mockNearby.sendMessage('new-id', any)).called(1);
+      expect(service.pendingCount(Role.verifier), 0);
+    });
+  });
+
   group('peerStateEvents', () {
     test('emits connected event when peer connects', () async {
       final events = <PeerStateEvent>[];

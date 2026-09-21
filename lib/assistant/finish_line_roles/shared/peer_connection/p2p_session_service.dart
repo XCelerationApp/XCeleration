@@ -280,22 +280,27 @@ class P2PSessionService {
           );
           await _flushQueue(role);
         case SessionState.notConnected:
-          // Re-queue any un-ACKed messages before the device goes offline so
-          // they are re-delivered in order on the next reconnect.
-          _requeuePending(role);
           // Device visible but not connected — debounce the auto-invite so
           // rapid-fire notConnected events from the native layer don't spawn
           // competing invitations that prevent the connection from stabilising.
           _scheduleInvite(device.deviceId, device.deviceName);
+          _deviceIdToRole.remove(device.deviceId);
+          // A stale device ID for a role that has since reconnected under a
+          // new ID must not tear down the live connection.
+          final currentDeviceId = _roleToDeviceId[role];
+          if (currentDeviceId != null && currentDeviceId != device.deviceId) {
+            continue;
+          }
+          // Re-queue any un-ACKed messages before the device goes offline so
+          // they are re-delivered in order on the next reconnect.
+          _requeuePending(role);
+          _roleToDeviceId.remove(role);
           _peerEventsController.add(
             PeerStateEvent(
                 role: role,
                 state: SessionState.notConnected,
                 deviceName: humanName),
           );
-          // Clean up maps in case this device was previously connected.
-          _deviceIdToRole.remove(device.deviceId);
-          _roleToDeviceId.remove(role);
         case SessionState.connecting:
           _peerEventsController.add(
             PeerStateEvent(
