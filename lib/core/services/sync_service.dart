@@ -434,6 +434,7 @@ class SyncService implements ISyncService {
       copy.remove('result_id');
       copy.remove('runner_id');
       copy.remove('race_id');
+      copy.remove('team_id');
 
       final runnerUuid = copy['runner_uuid'];
       final raceUuid = copy['race_uuid'];
@@ -750,6 +751,24 @@ class SyncService implements ISyncService {
       }
     }
 
+    // A result's team is the team the runner raced for, which this device
+    // records in race_participants. The team_id on the remote row is another
+    // device's local id and must not be used.
+    final participantTeamIds = <String, int>{};
+    final localRaceIds = raceUuidToId.values.toSet().toList();
+    if (localRaceIds.isNotEmpty) {
+      final qMarks = List.filled(localRaceIds.length, '?').join(',');
+      final rows = await db.rawQuery(
+          'SELECT race_id, runner_id, team_id FROM race_participants WHERE race_id IN ($qMarks)',
+          localRaceIds);
+      for (final r in rows) {
+        final teamId = r['team_id'] as int?;
+        if (teamId != null) {
+          participantTeamIds['${r['race_id']}:${r['runner_id']}'] = teamId;
+        }
+      }
+    }
+
     // Batch-fetch all matching local rows in a single query.
     final resultUuids =
         data.map((r) => r['uuid']).whereType<String>().toList();
@@ -798,6 +817,9 @@ class SyncService implements ISyncService {
       // Inject resolved local integer IDs
       remote['runner_id'] = runnerId;
       remote['race_id'] = raceId;
+      remote.remove('team_id');
+      final teamId = participantTeamIds['$raceId:$runnerId'];
+      if (teamId != null) remote['team_id'] = teamId;
 
       final locals = localsByUuid.containsKey(uuid)
           ? [localsByUuid[uuid]!]

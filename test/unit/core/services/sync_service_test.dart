@@ -150,6 +150,44 @@ void main() {
             onConflict: anyNamed('onConflict')));
       });
 
+      test('does not push the local team_id of a race result', () async {
+        when(mockAuth.currentUserId).thenReturn('user-1');
+        _stubSchemaExists(mockDatabase);
+        when(mockDatabase.query(any, where: anyNamed('where')))
+            .thenAnswer((_) async => []);
+        when(mockDatabase.query('race_results', where: 'is_dirty = 1'))
+            .thenAnswer((_) async => [
+                  {
+                    'result_id': 1,
+                    'uuid': 'result-1',
+                    'race_id': 7,
+                    'runner_id': 5,
+                    'team_id': 3,
+                    'race_uuid': 'race-uuid',
+                    'runner_uuid': 'runner-uuid',
+                    'place': 1,
+                    'finish_time': 1000,
+                    'updated_at': '2024-06-01T12:00:00.000Z',
+                    'is_dirty': 1,
+                  }
+                ]);
+        when(mockSyncClient.fetchByUuids(any, any))
+            .thenAnswer((_) async => []);
+        when(mockSyncClient.upsertRows(any, any,
+                onConflict: anyNamed('onConflict')))
+            .thenAnswer((_) async {});
+        when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 1);
+
+        await service.pushAll();
+
+        final payload = verify(mockSyncClient.upsertRows(
+                'race_results', captureAny,
+                onConflict: anyNamed('onConflict')))
+            .captured
+            .single as List<Map<String, dynamic>>;
+        expect(payload.single.containsKey('team_id'), isFalse);
+      });
+
       test('skips push when currentUserId is null', () async {
         when(mockAuth.currentUserId).thenReturn(null);
 
@@ -429,6 +467,66 @@ void main() {
           expect(updated.containsKey(pkColumn), isFalse);
         });
       }
+
+      group('race_results team', () {
+        // Another device's local team_id is meaningless here; the team comes
+        // from this device's race_participants row for that runner and race.
+        final remoteResult = {
+          'uuid': 'result-1',
+          'race_uuid': 'race-uuid',
+          'runner_uuid': 'runner-uuid',
+          'team_id': 99,
+          'place': 1,
+          'finish_time': 1000,
+          'updated_at': '2024-06-01T12:00:00.000Z',
+          'owner_user_id': 'user-1',
+        };
+
+        setUp(() {
+          when(mockSyncClient.fetchTableRows('race_results', any,
+                  cursor: anyNamed('cursor')))
+              .thenAnswer((_) async => [remoteResult]);
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM runners WHERE uuid IN')), any))
+              .thenAnswer((_) async => [
+                    {'uuid': 'runner-uuid', 'runner_id': 5}
+                  ]);
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM races WHERE uuid IN')), any))
+              .thenAnswer((_) async => [
+                    {'uuid': 'race-uuid', 'race_id': 7}
+                  ]);
+        });
+
+        Map<String, dynamic> insertedResult() => verify(mockDatabase.insert(
+                'race_results', captureAny,
+                conflictAlgorithm: anyNamed('conflictAlgorithm')))
+            .captured
+            .single as Map<String, dynamic>;
+
+        test('takes the team from the local race participant', () async {
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM race_participants')), any))
+              .thenAnswer((_) async => [
+                    {'race_id': 7, 'runner_id': 5, 'team_id': 2}
+                  ]);
+
+          await service.pullAll();
+
+          expect(insertedResult()['team_id'], 2);
+        });
+
+        test('drops the remote team_id when the runner has no local participant row',
+            () async {
+          when(mockDatabase.rawQuery(
+                  argThat(contains('FROM race_participants')), any))
+              .thenAnswer((_) async => []);
+
+          await service.pullAll();
+
+          expect(insertedResult().containsKey('team_id'), isFalse);
+        });
+      });
 
       test('updates local row when remote timestamp is newer', () async {
         const uuid = 'uuid-runner-1';
