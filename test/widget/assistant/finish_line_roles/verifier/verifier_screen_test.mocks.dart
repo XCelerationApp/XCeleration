@@ -155,10 +155,11 @@ class MockVerifierController extends _i1.Mock
           as _i5.Future<void>);
 
   @override
-  void attachSession(_i8.P2PSessionService? session) => super.noSuchMethod(
-    Invocation.method(#attachSession, [session]),
-    returnValueForMissingStub: null,
-  );
+  void attachSession(_i8.P2PSessionService? session, {required int? raceId}) =>
+      super.noSuchMethod(
+        Invocation.method(#attachSession, [session], {#raceId: raceId}),
+        returnValueForMissingStub: null,
+      );
 
   @override
   void dispose() => super.noSuchMethod(

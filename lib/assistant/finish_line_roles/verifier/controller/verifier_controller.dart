@@ -35,6 +35,9 @@ class VerifierController extends ChangeNotifier {
   final List<VerifierEntry> _entries = [];
   final List<VerifierEntry> _history = [];
   final Map<int, Timer> _undoTimers = {};
+  // What each pending undo timer does when it fires, so leaving the race can
+  // commit it early instead of dropping it.
+  final Map<int, VoidCallback> _pendingCommits = {};
   StreamSubscription<(Role, MessageEnvelope)>? _sessionSub;
   bool _inRace = false;
 
@@ -97,23 +100,51 @@ class VerifierController extends ChangeNotifier {
   int _raceId = 0;
 
   /// Enter a race session and recover any persisted entries.
+  ///
+  /// Entries that arrived while connecting are kept: they belong to this race
+  /// and the Bib Recorder will not resend them.
   Future<void> joinRace({required int raceId}) async {
-    _raceId = raceId;
+    _setRace(raceId);
     _inRace = true;
-    _entries.clear();
-    _history.clear();
     notifyListeners();
     if (_storage == null) return;
     final result = await _storage.getVerifierEntries(raceId);
     if (result case Success(:final value)) {
+      final known = {..._entries, ..._history}.map((e) => e.id).toSet();
       for (final entry in value) {
+        if (known.contains(entry.id)) continue;
         if (entry.status == VerificationStatus.pending) {
           _entries.add(entry);
         } else {
           _history.add(entry);
         }
       }
+      // Newest finisher first, matching how live entries are inserted.
+      _entries.sort((a, b) => b.position.compareTo(a.position));
       notifyListeners();
+    }
+  }
+
+  /// Points the controller at [raceId], dropping another race's entries.
+  void _setRace(int raceId) {
+    if (_raceId == raceId) return;
+    _commitPending();
+    _entries.clear();
+    _history.clear();
+    _raceId = raceId;
+  }
+
+  /// Fires every open undo window now, so a flag made just before leaving
+  /// still reaches the Fixer.
+  void _commitPending() {
+    for (final timer in _undoTimers.values) {
+      timer.cancel();
+    }
+    _undoTimers.clear();
+    final commits = List.of(_pendingCommits.values);
+    _pendingCommits.clear();
+    for (final commit in commits) {
+      commit();
     }
   }
 
@@ -163,8 +194,8 @@ class VerifierController extends ChangeNotifier {
 
   /// Cancel the commit timer and revert the entry to pending.
   void undo(int id) {
-    _undoTimers[id]?.cancel();
-    _undoTimers.remove(id);
+    _undoTimers.remove(id)?.cancel();
+    _pendingCommits.remove(id);
     final idx = _entries.indexWhere((e) => e.id == id);
     if (idx == -1) return;
     _entries[idx] = _entries[idx].copyWith(status: VerificationStatus.pending);
@@ -191,26 +222,28 @@ class VerifierController extends ChangeNotifier {
     }
     notifyListeners();
 
-    _undoTimers[id]?.cancel();
-    _undoTimers[id] = Timer(const Duration(seconds: 3), () {
-      if (_undoTimers.containsKey(id)) {
-        _undoTimers.remove(id);
-        onCommit?.call();
-        final entry = _entries.where((e) => e.id == id).firstOrNull;
-        if (entry != null) {
-          _history.insert(0, entry);
-          _entries.removeWhere((e) => e.id == id);
-        }
-        notifyListeners();
+    void commit() {
+      onCommit?.call();
+      final entry = _entries.where((e) => e.id == id).firstOrNull;
+      if (entry != null) {
+        _history.insert(0, entry);
+        _entries.removeWhere((e) => e.id == id);
       }
+    }
+
+    _undoTimers.remove(id)?.cancel();
+    _pendingCommits[id] = commit;
+    _undoTimers[id] = Timer(const Duration(seconds: 3), () {
+      _undoTimers.remove(id);
+      _pendingCommits.remove(id)?.call();
+      notifyListeners();
     });
   }
 
+  /// Leaves the race. Call before disposing the session so pending flags can
+  /// still be sent.
   void leaveRace() {
-    for (final t in _undoTimers.values) {
-      t.cancel();
-    }
-    _undoTimers.clear();
+    _commitPending();
     _entries.clear();
     _history.clear();
     _inRace = false;
@@ -235,7 +268,9 @@ class VerifierController extends ChangeNotifier {
   ///
   /// Safe to call after [initialize]. Cancels any existing session subscription
   /// before subscribing to [session]'s incoming messages.
-  void attachSession(P2PSessionService session) {
+  void attachSession(P2PSessionService session, {required int raceId}) {
+    // Set the race first: entries can arrive before the user taps Start.
+    _setRace(raceId);
     _sessionSub?.cancel();
     if (_session != null && _session != session) _session!.dispose();
     _session = session;
@@ -265,6 +300,7 @@ class VerifierController extends ChangeNotifier {
       if (existing.bib == entry.bib && existing.flag == entry.flag) return;
       // The Bib Recorder edited the entry, so it needs verifying again.
       _undoTimers.remove(entry.id)?.cancel();
+      _pendingCommits.remove(entry.id);
       _entries.removeWhere((e) => e.id == entry.id);
       _history.removeWhere((e) => e.id == entry.id);
     }
@@ -283,6 +319,7 @@ class VerifierController extends ChangeNotifier {
     // Cancel without committing: a pending flag for a deleted entry must not
     // reach the Fixer.
     _undoTimers.remove(entryId)?.cancel();
+    _pendingCommits.remove(entryId);
     final before = _entries.length + _history.length;
     _entries.removeWhere((e) => e.id == entryId);
     _history.removeWhere((e) => e.id == entryId);
@@ -307,9 +344,7 @@ class VerifierController extends ChangeNotifier {
 
   @override
   void dispose() {
-    for (final t in _undoTimers.values) {
-      t.cancel();
-    }
+    _commitPending();
     _sessionSub?.cancel();
     _session?.dispose();
     super.dispose();

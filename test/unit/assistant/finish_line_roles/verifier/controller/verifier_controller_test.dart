@@ -832,6 +832,113 @@ void main() {
       });
     });
 
+    group('entries that arrive while connecting', () {
+      MessageEnvelope bibEntry(int entryId, int position, int bib) =>
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: position,
+            bib: bib,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime(2026),
+            entryId: entryId,
+          ));
+
+      test('are saved under the race being joined and survive joinRace',
+          () async {
+        final controller = makeController(storage: mockStorage);
+        await controller.initialize();
+        controller.attachSession(mockSession, raceId: 7);
+
+        incomingController.add((Role.bibRecorderV2, bibEntry(1, 1, 101)));
+        await Future.microtask(() {});
+        verify(mockStorage.saveVerifierEntry(7, any)).called(1);
+
+        // Storage has not caught up with the save yet.
+        await controller.joinRace(raceId: 7);
+
+        expect(controller.entries.map((e) => e.bib), [101]);
+      });
+
+      test('are merged with stored entries without duplicates', () async {
+        when(mockStorage.getVerifierEntries(7)).thenAnswer((_) async => Success([
+              VerifierEntry(id: 1, entryId: 1, position: 1, bib: 101),
+              VerifierEntry(id: 2, entryId: 2, position: 2, bib: 102),
+            ]));
+        final controller = makeController(storage: mockStorage);
+        await controller.initialize();
+        controller.attachSession(mockSession, raceId: 7);
+        incomingController.add((Role.bibRecorderV2, bibEntry(3, 3, 103)));
+        incomingController.add((Role.bibRecorderV2, bibEntry(1, 1, 101)));
+        await Future.microtask(() {});
+
+        await controller.joinRace(raceId: 7);
+
+        expect(controller.entries.map((e) => e.bib), [103, 102, 101]);
+      });
+
+      test('from another race are dropped when a new race is attached',
+          () async {
+        final controller = makeController(storage: mockStorage);
+        await controller.initialize();
+        controller.attachSession(mockSession, raceId: 7);
+        incomingController.add((Role.bibRecorderV2, bibEntry(1, 1, 101)));
+        await Future.microtask(() {});
+
+        controller.attachSession(mockSession, raceId: 8);
+
+        expect(controller.entries, isEmpty);
+      });
+    });
+
+    group('flags in their undo window when leaving', () {
+      MessageEnvelope bibEntry() => MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: 1,
+            bib: 101,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime(2026),
+            entryId: 1,
+          ));
+
+      test('are sent to the Fixer on leaveRace', () async {
+        final controller = makeController(session: mockSession);
+        await controller.initialize();
+        incomingController.add((Role.bibRecorderV2, bibEntry()));
+        await Future.microtask(() {});
+        controller.flag(1);
+        verifyNever(mockSession.sendMessage(Role.fixer, any));
+
+        controller.leaveRace();
+
+        verify(mockSession.sendMessage(Role.fixer, any)).called(1);
+      });
+
+      test('are sent to the Fixer on dispose', () async {
+        // Not tracked: this test disposes the controller itself.
+        final controller =
+            VerifierController(session: mockSession, haptic: mockHaptic);
+        await controller.initialize();
+        incomingController.add((Role.bibRecorderV2, bibEntry()));
+        await Future.microtask(() {});
+        controller.flag(1);
+
+        controller.dispose();
+
+        verify(mockSession.sendMessage(Role.fixer, any)).called(1);
+      });
+
+      test('are not sent when undone before leaving', () async {
+        final controller = makeController(session: mockSession);
+        await controller.initialize();
+        incomingController.add((Role.bibRecorderV2, bibEntry()));
+        await Future.microtask(() {});
+        controller.flag(1);
+        controller.undo(1);
+
+        controller.leaveRace();
+
+        verifyNever(mockSession.sendMessage(Role.fixer, any));
+      });
+    });
+
     group('Bib Recorder edits and deletions', () {
       MessageEnvelope bibEntry(int entryId, int bib) =>
           MessageEnvelope.wrapBibEntry(BibEntryMessage(
@@ -928,7 +1035,7 @@ void main() {
           () async {
         final controller = makeController();
 
-        controller.attachSession(mockSession);
+        controller.attachSession(mockSession, raceId: 1);
 
         incomingController.add((
           Role.bibRecorderV2,
@@ -957,7 +1064,7 @@ void main() {
         controller.initialize();
 
         // Replace with second session.
-        controller.attachSession(secondSession);
+        controller.attachSession(secondSession, raceId: 1);
 
         // Message on old stream — should be ignored.
         incomingController.add((

@@ -319,6 +319,35 @@ void main() {
       });
     });
 
+    group('flags that arrive while connecting', () {
+      MessageEnvelope flag(int entryId, int position, int bib) =>
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: position,
+              bib: bib,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime(2026),
+              entryId: entryId,
+            ),
+            reason: FlagReason.unknown,
+          ));
+
+      test('survive joinRace and are merged with stored flags', () async {
+        when(mockStorage.getFixerEntries(3)).thenAnswer((_) async => const Success([
+              FixerEntry(id: 1, position: 1, bib: 101, reason: FixReason.unknown),
+            ]));
+        final controller = makeController(session: mockSession, raceId: 3);
+        controller.initialize();
+        incomingController.add((Role.verifier, flag(2, 2, 102)));
+        incomingController.add((Role.verifier, flag(1, 1, 101)));
+        await Future.microtask(() {});
+
+        await controller.joinRace();
+
+        expect(controller.queue.map((e) => e.bib), [102, 101]);
+      });
+    });
+
     group('Bib Recorder deletions', () {
       test('remove the flagged entry from the queue and storage', () async {
         when(mockStorage.deleteFixerEntry(any, any))

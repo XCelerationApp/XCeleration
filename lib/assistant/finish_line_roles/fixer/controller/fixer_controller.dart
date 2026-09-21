@@ -65,6 +65,8 @@ class FixerController extends ChangeNotifier {
     _sessionSub?.cancel();
     _session?.dispose();
     _session = session;
+    if (_raceId != raceId) _queue.clear();
+    // Set before listening: flags can arrive before the user taps Start.
     _raceId = raceId;
     _sessionSub = session.incomingMessages.listen(_onSessionMessage);
   }
@@ -101,9 +103,11 @@ class FixerController extends ChangeNotifier {
       );
 
   /// Enter a race session and recover any persisted entries.
+  ///
+  /// Flags that arrived while connecting are kept: the Verifier will not
+  /// resend them.
   Future<void> joinRace() async {
     _inRace = true;
-    _queue.clear();
     _allRunners.clear();
     notifyListeners();
     final runnersResult = await _storage.getRunners(_raceId);
@@ -115,7 +119,10 @@ class FixerController extends ChangeNotifier {
     }
     final entriesResult = await _storage.getFixerEntries(_raceId);
     if (entriesResult case Success(:final value)) {
-      _queue.addAll(value);
+      final known = _queue.map((e) => e.id).toSet();
+      _queue.addAll(value.where((e) => !known.contains(e.id)));
+      // Newest finisher first, matching how live flags are inserted.
+      _queue.sort((a, b) => b.position.compareTo(a.position));
     }
     notifyListeners();
   }

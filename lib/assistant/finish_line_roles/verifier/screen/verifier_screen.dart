@@ -70,7 +70,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
       nearbyConnections: NearbyConnections(),
       prefs: _prefs!,
     );
-    _controller.attachSession(session);
+    _controller.attachSession(session, raceId: race.raceId);
     unawaited(session.init());
     final notifier = PeerDiscoveryNotifier(
       role: Role.verifier,
@@ -120,13 +120,15 @@ class _VerifierScreenState extends State<VerifierScreen> {
 
   /// Tears down the active P2P session and returns to the lobby.
   void _leaveRace() {
+    // Leave first so flags still in their undo window go out before the
+    // session is torn down.
+    _controller.leaveRace();
     _peerNotifier?.dispose();
     _session?.dispose();
     setState(() {
       _peerNotifier = null;
       _session = null;
     });
-    _controller.leaveRace();
   }
 
   @override
