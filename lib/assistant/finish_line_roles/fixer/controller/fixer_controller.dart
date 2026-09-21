@@ -305,9 +305,13 @@ class FixerController extends ChangeNotifier {
 
   void _onSessionMessage((Role, MessageEnvelope) event) {
     final (_, envelope) = event;
-    if (envelope.type != MessageType.verifierFlag) return;
     try {
-      _addEntryFromFlag(envelope.decode() as VerifierFlagMessage);
+      switch (envelope.type) {
+        case MessageType.verifierFlag:
+          _addEntryFromFlag(envelope.decode() as VerifierFlagMessage);
+        case MessageType.bibEntryDeleted:
+          _removeEntry((envelope.decode() as BibEntryDeletedMessage).entryId);
+      }
     } catch (e) {
       Logger.e('[FixerController._onSessionMessage] Malformed message dropped: $e');
     }
@@ -332,6 +336,18 @@ class FixerController extends ChangeNotifier {
     unawaited(_storage.saveFixerEntry(_raceId, entry).then((result) {
       if (result case Failure(:final error)) {
         Logger.e('[FixerController._addEntryFromFlag] ${error.originalException}');
+      }
+    }));
+    notifyListeners();
+  }
+
+  void _removeEntry(int entryId) {
+    final before = _queue.length;
+    _queue.removeWhere((e) => e.id == entryId);
+    if (_queue.length == before) return;
+    unawaited(_storage.deleteFixerEntry(_raceId, entryId).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[FixerController._removeEntry] ${error.originalException}');
       }
     }));
     notifyListeners();

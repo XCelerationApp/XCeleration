@@ -1221,6 +1221,25 @@ class AssistantStorageService implements IAssistantStorageService {
     }
   }
 
+  @override
+  Future<Result<void>> deleteVerifierEntry(int raceId, int entryId) async {
+    try {
+      final db = await database;
+      await db.delete(
+        'verifier_entries',
+        where: 'race_id = ? AND entry_id = ?',
+        whereArgs: [raceId, entryId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to delete verifier entry: $e');
+      return Failure(AppError(
+        userMessage: 'Could not delete verifier entry.',
+        originalException: e,
+      ));
+    }
+  }
+
   // Fixer Entry Methods
   // ============================================================================
 
@@ -1313,6 +1332,25 @@ class AssistantStorageService implements IAssistantStorageService {
       Logger.e('Failed to delete fixer entries: $e');
       return Failure(AppError(
         userMessage: 'Could not delete fixer entries.',
+        originalException: e,
+      ));
+    }
+  }
+
+  @override
+  Future<Result<void>> deleteFixerEntry(int raceId, int entryId) async {
+    try {
+      final db = await database;
+      await db.delete(
+        'fixer_entries',
+        where: 'race_id = ? AND entry_id = ?',
+        whereArgs: [raceId, entryId],
+      );
+      return const Success(null);
+    } catch (e) {
+      Logger.e('Failed to delete fixer entry: $e');
+      return Failure(AppError(
+        userMessage: 'Could not delete fixer entry.',
         originalException: e,
       ));
     }

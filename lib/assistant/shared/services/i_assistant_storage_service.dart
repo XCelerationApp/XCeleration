@@ -116,6 +116,8 @@ abstract interface class IAssistantStorageService {
 
   Future<Result<void>> deleteVerifierEntries(int raceId);
 
+  Future<Result<void>> deleteVerifierEntry(int raceId, int entryId);
+
   // Fixer Entry Methods
 
   Future<Result<void>> saveFixerEntry(int raceId, FixerEntry entry);
@@ -133,4 +135,6 @@ abstract interface class IAssistantStorageService {
   Future<Result<List<FixerEntry>>> getFixerEntries(int raceId);
 
   Future<Result<void>> deleteFixerEntries(int raceId);
+
+  Future<Result<void>> deleteFixerEntry(int raceId, int entryId);
 }

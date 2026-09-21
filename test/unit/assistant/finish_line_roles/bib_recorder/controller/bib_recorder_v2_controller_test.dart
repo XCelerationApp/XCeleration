@@ -1394,6 +1394,100 @@ void main() {
       });
     });
 
+    group('edits and deletions reach the Verifier and Fixer', () {
+      BibRecorderV2Controller make() => track(BibRecorderV2Controller(
+            storage: MockIAssistantStorageService(),
+            voice: MockIVoiceRecognitionService(),
+            haptic: MockIHapticFeedback(),
+            session: mockSession,
+          ));
+
+      List<MessageEnvelope> sentTo(Role role) => verify(
+              mockSession.sendMessage(role, captureAny))
+          .captured
+          .cast<MessageEnvelope>();
+
+      test('deleteEntry sends a deletion to both roles', () {
+        final controller = make();
+        controller.addBib(101);
+        final id = controller.entries.single.id;
+        clearInteractions(mockSession);
+
+        controller.deleteEntry(id);
+
+        for (final role in [Role.verifier, Role.fixer]) {
+          final msg = sentTo(role).single.decode() as BibEntryDeletedMessage;
+          expect(msg.entryId, id);
+        }
+      });
+
+      test('editEntry re-sends the entry with the same id and position', () {
+        final controller = make();
+        controller.addBib(101);
+        controller.addBib(102);
+        final id = controller.entries.last.id; // bib 101, position 1
+        clearInteractions(mockSession);
+
+        controller.editEntry(id, 111);
+
+        final msg = sentTo(Role.verifier).single.decode() as BibEntryMessage;
+        expect(msg.entryId, id);
+        expect(msg.finishPosition, 1);
+        expect(msg.bib, 111);
+      });
+
+      test('editEntry replaces an earlier Fixer correction', () async {
+        final controller = make();
+        controller.addBib(101);
+        final id = controller.entries.single.id;
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            entryId: id,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        controller.editEntry(id, 120);
+
+        expect(controller.entries.single.bib, 120);
+        expect(controller.entries.single.correctedTo, isNull);
+      });
+
+      test('restoreEntry re-sends the entry at its original position', () {
+        final controller = make();
+        controller.addBib(101);
+        final entry = controller.entries.single;
+        controller.deleteEntry(entry.id);
+        clearInteractions(mockSession);
+
+        controller.restoreEntry(entry, 0);
+
+        final msg = sentTo(Role.verifier).single.decode() as BibEntryMessage;
+        expect(msg.entryId, entry.id);
+        expect(msg.finishPosition, 1);
+      });
+
+      test('clearEntries sends a deletion for every entry', () {
+        final controller = make();
+        controller.addBib(101);
+        controller.addBib(102);
+        final ids = controller.entries.map((e) => e.id).toSet();
+        clearInteractions(mockSession);
+
+        controller.clearEntries();
+
+        final deletedIds = sentTo(Role.verifier)
+            .map((e) => (e.decode() as BibEntryDeletedMessage).entryId)
+            .toSet();
+        expect(deletedIds, ids);
+      });
+    });
+
     group('corrections matched by entry id', () {
       MockIAssistantStorageService makeStorage(List<BibRecord> records) {
         final s = MockIAssistantStorageService();

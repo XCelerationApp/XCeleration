@@ -244,9 +244,13 @@ class VerifierController extends ChangeNotifier {
 
   void _onSessionMessage((Role, MessageEnvelope) event) {
     final (_, envelope) = event;
-    if (envelope.type != MessageType.bibEntry) return;
     try {
-      _addEntryFromMessage(envelope.decode() as BibEntryMessage);
+      switch (envelope.type) {
+        case MessageType.bibEntry:
+          _addEntryFromMessage(envelope.decode() as BibEntryMessage);
+        case MessageType.bibEntryDeleted:
+          _removeEntry((envelope.decode() as BibEntryDeletedMessage).entryId);
+      }
     } catch (e) {
       Logger.e('[VerifierController._onSessionMessage] Malformed message dropped: $e');
     }
@@ -254,12 +258,39 @@ class VerifierController extends ChangeNotifier {
 
   void _addEntryFromMessage(BibEntryMessage msg) {
     final entry = VerifierEntry.fromMessage(msg);
-    if (_entries.any((e) => e.id == entry.id)) return;
+    final existing = _entries.where((e) => e.id == entry.id).firstOrNull ??
+        _history.where((e) => e.id == entry.id).firstOrNull;
+    if (existing != null) {
+      // A re-delivery of the same entry keeps the decision already made.
+      if (existing.bib == entry.bib && existing.flag == entry.flag) return;
+      // The Bib Recorder edited the entry, so it needs verifying again.
+      _undoTimers.remove(entry.id)?.cancel();
+      _entries.removeWhere((e) => e.id == entry.id);
+      _history.removeWhere((e) => e.id == entry.id);
+    }
     _entries.insert(0, entry);
     if (_storage != null) {
       unawaited(_storage.saveVerifierEntry(_raceId, entry).then((result) {
         if (result case Failure(:final error)) {
           Logger.e('[VerifierController._addEntryFromMessage] ${error.originalException}');
+        }
+      }));
+    }
+    notifyListeners();
+  }
+
+  void _removeEntry(int entryId) {
+    // Cancel without committing: a pending flag for a deleted entry must not
+    // reach the Fixer.
+    _undoTimers.remove(entryId)?.cancel();
+    final before = _entries.length + _history.length;
+    _entries.removeWhere((e) => e.id == entryId);
+    _history.removeWhere((e) => e.id == entryId);
+    if (_entries.length + _history.length == before) return;
+    if (_storage != null) {
+      unawaited(_storage.deleteVerifierEntry(_raceId, entryId).then((result) {
+        if (result case Failure(:final error)) {
+          Logger.e('[VerifierController._removeEntry] ${error.originalException}');
         }
       }));
     }

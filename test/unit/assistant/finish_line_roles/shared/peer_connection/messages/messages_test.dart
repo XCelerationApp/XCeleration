@@ -194,6 +194,18 @@ void main() {
   // FixerCorrectionMessage
   // ---------------------------------------------------------------------------
 
+  group('BibEntryDeletedMessage', () {
+    test('round-trips through the envelope', () {
+      final envelope = MessageEnvelope.wrapBibEntryDeleted(
+        const BibEntryDeletedMessage(entryId: 12),
+      );
+      final decoded = MessageEnvelope.fromJson(envelope.toJson());
+
+      expect(decoded.type, MessageType.bibEntryDeleted);
+      expect((decoded.decode() as BibEntryDeletedMessage).entryId, 12);
+    });
+  });
+
   group('FixerCorrectionMessage', () {
     FixerCorrectionMessage makeCorrection({
       int finishPosition = 5,

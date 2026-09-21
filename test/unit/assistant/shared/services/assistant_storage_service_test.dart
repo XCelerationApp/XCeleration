@@ -1146,6 +1146,22 @@ void main() {
         });
       });
 
+      group('deleteVerifierEntry', () {
+        test('deletes only the given entry', () async {
+          await AssistantStorageService.instance
+              .saveVerifierEntry(kRaceId, VerifierEntry(id: 1, position: 1, bib: 101));
+          await AssistantStorageService.instance
+              .saveVerifierEntry(kRaceId, VerifierEntry(id: 2, position: 2, bib: 102));
+
+          await AssistantStorageService.instance.deleteVerifierEntry(kRaceId, 1);
+
+          final result =
+              await AssistantStorageService.instance.getVerifierEntries(kRaceId);
+          final ids = (result as Success<List<VerifierEntry>>).value.map((e) => e.id);
+          expect(ids, [2]);
+        });
+      });
+
       group('VerifierEntry toMap/fromMap round-trip', () {
         test('preserves all fields through serialization', () {
           final original = VerifierEntry(
@@ -1304,6 +1320,22 @@ void main() {
 
           final result = await AssistantStorageService.instance.getFixerEntries(kRaceId);
           expect((result as Success).value, isEmpty);
+        });
+      });
+
+      group('deleteFixerEntry', () {
+        test('deletes only the given entry', () async {
+          const e1 = FixerEntry(id: 1, position: 1, bib: 101, reason: FixReason.duplicate);
+          const e2 = FixerEntry(id: 2, position: 2, bib: 102, reason: FixReason.unknown);
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, e1);
+          await AssistantStorageService.instance.saveFixerEntry(kRaceId, e2);
+
+          await AssistantStorageService.instance.deleteFixerEntry(kRaceId, 1);
+
+          final result =
+              await AssistantStorageService.instance.getFixerEntries(kRaceId);
+          final ids = (result as Success<List<FixerEntry>>).value.map((e) => e.id);
+          expect(ids, [2]);
         });
       });
 

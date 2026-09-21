@@ -835,6 +835,19 @@ class MockIAssistantStorageService extends _i1.Mock
           as _i4.Future<_i7.Result<void>>);
 
   @override
+  _i4.Future<_i7.Result<void>> deleteVerifierEntry(int? raceId, int? entryId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteVerifierEntry, [raceId, entryId]),
+            returnValue: _i4.Future<_i7.Result<void>>.value(
+              _i9.dummyValue<_i7.Result<void>>(
+                this,
+                Invocation.method(#deleteVerifierEntry, [raceId, entryId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i7.Result<void>>);
+
+  @override
   _i4.Future<_i7.Result<void>> saveFixerEntry(
     int? raceId,
     _i15.FixerEntry? entry,
@@ -912,6 +925,19 @@ class MockIAssistantStorageService extends _i1.Mock
               _i9.dummyValue<_i7.Result<void>>(
                 this,
                 Invocation.method(#deleteFixerEntries, [raceId]),
+              ),
+            ),
+          )
+          as _i4.Future<_i7.Result<void>>);
+
+  @override
+  _i4.Future<_i7.Result<void>> deleteFixerEntry(int? raceId, int? entryId) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteFixerEntry, [raceId, entryId]),
+            returnValue: _i4.Future<_i7.Result<void>>.value(
+              _i9.dummyValue<_i7.Result<void>>(
+                this,
+                Invocation.method(#deleteFixerEntry, [raceId, entryId]),
               ),
             ),
           )

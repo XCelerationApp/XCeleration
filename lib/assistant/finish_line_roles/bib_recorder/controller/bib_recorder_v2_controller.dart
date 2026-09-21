@@ -361,7 +361,10 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   void deleteEntry(int id) {
     _entries.removeWhere((e) => e.id == id);
-    _positionToEntryId.removeWhere((_, entryId) => entryId == id);
+    // The position mapping is kept so an undo can restore the same position;
+    // corrections for a deleted entry are dropped because it is not in
+    // [_entries].
+    _sendBibEntryDeleted(id);
     if (_selectedRace != null) {
       unawaited(_storage.removeBibRecord(_selectedRace!.raceId, id).then((result) {
         if (result case Failure(:final error)) {
@@ -375,7 +378,10 @@ class BibRecorderV2Controller extends ChangeNotifier {
   void editEntry(int id, int newBib) {
     final idx = _entries.indexWhere((e) => e.id == id);
     if (idx == -1) return;
-    _entries[idx] = _entries[idx].copyWith(bib: newBib);
+    // A manual edit replaces any earlier Fixer correction.
+    _entries[idx] = _entries[idx].copyWith(bib: newBib, correctedTo: () => null);
+    final position = _positionOf(id);
+    if (position != null) _sendBibEntry(id, newBib, position);
     if (_selectedRace != null) {
       unawaited(_storage.updateBibRecordValue(_selectedRace!.raceId, id, newBib.toString()).then((result) {
         if (result case Failure(:final error)) {
@@ -388,6 +394,10 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   void restoreEntry(BibEntry entry, int index) {
     _entries.insert(index.clamp(0, _entries.length), entry);
+    final position = _positionOf(entry.id);
+    if (position != null) {
+      _sendBibEntry(entry.id, entry.correctedTo ?? entry.bib, position);
+    }
     if (_selectedRace != null) {
       unawaited(_storage.addBibRecord(_selectedRace!.raceId, entry.id, entry.bib.toString()).then((result) {
         if (result case Failure(:final error)) {
@@ -399,6 +409,9 @@ class BibRecorderV2Controller extends ChangeNotifier {
   }
 
   void clearEntries() {
+    for (final entry in _entries) {
+      _sendBibEntryDeleted(entry.id);
+    }
     _entries.clear();
     _awaitingRecord = false;
     if (_selectedRace != null) {
@@ -515,6 +528,22 @@ class BibRecorderV2Controller extends ChangeNotifier {
         teamColor: runner?.teamColor?.toARGB32(),
       )),
     ));
+  }
+
+  int? _positionOf(int entryId) => _positionToEntryId.entries
+      .where((e) => e.value == entryId)
+      .firstOrNull
+      ?.key;
+
+  /// Tells the Verifier and Fixer that an entry was deleted, so neither keeps
+  /// acting on a bib the Bib Recorder no longer has.
+  void _sendBibEntryDeleted(int entryId) {
+    if (_session == null) return;
+    final message = MessageEnvelope.wrapBibEntryDeleted(
+      BibEntryDeletedMessage(entryId: entryId),
+    );
+    unawaited(_session!.sendMessage(Role.verifier, message));
+    unawaited(_session!.sendMessage(Role.fixer, message));
   }
 
   void _onSessionMessage((Role, MessageEnvelope) event) {

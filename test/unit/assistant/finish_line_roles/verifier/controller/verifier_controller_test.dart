@@ -832,6 +832,97 @@ void main() {
       });
     });
 
+    group('Bib Recorder edits and deletions', () {
+      MessageEnvelope bibEntry(int entryId, int bib) =>
+          MessageEnvelope.wrapBibEntry(BibEntryMessage(
+            finishPosition: entryId + 1,
+            bib: bib,
+            status: BibEntryStatus.resolved,
+            timestamp: DateTime(2026),
+            entryId: entryId,
+          ));
+
+      MessageEnvelope deleted(int entryId) => MessageEnvelope.wrapBibEntryDeleted(
+            BibEntryDeletedMessage(entryId: entryId),
+          );
+
+      setUp(() {
+        when(mockStorage.deleteVerifierEntry(any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+      });
+
+      test('a re-delivered entry keeps its verified status', () {
+        fakeAsync((fake) {
+          final controller =
+              makeController(session: mockSession, storage: mockStorage);
+          controller.initialize();
+          incomingController.add((Role.bibRecorderV2, bibEntry(5, 101)));
+          fake.flushMicrotasks();
+          controller.verify(5);
+          fake.elapse(const Duration(seconds: 3));
+
+          incomingController.add((Role.bibRecorderV2, bibEntry(5, 101)));
+          fake.flushMicrotasks();
+
+          expect(controller.entries, isEmpty);
+          expect(controller.confirmed, 1);
+          verify(mockStorage.saveVerifierEntry(any, any)).called(1);
+        });
+      });
+
+      test('an edited entry returns to pending with the new bib', () {
+        fakeAsync((fake) {
+          final controller =
+              makeController(session: mockSession, storage: mockStorage);
+          controller.initialize();
+          incomingController.add((Role.bibRecorderV2, bibEntry(5, 101)));
+          fake.flushMicrotasks();
+          controller.verify(5);
+          fake.elapse(const Duration(seconds: 3));
+
+          incomingController.add((Role.bibRecorderV2, bibEntry(5, 102)));
+          fake.flushMicrotasks();
+
+          expect(controller.entries.single.bib, 102);
+          expect(controller.entries.single.status, VerificationStatus.pending);
+          expect(controller.confirmed, 0);
+        });
+      });
+
+      test('a deleted entry is removed from the queue and storage', () async {
+        final controller =
+            makeController(session: mockSession, storage: mockStorage);
+        await controller.initialize();
+        await controller.joinRace(raceId: 3);
+        incomingController.add((Role.bibRecorderV2, bibEntry(5, 101)));
+        await Future.microtask(() {});
+
+        incomingController.add((Role.bibRecorderV2, deleted(5)));
+        await Future.microtask(() {});
+
+        expect(controller.entries, isEmpty);
+        verify(mockStorage.deleteVerifierEntry(3, 5)).called(1);
+      });
+
+      test('deleting an entry inside the undo window does not send its flag', () {
+        fakeAsync((fake) {
+          final controller = makeController(session: mockSession);
+          controller.initialize();
+          incomingController.add((Role.bibRecorderV2, bibEntry(5, 101)));
+          fake.flushMicrotasks();
+          controller.flag(5);
+
+          incomingController.add((Role.bibRecorderV2, deleted(5)));
+          fake.flushMicrotasks();
+          fake.elapse(const Duration(seconds: 3));
+
+          verifyNever(mockSession.sendMessage(Role.fixer, any));
+          expect(controller.entries, isEmpty);
+          expect(controller.wrong, 0);
+        });
+      });
+    });
+
     group('attachSession', () {
       test('subscribes to incoming messages after construction without session',
           () async {

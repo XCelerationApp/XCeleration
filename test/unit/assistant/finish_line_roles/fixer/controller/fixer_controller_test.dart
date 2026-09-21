@@ -319,6 +319,40 @@ void main() {
       });
     });
 
+    group('Bib Recorder deletions', () {
+      test('remove the flagged entry from the queue and storage', () async {
+        when(mockStorage.deleteFixerEntry(any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        final controller = makeController(session: mockSession, raceId: 3);
+        controller.initialize();
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 2,
+              bib: 105,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime(2026),
+              entryId: 9,
+            ),
+            reason: FlagReason.unknown,
+          )),
+        ));
+        await Future.microtask(() {});
+        expect(controller.queue, hasLength(1));
+
+        incomingController.add((
+          Role.bibRecorderV2,
+          MessageEnvelope.wrapBibEntryDeleted(
+              const BibEntryDeletedMessage(entryId: 9)),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.queue, isEmpty);
+        verify(mockStorage.deleteFixerEntry(3, 9)).called(1);
+      });
+    });
+
     group('resolveWithBib', () {
       test('sends FixerCorrectionMessage with bibCorrected correction type', () async {
         final controller = makeController(session: mockSession);

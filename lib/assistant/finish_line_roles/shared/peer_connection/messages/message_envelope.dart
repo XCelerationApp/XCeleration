@@ -1,4 +1,5 @@
 import 'ack_message.dart';
+import 'bib_entry_deleted_message.dart';
 import 'bib_entry_message.dart';
 import 'fixer_correction_message.dart';
 import 'verifier_flag_message.dart';
@@ -12,6 +13,7 @@ class MessageType {
   MessageType._();
 
   static const bibEntry = 'bib_entry';
+  static const bibEntryDeleted = 'bib_entry_deleted';
   static const verifierFlag = 'verifier_flag';
   static const fixerCorrection = 'fixer_correction';
 
@@ -49,6 +51,13 @@ class MessageEnvelope {
 
   factory MessageEnvelope.wrapBibEntry(BibEntryMessage msg) => MessageEnvelope(
         type: MessageType.bibEntry,
+        version: messageSchemaVersion,
+        payload: msg.toJson(),
+      );
+
+  factory MessageEnvelope.wrapBibEntryDeleted(BibEntryDeletedMessage msg) =>
+      MessageEnvelope(
+        type: MessageType.bibEntryDeleted,
         version: messageSchemaVersion,
         payload: msg.toJson(),
       );
@@ -110,6 +119,7 @@ class MessageEnvelope {
   /// Returns `null` for malformed ACKs (missing sequence) or unknown types.
   Object? decode() => switch (type) {
         MessageType.bibEntry => BibEntryMessage.fromJson(payload),
+        MessageType.bibEntryDeleted => BibEntryDeletedMessage.fromJson(payload),
         MessageType.verifierFlag => VerifierFlagMessage.fromJson(payload),
         MessageType.fixerCorrection => FixerCorrectionMessage.fromJson(payload),
         MessageType.ack =>
