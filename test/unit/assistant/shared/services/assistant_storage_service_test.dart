@@ -827,6 +827,25 @@ void main() {
           expect((result as Success).value.length, 2);
         });
 
+        test('returns bib records in finish order (bib_id), not by created_at',
+            () async {
+          // Recorded out of order in time, e.g. a later correction to an
+          // earlier finisher: position must win.
+          await AssistantStorageService.instance.saveBibRecord(BibRecord(
+              raceId: kRaceId,
+              bibId: 0,
+              bibNumber: '301',
+              createdAt: kBase.add(const Duration(minutes: 5))));
+          await AssistantStorageService.instance.saveBibRecord(BibRecord(
+              raceId: kRaceId, bibId: 1, bibNumber: '302', createdAt: kBase));
+
+          final result =
+              await AssistantStorageService.instance.getBibRecords(kRaceId);
+
+          expect((result as Success<List<BibRecord>>).value.map((b) => b.bibNumber),
+              ['301', '302']);
+        });
+
         test('returns empty list when no bib records exist', () async {
           final result =
               await AssistantStorageService.instance.getBibRecords(kRaceId);
