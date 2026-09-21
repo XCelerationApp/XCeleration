@@ -3,6 +3,7 @@ import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_team_repository.dart';
+import 'package:xceleration/core/utils/soft_delete.dart';
 import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 class TeamRepository implements ITeamRepository {
@@ -102,14 +103,12 @@ class TeamRepository implements ITeamRepository {
       throw Exception('Team with id $teamId not found');
     }
     final db = await _db;
-    await db.update(
-      'teams',
-      {
-        'deleted_at': DateTime.now().toUtc().toIso8601String(),
-        'is_dirty': 1,
-      },
-      where: 'team_id = ?',
-      whereArgs: [teamId],
+    final now = SyncTimestamp.now();
+    // Free the name so a new team can use it.
+    await db.rawUpdate(
+      'UPDATE teams SET deleted_at = ?, updated_at = ?, is_dirty = 1, '
+      'name = name || ? WHERE team_id = ?',
+      [now, now, SoftDelete.releasedSuffix(teamId, now), teamId],
     );
     _writeBus?.notify();
   }

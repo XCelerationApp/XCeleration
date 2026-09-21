@@ -228,5 +228,29 @@ void main() {
         expect(() => repo.deleteTeam(9999), throwsException);
       });
     });
+
+    group('reusing a deleted team\'s name', () {
+      test('works after deleteTeam', () async {
+        final id = await repo.createTeam(validTeam);
+        await repo.deleteTeam(id);
+
+        final newId = await repo.createTeam(validTeam);
+
+        expect((await repo.getTeamByName(validTeam.name!))?.teamId, newId);
+      });
+
+      test('the deleted row is kept and dirty so the delete syncs', () async {
+        final id = await repo.createTeam(validTeam);
+        await repo.deleteTeam(id);
+
+        final db = await connProvider.database;
+        final row =
+            (await db.query('teams', where: 'team_id = ?', whereArgs: [id])).single;
+        expect(row['deleted_at'], isNotNull);
+        expect(row['is_dirty'], 1);
+        expect(row['name'], isNot(validTeam.name));
+        expect(row['updated_at'], endsWith('Z'));
+      });
+    });
   });
 }

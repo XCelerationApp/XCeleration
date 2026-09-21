@@ -71,10 +71,12 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<void> deleteRace(int raceId) async {
     final db = await _db;
+    final now = SyncTimestamp.now();
     final affectedRows = await db.update(
       'races',
       {
-        'deleted_at': DateTime.now().toUtc().toIso8601String(),
+        'deleted_at': now,
+        'updated_at': now,
         'is_dirty': 1,
       },
       where: 'race_id = ?',

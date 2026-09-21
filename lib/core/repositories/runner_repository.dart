@@ -3,6 +3,7 @@ import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
 import 'i_runner_repository.dart';
+import 'package:xceleration/core/utils/soft_delete.dart';
 import 'package:xceleration/core/utils/sync_timestamp.dart';
 
 class RunnerRepository implements IRunnerRepository {
@@ -100,38 +101,35 @@ class RunnerRepository implements IRunnerRepository {
       throw Exception('Runner with id $runnerId not found');
     }
     final db = await _db;
-    await db.update(
-      'runners',
-      {
-        'deleted_at': DateTime.now().toUtc().toIso8601String(),
-        'is_dirty': 1,
-      },
-      where: 'runner_id = ?',
-      whereArgs: [runnerId],
-    );
+    await _softDeleteRunner(db, runnerId, SyncTimestamp.now());
     _writeBus?.notify();
+  }
+
+  /// Marks the runner deleted and frees its bib number for reuse.
+  Future<void> _softDeleteRunner(
+      DatabaseExecutor db, int runnerId, String now) async {
+    await db.rawUpdate(
+      'UPDATE runners SET deleted_at = ?, updated_at = ?, is_dirty = 1, '
+      'bib_number = bib_number || ? WHERE runner_id = ?',
+      [now, now, SoftDelete.releasedSuffix(runnerId, now), runnerId],
+    );
   }
 
   @override
   Future<void> deleteRunnerEverywhere(int runnerId) async {
     if (await getRunner(runnerId) == null) return;
     final db = await _db;
-    final now = DateTime.now().toUtc().toIso8601String();
+    final now = SyncTimestamp.now();
     await db.transaction((txn) async {
       await txn.update(
         'race_participants',
-        {'deleted_at': now, 'is_dirty': 1},
+        {'deleted_at': now, 'updated_at': now, 'is_dirty': 1},
         where: 'runner_id = ?',
         whereArgs: [runnerId],
       );
       await txn.delete('team_rosters',
           where: 'runner_id = ?', whereArgs: [runnerId]);
-      await txn.update(
-        'runners',
-        {'deleted_at': now, 'is_dirty': 1},
-        where: 'runner_id = ?',
-        whereArgs: [runnerId],
-      );
+      await _softDeleteRunner(txn, runnerId, now);
     });
     _writeBus?.notify();
   }

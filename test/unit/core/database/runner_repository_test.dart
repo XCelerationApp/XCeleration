@@ -230,6 +230,47 @@ void main() {
       });
     });
 
+    group('reusing a deleted runner\'s bib', () {
+      test('works after removeRunner', () async {
+        final id = await repo.createRunner(validRunner);
+        await repo.removeRunner(id);
+
+        final newId = await repo.createRunner(
+            const Runner(name: 'Bob', bibNumber: '100', grade: 10));
+
+        expect((await repo.getRunnerByBib('100'))?.runnerId, newId);
+      });
+
+      test('works after deleteRunnerEverywhere', () async {
+        final id = await repo.createRunner(validRunner);
+        await repo.deleteRunnerEverywhere(id);
+
+        final newId = await repo.createRunner(
+            const Runner(name: 'Bob', bibNumber: '100', grade: 10));
+
+        expect((await repo.getRunnerByBib('100'))?.runnerId, newId);
+      });
+
+      test('the deleted row is kept, dirty and restamped so the delete syncs',
+          () async {
+        final id = await repo.createRunner(validRunner);
+        final db = await connProvider.database;
+        await db.update('runners', {'is_dirty': 0, 'updated_at': '2000-01-01T00:00:00.000Z'},
+            where: 'runner_id = ?', whereArgs: [id]);
+
+        await repo.removeRunner(id);
+
+        final row = (await db.query('runners',
+                where: 'runner_id = ?', whereArgs: [id]))
+            .single;
+        expect(row['deleted_at'], isNotNull);
+        expect(row['is_dirty'], 1);
+        expect(row['bib_number'], isNot('100'));
+        expect(row['bib_number'], startsWith('100'));
+        expect(row['updated_at'], isNot('2000-01-01T00:00:00.000Z'));
+      });
+    });
+
     group('getRunnersByBibAll', () {
       test('returns runners matching bib', () async {
         await repo.createRunner(validRunner);

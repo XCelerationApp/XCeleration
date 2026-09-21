@@ -413,6 +413,42 @@ void main() {
             cursor: anyNamed('cursor')));
       });
 
+      test('applies a remote runner delete with its released bib number',
+          () async {
+        const uuid = 'uuid-runner-1';
+        when(mockSyncClient.fetchTableRows('runners', any,
+                cursor: anyNamed('cursor')))
+            .thenAnswer((_) async => [
+                  {
+                    'uuid': uuid,
+                    'name': 'Alice',
+                    'bib_number': '101~deleted~7~2024-06-01T12:00:00.000Z',
+                    'deleted_at': '2024-06-01T12:00:00.000Z',
+                    'updated_at': '2024-06-01T12:00:00.000Z',
+                    'owner_user_id': 'user-1',
+                  },
+                ]);
+        when(mockDatabase.rawQuery(argThat(contains('WHERE uuid IN')), any))
+            .thenAnswer((_) async => [
+                  {
+                    'uuid': uuid,
+                    'name': 'Alice',
+                    'bib_number': '101',
+                    'deleted_at': null,
+                    'updated_at': '2024-05-01T12:00:00.000Z',
+                  },
+                ]);
+
+        await service.pullAll();
+
+        final update = verify(mockDatabase.update('runners', captureAny,
+                where: 'uuid = ?', whereArgs: [uuid]))
+            .captured
+            .single as Map<String, dynamic>;
+        expect(update['deleted_at'], '2024-06-01T12:00:00.000Z');
+        expect(update['bib_number'], '101~deleted~7~2024-06-01T12:00:00.000Z');
+      });
+
       test('inserts remote row when no local row exists', () async {
         const uuid = 'uuid-runner-1';
         final remoteRow = {

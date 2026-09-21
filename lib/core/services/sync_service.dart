@@ -661,10 +661,17 @@ class SyncService implements ISyncService {
                 conflictAlgorithm: ConflictAlgorithm.replace);
             hadWrites = true;
           } else if (locals.first['deleted_at'] == null) {
-            // Active local row — apply the remote tombstone
+            // Active local row — apply the remote tombstone, including the
+            // released bib number or team name so the original value can be
+            // reused locally (see SoftDelete).
             await db.update(
               table,
-              {'deleted_at': remote['deleted_at'], 'is_dirty': 0},
+              {
+                'deleted_at': remote['deleted_at'],
+                'is_dirty': 0,
+                for (final column in const ['bib_number', 'name'])
+                  if (remote[column] != null) column: remote[column],
+              },
               where: 'uuid = ?',
               whereArgs: [uuid],
             );
