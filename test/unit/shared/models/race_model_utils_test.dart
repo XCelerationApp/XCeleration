@@ -777,6 +777,46 @@ void main() {
       });
     });
 
+    group('saveResults', () {
+      test('saves the whole list in one replace call', () async {
+        when(mockResultsRepo.saveRaceResults(any, any)).thenAnswer((_) async {});
+        final race = MasterRace.getInstance(raceId);
+        final results = [
+          RaceResult(raceId: raceId, runner: runnerAlice, team: teamA, place: 1),
+          RaceResult(raceId: raceId, runner: runnerBob, team: teamB, place: 2),
+        ];
+
+        await race.saveResults(results);
+
+        verify(mockResultsRepo.saveRaceResults(raceId, results)).called(1);
+        verifyNever(mockResultsRepo.addRaceResult(any));
+      });
+
+      test('fills in the race id on results that lack one', () async {
+        when(mockResultsRepo.saveRaceResults(any, any)).thenAnswer((_) async {});
+        final race = MasterRace.getInstance(raceId);
+
+        await race.saveResults(
+            [RaceResult(runner: runnerAlice, team: teamA, place: 1)]);
+
+        final saved = verify(mockResultsRepo.saveRaceResults(raceId, captureAny))
+            .captured
+            .single as List<RaceResult>;
+        expect(saved.single.raceId, raceId);
+      });
+
+      test('throws when a result belongs to another race', () async {
+        final race = MasterRace.getInstance(raceId);
+
+        expect(
+          () => race.saveResults([
+            RaceResult(raceId: raceId + 1, runner: runnerAlice, team: teamA, place: 1)
+          ]),
+          throwsException,
+        );
+      });
+    });
+
     group('getRaceRunnerFromRaceParticipant', () {
       test('builds a RaceRunner from runner and team repositories', () async {
         when(mockRunnerRepo.getRunner(10)).thenAnswer((_) async => runnerAlice);
