@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
@@ -111,6 +113,51 @@ void main() {
 
         verifyNever(mockConnProvider.database);
         verifyNever(mockDatabase.rawQuery(any, any));
+      });
+
+      group('overlapping calls', () {
+        // Startup, connectivity changes, debounced writes and "Sync Now" can
+        // all call syncAll at once. Only one sync may run at a time.
+        late Completer<void> firstInit;
+        late int initCalls;
+
+        setUp(() {
+          firstInit = Completer<void>();
+          initCalls = 0;
+          when(mockRemote.init()).thenAnswer((_) {
+            initCalls++;
+            return initCalls == 1 ? firstInit.future : Future.value();
+          });
+        });
+
+        test('does not start a second sync while one is in flight', () async {
+          final first = service.syncAll();
+          final second = service.syncAll();
+
+          expect(initCalls, 1);
+          firstInit.complete();
+          await Future.wait([first, second]);
+        });
+
+        test('runs exactly one follow-up sync for calls made during a sync',
+            () async {
+          final calls = [service.syncAll(), service.syncAll(), service.syncAll()];
+
+          firstInit.complete();
+          await Future.wait(calls);
+
+          expect(initCalls, 2);
+        });
+
+        test('starts a fresh sync once the previous one has finished',
+            () async {
+          firstInit.complete();
+          await service.syncAll();
+
+          await service.syncAll();
+
+          expect(initCalls, 2);
+        });
       });
 
       test('rethrows exceptions from underlying operations', () async {

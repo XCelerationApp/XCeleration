@@ -282,8 +282,31 @@ class SyncService implements ISyncService {
     await _syncEventController.close();
   }
 
+  // Only one sync runs at a time. Calls that arrive during a sync share its
+  // future and schedule one follow-up pass, so writes made mid-sync still get
+  // pushed without overlapping syncs racing on UUIDs, dirty flags and cursors.
+  Future<void>? _inFlightSync;
+  bool _followUpRequested = false;
+
   @override
-  Future<void> syncAll() async {
+  Future<void> syncAll() {
+    if (_inFlightSync != null) {
+      _followUpRequested = true;
+      return _inFlightSync!;
+    }
+    final run = _runSyncPasses();
+    _inFlightSync = run;
+    return run.whenComplete(() => _inFlightSync = null);
+  }
+
+  Future<void> _runSyncPasses() async {
+    do {
+      _followUpRequested = false;
+      await _syncOnce();
+    } while (_followUpRequested);
+  }
+
+  Future<void> _syncOnce() async {
     try {
       await _remote.init();
       if (!_remote.isInitialized) {
