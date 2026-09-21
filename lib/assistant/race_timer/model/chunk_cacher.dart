@@ -18,6 +18,12 @@ class ChunkCacher {
   List<UIChunk> get cachedChunks =>
       _hashedChunks.map((hash) => _cachedChunks[hash]!).toList();
 
+  /// The cached chunks, oldest first, without removing them from the cache.
+  List<TimingChunk> get cachedTimingChunks => [
+        for (var i = 0; i < _hashedChunks.length; i++)
+          TimingChunk.decode(_encodedChunks[_hashedChunks[i]]!, i),
+      ];
+
   void cacheChunk(TimingChunk chunk) {
     final hashCode = chunk.hashCode;
     if (_encodedChunks.containsKey(hashCode)) {
