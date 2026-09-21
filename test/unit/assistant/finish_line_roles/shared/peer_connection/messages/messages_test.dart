@@ -253,6 +253,23 @@ void main() {
         expect(decoded.correctionType, CorrectionType.matched);
       });
 
+      test('round-trips entry_id', () {
+        const msg = FixerCorrectionMessage(
+          finishPosition: 5,
+          originalBib: 99,
+          entryId: 7,
+          correctedBib: 100,
+          correctionType: CorrectionType.bibCorrected,
+        );
+        expect(FixerCorrectionMessage.fromJson(msg.toJson()).entryId, 7);
+      });
+
+      test('omits entry_id when null and decodes it as null', () {
+        final json = makeCorrection().toJson();
+        expect(json.containsKey('entry_id'), isFalse);
+        expect(FixerCorrectionMessage.fromJson(json).entryId, isNull);
+      });
+
       test('round-trips bib_corrected type', () {
         final decoded = FixerCorrectionMessage.fromJson(
           makeCorrection(type: CorrectionType.bibCorrected).toJson(),

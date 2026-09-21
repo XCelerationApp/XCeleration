@@ -286,6 +286,39 @@ void main() {
       });
     });
 
+    group('correction entry id', () {
+      test('carries the flagged entry id so the Bib Recorder can match it',
+          () async {
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 3,
+              bib: 105,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime.now(),
+              entryId: 42,
+            ),
+            reason: FlagReason.unknown,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        controller.resolveWithBib(42, 115);
+
+        final captured =
+            verify(mockSession.sendMessage(Role.bibRecorderV2, captureAny))
+                .captured;
+        final msg =
+            (captured.last as MessageEnvelope).decode() as FixerCorrectionMessage;
+        expect(msg.entryId, 42);
+        expect(msg.finishPosition, 3);
+      });
+    });
+
     group('resolveWithBib', () {
       test('sends FixerCorrectionMessage with bibCorrected correction type', () async {
         final controller = makeController(session: mockSession);

@@ -189,6 +189,7 @@ class FixerController extends ChangeNotifier {
         MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
           finishPosition: original.position,
           originalBib: original.bib,
+          entryId: original.id,
           correctedBib: correctedBib,
           correctionType: CorrectionType.matched,
         )),
@@ -222,6 +223,7 @@ class FixerController extends ChangeNotifier {
         MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
           finishPosition: original.position,
           originalBib: original.bib,
+          entryId: original.id,
           correctedBib: newBib,
           correctionType: CorrectionType.bibCorrected,
         )),
@@ -264,6 +266,7 @@ class FixerController extends ChangeNotifier {
         MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
           finishPosition: original.position,
           originalBib: original.bib,
+          entryId: original.id,
           correctedBib: newBib,
           correctionType: CorrectionType.newRunner,
         )),

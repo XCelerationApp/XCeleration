@@ -528,10 +528,19 @@ class BibRecorderV2Controller extends ChangeNotifier {
   }
 
   void _applyCorrection(FixerCorrectionMessage msg) {
-    final entryId = _positionToEntryId[msg.finishPosition];
-    if (entryId == null) return;
-    final idx = _entries.indexWhere((e) => e.id == entryId);
+    // Match on the entry ID first: positions shift when entries are deleted
+    // and are renumbered on reload, so they can point at the wrong runner.
+    final byId = msg.entryId == null
+        ? -1
+        : _entries.indexWhere((e) => e.id == msg.entryId);
+    final positionEntryId = _positionToEntryId[msg.finishPosition];
+    final idx = byId != -1
+        ? byId
+        : msg.entryId == null && positionEntryId != null
+            ? _entries.indexWhere((e) => e.id == positionEntryId)
+            : -1;
     if (idx == -1) return;
+    final entryId = _entries[idx].id;
     if (msg.correctedBib != null) {
       _entries[idx] = _entries[idx].copyWith(correctedTo: () => msg.correctedBib);
       if (_selectedRace != null) {

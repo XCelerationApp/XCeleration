@@ -34,6 +34,7 @@ class FixerCorrectionMessage {
   const FixerCorrectionMessage({
     required this.finishPosition,
     required this.originalBib,
+    this.entryId,
     this.correctedBib,
     this.matchedRunnerId,
     required this.correctionType,
@@ -41,6 +42,11 @@ class FixerCorrectionMessage {
 
   final int finishPosition;
   final int originalBib;
+
+  /// The Bib Recorder's entry ID for the corrected bib. Stable across
+  /// deletions and restarts, unlike [finishPosition], so the Bib Recorder
+  /// matches on this first. Null only from senders that predate it.
+  final int? entryId;
 
   /// The corrected bib number, or null when only runner identity changed
   /// (e.g. new-runner resolution with no bib assigned).
@@ -54,6 +60,7 @@ class FixerCorrectionMessage {
   Map<String, dynamic> toJson() => {
         'finish_position': finishPosition,
         'original_bib': originalBib,
+        if (entryId != null) 'entry_id': entryId,
         'corrected_bib': correctedBib,
         'matched_runner_id': matchedRunnerId,
         'correction_type': correctionType.wireValue,
@@ -63,6 +70,7 @@ class FixerCorrectionMessage {
       FixerCorrectionMessage(
         finishPosition: json['finish_position'] as int,
         originalBib: json['original_bib'] as int,
+        entryId: json['entry_id'] as int?,
         correctedBib: json['corrected_bib'] as int?,
         matchedRunnerId: json['matched_runner_id'] as int?,
         correctionType: CorrectionType.fromWireValue(

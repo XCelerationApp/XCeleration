@@ -1394,6 +1394,86 @@ void main() {
       });
     });
 
+    group('corrections matched by entry id', () {
+      MockIAssistantStorageService makeStorage(List<BibRecord> records) {
+        final s = MockIAssistantStorageService();
+        when(s.getRaces(any))
+            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
+        when(s.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(s.getBibRecords(any))
+            .thenAnswer((_) async => Success<List<BibRecord>>(records));
+        when(s.updateBibRecordValue(any, any, any))
+            .thenAnswer((_) async => const Success(null));
+        return s;
+      }
+
+      RaceRecord makeRace() => RaceRecord(
+            raceId: 1,
+            date: DateTime(2026),
+            name: 'Test Race',
+            type: 'bibRecorderV2',
+          );
+
+      // Entry 0 (bib 101) was deleted before a restart, so on reload the
+      // remaining entries are renumbered: entry 1 -> position 1, entry 2 -> 2.
+      final afterDelete = [
+        BibRecord(raceId: 1, bibId: 1, bibNumber: '102', createdAt: DateTime(2026)),
+        BibRecord(raceId: 1, bibId: 2, bibNumber: '103', createdAt: DateTime(2026)),
+      ];
+
+      Future<BibRecorderV2Controller> loaded() async {
+        final controller = track(BibRecorderV2Controller(
+          storage: makeStorage(afterDelete),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+        controller.attachSession(mockSession);
+        controller.selectRace(makeRace());
+        await Future.microtask(() {});
+        return controller;
+      }
+
+      test('applies to the entry with that id even when positions shifted',
+          () async {
+        final controller = await loaded();
+
+        // Bib 102 was recorded at position 2, before the deletion.
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 2,
+            originalBib: 102,
+            entryId: 1,
+            correctedBib: 120,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.entries.firstWhere((e) => e.id == 1).correctedTo, 120);
+        expect(controller.entries.firstWhere((e) => e.id == 2).correctedTo, isNull);
+      });
+
+      test('is dropped when the entry id no longer exists', () async {
+        final controller = await loaded();
+
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            entryId: 0,
+            correctedBib: 120,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.entries.every((e) => e.correctedTo == null), isTrue);
+      });
+    });
+
     group('share to coach', () {
       MockIAssistantStorageService makeStorage(List<BibRecord> records) {
         final s = MockIAssistantStorageService();

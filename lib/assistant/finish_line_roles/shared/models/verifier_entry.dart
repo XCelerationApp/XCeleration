@@ -92,6 +92,7 @@ class VerifierEntry {
 
   factory VerifierEntry.fromMap(Map<String, dynamic> map) => VerifierEntry(
         id: map['entry_id'] as int,
+        entryId: map['entry_id'] as int,
         position: map['position'] as int,
         bib: int.parse(map['bib_number'] as String),
         runnerName: map['runner_name'] as String?,
