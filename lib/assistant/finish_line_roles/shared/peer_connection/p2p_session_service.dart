@@ -110,6 +110,12 @@ class P2PSessionService {
   final Map<String, Timer> _inviteTimers = {};
   static const Duration _inviteDebounce = Duration(seconds: 2);
 
+  // Every instance drives the same native Nearby Connections session, so a
+  // new session must not start advertising until the previous one has
+  // finished stopping — otherwise the late stop call kills the new session.
+  static Future<void> _pendingTeardown = Future.value();
+  Future<void>? _disposeFuture;
+
   // ---------------------------------------------------------------------------
   // Public API
   // ---------------------------------------------------------------------------
@@ -139,6 +145,7 @@ class P2PSessionService {
   ///
   /// Must be called once before [sendMessage] or [incomingMessages].
   Future<void> init() async {
+    await _pendingTeardown;
     _nextSequence = _prefs.getInt(_sequenceKey) ?? 0;
 
     await _nearbyConnections.init(
@@ -225,7 +232,15 @@ class P2PSessionService {
   }
 
   /// Stops advertising/browsing, cancels subscriptions, and closes the streams.
-  Future<void> dispose() async {
+  ///
+  /// Safe to call more than once; later calls return the first call's future.
+  Future<void> dispose() {
+    final future = _disposeFuture ??= _teardown();
+    _pendingTeardown = future;
+    return future;
+  }
+
+  Future<void> _teardown() async {
     for (final timer in _inviteTimers.values) {
       timer.cancel();
     }

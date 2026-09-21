@@ -555,6 +555,52 @@ void main() {
   // peerStateEvents
   // ---------------------------------------------------------------------------
 
+  group('session handover', () {
+    test('a new session waits for the previous one to stop before starting',
+        () async {
+      final stopped = Completer<void>();
+      when(mockNearby.stopBrowsingForPeers())
+          .thenAnswer((_) => stopped.future);
+      final next = MockNearbyConnectionsInterface();
+      when(next.init(
+        serviceType: anyNamed('serviceType'),
+        deviceName: anyNamed('deviceName'),
+        strategy: anyNamed('strategy'),
+        callback: anyNamed('callback'),
+      )).thenAnswer((_) async => null);
+      when(next.stateChangedSubscription(callback: anyNamed('callback')))
+          .thenAnswer((_) => StreamController<dynamic>().stream.listen((_) {}));
+      when(next.dataReceivedSubscription(callback: anyNamed('callback')))
+          .thenAnswer((_) => StreamController<dynamic>().stream.listen((_) {}));
+      final nextService = P2PSessionService(
+        localRole: Role.bibRecorderV2,
+        raceId: 43,
+        nearbyConnections: next,
+        prefs: mockPrefs,
+      );
+
+      unawaited(service.dispose());
+      final initDone = nextService.init();
+      await pumpEventQueue();
+      verifyNever(next.init(
+        serviceType: anyNamed('serviceType'),
+        deviceName: anyNamed('deviceName'),
+        strategy: anyNamed('strategy'),
+        callback: anyNamed('callback'),
+      ));
+
+      stopped.complete();
+      await initDone;
+      verify(next.init(
+        serviceType: anyNamed('serviceType'),
+        deviceName: anyNamed('deviceName'),
+        strategy: anyNamed('strategy'),
+        callback: anyNamed('callback'),
+      )).called(1);
+      await nextService.dispose();
+    });
+  });
+
   group('stale device IDs', () {
     test('a notConnected event for an old device ID keeps the live connection',
         () async {
