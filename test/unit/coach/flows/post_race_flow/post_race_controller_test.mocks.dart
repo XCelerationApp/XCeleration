@@ -528,6 +528,15 @@ class MockLoadResultsController extends _i1.Mock
           as _i6.Future<void>);
 
   @override
+  _i6.Future<void> applyResolvedRunners(List<_i2.RaceRunner?>? updated) =>
+      (super.noSuchMethod(
+            Invocation.method(#applyResolvedRunners, [updated]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
   _i6.Future<void> showTimingConflictsSheet(_i12.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#showTimingConflictsSheet, [context]),

@@ -37,6 +37,15 @@ class LoadResultsController with ChangeNotifier {
   List<dynamic>? raceRunners;
   final DevicesManager devices;
 
+  // The last chunk's conflict as the Timer sent it, so the finisher count
+  // can be reconciled again (e.g. after a bib is removed) from the original.
+  TimingDatum? _lastConflictAsSent;
+  bool _haveLastConflictAsSent = false;
+
+  // Times the Timer recorded in each missing-time chunk; see
+  // MergeConflictsController.recordedTimesOf.
+  Map<int, Set<String>>? _recordedTimes;
+
   final Future<String> Function(MasterRace) _encodeBibData;
   final IPostFrameCallbackScheduler _scheduler;
 
@@ -90,6 +99,8 @@ class LoadResultsController with ChangeNotifier {
     results = [];
     timingChunks = null;
     raceRunners = null;
+    _recordedTimes = null;
+    _haveLastConflictAsSent = false;
     notifyListeners();
   }
 
@@ -257,8 +268,11 @@ class LoadResultsController with ChangeNotifier {
       // Check if context is still mounted after second async operation
       if (!context.mounted) return;
 
-      final error =
-          _foldExtraTimesIntoConfirmedChunks() ?? _reconcileFinisherCounts();
+      _recordedTimes = null;
+      final foldError = _foldExtraTimesIntoConfirmedChunks();
+      _lastConflictAsSent = _copy(timingChunks!.last.conflictRecord);
+      _haveLastConflictAsSent = true;
+      final error = foldError ?? _reconcileFinisherCounts();
       if (error != null) {
         _loadFailed(error);
         return;
@@ -284,6 +298,7 @@ class LoadResultsController with ChangeNotifier {
     _error = error;
     timingChunks = null;
     raceRunners = null;
+    _recordedTimes = null;
     _hasBibConflicts = false;
     _hasTimingConflicts = false;
     notifyListeners();
@@ -338,6 +353,12 @@ class LoadResultsController with ChangeNotifier {
     final runners = raceRunners;
     if (chunks == null || runners == null || chunks.isEmpty) return null;
 
+    // Start from the conflict as the Timer sent it, so running this again
+    // gives the same answer as running it once with the current bibs.
+    if (_haveLastConflictAsSent) {
+      chunks.last.conflictRecord = _copy(_lastConflictAsSent);
+    }
+
     final diff = runners.length - _calculateTotalTimingRecords();
     if (diff == 0) return null;
     Logger.d('LoadResultsController: bibs and finishers differ by $diff');
@@ -375,6 +396,14 @@ class LoadResultsController with ChangeNotifier {
               : Conflict(type: ConflictType.confirmRunner, offBy: 1),
     );
     return null;
+  }
+
+  static TimingDatum? _copy(TimingDatum? datum) {
+    final conflict = datum?.conflict;
+    if (datum == null || conflict == null) return null;
+    return TimingDatum(
+        time: datum.time,
+        conflict: Conflict(type: conflict.type, offBy: conflict.offBy));
   }
 
   Future<void> _checkForConflicts() async {
@@ -522,8 +551,7 @@ class LoadResultsController with ChangeNotifier {
 
     // Update runner records only if a result was returned (conflicts were actually resolved)
     if (updatedRaceRunners != null) {
-      raceRunners = updatedRaceRunners;
-      await _checkForConflicts();
+      await applyResolvedRunners(updatedRaceRunners);
     }
 
     // If there are still timing conflicts, open the timing conflicts sheet
@@ -534,6 +562,24 @@ class LoadResultsController with ChangeNotifier {
       if (!context.mounted) return;
       await showTimingConflictsSheet(context);
     }
+  }
+
+  /// Takes the runners from the bib sheet once every bib is resolved.
+  @visibleForTesting
+  Future<void> applyResolvedRunners(List<RaceRunner?> updated) async {
+    final removed = raceRunners!.length != updated.length;
+    raceRunners = updated;
+    if (removed) {
+      // A bib entered by mistake was removed: the finisher counts must be
+      // matched against the Timer's again.
+      _recordedTimes = null;
+      final error = _reconcileFinisherCounts();
+      if (error != null) {
+        _error = error;
+        notifyListeners();
+      }
+    }
+    await _checkForConflicts();
   }
 
   /// Shows sheet for resolving timing conflicts
@@ -593,6 +639,8 @@ class LoadResultsController with ChangeNotifier {
             masterRace: masterRace,
             timingChunks: timingChunks!,
             raceRunners: runners,
+            recordedTimes: _recordedTimes ??=
+                MergeConflictsController.recordedTimesOf(timingChunks!),
           ),
           child: MergeConflictsScreen(
             masterRace: masterRace,
