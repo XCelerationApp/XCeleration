@@ -388,7 +388,8 @@ class AssistantStorageService implements IAssistantStorageService {
         'timing_chunks',
         where: 'race_id = ?',
         whereArgs: [raceId],
-        orderBy: 'created_at ASC',
+        // Chunk ids only ever increase; creation times can tie.
+        orderBy: 'chunk_id ASC',
       );
 
       final List<TimingChunk> result = [];

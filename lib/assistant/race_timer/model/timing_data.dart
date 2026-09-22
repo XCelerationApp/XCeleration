@@ -104,8 +104,7 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.timingData.add(record);
-      _storage.addLoggedTimingDatum(
-          _currentRace!.raceId, currentChunk.id, record);
+      _saveCurrentChunkInDatabase();
     } else {
       final int chunkId = currentChunk.id;
       cacheCurrentChunk();
@@ -124,12 +123,11 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.conflictRecord = record;
-      _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id, record);
+      _saveCurrentChunkInDatabase();
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.confirmRunner) {
       currentChunk.conflictRecord!.time = record.time;
-      _storage.saveChunkConflict(
-          _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
+      _saveCurrentChunkInDatabase();
     } else {
       final int chunkId = currentChunk.id;
       cacheCurrentChunk();
@@ -150,13 +148,12 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.conflictRecord = record;
-      _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id, record);
+      _saveCurrentChunkInDatabase();
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.missingTime) {
       currentChunk.conflictRecord!.time = record.time;
       currentChunk.conflictRecord!.conflict!.offBy++;
-      _storage.saveChunkConflict(
-          _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
+      _saveCurrentChunkInDatabase();
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.extraTime) {
       // Cancels one extra time; may clear the conflict entirely, so save the
@@ -182,14 +179,13 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.conflictRecord = record;
-      _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id, record);
+      _saveCurrentChunkInDatabase();
     } else {
       final Conflict conflict = currentChunk.conflictRecord!.conflict!;
       if (conflict.type == ConflictType.extraTime) {
         currentChunk.conflictRecord!.time = record.time;
         currentChunk.conflictRecord!.conflict!.offBy++;
-        _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id,
-            currentChunk.conflictRecord!);
+        _saveCurrentChunkInDatabase();
       } else if (currentChunk.conflictRecord!.conflict?.type ==
           ConflictType.missingTime) {
         // Cancels one missing time; see addMissingTimeRecord.
@@ -235,13 +231,40 @@ class TimingData with ChangeNotifier {
     _chunkCacher.cacheChunk(chunk);
   }
 
+  /// Saves the whole of [currentChunk], replacing its row. Every change goes
+  /// through here: appending one time by reading the row and writing it back
+  /// lost times when two taps overlapped, and did nothing when the row was
+  /// missing (e.g. after the race's times were cleared).
   void _saveCurrentChunkInDatabase() {
-    if (_currentRace != null) {
-      _write(_storage.saveChunk(_currentRace!.raceId, currentChunk),
-          'save chunk ${currentChunk.id}');
-    } else {
+    final race = _currentRace;
+    if (race == null) {
       Logger.e('Skipping save - no race loaded');
+      return;
     }
+    // Save what the chunk holds now: it keeps changing (and may be replaced)
+    // before the queued write runs.
+    final snapshot = _copyChunk(currentChunk);
+    enqueueWrite(() => _storage.saveChunk(race.raceId, snapshot),
+        'save chunk ${snapshot.id}');
+  }
+
+  static TimingChunk _copyChunk(TimingChunk chunk) {
+    final conflictRecord = chunk.conflictRecord;
+    return TimingChunk(
+      id: chunk.id,
+      timingData: [
+        for (final datum in chunk.timingData) TimingDatum(time: datum.time)
+      ],
+      conflictRecord: conflictRecord == null
+          ? null
+          : TimingDatum(
+              time: conflictRecord.time,
+              conflict: Conflict(
+                type: conflictRecord.conflict!.type,
+                offBy: conflictRecord.conflict!.offBy,
+              ),
+            ),
+    );
   }
 
   /// Saves [currentChunk] (times and conflict) after it was changed in place,
@@ -249,11 +272,24 @@ class TimingData with ChangeNotifier {
   /// restart and the removed conflict came back.
   void persistCurrentChunk() => _saveCurrentChunkInDatabase();
 
-  /// Logs a storage write that failed instead of dropping the error.
-  void _write(Future<Result<void>> write, String what) {
-    write.then((result) {
-      if (result case Failure(:final error)) {
-        Logger.e('[TimingData] Could not $what: ${error.originalException}');
+  Future<void> _writes = Future.value();
+
+  /// Completes once every write queued so far has finished.
+  Future<void> get pendingWrites => _writes;
+
+  /// Runs storage writes one at a time, in the order they were made, so a
+  /// later write can never land before (and be overwritten by) an earlier
+  /// one. Failures are logged instead of dropped. The returned future
+  /// completes when this write has run.
+  Future<void> enqueueWrite(Future<Result<void>> Function() write, String what) {
+    return _writes = _writes.then((_) async {
+      try {
+        final result = await write();
+        if (result case Failure(:final error)) {
+          Logger.e('[TimingData] Could not $what: ${error.originalException}');
+        }
+      } catch (e) {
+        Logger.e('[TimingData] Could not $what: $e');
       }
     });
   }
@@ -263,7 +299,8 @@ class TimingData with ChangeNotifier {
   void deleteCurrentChunk() {
     final removedId = currentChunk.id;
     if (_currentRace != null) {
-      _write(_storage.deleteChunk(_currentRace!.raceId, removedId),
+      final raceId = _currentRace!.raceId;
+      enqueueWrite(() => _storage.deleteChunk(raceId, removedId),
           'delete chunk $removedId');
     }
     if (_chunkCacher.isEmpty) {

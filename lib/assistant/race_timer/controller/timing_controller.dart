@@ -154,6 +154,8 @@ class TimingController extends TimingData {
   }
 
   Future<void> _loadRace(RaceRecord raceRecord) async {
+    // Let queued saves finish first, so what is read back is up to date.
+    await pendingWrites;
     // Read the saved times first. If that fails the race must not open: new
     // times would be saved over the unread chunks, which start at the same ids.
     final chunksResult = await _storage.getChunks(raceRecord.raceId);
@@ -420,7 +422,10 @@ class TimingController extends TimingData {
   Future<void> doClearRaceTimes() async {
     clearRecords();
     if (currentRace != null) {
-      _storage.deleteChunks(currentRace!.raceId);
+      // Queued, so a save still waiting to run can't bring the times back.
+      final raceId = currentRace!.raceId;
+      await enqueueWrite(
+          () => _storage.deleteChunks(raceId), 'clear race $raceId');
     }
   }
 
@@ -571,8 +576,11 @@ class TimingController extends TimingData {
       // Clear all timing data first
       clearRecords();
 
-      // Delete all chunks associated with this race
-      await _storage.deleteChunks(currentRace!.raceId);
+      // Delete all chunks associated with this race. Queued, so a save still
+      // waiting to run can't recreate them.
+      final raceId = currentRace!.raceId;
+      await enqueueWrite(
+          () => _storage.deleteChunks(raceId), 'delete chunks of $raceId');
 
       // Delete the race from the database
       await _storage.deleteRace(currentRace!.raceId, currentRace!.type);

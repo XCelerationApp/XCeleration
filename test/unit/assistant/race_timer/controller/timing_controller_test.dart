@@ -333,13 +333,14 @@ void main() {
     });
 
     group('changes survive a restart', () {
-      test('undoing a confirmation is saved', () {
+      test('undoing a confirmation is saved', () async {
         loadAndStartRace();
         controller.logTime();
         controller.confirmTimes();
         clearInteractions(mockStorage);
 
         controller.doUndoLastConflict();
+        await controller.pendingWrites;
 
         final saved = verify(mockStorage.saveChunk(testRace.raceId, captureAny))
             .captured
@@ -359,6 +360,7 @@ void main() {
         final record = controller.uiRecords.last;
 
         await controller.executeDeleteRecord(record);
+        await controller.pendingWrites;
 
         verify(mockStorage.deleteChunk(testRace.raceId, emptiedId)).called(1);
         verifyNever(mockStorage.deleteChunk(testRace.raceId, previousId));

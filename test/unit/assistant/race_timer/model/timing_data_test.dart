@@ -421,7 +421,7 @@ void main() {
 
     group('storage stays in step with the chunks', () {
       test('deleteCurrentChunk deletes the removed chunk, not the restored one',
-          () {
+          () async {
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
         timingData.addConfirmRecord(TimingDatum(
             time: '0:11.00',
@@ -430,13 +430,14 @@ void main() {
         final removedId = timingData.currentChunk.id;
 
         timingData.deleteCurrentChunk();
+        await timingData.pendingWrites;
 
         verify(mockStorage.deleteChunk(1, removedId)).called(1);
         verifyNever(mockStorage.deleteChunk(1, timingData.currentChunk.id));
       });
 
       test('a missing time cancelling the last extra time saves a chunk with no '
-          'conflict instead of crashing', () {
+          'conflict instead of crashing', () async {
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
         timingData.addExtraTimeRecord(TimingDatum(
             time: '0:11.00', conflict: Conflict(type: ConflictType.extraTime)));
@@ -446,6 +447,7 @@ void main() {
             time: '0:12.00', conflict: Conflict(type: ConflictType.missingTime)));
 
         expect(timingData.currentChunk.hasConflict, isFalse);
+        await timingData.pendingWrites;
         final saved =
             verify(mockStorage.saveChunk(1, captureAny)).captured.last as TimingChunk;
         expect(saved.conflictRecord, isNull);
