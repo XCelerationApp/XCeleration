@@ -714,7 +714,7 @@ class RunnersManagementController with ChangeNotifier {
     if (!context.mounted) return;
 
     try {
-      List<Map<String, dynamic>> importData;
+      SpreadsheetRows importData;
 
       if (action == SpreadsheetImportAction.recent) {
         // Show the recent spreadsheets picker and process the selected file.
@@ -732,16 +732,23 @@ class RunnersManagementController with ChangeNotifier {
         );
       }
 
-      if (importData.isEmpty) {
+      if (importData.runners.isEmpty) {
         if (context.mounted) {
+          final skipped = importData.skipped;
           DialogUtils.showErrorDialog(context,
-              message: 'No Valid Runners Loaded');
+              message: skipped.isEmpty
+                  ? 'No Valid Runners Loaded'
+                  : 'No Valid Runners Loaded. ${skipped.length} '
+                      '${skipped.length == 1 ? 'row was' : 'rows were'} '
+                      'skipped:\n${skipped.take(5).join('\n')}'
+                      '${skipped.length > 5 ? '\n…' : ''}');
         }
         return;
       }
 
       if (!context.mounted) return;
-      await _importRunnersFromData(context, team, importData);
+      await _importRunnersFromData(context, team, importData.runners,
+          skippedRows: importData.skipped);
     } catch (e) {
       Logger.e('Error handling spreadsheet load: $e');
       if (context.mounted) {
@@ -757,13 +764,17 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> _importRunnersFromData(
     BuildContext context,
     Team team,
-    List<Map<String, dynamic>> importData,
-  ) async {
+    List<Map<String, dynamic>> importData, {
+    List<String> skippedRows = const [],
+  }) async {
       // Let the user select which imported rows to add
       final selectedRows = await sheet(
         context: context,
         title: 'Select Runners to Add',
-        body: ImportedRunnersSelectionSheet(importedRunners: importData),
+        body: ImportedRunnersSelectionSheet(
+          importedRunners: importData,
+          skippedRows: skippedRows,
+        ),
       ) as List<Map<String, dynamic>>?;
 
       // If user cancels or selects none, stop silently

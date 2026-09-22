@@ -7,18 +7,31 @@ import 'google_drive_service.dart';
 import 'file_utils.dart';
 import 'recent_local_spreadsheet_service.dart';
 
+/// Runner rows read from a spreadsheet, and the rows that were left out.
+class SpreadsheetRows {
+  /// Valid rows, each with keys name, grade, bib and optionally gender.
+  final List<Map<String, dynamic>> runners;
+
+  /// One description per row that was left out, e.g.
+  /// 'Row 4 (Jane Doe): grade "K" is not 9–12'.
+  final List<String> skipped;
+
+  const SpreadsheetRows(this.runners, [this.skipped = const []]);
+
+  static const empty = SpreadsheetRows([]);
+}
+
 /// Processes an already-downloaded [file] through the spreadsheet pipeline
 /// (parse → validate → extract runner rows). Used for the "Recent Spreadsheets"
 /// flow where the file has already been downloaded before this call.
-Future<List<Map<String, dynamic>>> processSpreadsheetFromFile(
+Future<SpreadsheetRows> processSpreadsheetFromFile(
     BuildContext context, File file) async {
   final navigatorContext = Navigator.of(context, rootNavigator: true).context;
   try {
     BuildContext ctx = context.mounted ? context : navigatorContext;
-    List<Map<String, dynamic>>? result;
+    SpreadsheetRows? result;
     if (ctx.mounted) {
-      result = await DialogUtils.executeWithLoadingDialog<
-          List<Map<String, dynamic>>>(ctx, operation: () async {
+      result = await DialogUtils.executeWithLoadingDialog<SpreadsheetRows>(ctx, operation: () async {
         final parsedData = await FileUtils.parseSpreadsheetFile(file);
         if (parsedData == null || parsedData.isEmpty) {
           if (ctx.mounted) {
@@ -26,16 +39,18 @@ Future<List<Map<String, dynamic>>> processSpreadsheetFromFile(
                 message:
                     'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
           }
-          return [];
+          return SpreadsheetRows.empty;
         }
-        return _processSpreadsheetData(parsedData);
+        return processSpreadsheetData(parsedData);
       }, loadingMessage: 'Processing spreadsheet...');
     } else {
       final parsedData = await FileUtils.parseSpreadsheetFile(file);
-      if (parsedData == null || parsedData.isEmpty) return [];
-      result = _processSpreadsheetData(parsedData);
+      if (parsedData == null || parsedData.isEmpty) {
+        return SpreadsheetRows.empty;
+      }
+      result = processSpreadsheetData(parsedData);
     }
-    return result ?? [];
+    return result ?? SpreadsheetRows.empty;
   } catch (e) {
     Logger.e('Error processing spreadsheet file: $e');
     final ctx =
@@ -45,13 +60,13 @@ Future<List<Map<String, dynamic>>> processSpreadsheetFromFile(
           message:
               'File Selection Error: An error occurred while processing the file: ${e.toString()}');
     }
-    return [];
+    return SpreadsheetRows.empty;
   }
 }
 
 /// Process a spreadsheet for runner data, either from local storage or Google Drive
 /// Uses the modern GoogleDriveService with drive.file scope for Google Drive operations
-Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context,
+Future<SpreadsheetRows> processSpreadsheet(BuildContext context,
     {bool useGoogleDrive = false}) async {
   File? selectedFile;
   final navigatorContext = Navigator.of(context, rootNavigator: true).context;
@@ -75,16 +90,15 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context,
     // Check if user cancelled or error occurred
     if (selectedFile == null) {
       Logger.d('No file selected');
-      return [];
+      return SpreadsheetRows.empty;
     }
 
     Logger.d('File selected: ${selectedFile.path}');
-    List<Map<String, dynamic>>? result;
+    SpreadsheetRows? result;
     if (!context.mounted) context = navigatorContext;
     // Process the spreadsheet with loading dialog if context is mounted
     if (context.mounted) {
-      result = await DialogUtils.executeWithLoadingDialog<
-          List<Map<String, dynamic>>>(context, operation: () async {
+      result = await DialogUtils.executeWithLoadingDialog<SpreadsheetRows>(context, operation: () async {
         final parsedData = await FileUtils.parseSpreadsheetFile(selectedFile!);
 
         // Check if we got valid data
@@ -96,10 +110,10 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context,
                 message:
                     'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
           }
-          return [];
+          return SpreadsheetRows.empty;
         }
 
-        return _processSpreadsheetData(parsedData);
+        return processSpreadsheetData(parsedData);
       }, loadingMessage: 'Processing spreadsheet...');
     } else {
       // If context is not mounted, process without loading dialog
@@ -111,16 +125,16 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context,
       if (parsedData == null || parsedData.isEmpty) {
         Logger.d(
             'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
-        return [];
+        return SpreadsheetRows.empty;
       }
 
-      result = _processSpreadsheetData(parsedData);
+      result = processSpreadsheetData(parsedData);
       Logger.d('Result: $result');
     }
 
     if (result == null) {
       Logger.d('No data returned from spreadsheet processing');
-      return [];
+      return SpreadsheetRows.empty;
     }
 
     // Return the result or empty list if null
@@ -133,13 +147,17 @@ Future<List<Map<String, dynamic>>> processSpreadsheet(BuildContext context,
           message:
               'File Selection Error: An error occurred while selecting or processing the file: ${e.toString()}');
     }
-    return [];
+    return SpreadsheetRows.empty;
   }
 }
 
-/// Process the spreadsheet data to get the runner data
-List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
+/// Process the spreadsheet data to get the runner data. Rows that can't be
+/// imported are listed in [SpreadsheetRows.skipped] rather than dropped
+/// silently.
+@visibleForTesting
+SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
   final List<Map<String, dynamic>> runnerData = [];
+  final List<String> skipped = [];
 
   String cellToString(dynamic cell) {
     return (cell?.toString() ?? '').replaceAll('"', '').trim();
@@ -332,6 +350,7 @@ List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
       final row = sanitizeRow(rowRaw);
       if (row.length < 3) {
         Logger.d('Incomplete row (after sanitize): $row');
+        skipped.add('Row ${i + 1}: needs a name, grade and bib number');
         continue;
       }
       name = row[0];
@@ -340,7 +359,14 @@ List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
     }
 
     final bibInt = int.tryParse(bibNumber) ?? -1;
-    if (name.isNotEmpty && grade >= 9 && grade <= 12 && bibInt >= 0) {
+    final String? problem = name.isEmpty
+        ? 'no name'
+        : !(grade >= 9 && grade <= 12)
+            ? 'grade is not 9–12'
+            : bibInt < 0
+                ? 'bib is not a number'
+                : null;
+    if (problem == null) {
       runnerData.add({
         'name': name,
         'grade': grade,
@@ -350,8 +376,10 @@ List<Map<String, dynamic>> _processSpreadsheetData(List<List<dynamic>> data) {
     } else {
       Logger.d(
           'Invalid data in row: i=$i name="$name" grade=$grade bib="$bibNumber"');
+      skipped.add(
+          'Row ${i + 1}${name.isNotEmpty ? ' ($name)' : ''}: $problem');
     }
   }
 
-  return runnerData;
+  return SpreadsheetRows(runnerData, skipped);
 }
