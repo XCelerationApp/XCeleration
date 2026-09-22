@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/assistant/race_timer/model/timing_data.dart';
@@ -370,12 +371,16 @@ void main() {
       test('appends a closing confirm with the race duration once stopped',
           () async {
         logRace();
-        timingData.raceDuration = const Duration(minutes: 5, seconds: 10);
+        timingData.raceDuration =
+            const Duration(minutes: 5, seconds: 10, milliseconds: 560);
 
         final records = decode(await timingData.encodedRecords());
 
         expect(records.last, startsWith('CR '));
-        expect(records.last, endsWith('0:05:10.000000'));
+        // Same format as the logged times, so the coach reads it correctly.
+        final time = records.last.split(' ').last;
+        expect(TimeFormatter.loadDurationFromString(time),
+            const Duration(minutes: 5, seconds: 10, milliseconds: 560));
       });
 
       test('does not add the closing confirm to the live current chunk',

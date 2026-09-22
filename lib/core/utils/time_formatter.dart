@@ -61,8 +61,10 @@ class TimeFormatter {
       final millisecondParts = timeString.split('.');
       if (millisecondParts.length > 2) return null;
 
+      // Only the first three digits are milliseconds: "34.560000" (how a
+      // Dart Duration prints) is 560 ms, not 560,000.
       final millisString = millisecondParts.length > 1
-          ? millisecondParts[1].padRight(3, '0')
+          ? millisecondParts[1].padRight(3, '0').substring(0, 3)
           : '0';
 
       final timeParts = timeString.split(':');

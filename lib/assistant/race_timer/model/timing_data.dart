@@ -11,6 +11,7 @@ import 'chunk_cacher.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/time_formatter.dart';
 
 class TimingData with ChangeNotifier {
   TimingChunk currentChunk = TimingChunk(id: 0, timingData: []);
@@ -414,7 +415,7 @@ class TimingData with ChangeNotifier {
       } else if (raceDuration != null) {
         // Closing checkpoint so the coach can confirm the final runner count.
         records.add(TimingDatum(
-            time: raceDuration!.toString(),
+            time: TimeFormatter.formatDuration(raceDuration!),
             conflict: Conflict(type: ConflictType.confirmRunner)));
       }
     }
