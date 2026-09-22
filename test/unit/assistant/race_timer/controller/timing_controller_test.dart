@@ -380,6 +380,48 @@ void main() {
         expect(controller.currentRace, isNull);
         expect(controller.loadError, isNotNull);
       });
+
+      test('closes the open race when another race fails to load', () async {
+        loadAndStartRace();
+        controller.logTime();
+        when(mockStorage.getChunks(any)).thenAnswer((_) async =>
+            const Failure(AppError(userMessage: 'Could not load')));
+        final other = RaceRecord(
+          raceId: 3,
+          date: DateTime(2024, 6, 1),
+          name: 'Unreadable',
+          type: DeviceName.raceTimer.toString(),
+          stopped: true,
+        );
+
+        await controller.loadOtherRace(other);
+
+        // The first race's times were cleared from memory: leaving it open
+        // would let new times or a new start overwrite its saved data.
+        expect(controller.currentRace, isNull);
+        expect(controller.loadError!.userMessage, contains('Unreadable'));
+      });
+
+      test('retryLoad opens the race once its times can be read', () async {
+        when(mockStorage.getChunks(any)).thenAnswer((_) async =>
+            const Failure(AppError(userMessage: 'Could not load')));
+        final race = RaceRecord(
+          raceId: 3,
+          date: DateTime(2024, 6, 1),
+          name: 'Flaky',
+          type: DeviceName.raceTimer.toString(),
+          stopped: true,
+        );
+        await controller.loadOtherRace(race);
+        expect(controller.currentRace, isNull);
+
+        when(mockStorage.getChunks(any))
+            .thenAnswer((_) async => const Success([]));
+        await controller.retryLoad();
+
+        expect(controller.currentRace, race);
+        expect(controller.loadError, isNull);
+      });
     });
 
     group('doClearRaceTimes', () {

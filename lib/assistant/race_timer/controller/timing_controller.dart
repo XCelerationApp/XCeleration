@@ -53,6 +53,9 @@ class TimingController extends TimingData {
   /// nothing is recorded over its unread times.
   AppError? loadError;
 
+  /// The race that failed to load, so [retryLoad] can try it again.
+  RaceRecord? _failedRace;
+
   TimingController({
     required super.storage,
     AudioPlayer? audioPlayer,
@@ -160,11 +163,21 @@ class TimingController extends TimingData {
         chunks = value;
       case Failure(:final error):
         Logger.e('[TimingController._loadRace] ${error.originalException}');
-        loadError = error;
+        // Close whatever race was open: its times were already cleared from
+        // memory, so starting or logging would write over its saved data.
+        currentRace = null;
+        _failedRace = raceRecord;
+        loadError = AppError(
+          userMessage: 'Could not read the saved times for '
+              '"${raceRecord.name}". They have not been changed. Try again, '
+              'or restart the app.',
+          originalException: error.originalException,
+        );
         notifyListeners();
         return;
     }
     loadError = null;
+    _failedRace = null;
     currentRace = raceRecord;
     startTime = raceRecord.startedAt;
     raceDuration = raceRecord.duration;
@@ -188,7 +201,14 @@ class TimingController extends TimingData {
   Future<void> loadOtherRace(RaceRecord race) async {
     clearRecords();
 
-    _loadRace(race);
+    await _loadRace(race);
+  }
+
+  /// Tries again to open the race that failed to load.
+  Future<void> retryLoad() async {
+    final race = _failedRace;
+    if (race == null) return;
+    await loadOtherRace(race);
   }
 
   Future<void> _initAudioPlayer() async {
