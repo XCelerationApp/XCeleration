@@ -28,6 +28,15 @@ class AppColors {
   /// Card/container border (e.g. connection button borders)
   static const Color borderColor = Color(0xFFE0E0E0);
 
+  /// Helper and placeholder text: the lightest grey that still meets WCAG AA
+  /// contrast (4.5:1) on white. Use instead of [lightColor], which is for
+  /// disabled fills and dividers and is unreadable as text.
+  static const Color subtleTextColor = Color(0xFF767676);
+
+  /// Warning text (e.g. "Not in roster"): [statusSetup] amber is unreadable
+  /// as text on white, so use this darker amber for labels.
+  static const Color warningTextColor = Color(0xFFB45309);
+
   static const Color statusSetup = Color(0xFFFFC107); // amber
   static const Color statusPreRace = Color(0xFF2196F3); // blue
   static const Color statusPostRace = Color(0xFF9C27B0); // purple

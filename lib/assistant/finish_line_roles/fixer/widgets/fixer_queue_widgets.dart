@@ -93,7 +93,7 @@ class FixerLiveEmptyState extends StatelessWidget {
           Text(
             'Flagged entries from Verifier appear here',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.lightColor,
+              color: AppColors.subtleTextColor,
             ),
           ),
         ],
@@ -124,7 +124,7 @@ class FixerEmptyState extends StatelessWidget {
           Text(
             'Flagged entries from the Verifier will appear here.',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.lightColor,
+              color: AppColors.subtleTextColor,
             ),
           ),
         ],

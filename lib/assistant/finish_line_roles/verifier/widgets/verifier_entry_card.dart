@@ -200,7 +200,7 @@ class _RunnerName extends StatelessWidget {
       return Text(
         'NOT IN ROSTER',
         style: AppTypography.titleSemibold.copyWith(
-          color: AppColors.statusSetup,
+          color: AppColors.warningTextColor,
           fontWeight: FontWeight.w800,
           letterSpacing: -0.3,
         ),

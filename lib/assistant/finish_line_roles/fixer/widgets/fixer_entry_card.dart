@@ -94,7 +94,7 @@ class _FixerEntryCardState extends State<FixerEntryCard> {
                 const Icon(
                   Icons.chevron_right,
                   size: 20,
-                  color: AppColors.lightColor,
+                  color: AppColors.subtleTextColor,
                 ),
               ],
             ),

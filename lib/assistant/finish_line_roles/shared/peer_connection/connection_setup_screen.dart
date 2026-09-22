@@ -439,7 +439,7 @@ class _PeerCard extends StatelessWidget {
                     style: AppTypography.bodySmall.copyWith(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.lightColor,
+                      color: AppColors.subtleTextColor,
                       letterSpacing: 0.5,
                     ),
                   ),
@@ -459,7 +459,7 @@ class _PeerCard extends StatelessWidget {
                     ? '📱 ${deviceName ?? "Unknown device"}'
                     : 'Waiting for device…',
                 style: AppTypography.bodySmall.copyWith(
-                  color: isConn ? const Color(0xFF444444) : AppColors.lightColor,
+                  color: isConn ? AppColors.darkColor : AppColors.subtleTextColor,
                   fontWeight:
                       isConn ? FontWeight.w600 : FontWeight.w400,
                 ),
@@ -568,7 +568,7 @@ class _SpinnerRowState extends State<_SpinnerRow>
           'Searching…',
           style: AppTypography.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppColors.lightColor,
+            color: AppColors.subtleTextColor,
           ),
         ),
       ],

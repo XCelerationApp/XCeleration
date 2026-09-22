@@ -33,11 +33,14 @@ class PeerStatusStrip extends StatelessWidget {
             children: peers.map((peer) {
               final status = notifier.statusFor(peer.role);
               final isConn = status == PeerStatus.connected;
-              final dotColor = isConn
-                  ? AppColors.statusFinished
-                  : status == PeerStatus.found
-                      ? AppColors.statusSetup
-                      : AppColors.lightColor;
+              // Every state must be readable at a glance: a dropped peer is
+              // red, one being connected amber, one not yet seen grey.
+              final dotColor = switch (status) {
+                PeerStatus.connected => AppColors.statusFinished,
+                PeerStatus.found => AppColors.statusSetup,
+                PeerStatus.offline => AppColors.redColor,
+                PeerStatus.searching => AppColors.subtleTextColor,
+              };
               return Padding(
                 padding: const EdgeInsets.only(right: AppSpacing.xs),
                 child: AnimatedContainer(
@@ -89,7 +92,7 @@ class PeerStatusStrip extends StatelessWidget {
                           fontWeight: FontWeight.w700,
                           color: isConn
                               ? AppColors.statusFinished
-                              : AppColors.lightColor,
+                              : AppColors.mediumColor,
                         ),
                       ),
                     ],

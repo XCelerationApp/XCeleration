@@ -100,7 +100,7 @@ class VoiceCardContent extends StatelessWidget {
               hintText: '#',
               hintStyle: AppTypography.displaySmall.copyWith(
                 fontWeight: FontWeight.w900,
-                color: AppColors.lightColor,
+                color: AppColors.subtleTextColor,
                 letterSpacing: -2,
                 height: 1,
               ),
@@ -172,7 +172,7 @@ class VoiceCardContent extends StatelessWidget {
               'Not in roster \u2014 will be flagged',
               style: AppTypography.bodySmall.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppColors.statusSetup,
+                color: AppColors.warningTextColor,
               ),
             ),
           ),

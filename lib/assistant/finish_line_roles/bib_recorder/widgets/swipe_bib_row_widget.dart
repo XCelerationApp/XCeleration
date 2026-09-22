@@ -142,7 +142,7 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
               child: Text(
                 '${widget.position}.',
                 style: AppTypography.bodySmall.copyWith(
-                  color: AppColors.lightColor,
+                  color: AppColors.subtleTextColor,
                 ),
               ),
             ),
@@ -186,7 +186,7 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
             const Icon(
               Icons.chevron_left,
               size: 14,
-              color: AppColors.lightColor,
+              color: AppColors.subtleTextColor,
             ),
           ],
         ),
@@ -282,7 +282,7 @@ class _SwipeBibRowWidgetState extends State<SwipeBibRowWidget> {
         '? Not in roster',
         style: AppTypography.bodySmall.copyWith(
           fontWeight: FontWeight.w600,
-          color: AppColors.statusSetup,
+          color: AppColors.warningTextColor,
         ),
       );
     }

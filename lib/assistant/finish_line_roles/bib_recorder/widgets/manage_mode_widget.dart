@@ -134,7 +134,7 @@ class ManageModeWidget extends StatelessWidget {
         child: Text(
           'No records',
           style: AppTypography.smallBodyRegular.copyWith(
-            color: AppColors.lightColor,
+            color: AppColors.subtleTextColor,
           ),
         ),
       );

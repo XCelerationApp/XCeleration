@@ -134,7 +134,7 @@ class ResolveFormField extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: AppTypography.smallBodyRegular.copyWith(
-                color: AppColors.lightColor,
+                color: AppColors.subtleTextColor,
               ),
               filled: true,
               fillColor: AppColors.backgroundColor,

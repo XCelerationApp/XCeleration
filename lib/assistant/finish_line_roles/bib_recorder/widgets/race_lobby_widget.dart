@@ -343,7 +343,7 @@ class _EmptyState extends StatelessWidget {
           Text(
             'No races yet',
             style: AppTypography.smallBodyRegular.copyWith(
-              color: AppColors.lightColor,
+              color: AppColors.subtleTextColor,
             ),
           ),
           const Spacer(),

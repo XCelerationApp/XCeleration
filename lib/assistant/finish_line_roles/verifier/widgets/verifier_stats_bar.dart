@@ -118,7 +118,7 @@ class VerifierEmptyState extends StatelessWidget {
           Text(
             'Entries from Bib Recorder appear here',
             style: AppTypography.bodySmall.copyWith(
-              color: AppColors.lightColor,
+              color: AppColors.subtleTextColor,
             ),
           ),
         ],
