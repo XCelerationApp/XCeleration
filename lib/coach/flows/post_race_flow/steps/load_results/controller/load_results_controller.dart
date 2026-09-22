@@ -441,6 +441,19 @@ class LoadResultsController with ChangeNotifier {
       return _saveFailed(const AppError(
           userMessage: 'Resolve all bib numbers before saving the results.'));
     }
+    // Each runner finishes once. Bib resolution prevents duplicates; this is
+    // the last check before anything is written.
+    final seen = <int>{};
+    for (final raceRunner in raceRunners!.cast<RaceRunner>()) {
+      final id = raceRunner.runner.runnerId;
+      if (id == null || !seen.add(id)) {
+        return _saveFailed(AppError(
+          userMessage: '${raceRunner.runner.name ?? 'A runner'} (bib '
+              '${raceRunner.runner.bibNumber}) appears more than once. '
+              'Check the bib numbers and load the results again.',
+        ));
+      }
+    }
 
     Logger.d(
         'LoadResultsController: Starting to save ${timingRecords.length} results');

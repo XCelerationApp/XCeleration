@@ -272,6 +272,22 @@ void main() {
         verifyNever(mockMasterRace.saveResults(any));
       });
 
+      test('refuses to save a runner twice', () async {
+        final runner = _runner(1);
+        controller.raceRunners = [runner, runner];
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [
+            TimingDatum(time: '10:00.0'),
+            TimingDatum(time: '10:05.0'),
+          ]),
+        ];
+
+        final error = await controller.saveCurrentResults();
+
+        expect(error!.userMessage, contains('more than once'));
+        verifyNever(mockMasterRace.saveResults(any));
+      });
+
       test('returns an error while conflicts remain', () async {
         controller.hasBibConflicts = true;
         expect(await controller.saveCurrentResults(), isNotNull);
