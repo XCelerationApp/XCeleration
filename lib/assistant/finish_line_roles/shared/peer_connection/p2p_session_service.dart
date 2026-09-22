@@ -14,7 +14,7 @@ import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 ///
 /// [role] identifies the peer. [state] is the raw Nearby Connections session
 /// state. [deviceName] is the human-readable hostname from the structured
-/// advertised name (`xce|ROLE|RACE|HOSTNAME`).
+/// advertised name (`xce|ROLE|RACE_KEY|HOSTNAME`).
 class PeerStateEvent {
   const PeerStateEvent({
     required this.role,
@@ -37,7 +37,7 @@ const int _kSeenSequenceCap = 1000;
 /// Responsibilities:
 /// - Initialises a single Nearby Connections instance using the fixed service
 ///   type `xce-finline` (declared in iOS Info.plist) and the structured device
-///   name `xce|ROLE|RACE_ID|HOSTNAME` so peers can identify each other and
+///   name `xce|ROLE|RACE_KEY|HOSTNAME` so peers can identify each other and
 ///   filter by race without a secondary handshake.
 /// - Keeps `Role → deviceId` and `deviceId → Role` maps up-to-date as
 ///   devices connect and disconnect.
@@ -60,6 +60,7 @@ class P2PSessionService {
   P2PSessionService({
     required this.localRole,
     required this.raceId,
+    required this.raceKey,
     required NearbyConnectionsInterface nearbyConnections,
     required SharedPreferences prefs,
     required IP2POutbox outbox,
@@ -69,7 +70,11 @@ class P2PSessionService {
         _outbox = outbox;
 
   final Role localRole;
+  /// Local race id, used to key persisted state on this device.
   final int raceId;
+
+  /// Cross-device race key (see [xceRaceKey]) that peers must share.
+  final String raceKey;
   final NearbyConnectionsInterface _nearbyConnections;
   final SharedPreferences _prefs;
   final IP2POutbox _outbox;
@@ -143,7 +148,7 @@ class P2PSessionService {
   /// Stream of raw peer connection state changes.
   ///
   /// Emitted for every [SessionState] transition on a peer whose device name
-  /// matches the XCeleration format and shares the same [raceId]. Subscribers
+  /// matches the XCeleration format and shares the same [raceKey]. Subscribers
   /// such as [PeerDiscoveryNotifier] use this to derive UI connection state
   /// without running a second Nearby Connections session.
   Stream<PeerStateEvent> get peerStateEvents => _peerEventsController.stream;
@@ -152,7 +157,7 @@ class P2PSessionService {
   /// wires up state-change and data-received subscriptions.
   ///
   /// Uses the fixed service type `xce-finline` (declared in iOS Info.plist)
-  /// and the structured device name `xce|ROLE|RACE_ID|HOSTNAME` so that all
+  /// and the structured device name `xce|ROLE|RACE_KEY|HOSTNAME` so that all
   /// finish-line roles share one NC session per race.
   ///
   /// Must be called once before [sendMessage] or [incomingMessages].
@@ -164,7 +169,7 @@ class P2PSessionService {
 
     await _nearbyConnections.init(
       serviceType: kXceServiceType,
-      deviceName: buildXceAdvertisedName(localRole, raceId),
+      deviceName: buildXceAdvertisedName(localRole, raceKey),
       strategy: Strategy.P2P_CLUSTER,
       callback: (isRunning) async {
         if (isRunning != true) return;
@@ -281,8 +286,8 @@ class P2PSessionService {
     for (final device in devices) {
       final parsed = parseXceDeviceName(device.deviceName);
       if (parsed == null) continue;
-      final (role, peerRaceId, humanName) = parsed;
-      if (peerRaceId != raceId) continue;
+      final (role, peerRaceKey, humanName) = parsed;
+      if (peerRaceKey != raceKey) continue;
       if (role == localRole) continue;
 
       switch (device.state) {

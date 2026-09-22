@@ -38,6 +38,7 @@ void main() {
     service = P2PSessionService(
       localRole: Role.bibRecorderV2,
       raceId: 42,
+      raceKey: '42',
       nearbyConnections: mockNearby,
       prefs: mockPrefs,
       outbox: outbox,
@@ -567,6 +568,7 @@ void main() {
       final restarted = P2PSessionService(
         localRole: Role.bibRecorderV2,
         raceId: 42,
+        raceKey: '42',
         nearbyConnections: mockNearby,
         prefs: mockPrefs,
         outbox: saved,
@@ -587,6 +589,7 @@ void main() {
       final retrying = P2PSessionService(
         localRole: Role.bibRecorderV2,
         raceId: 42,
+        raceKey: '42',
         nearbyConnections: mockNearby,
         prefs: mockPrefs,
         outbox: MemoryP2POutbox(),
@@ -629,6 +632,7 @@ void main() {
       final nextService = P2PSessionService(
         localRole: Role.bibRecorderV2,
         raceId: 43,
+        raceKey: '43',
         nearbyConnections: next,
         prefs: mockPrefs,
         outbox: MemoryP2POutbox(),
@@ -862,6 +866,7 @@ void main() {
       final restoredService = P2PSessionService(
         localRole: Role.bibRecorderV2,
         raceId: 42,
+        raceKey: '42',
         nearbyConnections: mockNearby,
         prefs: mockPrefs,
         outbox: MemoryP2POutbox(),

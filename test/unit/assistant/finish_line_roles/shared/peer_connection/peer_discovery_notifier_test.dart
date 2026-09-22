@@ -49,6 +49,7 @@ void main() {
     session = P2PSessionService(
       localRole: Role.bibRecorderV2,
       raceId: 1,
+      raceKey: '1',
       nearbyConnections: mockNearby,
       prefs: mockPrefs,
       outbox: MemoryP2POutbox(),
@@ -398,6 +399,7 @@ class _FakeP2PSessionService extends P2PSessionService {
       : super(
           localRole: Role.bibRecorderV2,
           raceId: 1,
+          raceKey: '1',
           nearbyConnections: _NoOpNearbyConnections(),
           prefs: prefs,
           outbox: MemoryP2POutbox(),

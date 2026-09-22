@@ -9,6 +9,7 @@ import 'package:xceleration/assistant/shared/services/i_assistant_storage_servic
 import 'package:xceleration/assistant/finish_line_roles/fixer/widgets/fixer_entry_card.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/connection_setup_screen.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_session_service.dart';
+import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/xce_peer_name.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/p2p_outbox.dart';
 import 'package:xceleration/assistant/shared/services/assistant_storage_service.dart';
 import 'package:xceleration/assistant/finish_line_roles/shared/peer_connection/peer_discovery_notifier.dart';
@@ -70,6 +71,7 @@ class _FixerScreenState extends State<FixerScreen> {
     final session = P2PSessionService(
       localRole: Role.fixer,
       raceId: race.raceId,
+      raceKey: xceRaceKey(race),
       nearbyConnections: NearbyConnections(),
       prefs: _prefs!,
       outbox: SqliteP2POutbox(() => AssistantStorageService.instance.database),
