@@ -37,6 +37,7 @@ class FixerCorrectionMessage {
     this.entryId,
     this.correctedBib,
     this.matchedRunnerId,
+    this.runnerName,
     required this.correctionType,
   });
 
@@ -55,6 +56,10 @@ class FixerCorrectionMessage {
   /// The ID of the matched runner, or null when no roster match was found.
   final int? matchedRunnerId;
 
+  /// For [CorrectionType.newRunner]: the name the Fixer entered, so the Bib
+  /// Recorder can add the runner to its roster and share it with the coach.
+  final String? runnerName;
+
   final CorrectionType correctionType;
 
   Map<String, dynamic> toJson() => {
@@ -63,6 +68,7 @@ class FixerCorrectionMessage {
         if (entryId != null) 'entry_id': entryId,
         'corrected_bib': correctedBib,
         'matched_runner_id': matchedRunnerId,
+        if (runnerName != null) 'runner_name': runnerName,
         'correction_type': correctionType.wireValue,
       };
 
@@ -73,6 +79,7 @@ class FixerCorrectionMessage {
         entryId: json['entry_id'] as int?,
         correctedBib: json['corrected_bib'] as int?,
         matchedRunnerId: json['matched_runner_id'] as int?,
+        runnerName: json['runner_name'] as String?,
         correctionType: CorrectionType.fromWireValue(
           json['correction_type'] as String,
         ),

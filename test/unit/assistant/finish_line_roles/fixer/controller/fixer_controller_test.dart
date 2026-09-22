@@ -348,6 +348,38 @@ void main() {
       });
     });
 
+    group('new runner name', () {
+      test('is sent to the Bib Recorder with the correction', () async {
+        when(mockStorage.saveRunner(any))
+            .thenAnswer((_) async => const Success<void>(null));
+        final controller = makeController(session: mockSession);
+        controller.initialize();
+        incomingController.add((
+          Role.verifier,
+          MessageEnvelope.wrapVerifierFlag(VerifierFlagMessage(
+            entry: BibEntryMessage(
+              finishPosition: 3,
+              bib: 999,
+              status: BibEntryStatus.unknown,
+              timestamp: DateTime(2026),
+              entryId: 7,
+            ),
+            reason: FlagReason.unknown,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        controller.resolveAsNewRunner(7, name: 'Jordan Lee');
+
+        final msg = (verify(mockSession.sendMessage(Role.bibRecorderV2, captureAny))
+                .captured
+                .last as MessageEnvelope)
+            .decode() as FixerCorrectionMessage;
+        expect(msg.runnerName, 'Jordan Lee');
+        expect(msg.correctionType, CorrectionType.newRunner);
+      });
+    });
+
     group('Bib Recorder deletions', () {
       test('remove the flagged entry from the queue and storage', () async {
         when(mockStorage.deleteFixerEntry(any, any))

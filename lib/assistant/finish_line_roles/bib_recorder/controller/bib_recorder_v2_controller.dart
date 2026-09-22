@@ -625,10 +625,32 @@ class BibRecorderV2Controller extends ChangeNotifier {
           }
         }));
       }
-    } else if (msg.correctionType == CorrectionType.newRunner) {
+    }
+    if (msg.correctionType == CorrectionType.newRunner) {
       _entries[idx] = _entries[idx].copyWith(isNewRunner: true);
+      _addNewRunner(msg.correctedBib ?? _entries[idx].bib, msg.runnerName);
     }
     notifyListeners();
+  }
+
+  /// Adds a runner the Fixer identified as new to this device's roster, so the
+  /// entry stops being flagged (also after a restart) and the name is shared
+  /// with the coach.
+  void _addNewRunner(int bib, String? name) {
+    final race = _selectedRace;
+    if (race == null || runnerFor(bib) != null) return;
+    final runner = Runner(
+      raceId: race.raceId,
+      bibNumber: bib.toString(),
+      name: name,
+      createdAt: DateTime.now(),
+    );
+    _runners.add(runner);
+    unawaited(_storage.saveRunner(runner).then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[BibRecorderV2Controller._addNewRunner] ${error.originalException}');
+      }
+    }));
   }
 
   // ── Dispose ───────────────────────────────────────────────────────────────

@@ -275,6 +275,7 @@ class FixerController extends ChangeNotifier {
           originalBib: original.bib,
           entryId: original.id,
           correctedBib: newBib,
+          runnerName: name,
           correctionType: CorrectionType.newRunner,
         )),
       ));

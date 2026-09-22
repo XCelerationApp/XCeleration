@@ -282,6 +282,17 @@ void main() {
         expect(FixerCorrectionMessage.fromJson(json).entryId, isNull);
       });
 
+      test('round-trips runner_name for a new runner', () {
+        const msg = FixerCorrectionMessage(
+          finishPosition: 5,
+          originalBib: 99,
+          runnerName: 'Jordan Lee',
+          correctionType: CorrectionType.newRunner,
+        );
+        expect(FixerCorrectionMessage.fromJson(msg.toJson()).runnerName,
+            'Jordan Lee');
+      });
+
       test('round-trips bib_corrected type', () {
         final decoded = FixerCorrectionMessage.fromJson(
           makeCorrection(type: CorrectionType.bibCorrected).toJson(),

@@ -16,6 +16,7 @@ import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/haptic_feedback_service.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
+import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
@@ -1735,6 +1736,55 @@ void main() {
         await Future.microtask(() {});
 
         // If we got here without throwing, the subscriptions were cancelled.
+      });
+    });
+
+    group('new runner from the Fixer', () {
+      test('joins the roster, stops being flagged and is shared by name',
+          () async {
+        final storage = MockIAssistantStorageService();
+        when(storage.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(storage.getBibRecords(any))
+            .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+        when(storage.addBibRecord(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(storage.saveRunner(any))
+            .thenAnswer((_) async => const Success<void>(null));
+        final controller = track(BibRecorderV2Controller(
+          storage: storage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+        controller.attachSession(mockSession);
+        controller.selectRace(RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'DeviceName.bibRecorderV2',
+        ));
+        await Future.microtask(() {});
+        controller.addBib(999);
+        final id = controller.entries.single.id;
+
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 999,
+            entryId: id,
+            runnerName: 'Jordan Lee',
+            correctionType: CorrectionType.newRunner,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        final saved = verify(storage.saveRunner(captureAny)).captured.single as Runner;
+        expect((saved.raceId, saved.bibNumber, saved.name), (1, '999', 'Jordan Lee'));
+        expect(controller.unresolvedCount, 0);
+        final shared = await BibDecodeUtils.decodeEncodedRunners(
+            await controller.getEncodedBibData());
+        expect((shared as Success<List<BibDatum>>).value.single.name, 'Jordan Lee');
       });
     });
 
