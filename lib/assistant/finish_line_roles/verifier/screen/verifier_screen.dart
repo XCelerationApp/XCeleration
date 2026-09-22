@@ -199,7 +199,7 @@ class _VerifierScreenState extends State<VerifierScreen> {
                             ),
                     ),
                     RoleBottomBar(
-                      label: 'Stop Race',
+                      label: 'Leave Race',
                       buttonColor: AppColors.redColor,
                       onTap: _leaveRace,
                       menuItems: [
