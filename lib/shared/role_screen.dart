@@ -413,11 +413,13 @@ class _AssistantScreenState extends State<_AssistantScreen>
                   Expanded(child: _buildRoleList()),
                 ],
               ),
-              // Prototype entry point: debug builds only.
-              if (kDebugMode) ...[
-                SizedBox(height: 40),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              // Prototype entry point: debug builds only. Positioned so it
+              // sits at the bottom instead of over the Back button.
+              if (kDebugMode)
+                Positioned(
+                  bottom: AppSpacing.sm,
+                  left: AppSpacing.lg,
+                  right: AppSpacing.lg,
                   child: OutlinedButton(
                     onPressed: () => Navigator.of(context).push(
                       InitialPageRouteAnimation(
@@ -435,7 +437,6 @@ class _AssistantScreenState extends State<_AssistantScreen>
                     ),
                   ),
                 ),
-              ],
             ],
           ),
         ),
