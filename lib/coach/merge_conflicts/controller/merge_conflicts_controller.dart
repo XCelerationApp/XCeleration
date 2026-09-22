@@ -317,12 +317,41 @@ class MergeConflictsController with ChangeNotifier {
       time: chunk.conflictRecord!.time,
       conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
     );
+    _carryOverCountDifference(chunkIndex);
 
     // Invalidate UI cache since conflict type changed
     _needsUIRebuild = true;
 
     // Consolidate adjacent confirmRunner chunks after resolving the conflict
     await consolidateConfirmedTimes();
+  }
+
+  /// The number of finishers the chunks account for.
+  int get _finisherCount =>
+      timingChunks.fold(0, (sum, chunk) => sum + chunk.recordCount);
+
+  /// After the last chunk's own conflict is resolved, any difference left
+  /// between finishers and runners becomes that chunk's next conflict: the
+  /// Timer can both mark one problem and miss another in the same chunk.
+  void _carryOverCountDifference(int chunkIndex) {
+    if (chunkIndex != timingChunks.length - 1) return;
+    final chunk = timingChunks[chunkIndex];
+    final left = raceRunners.length - _finisherCount;
+    if (left > 0) {
+      // The missed finisher may have come after the Timer's last button, so
+      // no end time to validate against.
+      chunk.conflictRecord = TimingDatum(
+          time: 'MISSING_TIMES',
+          conflict: Conflict(type: ConflictType.missingTime, offBy: left));
+      _recordedTimes[chunk.id] = chunk.timingData
+          .map((d) => d.time)
+          .where((t) => t != 'TBD')
+          .toSet();
+    } else if (left < 0 && -left <= chunk.timingData.length) {
+      chunk.conflictRecord = TimingDatum(
+          time: chunk.conflictRecord!.time,
+          conflict: Conflict(type: ConflictType.extraTime, offBy: -left));
+    }
   }
 
   /// Writes the entered times of a missing-time chunk into its timing data.

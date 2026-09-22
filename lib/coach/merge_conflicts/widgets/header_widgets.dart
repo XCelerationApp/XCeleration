@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/enums.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/core/utils/time_formatter.dart';
 
 class ConflictHeader extends StatelessWidget {
   const ConflictHeader({
@@ -45,7 +46,8 @@ class ConflictHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$title at $endTime',
+            // A missing time found by counting has no end time.
+            TimeFormatter.isDuration(endTime) ? '$title at $endTime' : title,
             style: AppTypography.bodySemibold.copyWith(
               color: AppColors.primaryColor,
             ),
@@ -103,7 +105,9 @@ class ConfirmHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Confirmed Results at $confirmTime',
+                  TimeFormatter.isDuration(confirmTime)
+                      ? 'Confirmed Results at $confirmTime'
+                      : 'Confirmed Results',
                   style: AppTypography.bodySemibold.copyWith(
                     color: Colors.green,
                   ),

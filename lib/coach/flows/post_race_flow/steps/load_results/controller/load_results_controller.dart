@@ -365,6 +365,16 @@ class LoadResultsController with ChangeNotifier {
 
     final last = chunks.last;
     final current = last.conflictRecord?.conflict;
+    // The Timer marked the opposite problem in this chunk (an extra time
+    // while the bibs say finishers are missing, or the reverse). Both are
+    // real: netting them out made the chunk look confirmed, and the stray
+    // time was saved in place of the missed runner. Keep the Timer's mark;
+    // what is left over becomes a new conflict once the coach has resolved
+    // it (see MergeConflictsController).
+    if ((current?.type == ConflictType.extraTime && diff > 0) ||
+        (current?.type == ConflictType.missingTime && diff < 0)) {
+      return null;
+    }
     final net = switch (current?.type) {
           ConflictType.missingTime => current!.offBy,
           ConflictType.extraTime => -current!.offBy,

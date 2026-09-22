@@ -274,6 +274,53 @@ void main() {
     expect(ui.records[0].isOriginallyTBD, isFalse);
   });
 
+  test('an extra time and an unnoticed missed runner in the last chunk',
+      () async {
+    // 4 real finishers; the Timer tapped a stray (11s) and marked it, but
+    // also missed the runner at 14s without noticing.
+    final c = _controller([
+      _chunk(0, [10, 11, 12, 16], ConflictType.extraTime, end: 17),
+    ], _runners(4));
+
+    c.removeExtraTimeRecord(0, 1);
+    await c.resolveExtraTimeConflict(0);
+
+    // Not confirmed: one finisher is still missing.
+    final conflict = c.timingChunks.single.conflictRecord!.conflict!;
+    expect(conflict.type, ConflictType.missingTime);
+    expect(conflict.offBy, 1);
+
+    c.insertTbdAt(0, 2); // before 16s
+    _type(c, 0, 2, _t(14));
+    await c.resolveMissingTimeConflict(0);
+
+    _expectSaveable(c, 4);
+    expect(_savedTimes(c), [_t(10), _t(12), _t(14), _t(16)]);
+  });
+
+  test('a missing time and an unnoticed stray tap in the last chunk',
+      () async {
+    // 3 real finishers; the Timer missed one (and marked it) but also
+    // recorded a stray at 13s without noticing.
+    final c = _controller([
+      _chunk(0, [10, 13, 15], ConflictType.missingTime, end: 17),
+    ], _runners(3));
+
+    c.insertTbdAt(0, 1); // the missed runner came in before 13s
+    _type(c, 0, 1, _t(11));
+    await c.resolveMissingTimeConflict(0);
+
+    final conflict = c.timingChunks.single.conflictRecord!.conflict!;
+    expect(conflict.type, ConflictType.extraTime);
+    expect(conflict.offBy, 1);
+
+    c.removeExtraTimeRecord(0, 2); // 13s
+    await c.resolveExtraTimeConflict(0);
+
+    _expectSaveable(c, 3);
+    expect(_savedTimes(c), [_t(10), _t(11), _t(15)]);
+  });
+
   group('placing TBD slots', () {
     test('two slots can be placed independently', () {
       final c = _controller(
