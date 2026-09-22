@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
@@ -6,6 +7,7 @@ import 'conflict_button.dart';
 import 'success_message.dart';
 import 'reload_button.dart';
 import '../controller/load_results_controller.dart';
+import '../dev/simulate_results_button.dart';
 
 /// Widget that handles loading and displaying race results
 class LoadResultsWidget extends StatelessWidget {
@@ -43,6 +45,11 @@ class LoadResultsWidget extends StatelessWidget {
                 callback: () => controller.processReceivedData(context),
                 inSheet: closeWhenDone,
               ),
+
+              if (kDebugMode) ...[
+                const SizedBox(height: 12),
+                SimulateResultsButton(controller: controller),
+              ],
 
               const SizedBox(height: 24),
 

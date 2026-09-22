@@ -10,6 +10,8 @@ import 'package:flutter/material.dart' as _i12;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart'
     as _i9;
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/dev/race_simulator.dart'
+    as _i13;
 import 'package:xceleration/coach/race_results/model/team_record.dart' as _i7;
 import 'package:xceleration/core/app_error.dart' as _i11;
 import 'package:xceleration/core/services/device_connection_service.dart'
@@ -517,6 +519,22 @@ class MockLoadResultsController extends _i1.Mock
             returnValueForMissingStub: _i6.Future<void>.value(),
           )
           as _i6.Future<void>);
+
+  @override
+  _i6.Future<_i13.SimulatedRace?> loadSimulatedResults(
+    _i12.BuildContext? context,
+    _i13.SimulatedScenario? scenario, {
+    _i13.RaceSimulator? simulator,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #loadSimulatedResults,
+              [context, scenario],
+              {#simulator: simulator},
+            ),
+            returnValue: _i6.Future<_i13.SimulatedRace?>.value(),
+          )
+          as _i6.Future<_i13.SimulatedRace?>);
 
   @override
   _i6.Future<void> showBibConflictsSheet(_i12.BuildContext? context) =>

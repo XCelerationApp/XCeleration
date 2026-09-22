@@ -20,6 +20,7 @@ import '../../../../../merge_conflicts/controller/merge_conflicts_controller.dar
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
+import '../dev/race_simulator.dart';
 
 /// Controller that manages loading and processing of race results
 class LoadResultsController with ChangeNotifier {
@@ -329,6 +330,29 @@ class LoadResultsController with ChangeNotifier {
       }
     }
     return null;
+  }
+
+  /// Debug builds only: loads a race made up by [RaceSimulator] as if the
+  /// Timer and Bib Recorder had sent it, using this race's runners. Returns
+  /// the simulated race (with its answer key), or null if it couldn't be
+  /// made, in which case [error] says why.
+  Future<SimulatedRace?> loadSimulatedResults(
+      BuildContext context, SimulatedScenario scenario,
+      {RaceSimulator? simulator}) async {
+    final SimulatedRace race;
+    try {
+      race = await (simulator ?? RaceSimulator())
+          .simulate(await masterRace.raceRunners, scenario);
+    } on StateError catch (e) {
+      _error = AppError(userMessage: e.message);
+      notifyListeners();
+      return null;
+    }
+    devices.bibRecorder?.data = race.bibData;
+    devices.raceTimer?.data = race.timingData;
+    if (!context.mounted) return race;
+    await processReceivedData(context);
+    return race;
   }
 
   /// Calculates total timing records across all chunks
