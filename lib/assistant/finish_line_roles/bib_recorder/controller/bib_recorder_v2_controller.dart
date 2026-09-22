@@ -148,8 +148,10 @@ class BibRecorderV2Controller extends ChangeNotifier {
 
   void selectRace(RaceRecord race) {
     _selectedRace = race;
-    _raceStarted = !race.stopped;
-    _raceStopped = race.stopped;
+    // A race fresh from the Coach has no start time and opens ready to start;
+    // only a race this device started and then stopped opens as finished.
+    _raceStarted = race.startedAt != null && !race.stopped;
+    _raceStopped = race.isFinished;
     _entries.clear();
     _runners.clear();
     _loadRunners();
@@ -160,11 +162,13 @@ class BibRecorderV2Controller extends ChangeNotifier {
   void beginRace() {
     _raceStarted = true;
     _raceStopped = false;
+    _saveRaceState(stopped: false, startedAt: DateTime.now());
     notifyListeners();
   }
 
   void stopRace() {
     _raceStopped = true;
+    _saveRaceState(stopped: true);
     notifyListeners();
     unawaited(_handOffUnresolvedEntries());
   }
@@ -172,7 +176,41 @@ class BibRecorderV2Controller extends ChangeNotifier {
   void resumeRace() {
     _raceStarted = true;
     _raceStopped = false;
+    _saveRaceState(stopped: false);
     notifyListeners();
+  }
+
+  /// Records the race's start time and running state, in memory and in
+  /// storage, so the lobby and a reopened race show the right state.
+  void _saveRaceState({required bool stopped, DateTime? startedAt}) {
+    final race = _selectedRace;
+    if (race == null) return;
+    final updated = RaceRecord(
+      raceId: race.raceId,
+      date: race.date,
+      name: race.name,
+      type: race.type,
+      stopped: stopped,
+      startedAt: race.startedAt ?? startedAt,
+      duration: race.duration,
+    );
+    _selectedRace = updated;
+    _races = [
+      for (final r in _races) r.raceId == race.raceId ? updated : r,
+    ];
+    void logFailure(Result<void> result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[BibRecorderV2Controller._saveRaceState] ${error.originalException}');
+      }
+    }
+
+    if (race.startedAt == null && startedAt != null) {
+      unawaited(_storage
+          .updateRaceStartTime(race.raceId, race.type, startedAt)
+          .then(logFailure));
+    }
+    unawaited(
+        _storage.updateRaceStatus(race.raceId, race.type, stopped).then(logFailure));
   }
 
   void leaveRace() {

@@ -19,6 +19,13 @@ class RaceRecord {
   final bool stopped;
   final Duration? duration;
 
+  /// Whether this device started the race and then stopped it.
+  ///
+  /// [stopped] alone is not enough: races shared by the Coach arrive with
+  /// `stopped = true` (the default) and no [startedAt], meaning "not running",
+  /// not "finished".
+  bool get isFinished => startedAt != null && stopped;
+
   RaceRecord({
     required this.raceId,
     required this.date,

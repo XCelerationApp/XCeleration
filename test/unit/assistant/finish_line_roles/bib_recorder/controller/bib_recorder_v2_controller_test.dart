@@ -609,6 +609,10 @@ void main() {
             .thenAnswer((_) async => const Success<void>(null));
         when(s.saveChunkConflict(any, any, any))
             .thenAnswer((_) async => const Success<void>(null));
+        when(s.updateRaceStartTime(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.updateRaceStatus(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
         return s;
       }
 
@@ -1734,6 +1738,94 @@ void main() {
       });
     });
 
+    group('race state', () {
+      MockIAssistantStorageService makeStorage() {
+        final s = MockIAssistantStorageService();
+        when(s.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(s.getBibRecords(any))
+            .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+        when(s.updateRaceStartTime(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.updateRaceStatus(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.saveChunk(any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(s.saveChunkConflict(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        return s;
+      }
+
+      // How the Coach shares a race: stopped defaults to true, no start time.
+      RaceRecord fromCoach() => RaceRecord(
+            raceId: 1,
+            date: DateTime(2026),
+            name: 'Test Race',
+            type: 'DeviceName.bibRecorderV2',
+          );
+
+      test('a race fresh from the Coach opens ready to start', () async {
+        final controller = track(BibRecorderV2Controller(
+          storage: makeStorage(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+
+        controller.selectRace(fromCoach());
+
+        expect(controller.raceStarted, isFalse);
+        expect(controller.raceStopped, isFalse);
+        expect(fromCoach().isFinished, isFalse);
+      });
+
+      test('beginRace and stopRace are saved so the race reopens finished',
+          () async {
+        final storage = makeStorage();
+        final controller = track(BibRecorderV2Controller(
+          storage: storage,
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+        controller.selectRace(fromCoach());
+
+        controller.beginRace();
+        verify(storage.updateRaceStartTime(1, 'DeviceName.bibRecorderV2', any))
+            .called(1);
+        verify(storage.updateRaceStatus(1, 'DeviceName.bibRecorderV2', false))
+            .called(1);
+
+        controller.stopRace();
+        verify(storage.updateRaceStatus(1, 'DeviceName.bibRecorderV2', true))
+            .called(1);
+        expect(controller.selectedRace!.isFinished, isTrue);
+
+        final reopened = controller.selectedRace!;
+        controller.leaveRace();
+        controller.selectRace(reopened);
+        expect(controller.raceStopped, isTrue);
+      });
+
+      test('a started race that was not stopped reopens live', () async {
+        final controller = track(BibRecorderV2Controller(
+          storage: makeStorage(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+
+        controller.selectRace(RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'DeviceName.bibRecorderV2',
+          startedAt: DateTime(2026, 1, 1, 9),
+          stopped: false,
+        ));
+
+        expect(controller.raceStarted, isTrue);
+        expect(controller.raceStopped, isFalse);
+      });
+    });
+
     group('beginRace', () {
       test('sets raceStarted to true', () async {
         final mockStorage = MockIAssistantStorageService();
@@ -1743,6 +1835,10 @@ void main() {
             .thenAnswer((_) async => const Success<List<Runner>>([]));
         when(mockStorage.getBibRecords(any))
             .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+        when(mockStorage.updateRaceStartTime(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(mockStorage.updateRaceStatus(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
 
         final race = RaceRecord(
           raceId: 1,
@@ -1774,6 +1870,10 @@ void main() {
             .thenAnswer((_) async => const Success<List<Runner>>([]));
         when(mockStorage.getBibRecords(any))
             .thenAnswer((_) async => const Success<List<BibRecord>>([]));
+        when(mockStorage.updateRaceStartTime(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(mockStorage.updateRaceStatus(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
         when(mockStorage.addBibRecord(any, any, any))
             .thenAnswer((_) async => const Success<void>(null));
 

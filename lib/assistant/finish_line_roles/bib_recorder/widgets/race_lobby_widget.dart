@@ -28,8 +28,8 @@ class RaceLobbyWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ready = races.where((r) => !r.stopped).toList();
-    final done = races.where((r) => r.stopped).toList();
+    final ready = races.where((r) => !r.isFinished).toList();
+    final done = races.where((r) => r.isFinished).toList();
 
     return ColoredBox(
       color: AppColors.backgroundColor,
@@ -177,7 +177,7 @@ class _RaceCardState extends State<_RaceCard> {
                   ],
                 ),
               ),
-              _StatusBadge(stopped: widget.race.stopped),
+              _StatusBadge(stopped: widget.race.isFinished),
               const SizedBox(width: AppSpacing.sm),
               GestureDetector(
                 onTap: () => _showDeleteConfirm(context),
