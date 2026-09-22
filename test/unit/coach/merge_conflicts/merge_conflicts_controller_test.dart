@@ -183,14 +183,16 @@ void main() {
         expect(controller.hasConflicts, isFalse);
       });
 
-      test('returns true when list has more than one chunk', () {
+      test('returns false for several confirmed chunks', () {
+        // Resolved means no missing/extra-time conflict remains, not "exactly
+        // one chunk": a clean chunk between confirmed ones never merges.
         final controller = _buildController(
           timingChunks: [
             _confirmChunk(1, ['1:00.0']),
             _confirmChunk(2, ['2:00.0']),
           ],
         );
-        expect(controller.hasConflicts, isTrue);
+        expect(controller.hasConflicts, isFalse);
       });
 
       test('returns true when single chunk has extraTime conflict', () {
@@ -359,7 +361,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveExtraTimeConflict(0);
+        await controller.resolveExtraTimeConflict(1);
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,
@@ -367,7 +369,7 @@ void main() {
         );
       });
 
-      test('does nothing if index is out of range', () async {
+      test('does nothing if no chunk has that id', () async {
         final controller = _buildController(
           timingChunks: [
             _extraTimeChunk(1, ['1:00.0'], 1)
@@ -375,7 +377,7 @@ void main() {
           raceRunners: _runners(0),
         );
 
-        await controller.resolveExtraTimeConflict(5); // out of range
+        await controller.resolveExtraTimeConflict(5); // unknown id
 
         // Chunk should be unchanged.
         expect(
@@ -392,7 +394,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveExtraTimeConflict(0);
+        await controller.resolveExtraTimeConflict(1);
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,
@@ -413,7 +415,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveMissingTimeConflict(0);
+        await controller.resolveMissingTimeConflict(1);
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,
@@ -421,7 +423,7 @@ void main() {
         );
       });
 
-      test('does nothing if index is out of range', () async {
+      test('does nothing if no chunk has that id', () async {
         final controller = _buildController(
           timingChunks: [
             _missingTimeChunk(1, ['TBD'], 1)
@@ -429,7 +431,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveMissingTimeConflict(99);
+        await controller.resolveMissingTimeConflict(99); // unknown id
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,
@@ -445,7 +447,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveMissingTimeConflict(0);
+        await controller.resolveMissingTimeConflict(1);
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,

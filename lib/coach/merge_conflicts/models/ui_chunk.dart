@@ -29,12 +29,14 @@ class UIChunk {
     required int startingPlace,
     required int chunkId,
   }) {
-    if (times.isEmpty) {
-      throw Exception('Times list cannot be empty');
-    }
-
     final conflictType = conflictRecord.conflict!.type;
     final offBy = conflictRecord.conflict!.offBy;
+    // A missing-time chunk may have no recorded times; its TBD slots are
+    // added below. Every other chunk needs at least one time.
+    if (times.isEmpty &&
+        !(conflictType == ConflictType.missingTime && offBy > 0)) {
+      throw Exception('Times list cannot be empty');
+    }
 
     // Build records based on conflict type
     final records = <UIRecord>[];
@@ -45,7 +47,8 @@ class UIChunk {
 
       for (int i = 0; i < times.length; i++) {
         final isExtra = i >= runnersCount;
-        final runner = isExtra ? null : allRunners.removeAt(0);
+        final runner =
+            isExtra || allRunners.isEmpty ? null : allRunners.removeAt(0);
         final place = isExtra ? null : i + startingPlace;
 
         records.add(UIRecord(
@@ -68,8 +71,10 @@ class UIChunk {
       }
 
       for (int i = 0; i < times.length; i++) {
-        final runner = i < allRunners.length ? allRunners.removeAt(0) : null;
-        final place = i < allRunners.length ? i + startingPlace : null;
+        // Check emptiness, not `i < length`: the list shrinks as runners are
+        // taken, so an index check stopped assigning runners halfway through.
+        final runner = allRunners.isNotEmpty ? allRunners.removeAt(0) : null;
+        final place = runner != null ? i + startingPlace : null;
         final isOriginallyTBD = i < originalTimingData.length
             ? originalTimingData[i].time == 'TBD'
             : true; // Added TBDs are originally TBD
@@ -85,7 +90,7 @@ class UIChunk {
     } else if (conflictType == ConflictType.confirmRunner) {
       // For confirm runner conflicts: all positions have runners and times
       for (int i = 0; i < times.length; i++) {
-        final runner = allRunners.removeAt(0);
+        final runner = allRunners.isNotEmpty ? allRunners.removeAt(0) : null;
         final place = i + startingPlace;
 
         records.add(UIRecord(

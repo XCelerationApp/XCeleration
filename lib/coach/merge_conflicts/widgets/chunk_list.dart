@@ -50,14 +50,8 @@ class _ChunkItemState extends State<ChunkItem> {
   @override
   Widget build(BuildContext context) {
     final chunkType = widget.chunk.conflict.type;
-    final previousChunk = widget.index > 0
-        ? widget.controller.timingChunks[widget.index - 1]
-        : null;
-    final previousChunkEndTime = previousChunk != null &&
-            previousChunk.hasConflict &&
-            previousChunk.conflictRecord != null
-        ? previousChunk.conflictRecord!.time
-        : '0.0';
+    final previousChunkEndTime =
+        widget.controller.previousEndTimeFor(widget.chunk.chunkId);
 
     return Padding(
         padding: const EdgeInsets.only(bottom: 24),
@@ -95,10 +89,10 @@ class _ChunkItemState extends State<ChunkItem> {
                   onResolve: () async {
                     if (chunkType == ConflictType.extraTime) {
                       await widget.controller
-                          .resolveExtraTimeConflict(widget.index);
+                          .resolveExtraTimeConflict(widget.chunk.chunkId);
                     } else if (chunkType == ConflictType.missingTime) {
                       await widget.controller
-                          .resolveMissingTimeConflict(widget.index);
+                          .resolveMissingTimeConflict(widget.chunk.chunkId);
                     }
                   },
                 ),

@@ -190,16 +190,19 @@ class MergeConflictsController with ChangeNotifier {
   }
 
   /// Manually resolve an extra time conflict for a specific chunk
-  Future<void> resolveExtraTimeConflict(int chunkIndex) =>
-      _resolveConflict(chunkIndex, ConflictType.extraTime);
+  Future<void> resolveExtraTimeConflict(int chunkId) =>
+      _resolveConflict(chunkId, ConflictType.extraTime);
 
   /// Manually resolve a missing time conflict for a specific chunk
-  Future<void> resolveMissingTimeConflict(int chunkIndex) =>
-      _resolveConflict(chunkIndex, ConflictType.missingTime);
+  Future<void> resolveMissingTimeConflict(int chunkId) =>
+      _resolveConflict(chunkId, ConflictType.missingTime);
 
-  Future<void> _resolveConflict(
-      int chunkIndex, ConflictType expectedType) async {
-    if (chunkIndex < 0 || chunkIndex >= timingChunks.length) {
+  /// Resolves the chunk with [chunkId]. Chunks are addressed by id, not by
+  /// position: the screen only lists chunks that have conflicts, so a list
+  /// index there does not match a position in [timingChunks].
+  Future<void> _resolveConflict(int chunkId, ConflictType expectedType) async {
+    final chunkIndex = timingChunks.indexWhere((c) => c.id == chunkId);
+    if (chunkIndex == -1) {
       return;
     }
 
@@ -313,12 +316,23 @@ class MergeConflictsController with ChangeNotifier {
     }
   }
 
-  bool get hasConflicts {
-    if (timingChunks.length != 1) return true;
-    final chunk = timingChunks.first;
-    if (!chunk.hasConflict) return false;
-    // ConfirmRunner conflicts are resolved and mergeable
-    return chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner;
+  /// Whether any chunk still has an unresolved missing- or extra-time
+  /// conflict. Confirmed chunks and chunks with no conflict are resolved,
+  /// however many of them there are.
+  bool get hasConflicts => timingChunks.any((chunk) =>
+      chunk.hasConflict &&
+      chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner);
+
+  /// End time of the chunk before the one with [chunkId], used as the lower
+  /// bound when validating times; '0.0' for the first chunk.
+  String previousEndTimeFor(int chunkId) {
+    final index = timingChunks.indexWhere((c) => c.id == chunkId);
+    for (int i = index - 1; i >= 0; i--) {
+      final previous = timingChunks[i];
+      if (previous.hasConflict) return previous.conflictRecord!.time;
+      if (previous.timingData.isNotEmpty) return previous.timingData.last.time;
+    }
+    return '0.0';
   }
 
   bool get allConflictsResolved {
@@ -407,7 +421,7 @@ class MergeConflictsController with ChangeNotifier {
 
   /// Check if we should auto-close the conflict resolution screen
   void _checkForAutoClose() {
-    if (allConflictsResolved && hasValidTimeOrder && timingChunks.length == 1) {
+    if (allConflictsResolved && hasValidTimeOrder && !hasConflicts) {
       // Schedule auto-close for next frame to avoid dispose issues
       _scheduler.addPostFrameCallback(() {
         onReadyToClose?.call();
@@ -431,7 +445,9 @@ class MergeConflictsController with ChangeNotifier {
     final hasAnyConflicts = consecutiveChunks.any((chunk) => chunk.hasConflict);
 
     return TimingChunk(
-      id: -1,
+      // Keep a real, unique id: chunks are looked up by id, and a shared
+      // placeholder id would make separate merged chunks collide.
+      id: consecutiveChunks.first.id,
       conflictRecord: hasAnyConflicts
           ? TimingDatum(
               time: consecutiveChunks.last.conflictRecord!.time,

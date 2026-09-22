@@ -1,5 +1,6 @@
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
+import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 
 /// Converts [TimingChunk] lists into [UIChunk] lists for the Coach merge-conflict
@@ -18,17 +19,25 @@ class CoachTimingDataConverter {
     int startingPlace = 1;
     for (int i = 0; i < timingChunks.length; i++) {
       final chunk = timingChunks[i];
-      // Skip chunks without conflicts or chunks with conflicts but no timing data
-      if (!chunk.hasConflict ||
-          chunk.conflictRecord == null ||
-          chunk.timingData.isEmpty) {
+      final conflictType = chunk.conflictRecord?.conflict?.type;
+      // Show every conflict chunk that has something to resolve. A
+      // missing-time chunk can have no times at all (the Timer pressed
+      // "missing time" straight after a confirmation) and must still be shown,
+      // or its conflict could never be resolved.
+      final isShown = chunk.hasConflict &&
+          (chunk.timingData.isNotEmpty ||
+              (conflictType == ConflictType.missingTime &&
+                  chunk.conflictRecord!.conflict!.offBy > 0));
+      if (!isShown) {
+        // Hidden chunks still hold finishers: consume their places and
+        // runners so later chunks line up with the right runners.
+        final count = chunk.recordCount.clamp(0, runnersCopy.length);
+        runnersCopy.removeRange(0, count);
+        startingPlace += chunk.recordCount < 0 ? 0 : chunk.recordCount;
         continue;
       }
 
       final times = chunk.timingData.map((e) => e.time).toList();
-      if (times.isEmpty) {
-        continue; // Skip if no times (shouldn't happen due to earlier check)
-      }
 
       final uiChunk = UIChunk(
         timingChunkHash: chunk.hashCode,
