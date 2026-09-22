@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:xceleration/assistant/race_timer/model/timing_data.dart';
@@ -11,7 +13,7 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
 // What the Timer saves must be exactly what it shows, even when taps come
 // faster than the database, so the race survives a crash. These tests use a
-// real (in-memory) database and read the race back as a restart would.
+// real database and read the race back as a restart would.
 
 void main() {
   final storage = AssistantStorageService.instance;
@@ -23,10 +25,14 @@ void main() {
   );
   late TimingData timing;
 
-  setUpAll(() {
+  setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
+    // Test files run in parallel: a directory of our own keeps this file's
+    // database apart from the other storage tests'.
+    await databaseFactory.setDatabasesPath(
+        Directory.systemTemp.createTempSync('timing_persistence').path);
   });
 
   setUp(() async {
