@@ -1671,6 +1671,92 @@ void main() {
       });
     });
 
+    group('while a race is loading', () {
+      late MockIAssistantStorageService storage;
+      late Map<int, Completer<Result<List<BibRecord>>>> loads;
+
+      setUp(() {
+        storage = MockIAssistantStorageService();
+        loads = {};
+        when(storage.getRunners(any))
+            .thenAnswer((_) async => const Success<List<Runner>>([]));
+        when(storage.getBibRecords(any)).thenAnswer((inv) =>
+            (loads[inv.positionalArguments.first as int] ??= Completer()).future);
+        when(storage.addBibRecord(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+        when(storage.updateBibRecordValue(any, any, any))
+            .thenAnswer((_) async => const Success<void>(null));
+      });
+
+      RaceRecord race(int id) => RaceRecord(
+            raceId: id,
+            date: DateTime(2026),
+            name: 'Race $id',
+            type: 'DeviceName.bibRecorderV2',
+          );
+
+      BibRecord record(int raceId, int id, String bib) =>
+          BibRecord(raceId: raceId, bibId: id, bibNumber: bib, createdAt: DateTime(2026));
+
+      BibRecorderV2Controller make() => track(BibRecorderV2Controller(
+            storage: storage,
+            voice: MockIVoiceRecognitionService(),
+            haptic: MockIHapticFeedback(),
+          ));
+
+      test('a bib added before the load finishes is kept and gets a fresh id',
+          () async {
+        final controller = make();
+        controller.selectRace(race(1));
+
+        controller.addBib(103);
+        loads[1]!.complete(Success([record(1, 0, '101'), record(1, 1, '102')]));
+        await pumpEventQueue();
+
+        expect(controller.entries.map((e) => e.bib), [103, 102, 101]);
+        // Id 2 follows the saved rows instead of restarting at 0 and
+        // overwriting bib 101.
+        verify(storage.addBibRecord(1, 2, '103')).called(1);
+      });
+
+      test('a Fixer correction that arrives before the load is applied after it',
+          () async {
+        final controller = make();
+        controller.attachSession(mockSession);
+        controller.selectRace(race(1));
+
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            entryId: 5,
+            correctedBib: 114,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await pumpEventQueue();
+        loads[1]!.complete(Success([record(1, 5, '101')]));
+        await pumpEventQueue();
+
+        expect(controller.entries.single.correctedTo, 114);
+      });
+
+      test('a load for a race the user has already left is ignored', () async {
+        final controller = make();
+        controller.selectRace(race(1));
+        controller.leaveRace();
+        controller.selectRace(race(2));
+        loads[2]!.complete(const Success([]));
+        await pumpEventQueue();
+
+        loads[1]!.complete(Success([record(1, 0, '101')]));
+        await pumpEventQueue();
+
+        expect(controller.entries, isEmpty);
+      });
+    });
+
     group('new runner from the Fixer', () {
       test('joins the roster, stops being flagged and is shared by name',
           () async {

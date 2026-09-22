@@ -57,6 +57,14 @@ class BibRecorderV2Controller extends ChangeNotifier {
   // Maps finish position → BibEntry.id for applying Fixer corrections.
   final Map<int, int> _positionToEntryId = {};
 
+  // While a selected race's saved bibs are loading, new bibs and Fixer
+  // corrections are held here and applied once the load finishes. Applying
+  // them earlier would lose them when the load replaces the list, and new
+  // entry ids would restart at 0 and overwrite saved rows.
+  bool _loadingRecords = false;
+  final List<({int bib, bool fromVoice})> _bibsWhileLoading = [];
+  final List<FixerCorrectionMessage> _correctionsWhileLoading = [];
+
   // ── Race-selection state ──────────────────────────────────────────────────
 
   List<RaceRecord> _races = [];
@@ -151,6 +159,9 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _raceStopped = race.isFinished;
     _entries.clear();
     _runners.clear();
+    _bibsWhileLoading.clear();
+    _correctionsWhileLoading.clear();
+    _loadingRecords = true;
     _loadRunners();
     _loadBibRecords();
     notifyListeners();
@@ -218,6 +229,9 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _nextPosition = 0;
     _nextEntryId = 0;
     _positionToEntryId.clear();
+    _loadingRecords = false;
+    _bibsWhileLoading.clear();
+    _correctionsWhileLoading.clear();
     _transcript = '';
     _isListening = false;
     _isProcessing = false;
@@ -250,13 +264,20 @@ class BibRecorderV2Controller extends ChangeNotifier {
   // ── Runners ───────────────────────────────────────────────────────────────
 
   Future<void> _loadRunners() async {
-    if (_selectedRace == null) return;
-    final result = await _storage.getRunners(_selectedRace!.raceId);
+    final race = _selectedRace;
+    if (race == null) return;
+    final result = await _storage.getRunners(race.raceId);
+    if (!identical(_selectedRace, race)) return; // another race was selected
     switch (result) {
       case Success(:final value):
+        // Keep runners added while loading (e.g. a Fixer's new runner).
+        final loadedBibs = value.map((r) => r.bibNumber).toSet();
+        final addedMeanwhile =
+            _runners.where((r) => !loadedBibs.contains(r.bibNumber)).toList();
         _runners
           ..clear()
-          ..addAll(value);
+          ..addAll(value)
+          ..addAll(addedMeanwhile);
         notifyListeners();
       case Failure(:final error):
         Logger.e('[BibRecorderV2Controller._loadRunners] ${error.originalException}');
@@ -264,8 +285,10 @@ class BibRecorderV2Controller extends ChangeNotifier {
   }
 
   Future<void> _loadBibRecords() async {
-    if (_selectedRace == null) return;
-    final result = await _storage.getBibRecords(_selectedRace!.raceId);
+    final race = _selectedRace;
+    if (race == null) return;
+    final result = await _storage.getBibRecords(race.raceId);
+    if (!identical(_selectedRace, race)) return; // another race was selected
     switch (result) {
       case Success(:final value):
         _entries.clear();
@@ -291,6 +314,24 @@ class BibRecorderV2Controller extends ChangeNotifier {
         _nextEntryId = 0;
         Logger.e('[BibRecorderV2Controller._loadBibRecords] ${error.originalException}');
     }
+    _applyHeldWhileLoading();
+  }
+
+  /// Applies bibs and corrections that arrived while the race was loading,
+  /// in the order they arrived.
+  void _applyHeldWhileLoading() {
+    _loadingRecords = false;
+    final bibs = List.of(_bibsWhileLoading);
+    final corrections = List.of(_correctionsWhileLoading);
+    _bibsWhileLoading.clear();
+    _correctionsWhileLoading.clear();
+    for (final held in bibs) {
+      _insertEntry(held.bib, vibrateIfFlagged: held.fromVoice);
+    }
+    for (final correction in corrections) {
+      _applyCorrection(correction);
+    }
+    if (bibs.isNotEmpty || corrections.isNotEmpty) notifyListeners();
   }
 
   // ── Flag helpers ──────────────────────────────────────────────────────────
@@ -367,13 +408,11 @@ class BibRecorderV2Controller extends ChangeNotifier {
       onBibPending!(bibStr);
       return;
     }
-    final entry = BibEntry(id: _nextEntryId++, bib: bib);
-    _entries.insert(0, entry);
-    if (flagFor(bib, excludeId: entry.id) != null) _haptic.vibrate();
-    _nextPosition++;
-    _positionToEntryId[_nextPosition] = entry.id;
-    _sendBibEntry(entry.id, bib, _nextPosition);
-    _persistAddBib(entry.id, bib);
+    if (_loadingRecords) {
+      _bibsWhileLoading.add((bib: bib, fromVoice: true));
+    } else {
+      _insertEntry(bib, vibrateIfFlagged: true);
+    }
     notifyListeners();
   }
 
@@ -382,13 +421,25 @@ class BibRecorderV2Controller extends ChangeNotifier {
   /// Adds a bib entry directly (used by manual mode).
   void addBib(int bib) {
     _awaitingRecord = false;
+    if (_loadingRecords) {
+      _bibsWhileLoading.add((bib: bib, fromVoice: false));
+    } else {
+      _insertEntry(bib, vibrateIfFlagged: false);
+    }
+    notifyListeners();
+  }
+
+  /// Records [bib] as the next finisher: list, storage and Verifier.
+  void _insertEntry(int bib, {required bool vibrateIfFlagged}) {
     final entry = BibEntry(id: _nextEntryId++, bib: bib);
     _entries.insert(0, entry);
+    if (vibrateIfFlagged && flagFor(bib, excludeId: entry.id) != null) {
+      _haptic.vibrate();
+    }
     _nextPosition++;
     _positionToEntryId[_nextPosition] = entry.id;
     _sendBibEntry(entry.id, bib, _nextPosition);
     _persistAddBib(entry.id, bib);
-    notifyListeners();
   }
 
   /// Signals the card to show idle until the next bib is recorded.
@@ -564,7 +615,12 @@ class BibRecorderV2Controller extends ChangeNotifier {
     final (_, envelope) = event;
     if (envelope.type != MessageType.fixerCorrection) return;
     try {
-      _applyCorrection(envelope.decode() as FixerCorrectionMessage);
+      final correction = envelope.decode() as FixerCorrectionMessage;
+      if (_loadingRecords) {
+        _correctionsWhileLoading.add(correction);
+        return;
+      }
+      _applyCorrection(correction);
     } catch (e) {
       Logger.e('[BibRecorderV2Controller._onSessionMessage] Malformed message dropped: $e');
     }
