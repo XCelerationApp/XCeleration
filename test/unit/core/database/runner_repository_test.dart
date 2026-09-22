@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/repositories/runner_repository.dart';
 import 'package:xceleration/core/utils/local_schema.dart';
@@ -64,6 +65,23 @@ void main() {
       'color': 0xFF2196F3,
       'is_dirty': 0,
       'updated_at': DateTime.now().toIso8601String(),
+    });
+  }
+
+  // A finished race with one saved result, for delete-guard tests.
+  Future<void> insertResult(int runnerId, int? teamId) async {
+    final db = await connProvider.database;
+    final raceId = await db.insert('races', {
+      'name': 'Meet',
+      'is_dirty': 0,
+    });
+    await db.insert('race_results', {
+      'race_id': raceId,
+      'runner_id': runnerId,
+      'team_id': teamId,
+      'place': 1,
+      'finish_time': 1000,
+      'is_dirty': 0,
     });
   }
 
@@ -204,6 +222,29 @@ void main() {
 
       test('throws when runner does not exist', () async {
         expect(() => repo.removeRunner(9999), throwsException);
+      });
+    });
+
+    group('deleting a runner with saved results', () {
+      // Deletes cascade to race_results, so these must be refused.
+      test('deleteRunnerEverywhere refuses and keeps the results', () async {
+        final id = await repo.createRunner(validRunner);
+        await insertResult(id, null);
+
+        await expectLater(
+            repo.deleteRunnerEverywhere(id), throwsA(isA<DataInUseException>()));
+
+        expect(await repo.getRunner(id), isNotNull);
+        expect(await repo.countRaceResults(id), 1);
+      });
+
+      test('removeRunner refuses and keeps the results', () async {
+        final id = await repo.createRunner(validRunner);
+        await insertResult(id, null);
+
+        await expectLater(
+            repo.removeRunner(id), throwsA(isA<DataInUseException>()));
+        expect(await repo.countRaceResults(id), 1);
       });
     });
 

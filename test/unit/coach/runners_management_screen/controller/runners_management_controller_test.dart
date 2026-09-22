@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/runners_management_screen/controller/runners_management_controller.dart';
@@ -54,6 +55,8 @@ void main() {
   setUp(() {
     mockMasterRace = MockMasterRace();
     mockRunners = MockIRunnerRepository();
+    // Runners have no saved results unless a test says otherwise.
+    when(mockRunners.countRaceResults(any)).thenAnswer((_) async => 0);
     mockTeams = MockITeamRepository();
     mockRaces = MockIRaceRepository();
 
@@ -316,6 +319,29 @@ void main() {
           verify(mockRunners.updateRunner(any)).called(1);
           // Old distinct runner (1) was deleted globally
           verify(mockRunners.deleteRunnerEverywhere(1)).called(1);
+        });
+
+        testWidgets('refuses the merge, changing nothing, when the edited runner has results',
+            (tester) async {
+          // Deleting the edited runner would cascade away their results.
+          final ctx = await _buildContext(tester);
+          final editedRunner = RaceRunner(
+            raceId: 1,
+            runner: Runner(runnerId: 1, name: 'Dave', bibNumber: '404', grade: 10),
+            team: testTeam,
+          );
+          when(mockRunners.getRunnerByBib('404')).thenAnswer((_) async =>
+              Runner(runnerId: 9, name: 'Eve', bibNumber: '404', grade: 11));
+          when(mockRunners.countRaceResults(1)).thenAnswer((_) async => 3);
+
+          await expectLater(
+            controller.handleRunnerSubmission(ctx, editedRunner),
+            throwsA(isA<DataInUseException>()),
+          );
+
+          verifyNever(mockRunners.updateRunner(any));
+          verifyNever(mockRunners.deleteRunnerEverywhere(any));
+          verifyNever(mockMasterRace.removeRaceParticipant(any));
         });
       });
     });

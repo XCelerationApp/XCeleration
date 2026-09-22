@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import '../app_error.dart';
 import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
@@ -101,6 +102,14 @@ class TeamRepository implements ITeamRepository {
       throw Exception('Team with id $teamId not found');
     }
     final db = await _db;
+    // race_results.team_id cascades on delete, so deleting a team with
+    // results would erase those results from every race.
+    final rows = await db.rawQuery(
+        'SELECT COUNT(*) AS n FROM race_results WHERE team_id = ?', [teamId]);
+    if (((rows.first['n'] as int?) ?? 0) > 0) {
+      throw const DataInUseException(
+          'This team has saved race results, so it cannot be deleted.');
+    }
     await db.delete('teams', where: 'team_id = ?', whereArgs: [teamId]);
     _writeBus?.notify();
   }

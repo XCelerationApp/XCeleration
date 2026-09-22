@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'dart:async';
 import '../utils/logger.dart';
 import '../theme/app_animations.dart';
@@ -342,6 +344,15 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       await widget.onSubmit(runner);
     } catch (e) {
       Logger.e('Error in runner input form: $e');
+      // Tell the user instead of failing silently.
+      if (mounted) {
+        DialogUtils.showErrorDialog(
+          context,
+          message: e is DataInUseException
+              ? e.message
+              : 'Could not save the runner. Please try again.',
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {

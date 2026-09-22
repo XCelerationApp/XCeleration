@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/repositories/i_race_repository.dart';
 import 'package:xceleration/core/repositories/i_runner_repository.dart';
 import 'package:xceleration/core/repositories/i_team_repository.dart';
@@ -256,6 +257,8 @@ class RunnersManagementController with ChangeNotifier {
       if (context.mounted) {
         Navigator.of(context).pop();
       }
+    } on DataInUseException {
+      rethrow; // carries a message for the user
     } catch (e) {
       Logger.e('Error handling runner submission: $e');
       throw Exception('Failed to save runner: $e');
@@ -269,6 +272,18 @@ class RunnersManagementController with ChangeNotifier {
     int targetTeamId,
   ) async {
     final int? oldRunnerId = raceRunner.runner.runnerId;
+
+    // This merge deletes the edited runner at the end. Check before changing
+    // anything: deleting a runner cascades to their saved race results.
+    if (oldRunnerId != null &&
+        oldRunnerId != existingRunner.runnerId &&
+        await _runners.countRaceResults(oldRunnerId) > 0) {
+      throw DataInUseException(
+          'Bib ${raceRunner.runner.bibNumber} already belongs to '
+          '${existingRunner.name ?? 'another runner'}, and this runner has '
+          'saved race results, so the two cannot be merged. Use a different '
+          'bib number.');
+    }
 
     // Remove current runner's race mapping if it exists
     if (oldRunnerId != null) {
@@ -324,6 +339,21 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> _updateExistingRunner(
       RaceRunner raceRunner, int targetTeamId) async {
+    // Other runners with this bib are deleted below; refuse before changing
+    // anything if one of them has saved race results.
+    final duplicates = [
+      for (final r in await _runners.getRunnersByBibAll(raceRunner.runner.bibNumber!))
+        if (r.runnerId != null && r.runnerId != raceRunner.runner.runnerId) r,
+    ];
+    for (final r in duplicates) {
+      if (await _runners.countRaceResults(r.runnerId!) > 0) {
+        throw DataInUseException(
+            'Another runner (${r.name ?? 'unnamed'}) also has bib '
+            '${r.bibNumber} and has saved race results. Use a different bib '
+            'number.');
+      }
+    }
+
     // Update runner details and team mappings
     await _races.updateRunnerWithTeams(
       runner: raceRunner.runner,

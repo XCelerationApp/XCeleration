@@ -10,6 +10,10 @@ abstract interface class IRunnerRepository {
   Future<void> updateRunner(Runner runner);
   Future<void> removeRunner(int runnerId);
   Future<void> deleteRunnerEverywhere(int runnerId);
+
+  /// Number of saved race results for [runnerId]. A runner with results must
+  /// not be deleted: the database would cascade the delete to those results.
+  Future<int> countRaceResults(int runnerId);
   Future<List<Runner>> getRunnersByBibAll(String bib);
 
   // --- Team roster ---

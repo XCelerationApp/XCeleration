@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/repositories/team_repository.dart';
 import 'package:xceleration/core/utils/local_schema.dart';
@@ -226,6 +227,32 @@ void main() {
 
       test('throws when team does not exist', () async {
         expect(() => repo.deleteTeam(9999), throwsException);
+      });
+    });
+
+    group('deleting a team with saved results', () {
+      test('is refused and the results are kept', () async {
+        // race_results.team_id cascades: the delete would erase the team's
+        // results from every race.
+        final teamId = await repo.createTeam(validTeam);
+        final db = await connProvider.database;
+        final runnerId = await db.insert('runners',
+            {'name': 'A', 'bib_number': '1', 'grade': 11, 'is_dirty': 0});
+        final raceId = await db.insert('races', {'name': 'Meet', 'is_dirty': 0});
+        await db.insert('race_results', {
+          'race_id': raceId,
+          'runner_id': runnerId,
+          'team_id': teamId,
+          'place': 1,
+          'finish_time': 1000,
+          'is_dirty': 0,
+        });
+
+        await expectLater(
+            repo.deleteTeam(teamId), throwsA(isA<DataInUseException>()));
+
+        expect(await repo.getTeam(teamId), isNotNull);
+        expect(await db.query('race_results'), hasLength(1));
       });
     });
   });

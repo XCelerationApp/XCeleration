@@ -1,4 +1,5 @@
 import 'package:sqflite/sqflite.dart';
+import '../app_error.dart';
 import '../../shared/models/database/base_models.dart';
 import '../services/database_write_bus.dart';
 import 'i_database_connection_provider.dart';
@@ -94,10 +95,28 @@ class RunnerRepository implements IRunnerRepository {
   }
 
   @override
+  Future<int> countRaceResults(int runnerId) async {
+    final db = await _db;
+    final rows = await db.rawQuery(
+        'SELECT COUNT(*) AS n FROM race_results WHERE runner_id = ?',
+        [runnerId]);
+    return (rows.first['n'] as int?) ?? 0;
+  }
+
+  /// Refuses to delete a runner whose results the delete would cascade away.
+  Future<void> _ensureNoRaceResults(int runnerId) async {
+    if (await countRaceResults(runnerId) > 0) {
+      throw const DataInUseException(
+          'This runner has saved race results, so they cannot be deleted.');
+    }
+  }
+
+  @override
   Future<void> removeRunner(int runnerId) async {
     if (await getRunner(runnerId) == null) {
       throw Exception('Runner with id $runnerId not found');
     }
+    await _ensureNoRaceResults(runnerId);
     final db = await _db;
     await db.delete('runners', where: 'runner_id = ?', whereArgs: [runnerId]);
     _writeBus?.notify();
@@ -106,6 +125,7 @@ class RunnerRepository implements IRunnerRepository {
   @override
   Future<void> deleteRunnerEverywhere(int runnerId) async {
     if (await getRunner(runnerId) == null) return;
+    await _ensureNoRaceResults(runnerId);
     final db = await _db;
     await db.transaction((txn) async {
       await txn.delete('race_participants',
