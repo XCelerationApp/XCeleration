@@ -28,6 +28,7 @@ class UIChunk {
     required List<TimingDatum> originalTimingData,
     required int startingPlace,
     required int chunkId,
+    Set<String>? recordedTimes,
   }) {
     final conflictType = conflictRecord.conflict!.type;
     final offBy = conflictRecord.conflict!.offBy;
@@ -61,13 +62,10 @@ class UIChunk {
       }
     } else if (conflictType == ConflictType.missingTime) {
       // For missing time conflicts: all positions have runners, some times are TBD
+      // Make sure there is one TBD slot per missing time.
       final tbdCount = times.where((t) => t == 'TBD').length;
-
-      // If no TBDs present, add them
-      if (tbdCount == 0) {
-        for (int i = 0; i < offBy; i++) {
-          times.add('TBD');
-        }
+      for (int i = tbdCount; i < offBy; i++) {
+        times.add('TBD');
       }
 
       for (int i = 0; i < times.length; i++) {
@@ -75,9 +73,14 @@ class UIChunk {
         // taken, so an index check stopped assigning runners halfway through.
         final runner = allRunners.isNotEmpty ? allRunners.removeAt(0) : null;
         final place = runner != null ? i + startingPlace : null;
-        final isOriginallyTBD = i < originalTimingData.length
-            ? originalTimingData[i].time == 'TBD'
-            : true; // Added TBDs are originally TBD
+        // A slot is editable unless the Timer recorded its time. Checking
+        // the recorded times (when known) keeps a time the coach entered
+        // editable after it was saved, so a typo can still be fixed.
+        final isOriginallyTBD = recordedTimes != null
+            ? !recordedTimes.contains(times[i])
+            : i < originalTimingData.length
+                ? originalTimingData[i].time == 'TBD'
+                : true; // Added TBDs are originally TBD
 
         records.add(UIRecord(
           place: place,
@@ -143,7 +146,7 @@ class UIChunk {
   /// Check if there are TBDs available after the given index for insertion
   bool hasTbdAfter(int recordIndex) {
     for (int i = recordIndex + 1; i < records.length; i++) {
-      if (records[i].time == 'TBD') {
+      if (records[i].isUnfilled) {
         return true;
       }
     }
@@ -156,7 +159,7 @@ class UIChunk {
     // 1. This position didn't originally start as TBD (confirmed times can have plus buttons)
     // 2. There are still unused TBDs available (time == 'TBD')
     return !records[recordIndex].isOriginallyTBD &&
-        records.any((record) => record.time == 'TBD');
+        records.any((record) => record.isUnfilled);
   }
 
   /// Get the number of times removed for extra time conflicts

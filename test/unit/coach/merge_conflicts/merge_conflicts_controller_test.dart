@@ -719,7 +719,8 @@ void main() {
 
     // -----------------------------------------------------------------------
     group('insertTbdAt', () {
-      test('inserts new TBD record at index for confirmRunner chunk', () {
+      test('does nothing for a confirmRunner chunk', () {
+        // A TBD there would add a finisher the timing data does not have.
         final chunk = _confirmChunk(1, ['1:00.0', '2:00.0']);
         final controller = _buildController(
           timingChunks: [chunk],
@@ -727,12 +728,10 @@ void main() {
         );
 
         final uiChunk = controller.uiChunks.first;
-        final countBefore = uiChunk.records.length;
 
         controller.insertTbdAt(uiChunk.chunkId, 0);
 
-        expect(uiChunk.records.length, countBefore + 1);
-        expect(uiChunk.records.first.time, 'TBD');
+        expect(uiChunk.times, ['1:00.0', '2:00.0']);
       });
 
       test('moves existing TBD to target index for missingTime chunk', () {

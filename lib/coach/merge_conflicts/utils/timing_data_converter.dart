@@ -12,8 +12,11 @@ import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 /// different UIChunk types, use different conflict-resolution strategies, and must
 /// not be merged.
 class CoachTimingDataConverter {
+  /// [recordedTimes] holds, by chunk id, the times the Timer recorded in each
+  /// missing-time chunk; any other time there was entered by the coach.
   static List<UIChunk> convertToUIChunks(
-      List<TimingChunk> timingChunks, List<RaceRunner> runners) {
+      List<TimingChunk> timingChunks, List<RaceRunner> runners,
+      {Map<int, Set<String>>? recordedTimes}) {
     final runnersCopy = List<RaceRunner>.from(runners);
     final uiChunks = <UIChunk>[];
     int startingPlace = 1;
@@ -47,9 +50,11 @@ class CoachTimingDataConverter {
         originalTimingData: chunk.timingData,
         startingPlace: startingPlace,
         chunkId: chunk.id,
+        recordedTimes: recordedTimes?[chunk.id],
       );
       uiChunks.add(uiChunk);
-      startingPlace += uiChunk.records.length;
+      // Count finishers, not rows: an extra time is a row without a place.
+      startingPlace += chunk.recordCount < 0 ? 0 : chunk.recordCount;
     }
     return uiChunks;
   }
