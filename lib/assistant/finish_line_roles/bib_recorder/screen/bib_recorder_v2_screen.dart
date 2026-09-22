@@ -137,7 +137,7 @@ class _BibRecorderV2ScreenState extends State<BibRecorderV2Screen> {
       body: Column(
         children: [
           AppHeader(
-            title: 'Bib Recorder V2',
+            title: 'Bib Recorder',
             currentRole: Role.bibRecorderV2,
             tutorialManager: _tutorialManager,
             titleStyle: AppTypography.displaySmall,
