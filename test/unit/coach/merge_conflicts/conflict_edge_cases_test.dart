@@ -243,6 +243,37 @@ void main() {
     });
   });
 
+  test('entered times stay editable when the sheet is closed and reopened',
+      () async {
+    final chunks = [
+      _chunk(0, [10, 20], ConflictType.missingTime, offBy: 2, end: 30),
+    ];
+    final recorded = MergeConflictsController.recordedTimesOf(chunks);
+    final first = MergeConflictsController(
+      masterRace: MasterRace.getInstance(1),
+      timingChunks: chunks,
+      raceRunners: _runners(4),
+      scheduler: _NoopScheduler(),
+      recordedTimes: recorded,
+    );
+    _type(first, 0, 2, _t(25));
+    await first.submitMissingTimeRecord(0, 2, _t(25));
+
+    // Reopened: a new controller on the same (partly entered) chunks.
+    final reopened = MergeConflictsController(
+      masterRace: MasterRace.getInstance(1),
+      timingChunks: chunks,
+      raceRunners: _runners(4),
+      scheduler: _NoopScheduler(),
+      recordedTimes: recorded,
+    );
+
+    final ui = _ui(reopened, 0);
+    expect(ui.records[2].time, _t(25));
+    expect(ui.records[2].isOriginallyTBD, isTrue);
+    expect(ui.records[0].isOriginallyTBD, isFalse);
+  });
+
   group('placing TBD slots', () {
     test('two slots can be placed independently', () {
       final c = _controller(

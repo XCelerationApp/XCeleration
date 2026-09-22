@@ -40,15 +40,30 @@ class MergeConflictsController with ChangeNotifier {
     required this.timingChunks,
     required this.raceRunners,
     IPostFrameCallbackScheduler? scheduler,
+    Map<int, Set<String>>? recordedTimes,
   }) : _scheduler = scheduler ?? WidgetsBindingAdapter() {
-    for (final chunk in timingChunks) {
+    if (recordedTimes != null) {
+      _recordedTimes.addAll(recordedTimes);
+      return;
+    }
+    _recordedTimes.addAll(recordedTimesOf(timingChunks));
+  }
+
+  /// The times the Timer recorded in each missing-time chunk of [chunks], by
+  /// chunk id. Take this before any times are entered, and pass it back in
+  /// each time the sheet opens: worked out again later, times the coach had
+  /// entered would count as recorded and could no longer be edited.
+  static Map<int, Set<String>> recordedTimesOf(List<TimingChunk> chunks) {
+    final recorded = <int, Set<String>>{};
+    for (final chunk in chunks) {
       if (chunk.conflictRecord?.conflict?.type == ConflictType.missingTime) {
-        _recordedTimes[chunk.id] = chunk.timingData
+        recorded[chunk.id] = chunk.timingData
             .map((d) => d.time)
             .where((t) => t != 'TBD')
             .toSet();
       }
     }
+    return recorded;
   }
 
   /// The times the Timer recorded in each missing-time chunk, by chunk id.
