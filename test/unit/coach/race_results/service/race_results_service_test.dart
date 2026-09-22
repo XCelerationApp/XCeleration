@@ -304,6 +304,91 @@ void main() {
     });
   });
 
+  group('RaceResultsService - finish order and missing teams', () {
+    const service = RaceResultsService();
+    const team = Team(teamId: 1, name: 'Alpha', abbreviation: 'ALP');
+
+    db.RaceResult placed(String bib, int place, Duration time, {Team? on}) =>
+        db.RaceResult(
+          place: place,
+          runner: Runner(name: bib, bibNumber: bib, grade: 11),
+          team: on,
+          finishTime: time,
+        );
+
+    test('runners with the same time keep their chute order', () {
+      const same = Duration(minutes: 18, seconds: 5);
+      // Listed out of order; the tie must still resolve by chute place.
+      final results = [
+        placed('C', 3, same, on: team),
+        placed('A', 1, const Duration(minutes: 17), on: team),
+        placed('B', 2, same, on: team),
+      ];
+
+      final ordered = service.calculateIndividualResults(results);
+
+      expect([for (final r in ordered) r.runner!.bibNumber], ['A', 'B', 'C']);
+      expect([for (final r in ordered) r.place], [1, 2, 3]);
+    });
+
+    test('a runner without a team is placed but not team-scored', () {
+      final results = [
+        placed('U', 1, const Duration(minutes: 17)),
+        for (var i = 0; i < 5; i++)
+          placed('A$i', i + 2, Duration(minutes: 18, seconds: i), on: team),
+      ];
+
+      final individual = service.calculateIndividualResults(results);
+      final teams = service.calculateTeamResults(individual);
+      service.sortAndPlaceTeams(teams);
+
+      expect(individual.first.runner!.bibNumber, 'U');
+      expect(teams.single.team.name, 'Alpha');
+      // Team places ignore the unattached runner: 1+2+3+4+5.
+      expect(teams.single.score, 15);
+    });
+  });
+
+  group('RaceResultsService - standard cross-country scoring', () {
+    test('matches a hand-scored meet', () {
+      const service = RaceResultsService();
+      const a = Team(teamId: 1, name: 'A', abbreviation: 'A');
+      const b = Team(teamId: 2, name: 'B', abbreviation: 'B');
+      const c = Team(teamId: 3, name: 'C', abbreviation: 'C'); // only 3 runners
+      // Chute order. C's runners and A's 8th runner must not affect team
+      // places: team places are renumbered over A and B's top seven only.
+      final order = [
+        ('A1', a), ('B1', b), ('C1', c), ('A2', a), ('B2', b), ('A3', a),
+        ('C2', c), ('B3', b), ('A4', a), ('B4', b), ('A5', a), ('C3', c),
+        ('B5', b), ('A6', a), ('B6', b), ('A7', a), ('B7', b), ('A8', a),
+      ];
+      final results = [
+        for (final (i, (bib, team)) in order.indexed)
+          db.RaceResult(
+            place: i + 1,
+            runner: Runner(name: bib, bibNumber: bib, grade: 11),
+            team: team,
+            finishTime: Duration(minutes: 17, seconds: i * 7),
+          ),
+      ];
+
+      final individual = service.calculateIndividualResults(results);
+      final records = service.convertToResultsRecords(individual);
+      final teams = service.calculateTeamResults(individual);
+      service.sortAndPlaceTeams(teams);
+
+      // Individual places are the chute order, unaffected by team scoring.
+      expect([for (final r in records) r.place], List.generate(18, (i) => i + 1));
+      // A: 1+3+5+7+9 = 25; B: 2+4+6+8+10 = 30; C is incomplete.
+      final byName = {for (final t in teams) t.team.name: t};
+      expect(byName['A']!.score, 25);
+      expect(byName['B']!.score, 30);
+      expect(byName['C']!.score, 0);
+      expect([for (final t in teams) t.team.name], ['A', 'B', 'C']);
+      expect([for (final t in teams) t.place], [1, 2, 3]);
+    });
+  });
+
   group('RaceResultsService - calculateCompleteRaceResults', () {
     late MockMasterRace mockMasterRace;
 
