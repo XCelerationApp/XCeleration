@@ -144,9 +144,10 @@ class _TeamsAndRunnersManagementWidgetState
               if (kDebugMode &&
                   !controller.isViewMode &&
                   controller.totalRunnerCount == 0)
-                TextButton(
+                IconButton(
                   onPressed: _controller.addSampleRoster,
-                  child: const Text('Sample roster (debug)'),
+                  icon: const Icon(Icons.science_outlined),
+                  tooltip: 'Add sample roster (debug)',
                 ),
               if (!controller.isViewMode)
                 _AddTeamButton(
