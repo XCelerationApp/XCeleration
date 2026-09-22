@@ -18,9 +18,6 @@ import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
-import 'package:xceleration/shared/models/timing_records/conflict.dart';
-import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
-import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import 'package:xceleration/shared/role_bar/models/role_enums.dart';
 
 /// Controls the full lifecycle of the new Bib Recorder role:
@@ -170,7 +167,6 @@ class BibRecorderV2Controller extends ChangeNotifier {
     _raceStopped = true;
     _saveRaceState(stopped: true);
     notifyListeners();
-    unawaited(_handOffUnresolvedEntries());
   }
 
   void resumeRace() {
@@ -477,32 +473,6 @@ class BibRecorderV2Controller extends ChangeNotifier {
         Logger.e('[BibRecorderV2Controller._persistAddBib] ${error.originalException}');
       }
     }));
-  }
-
-  Future<void> _handOffUnresolvedEntries() async {
-    if (_selectedRace == null) return;
-    final raceId = _selectedRace!.raceId;
-    final unresolved = _entries
-        .where((e) => e.correctedTo == null && flagFor(e.bib, excludeId: e.id) != null)
-        .toList();
-    for (final entry in unresolved) {
-      final conflict = TimingDatum(
-        time: '',
-        conflict: Conflict(type: ConflictType.confirmRunner),
-      );
-      final saveResult = await _storage.saveChunk(
-        raceId,
-        TimingChunk(id: entry.id, timingData: const [], conflictRecord: conflict),
-      );
-      if (saveResult case Failure(:final error)) {
-        Logger.e('[BibRecorderV2Controller._handOffUnresolvedEntries] ${error.originalException}');
-        continue;
-      }
-      final conflictResult = await _storage.saveChunkConflict(raceId, entry.id, conflict);
-      if (conflictResult case Failure(:final error)) {
-        Logger.e('[BibRecorderV2Controller._handOffUnresolvedEntries] ${error.originalException}');
-      }
-    }
   }
 
   // ── Race loading ──────────────────────────────────────────────────────────

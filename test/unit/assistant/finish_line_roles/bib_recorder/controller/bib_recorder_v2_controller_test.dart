@@ -595,110 +595,42 @@ void main() {
       });
     });
 
-    group('stopRace unresolved handoff (XCE-379)', () {
-      MockIAssistantStorageService makeStorage() {
-        final s = MockIAssistantStorageService();
-        when(s.getRaces(any))
-            .thenAnswer((_) async => const Success<List<RaceRecord>>([]));
-        when(s.getRunners(any))
+    group('stopRace', () {
+      test('writes no timing chunks, even with flagged entries', () async {
+        // The old hand-off saved placeholder conflict chunks that never left
+        // the phone and showed up in a Timer race with the same id.
+        final storage = MockIAssistantStorageService();
+        when(storage.getRunners(any))
             .thenAnswer((_) async => const Success<List<Runner>>([]));
-        when(s.getBibRecords(any))
+        when(storage.getBibRecords(any))
             .thenAnswer((_) async => const Success<List<BibRecord>>([]));
-        when(s.addBibRecord(any, any, any))
+        when(storage.addBibRecord(any, any, any))
             .thenAnswer((_) async => const Success<void>(null));
-        when(s.saveChunk(any, any))
+        when(storage.updateRaceStartTime(any, any, any))
             .thenAnswer((_) async => const Success<void>(null));
-        when(s.saveChunkConflict(any, any, any))
+        when(storage.updateRaceStatus(any, any, any))
             .thenAnswer((_) async => const Success<void>(null));
-        when(s.updateRaceStartTime(any, any, any))
-            .thenAnswer((_) async => const Success<void>(null));
-        when(s.updateRaceStatus(any, any, any))
-            .thenAnswer((_) async => const Success<void>(null));
-        return s;
-      }
-
-      test('saveChunkConflict called for each unresolved entry on stopRace', () async {
-        final mockStorage = makeStorage();
-        final race = RaceRecord(
-          raceId: 1,
-          date: DateTime(2026),
-          name: 'Test Race',
-          type: 'bibRecorderV2',
-        );
-        // Load a roster so bibs can be flagged as unknown.
-        final runner = Runner(
-          raceId: 1,
-          bibNumber: '200',
-          createdAt: DateTime(2026),
-        );
-        when(mockStorage.getRunners(1))
-            .thenAnswer((_) async => Success<List<Runner>>([runner]));
-
         final controller = track(BibRecorderV2Controller(
-          storage: mockStorage,
+          storage: storage,
           voice: MockIVoiceRecognitionService(),
           haptic: MockIHapticFeedback(),
         ));
-        controller.selectRace(race);
+        controller.selectRace(RaceRecord(
+          raceId: 1,
+          date: DateTime(2026),
+          name: 'Test Race',
+          type: 'DeviceName.bibRecorderV2',
+        ));
         await Future.microtask(() {});
-
-        // Add two unknown bibs (not in the roster).
+        controller.beginRace();
         controller.addBib(101);
-        await Future.delayed(const Duration(milliseconds: 2));
-        controller.addBib(102);
-        await Future.microtask(() {});
+        controller.addBib(101);
 
         controller.stopRace();
-        // Pump enough for the async loop (2 entries × 2 awaits each).
-        await Future.delayed(Duration.zero);
-
-        verify(mockStorage.saveChunkConflict(1, any, any)).called(2);
-      });
-
-      test('resolved entries are not handed off as conflicts', () async {
-        final mockStorage = makeStorage();
-        final race = RaceRecord(
-          raceId: 1,
-          date: DateTime(2026),
-          name: 'Test Race',
-          type: 'bibRecorderV2',
-        );
-        final runner = Runner(
-          raceId: 1,
-          bibNumber: '200',
-          createdAt: DateTime(2026),
-        );
-        when(mockStorage.getRunners(1))
-            .thenAnswer((_) async => Success<List<Runner>>([runner]));
-
-        final controller = track(BibRecorderV2Controller(
-          storage: mockStorage,
-          voice: MockIVoiceRecognitionService(),
-          haptic: MockIHapticFeedback(),
-        ));
-        controller.attachSession(mockSession);
-        controller.selectRace(race);
         await Future.microtask(() {});
 
-        controller.addBib(101); // unknown — unresolved
-        await Future.microtask(() {});
-
-        // Apply correction via session stream so correctedTo is set.
-        incomingController.add((
-          Role.fixer,
-          MessageEnvelope.wrapFixerCorrection(const FixerCorrectionMessage(
-            finishPosition: 1,
-            originalBib: 101,
-            correctedBib: 200,
-            correctionType: CorrectionType.bibCorrected,
-          )),
-        ));
-        await Future.microtask(() {});
-
-        controller.stopRace();
-        await Future.delayed(Duration.zero);
-
-        verifyNever(mockStorage.saveChunkConflict(any, any, any));
+        verifyNever(storage.saveChunk(any, any));
+        verifyNever(storage.saveChunkConflict(any, any, any));
       });
     });
 
