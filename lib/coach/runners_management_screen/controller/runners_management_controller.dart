@@ -443,6 +443,53 @@ class RunnersManagementController with ChangeNotifier {
     }
   }
 
+  /// Debug builds only: adds three teams of seven runners, so the race flow
+  /// can be tried without typing a roster. Bibs start at 901 and skip any
+  /// already taken.
+  Future<void> addSampleRoster() async {
+    const teams = [
+      ('Sample Eagles', 'EAG', 0xFF1565C0),
+      ('Sample Hawks', 'HAW', 0xFFC62828),
+      ('Sample Owls', 'OWL', 0xFF2E7D32),
+    ];
+    const names = [
+      'Avery', 'Blake', 'Casey', 'Devon', 'Emery', 'Finley', 'Gray', //
+      'Harper', 'Indigo', 'Jordan', 'Kai', 'Logan', 'Morgan', 'Nico',
+      'Oakley', 'Parker', 'Quinn', 'Riley', 'Sage', 'Taylor', 'Umi',
+    ];
+    var bib = 900;
+    var n = 0;
+    for (var (name, abbreviation, color) in teams) {
+      // createTeam skips a name that already exists (without adding it to
+      // this race), so pick a new one.
+      final base = name;
+      for (var k = 2; await masterRace.getTeamByName(name) != null; k++) {
+        name = '$base $k';
+      }
+      await createTeam(
+          Team(name: name, abbreviation: abbreviation, color: Color(color)));
+      final team = await masterRace.getTeamByName(name);
+      if (team?.teamId == null) continue;
+      for (var i = 0; i < 7; i++) {
+        do {
+          bib++;
+        } while (await _runners.getRunnerByBib('$bib') != null);
+        final runnerId = await masterRace.createRunner(Runner(
+          name: '${names[n++ % names.length]} ${base.split(' ').last}',
+          bibNumber: '$bib',
+          grade: 9 + i % 4,
+        ));
+        await masterRace.addRunnerToTeam(team!.teamId!, runnerId);
+        await masterRace.addRaceParticipant(RaceParticipant(
+          raceId: masterRace.raceId,
+          runnerId: runnerId,
+          teamId: team.teamId!,
+        ));
+      }
+    }
+    await forceRefresh();
+  }
+
   Future<void> showAddRunnerToTeam(BuildContext context, Team team) async {
     await showRaceRunnerSheet(context: context, team: team);
   }

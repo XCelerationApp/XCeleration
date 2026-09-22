@@ -77,6 +77,46 @@ void main() {
 
   group('RunnersManagementController', () {
     // -------------------------------------------------------------------------
+    test('addSampleRoster adds three teams of seven runners with free bibs',
+        () async {
+      final teams = <String, Team>{};
+      var nextTeamId = 10;
+      var nextRunnerId = 100;
+      // "Sample Eagles" already exists from an earlier race; bib 901 is taken.
+      teams['Sample Eagles'] = const Team(teamId: 9, name: 'Sample Eagles');
+      when(mockMasterRace.getTeamByName(any)).thenAnswer(
+          (i) async => teams[i.positionalArguments.first as String]);
+      when(mockTeams.createTeam(any)).thenAnswer((i) async {
+        final team = i.positionalArguments.first as Team;
+        final id = nextTeamId++;
+        teams[team.name!] = Team(teamId: id, name: team.name);
+        return id;
+      });
+      when(mockMasterRace.addTeamParticipant(any)).thenAnswer((_) async {});
+      when(mockRunners.getRunnerByBib(any)).thenAnswer((i) async =>
+          i.positionalArguments.first == '901' ? testRunner : null);
+      when(mockMasterRace.createRunner(any))
+          .thenAnswer((_) async => nextRunnerId++);
+      when(mockMasterRace.addRunnerToTeam(any, any)).thenAnswer((_) async {});
+      when(mockMasterRace.addRaceParticipant(any)).thenAnswer((_) async {});
+
+      await controller.addSampleRoster();
+
+      expect(teams.keys, containsAll(['Sample Eagles 2', 'Sample Hawks', 'Sample Owls']));
+      final runners = verify(mockMasterRace.createRunner(captureAny))
+          .captured
+          .cast<Runner>();
+      expect(runners, hasLength(21));
+      final bibs = runners.map((r) => r.bibNumber).toSet();
+      expect(bibs, hasLength(21));
+      expect(bibs, isNot(contains('901')));
+      final participants = verify(mockMasterRace.addRaceParticipant(captureAny))
+          .captured
+          .cast<RaceParticipant>();
+      expect(participants.map((p) => p.teamId).toSet(), {10, 11, 12});
+    });
+
+    // -------------------------------------------------------------------------
     group('loadData', () {
       test('transitions isLoading true then false on success', () async {
         final loadingStates = <bool>[];

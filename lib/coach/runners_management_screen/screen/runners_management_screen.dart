@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Selector, ChangeNotifierProvider
 import 'package:xceleration/core/services/i_sync_service.dart';
@@ -140,6 +141,13 @@ class _TeamsAndRunnersManagementWidgetState
                 ),
               ],
               const Spacer(),
+              if (kDebugMode &&
+                  !controller.isViewMode &&
+                  controller.totalRunnerCount == 0)
+                TextButton(
+                  onPressed: _controller.addSampleRoster,
+                  child: const Text('Sample roster (debug)'),
+                ),
               if (!controller.isViewMode)
                 _AddTeamButton(
                   onTap: () =>
