@@ -336,6 +336,9 @@ class _RaceModeWidgetState extends State<RaceModeWidget> {
     }
 
     return ListView.builder(
+      // Explicit padding: the default adds the top safe-area inset, which left a
+      // large gap under the header because this screen is not at the top.
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       itemCount: entries.length,
       itemBuilder: (_, i) {
         final entry = entries[i];

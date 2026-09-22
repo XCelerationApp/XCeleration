@@ -141,6 +141,9 @@ class ManageModeWidget extends StatelessWidget {
     }
 
     return ListView.builder(
+      // Explicit padding: the default adds the top safe-area inset, which left a
+      // large gap under the header because this screen is not at the top.
+      padding: const EdgeInsets.only(bottom: AppSpacing.lg),
       itemCount: controller.entries.length,
       itemBuilder: (_, i) {
         final entry = controller.entries[i];
