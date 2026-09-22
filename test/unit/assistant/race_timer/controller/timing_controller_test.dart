@@ -227,6 +227,62 @@ void main() {
 
         expect(result, isA<RemoveExtraTimeOk>());
       });
+
+      test('is refused right after a confirmation', () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.logTime();
+        controller.confirmTimes();
+
+        final result = await controller.removeExtraTime();
+
+        expect(result, isA<RemoveExtraTimeError>());
+        expect(controller.currentChunk.conflictRecord!.conflict!.type,
+            ConflictType.confirmRunner);
+        expect(controller.currentChunk.timingData, hasLength(2));
+      });
+
+      test('cancels a missing time instead of deleting recorded times',
+          () async {
+        loadAndStartRace();
+        controller.logTime(); // one recorded time
+        await controller.addMissingTime();
+
+        final result = await controller.removeExtraTime();
+
+        expect(result, isA<RemoveExtraTimeOk>());
+        expect(controller.currentChunk.timingData, hasLength(1));
+        expect(controller.currentChunk.hasConflict, isFalse);
+      });
+
+      test('cancels a missing time pressed right after a confirmation',
+          () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.confirmTimes();
+        await controller.addMissingTime(); // chunk with no times
+
+        final result = await controller.removeExtraTime();
+
+        expect(result, isA<RemoveExtraTimeOk>());
+        expect(controller.currentChunk.hasConflict, isFalse);
+        expect(controller.runnerCount, 1);
+      });
+
+      test('extra times can be added up to the unconfirmed count', () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.logTime();
+        controller.logTime();
+
+        expect(await controller.removeExtraTime(), isA<RemoveExtraTimeOk>());
+        expect(await controller.removeExtraTime(), isA<RemoveExtraTimeOk>());
+        expect(controller.currentChunk.conflictRecord!.conflict!.offBy, 2);
+        expect(controller.runnerCount, 1);
+        // A third would mean every time is extra: that asks to delete them.
+        expect(await controller.removeExtraTime(),
+            isA<RemoveExtraTimeConfirmRequired>());
+      });
     });
 
     group('isLastRecordUndoable', () {

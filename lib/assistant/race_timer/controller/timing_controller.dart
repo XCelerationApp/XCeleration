@@ -329,11 +329,17 @@ class TimingController extends TimingData {
   }
 
   RemoveExtraTimeResult? _checkRemoveExtraTimeConflict(TimingDatum record) {
-    if (record.conflict?.type == ConflictType.confirmRunner) {
+    final currentType = currentChunk.conflictRecord?.conflict?.type;
+    // Right after a confirmation every time on screen is confirmed. An extra
+    // time here made a conflict with no times of its own, which the coach
+    // could never see or resolve.
+    if (currentType == ConflictType.confirmRunner) {
       return const RemoveExtraTimeError(
           AppError(userMessage: 'You cannot remove a confirmed time.'));
     }
-    if (record.conflict?.type == ConflictType.missingTime) {
+    // Cancels one missing time. Counting it as an extra instead could ask to
+    // delete the whole chunk, recorded times included.
+    if (currentType == ConflictType.missingTime) {
       return null;
     }
 
