@@ -109,6 +109,21 @@ void main() {
     });
 
     group('createNewRunner', () {
+      test('refuses a bib that is already in the results', () async {
+        final controller = buildController(recordedRunners: [raceRunnerA]);
+        controller.nameController.text = 'Alice';
+        controller.gradeController.text = '10';
+        controller.teamController.text = 'Eagles';
+        controller.bibController.text = raceRunnerA.runner.bibNumber!;
+
+        final error = await controller.createNewRunner();
+
+        expect(error, isA<AppError>());
+        verifyNever(mockMasterRace.createRunner(any));
+        verifyNever(mockMasterRace.addRaceParticipant(any));
+        controller.dispose();
+      });
+
       test('returns error when name is empty', () async {
         final controller = buildController();
         controller.gradeController.text = '10';

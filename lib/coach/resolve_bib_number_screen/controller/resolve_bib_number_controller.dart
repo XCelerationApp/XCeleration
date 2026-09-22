@@ -124,6 +124,13 @@ class ResolveBibNumberController with ChangeNotifier {
     if (bib.isEmpty) {
       return const AppError(userMessage: 'Bib number is required');
     }
+    // A bib already in these results belongs to another finisher: reusing it
+    // would give that runner two results.
+    if (_recordedBibs.contains(bib)) {
+      return AppError(
+          userMessage: 'Bib $bib is already in these results for another '
+              'runner. Use a different bib number.');
+    }
 
     Logger.d(
         'Creating new runner with bib: "$bib", name: "${nameController.text}"');
