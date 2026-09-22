@@ -24,10 +24,7 @@ class ManageModeWidget extends StatelessWidget {
 
   final BibRecorderV2Controller controller;
 
-  int get _conflictCount => controller.entries
-      .where((e) =>
-          controller.flagFor(e.bib, excludeId: e.id) != null)
-      .length;
+  int get _conflictCount => controller.unresolvedCount;
 
   @override
   Widget build(BuildContext context) {
@@ -217,6 +214,26 @@ class ManageModeWidget extends StatelessWidget {
   }
 
   Future<void> _onShareTap(BuildContext context) async {
+    final unresolved = controller.unresolvedCount;
+    if (unresolved == 0) return _openShareSheet(context);
+    // Flagged entries reach the coach as they are, so confirm first.
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ConfirmBottomSheet(
+        title: unresolved == 1
+            ? '1 entry is still flagged'
+            : '$unresolved entries are still flagged',
+        message: 'Duplicates and bibs not in the roster will be shared with '
+            'the coach as they are.',
+        confirmLabel: 'Share Anyway',
+        onConfirm: () => _openShareSheet(context),
+      ),
+    );
+  }
+
+  Future<void> _openShareSheet(BuildContext context) async {
     final encodedData = await controller.getEncodedBibData();
     if (!context.mounted) return;
     sheet(

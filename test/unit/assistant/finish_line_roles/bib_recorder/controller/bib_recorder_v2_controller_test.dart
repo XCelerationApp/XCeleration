@@ -1738,6 +1738,36 @@ void main() {
       });
     });
 
+    group('unresolvedCount', () {
+      test('counts flagged entries but not ones the Fixer corrected', () async {
+        final controller = track(BibRecorderV2Controller(
+          storage: MockIAssistantStorageService(),
+          voice: MockIVoiceRecognitionService(),
+          haptic: MockIHapticFeedback(),
+        ));
+        controller.attachSession(mockSession);
+        controller.addBib(101);
+        controller.addBib(101); // duplicate: both entries are flagged
+        controller.addBib(102);
+        expect(controller.unresolvedCount, 2);
+
+        final firstId = controller.entries.last.id;
+        incomingController.add((
+          Role.fixer,
+          MessageEnvelope.wrapFixerCorrection(FixerCorrectionMessage(
+            finishPosition: 1,
+            originalBib: 101,
+            entryId: firstId,
+            correctedBib: 111,
+            correctionType: CorrectionType.bibCorrected,
+          )),
+        ));
+        await Future.microtask(() {});
+
+        expect(controller.unresolvedCount, 0);
+      });
+    });
+
     group('race state', () {
       MockIAssistantStorageService makeStorage() {
         final s = MockIAssistantStorageService();

@@ -319,6 +319,12 @@ class BibRecorderV2Controller extends ChangeNotifier {
     return null;
   }
 
+  /// Entries still flagged as duplicate or not in the roster, excluding those
+  /// the Fixer has corrected.
+  int get unresolvedCount => _entries
+      .where((e) => e.correctedTo == null && flagFor(e.bib, excludeId: e.id) != null)
+      .length;
+
   Runner? runnerFor(int bib) =>
       _runners.where((r) => r.bibNumber == bib.toString()).firstOrNull;
 
