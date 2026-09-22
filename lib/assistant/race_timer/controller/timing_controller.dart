@@ -265,7 +265,7 @@ class TimingController extends TimingData {
   /// Stops the race. Widget must show a confirmation dialog before calling this.
   void stopRace() {
     if (raceStopped == false && startTime != null) {
-      raceDuration = DateTime.now().difference(startTime!);
+      raceDuration = raceElapsed;
       raceStopped = true;
     }
   }
@@ -292,7 +292,7 @@ class TimingController extends TimingData {
     }
 
     final time = TimeFormatter.formatDuration(
-        getCurrentDuration(startTime, raceDuration));
+        raceElapsed);
     addRunnerTimeRecord(TimingDatum(time: time));
     scrollToBottom(scrollController);
     notifyListeners();
@@ -305,7 +305,7 @@ class TimingController extends TimingData {
           userMessage: 'Race must be started to confirm a time.');
     }
     final time = TimeFormatter.formatDuration(
-        getCurrentDuration(startTime, raceDuration));
+        raceElapsed);
 
     addConfirmRecord(TimingDatum(
         time: time,
@@ -322,7 +322,7 @@ class TimingController extends TimingData {
     }
 
     final time = TimeFormatter.formatDuration(
-        getCurrentDuration(startTime, raceDuration));
+        raceElapsed);
 
     addMissingTimeRecord(TimingDatum(
         time: time,
@@ -337,7 +337,7 @@ class TimingController extends TimingData {
       return const RemoveExtraTimeError(
           AppError(userMessage: 'Race must be started to mark an extra time.'));
     }
-    final currentDuration = getCurrentDuration(startTime, raceDuration);
+    final currentDuration = raceElapsed;
 
     final extraTimeRecord = TimingDatum(
         time: TimeFormatter.formatDuration(currentDuration),

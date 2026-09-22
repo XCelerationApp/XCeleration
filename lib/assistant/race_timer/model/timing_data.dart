@@ -32,13 +32,51 @@ class TimingData with ChangeNotifier {
   /// Widgets that display or depend on timing records should listen to this.
   final ValueNotifier<int> recordsSignal = ValueNotifier(0);
 
+  /// [now] is the phone's clock and [monotonic] a clock that only moves
+  /// forward; both can be replaced in tests.
   TimingData({
     required IAssistantStorageService storage,
     ChunkCacher? chunkCacher,
     RaceTimerDataConverter? timingDataConverter,
+    DateTime Function()? now,
+    Duration Function()? monotonic,
   })  : _storage = storage,
         _chunkCacher = chunkCacher ?? ChunkCacher(),
-        _timingDataConverter = timingDataConverter ?? RaceTimerDataConverter();
+        _timingDataConverter = timingDataConverter ?? RaceTimerDataConverter(),
+        _now = now ?? DateTime.now,
+        _monotonic = monotonic ?? _appClockElapsed;
+
+  static final Stopwatch _appClock = Stopwatch()..start();
+  static Duration _appClockElapsed() => _appClock.elapsed;
+
+  final DateTime Function() _now;
+  final Duration Function() _monotonic;
+
+  // Race time at the anchor and the monotonic clock's reading then. Reset
+  // (to null) whenever the start time, running state or race changes.
+  Duration? _anchorRaceTime;
+  Duration _anchorMonotonic = Duration.zero;
+
+  /// The race clock: time since the start while running, or the final time
+  /// once stopped.
+  ///
+  /// The phone's clock is only read once, when the race starts, continues or
+  /// is reopened; after that time is measured with a clock that can't go
+  /// backwards. Reading the phone's clock on every tap meant a clock change
+  /// mid-race (e.g. an automatic time sync) could make a later runner's time
+  /// earlier than the one before, and reorder the results.
+  Duration get raceElapsed {
+    final start = _startTime;
+    if (start == null) return _raceDuration ?? Duration.zero;
+    if (_raceStopped) return _raceDuration ?? _now().difference(start);
+    final anchor = _anchorRaceTime;
+    if (anchor == null) {
+      _anchorRaceTime = _now().difference(start);
+      _anchorMonotonic = _monotonic();
+      return _anchorRaceTime!;
+    }
+    return anchor + (_monotonic() - _anchorMonotonic);
+  }
   Duration? _raceDuration;
   bool _raceStopped = true;
   RaceRecord? _currentRace;
@@ -57,6 +95,7 @@ class TimingData with ChangeNotifier {
     }
     _storage.updateRaceStatus(_currentRace!.raceId, _currentRace!.type, value);
     _raceStopped = value;
+    _anchorRaceTime = null;
     raceStateSignal.value++;
     notifyListeners();
   }
@@ -69,6 +108,7 @@ class TimingData with ChangeNotifier {
       throw Exception('Race isn\'t loaded');
     }
     _startTime = time;
+    _anchorRaceTime = null;
     _storage.updateRaceStartTime(
         _currentRace!.raceId, _currentRace!.type, time);
     raceStateSignal.value++;
@@ -94,6 +134,7 @@ class TimingData with ChangeNotifier {
       return;
     }
     _currentRace = race;
+    _anchorRaceTime = null;
     raceInfoSignal.value++;
     notifyListeners();
   }
@@ -427,6 +468,7 @@ class TimingData with ChangeNotifier {
     _chunkCacher.clear();
     _timingDataConverter.clearCache();
     _startTime = null;
+    _anchorRaceTime = null;
     _raceDuration = null;
     _cachedUiRecords = null;
     raceStateSignal.value++;
