@@ -3,12 +3,25 @@ import 'dart:async';
 
 typedef StepChangedCallback = void Function(int currentIndex);
 
+/// Thrown from [FlowStep.onNext] to keep the flow on the current step, for
+/// example when saving failed. [message] is shown to the user.
+class FlowStepBlocked implements Exception {
+  const FlowStepBlocked(this.message);
+
+  final String message;
+
+  @override
+  String toString() => 'FlowStepBlocked: $message';
+}
+
 class FlowStep {
   final String title;
   final String description;
   final Widget content;
   final bool canScroll;
   final bool Function()? canProceed;
+  /// Runs before moving past this step. Throw [FlowStepBlocked] to stay on
+  /// the step.
   final Future<void> Function()? onNext;
   final VoidCallback? onBack;
   final StreamController<void> _contentChangeController;

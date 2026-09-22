@@ -30,6 +30,10 @@ class LoadResultsController with ChangeNotifier {
   AppError? _error;
   List<RaceResult> results = [];
   List<TimingChunk>? timingChunks;
+
+  /// One entry per finisher, in finish order: a [RaceRunner] once the bib is
+  /// matched, or the bib number as a [String] while it still needs resolving
+  /// (unknown or duplicate bib).
   List<dynamic>? raceRunners;
   final DevicesManager devices;
 
@@ -119,14 +123,21 @@ class LoadResultsController with ChangeNotifier {
   }
 
   /// Saves the current race results when user explicitly requests it (e.g., clicks Next)
-  Future<void> saveCurrentResults() async {
-    if (!hasBibConflicts &&
-        !hasTimingConflicts &&
-        timingChunks != null &&
-        raceRunners != null) {
-      await _mergeBibDataWithTimingChunksAndSaveResults();
-      notifyListeners();
+  ///
+  /// Returns an error if the results could not be saved, so the flow can stay
+  /// on this step instead of marking the race finished without results.
+  Future<AppError?> saveCurrentResults() async {
+    if (hasBibConflicts || hasTimingConflicts) {
+      return const AppError(
+          userMessage: 'Resolve all conflicts before saving the results.');
     }
+    if (timingChunks == null || raceRunners == null) {
+      // Nothing newly loaded: results already saved earlier are kept.
+      return null;
+    }
+    final error = await _mergeBibDataWithTimingChunksAndSaveResults();
+    notifyListeners();
+    return error;
   }
 
   /// Processes data received from devices
@@ -140,6 +151,7 @@ class LoadResultsController with ChangeNotifier {
         'Finish times data: ${finishTimesData != null ? "Available" : "Null"}');
 
     if (bibRecordsData != null && finishTimesData != null) {
+      _error = null;
       final bibResult =
           await BibDecodeUtils.decodeEncodedRunners(bibRecordsData);
       final List<BibDatum> bibData;
@@ -167,7 +179,9 @@ class LoadResultsController with ChangeNotifier {
           } else {
             Logger.d(
                 'LoadResultsController: No race runner found for bib ${bibDatum.bib}, returning bib number as conflict');
-            return int.tryParse(bibDatum.bib) ?? 0;
+            // Keep the bib as text: bibs are not always numeric, and parsing
+            // to int turned "A12" into 0.
+            return bibDatum.bib;
           }
         }),
       );
@@ -180,11 +194,10 @@ class LoadResultsController with ChangeNotifier {
           if (entry is RaceRunner) {
             final bibNumber = entry.runner.bibNumber!;
             if (seenBibs.contains(bibNumber)) {
-              // This is a duplicate bib, convert to integer
-              final bibInt = int.tryParse(bibNumber) ?? 0;
-              raceRunners![i] = bibInt;
+              // A duplicate bib needs resolving: keep it as a conflict entry.
+              raceRunners![i] = bibNumber;
               Logger.d(
-                  'LoadResultsController: Converted duplicate bib $bibNumber to integer conflict');
+                  'LoadResultsController: Marked duplicate bib $bibNumber as a conflict');
             } else {
               seenBibs.add(bibNumber);
             }
@@ -206,11 +219,32 @@ class LoadResultsController with ChangeNotifier {
       // Check if context is still mounted after async operation
       if (!context.mounted) return;
 
-      // Decode timing data using existing method
-      final timingData =
-          await TimingDecodeUtils.decodeEncodedTimingData(finishTimesData);
+      // Strict: a time that cannot be read must stop the load, since
+      // dropping it would shift every later time onto the wrong runner.
+      final List<TimingDatum> timingData;
+      try {
+        timingData = await TimingDecodeUtils.decodeEncodedTimingData(
+            finishTimesData,
+            strict: true);
+      } on FormatException catch (e) {
+        _error = AppError(
+          userMessage:
+              'Some finish times could not be read. Ask the Timer to share again.',
+          originalException: e,
+        );
+        Logger.e('[LoadResultsController.processReceivedData] $e');
+        notifyListeners();
+        return;
+      }
 
       Logger.d('Loaded timing data: ${timingData.length}');
+      if (timingData.isEmpty && (raceRunners?.isNotEmpty ?? false)) {
+        _error = const AppError(
+            userMessage:
+                'No finish times were received from the Timer. Ask the Timer to share again.');
+        notifyListeners();
+        return;
+      }
 
       // Immediately convert to timing chunks for internal use
       timingChunks = timingChunksFromTimingData(timingData);
@@ -223,7 +257,7 @@ class LoadResultsController with ChangeNotifier {
       _resultsLoaded = true;
       notifyListeners();
 
-      await _ensureBibNumberAndRunnerRecordLengthsAreEqual();
+      _reconcileFinisherCounts();
 
       await _checkForConflicts();
     } else {
@@ -243,82 +277,57 @@ class LoadResultsController with ChangeNotifier {
     return timingChunks!.fold(0, (sum, chunk) => sum + chunk.recordCount);
   }
 
-  Future<void> _ensureBibNumberAndRunnerRecordLengthsAreEqual() async {
-    if (raceRunners != null && timingChunks != null) {
-      int totalTimingRecords = _calculateTotalTimingRecords();
+  /// Makes the Timer's finisher count match the number of bibs by adjusting
+  /// the last timing chunk's conflict, so the difference shows up as a timing
+  /// conflict for the coach to resolve. Nothing is removed automatically:
+  ///
+  /// - More bibs than finishers: the Timer missed some finishers, so the last
+  ///   chunk gets that many missing times (TBD slots the coach fills in and
+  ///   can move to the right place).
+  /// - More finishers than bibs: the last chunk gets that many extra times
+  ///   for the coach to remove.
+  void _reconcileFinisherCounts() {
+    final chunks = timingChunks;
+    final runners = raceRunners;
+    if (chunks == null || runners == null || chunks.isEmpty) return;
 
-      if (raceRunners!.length == totalTimingRecords) {
-        // They are equal
-        return;
-      }
+    final diff = runners.length - _calculateTotalTimingRecords();
+    if (diff == 0) return;
+    Logger.d('LoadResultsController: bibs and finishers differ by $diff');
 
-      Logger.d('Bib number and timing record lengths are not equal');
-      int diff = raceRunners!.length - totalTimingRecords;
-      Logger.d(
-          'Difference: $diff (raceRunners: ${raceRunners!.length}, timingRecords: $totalTimingRecords)');
+    final last = chunks.last;
+    final current = last.conflictRecord?.conflict;
+    final net = switch (current?.type) {
+          ConflictType.missingTime => current!.offBy,
+          ConflictType.extraTime => -current!.offBy,
+          _ => 0,
+        } +
+        diff;
 
-      if (diff > 0) {
-        // More race runners than timing records - remove excess race runners
-        // But preserve conflict entries (integers) for resolution
-        Logger.d(
-            'Removing $diff records from race runners (preserving conflicts)');
-        Logger.d('Before removal: raceRunners length = ${raceRunners!.length}');
-
-        // Count how many valid RaceRunner entries we have vs conflicts (integers)
-        int validRunnerCount = raceRunners!.whereType<RaceRunner>().length;
-        int conflictCount =
-            raceRunners!.whereType<int>().length; // Keep as is for int type
-        Logger.d('Valid runners: $validRunnerCount, Conflicts: $conflictCount');
-
-        // Only remove from the valid runners, keep conflicts for resolution
-        if (validRunnerCount >= diff) {
-          // Remove excess valid runners only
-          int removeCount = diff;
-          raceRunners!.removeWhere((runner) {
-            if (removeCount > 0 && runner is RaceRunner) {
-              removeCount--;
-              return true;
-            }
-            return false;
-          });
-          Logger.d(
-              'Removed $diff excess valid runners, kept $conflictCount conflicts');
-        } else {
-          // Not enough valid runners to remove, this shouldn't happen in normal flow
-          Logger.d(
-              'Warning: Not enough valid runners to remove: need $diff, have $validRunnerCount');
-        }
-
-        Logger.d('After removal: raceRunners length = ${raceRunners!.length}');
-      } else if (diff < 0) {
-        // More timing records than race runners - add missing time conflict
-        Logger.d('Adding ${diff.abs()} missing time records');
-
-        // Check if the last chunk already has a missing time conflict
-        if (timingChunks!.isNotEmpty &&
-            timingChunks!.last.hasConflict &&
-            timingChunks!.last.conflictRecord!.conflict!.type ==
-                ConflictType.missingTime) {
-          // Increase the offBy of the existing conflict
-          timingChunks!.last.conflictRecord!.conflict!.offBy += diff.abs();
-          Logger.d(
-              'Increased existing missing time conflict offBy to: ${timingChunks!.last.conflictRecord!.conflict!.offBy}');
-        } else {
-          // Create a new conflict chunk
-          timingChunks!.add(TimingChunk(
-            id: -1,
-            timingData: [],
-            conflictRecord: TimingDatum(
-              time: 'MISSING_TIMES',
-              conflict:
-                  Conflict(type: ConflictType.missingTime, offBy: diff.abs()),
-            ),
-          ));
-          Logger.d(
-              'Added new missing time conflict chunk with offBy: ${diff.abs()}');
-        }
-      }
+    if (net < 0 && -net > last.timingData.length) {
+      // More extra times than the last chunk holds: the coach cannot resolve
+      // this from the last chunk alone, so stop instead of guessing.
+      _error = AppError(
+        userMessage: 'The Timer recorded ${-diff} more finishers than the Bib '
+            'Recorder. Check both devices and share again.',
+      );
+      return;
     }
+
+    // Missing finishers can finish after the Timer's last checkpoint, so
+    // their conflict gets no end time to validate against.
+    final time = net > 0
+        ? 'MISSING_TIMES'
+        : last.conflictRecord?.time ??
+            (last.timingData.isNotEmpty ? last.timingData.last.time : '0.0');
+    last.conflictRecord = TimingDatum(
+      time: time,
+      conflict: net > 0
+          ? Conflict(type: ConflictType.missingTime, offBy: net)
+          : net < 0
+              ? Conflict(type: ConflictType.extraTime, offBy: -net)
+              : Conflict(type: ConflictType.confirmRunner, offBy: 1),
+    );
   }
 
   Future<void> _checkForConflicts() async {
@@ -332,10 +341,10 @@ class LoadResultsController with ChangeNotifier {
   }
 
   /// Merges runner records with timing chunks
-  Future<List<RaceResult>> _mergeBibDataWithTimingChunksAndSaveResults() async {
+  Future<AppError?> _mergeBibDataWithTimingChunksAndSaveResults() async {
     if (timingChunks == null || raceRunners == null) {
       Logger.e('LoadResultsController: Timing chunks or race runners is null');
-      return [];
+      return const AppError(userMessage: 'No results are loaded to save.');
     }
 
     // Flatten timing chunks into individual timing records, excluding conflicts
@@ -347,7 +356,14 @@ class LoadResultsController with ChangeNotifier {
     if (timingRecords.length != raceRunners!.length) {
       Logger.e(
           'LoadResultsController: Timing records and race runners count mismatch: ${timingRecords.length} vs ${raceRunners!.length}');
-      return [];
+      return _saveFailed(AppError(
+        userMessage: 'There are ${timingRecords.length} finish times but '
+            '${raceRunners!.length} runners. Resolve the timing conflicts first.',
+      ));
+    }
+    if (raceRunners!.any((r) => r is! RaceRunner)) {
+      return _saveFailed(const AppError(
+          userMessage: 'Resolve all bib numbers before saving the results.'));
     }
 
     Logger.d(
@@ -358,14 +374,15 @@ class LoadResultsController with ChangeNotifier {
       final raceRunner = raceRunners![i];
       final timingDatum = timingRecords[i];
 
-      // Convert elapsed time string to Duration
+      // Never save a time that cannot be read: defaulting to zero made the
+      // runner the race winner.
       final finishDuration =
-          TimeFormatter.loadDurationFromString(timingDatum.time) ??
-              Duration.zero;
-
-      // Skip if runner is null; it will be handled by resolver later
-      if (raceRunner == null) {
-        continue;
+          TimeFormatter.loadDurationFromString(timingDatum.time);
+      if (finishDuration == null) {
+        return _saveFailed(AppError(
+          userMessage: 'The time for place ${i + 1} ("${timingDatum.time}") '
+              'is not valid. Fix it in the timing conflicts first.',
+        ));
       }
 
       merged.add(RaceResult(
@@ -382,15 +399,20 @@ class LoadResultsController with ChangeNotifier {
     try {
       await masterRace.saveResults(merged);
       _error = null;
+      results = merged;
+      return null;
     } catch (e) {
-      _error = AppError(
+      Logger.e('[LoadResultsController._mergeBibDataWithTimingChunks] $e');
+      return _saveFailed(AppError(
         userMessage: 'Could not save the results. Please try again.',
         originalException: e,
-      );
-      Logger.e('[LoadResultsController._mergeBibDataWithTimingChunks] $e');
+      ));
     }
+  }
 
-    return merged;
+  AppError _saveFailed(AppError error) {
+    _error = error;
+    return error;
   }
 
   /// Shows sheet for resolving bib conflicts
@@ -406,7 +428,7 @@ class LoadResultsController with ChangeNotifier {
     }
 
     // Check for bib conflicts
-    final hadBibConflicts = raceRunners!.any((runner) => runner is int);
+    final hadBibConflicts = raceRunners!.any((runner) => runner is String);
 
     if (!hadBibConflicts) {
       Logger.d('No bib conflicts found, showing info dialog');
@@ -513,18 +535,21 @@ class LoadResultsController with ChangeNotifier {
 
     final runners = raceRunners!.whereType<RaceRunner>().toList();
     try {
+      // Pass the full list in finish order. The controller edits it in place;
+      // resolving a filtered copy and appending it back reordered the chunks,
+      // so later times landed on the wrong runners.
       await sheet(
         context: context,
         title: 'Resolve Timing Conflicts',
         body: ChangeNotifierProvider(
           create: (_) => MergeConflictsController(
             masterRace: masterRace,
-            timingChunks: conflictChunks,
+            timingChunks: timingChunks!,
             raceRunners: runners,
           ),
           child: MergeConflictsScreen(
             masterRace: masterRace,
-            timingChunks: conflictChunks,
+            timingChunks: timingChunks!,
             raceRunners: runners,
           ),
         ),
@@ -532,11 +557,6 @@ class LoadResultsController with ChangeNotifier {
         useRootNavigator: true,
       );
       Logger.d('Sheet function completed successfully');
-
-      // Update the original timing chunks with the resolved chunks
-      // Remove original conflict chunks and add the resolved ones
-      timingChunks!.removeWhere((chunk) => chunk.hasConflict);
-      timingChunks!.addAll(conflictChunks);
       // Don't auto-save results - wait for user to click save/next
     } catch (e, stackTrace) {
       Logger.d('Error showing timing conflicts sheet: $e');
@@ -554,7 +574,7 @@ class LoadResultsController with ChangeNotifier {
   /// Checks if there are any bib conflicts in the provided records
   bool containsBibConflicts() {
     if (raceRunners == null) return false;
-    return raceRunners!.any((runner) => runner is int);
+    return raceRunners!.any((runner) => runner is String);
   }
 
   /// Checks if there are any timing conflicts in the timing chunks

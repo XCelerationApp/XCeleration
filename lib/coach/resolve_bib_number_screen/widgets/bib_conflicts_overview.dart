@@ -34,6 +34,9 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   List<RaceRunner>? _errorRaceRunners;
   bool _resolved = false;
   bool _isRefreshing = false;
+  // Set when looking up conflicts failed. Must not be mistaken for "no
+  // conflicts": that would report the bibs resolved and drop them.
+  bool _loadFailed = false;
 
   @override
   void initState() {
@@ -76,16 +79,17 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
       final futureIndices = <int>[];
 
       for (int i = 0; i < _raceRunners.length; i++) {
+        // Unresolved entries hold the bib number as text.
         final bibNumber = _raceRunners[i];
-        if (bibNumber is int) {
-          if (seenBibs.contains(bibNumber.toString())) {
-            futures.add(widget.masterRace.getRaceRunnerByBib(bibNumber.toString()));
+        if (bibNumber is String) {
+          if (seenBibs.contains(bibNumber)) {
+            futures.add(widget.masterRace.getRaceRunnerByBib(bibNumber));
             futureIndices.add(i);
           } else {
             // Create a placeholder runner for display purposes
             unknownRunners.add(RaceRunner(
               raceId: widget.masterRace.raceId,
-              runner: Runner(bibNumber: bibNumber.toString()),
+              runner: Runner(bibNumber: bibNumber),
               team: Team(),
             ));
           }
@@ -110,6 +114,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
 
       if (mounted) {
         setState(() {
+          _loadFailed = false;
           _unknownRaceRunners = unknownRunners;
           _duplicateRaceRunners = duplicateRunners;
           _duplicateBibNumberPlaces = duplicateBibNumberPlaces;
@@ -117,14 +122,8 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
         });
       }
     } catch (e) {
-      if (mounted) {
-        setState(() {
-          _unknownRaceRunners = [];
-          _duplicateRaceRunners = {};
-          _duplicateBibNumberPlaces = [];
-          _errorRaceRunners = [];
-        });
-      }
+      Logger.e('[BibConflictsOverview._getErrorRaceRunners] $e');
+      if (mounted) setState(() => _loadFailed = true);
     } finally {
       _isRefreshing = false;
     }
@@ -143,6 +142,21 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
 
   @override
   Widget build(BuildContext context) {
+    if (_loadFailed) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Could not check the bib numbers.'),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _getErrorRaceRunners,
+              child: const Text('Try again'),
+            ),
+          ],
+        ),
+      );
+    }
     if (_unknownRaceRunners == null) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -271,11 +285,11 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                     final item = _raceRunners[i];
                     if (item is RaceRunner &&
                         item.runner.bibNumber == record.runner.bibNumber) {
-                      // Convert other RaceRunners with same bib to unresolved integers
+                      // Mark other entries with the same bib as unresolved
                       final bib = item.runner.bibNumber;
-                      if (bib != null) _raceRunners[i] = int.parse(bib);
-                    } else if (item is int &&
-                        item.toString() == record.runner.bibNumber) {
+                      if (bib != null) _raceRunners[i] = bib;
+                    } else if (item is String &&
+                        item == record.runner.bibNumber) {
                       if (position == 0) {
                         _raceRunners[i] = record;
                       } else {
@@ -294,12 +308,10 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             int index = -1;
             if (_duplicateRaceRunners!.contains(raceRunner)) {
               index = _raceRunners.indexWhere(
-                  (r) => r is int && r.toString() == raceRunner.runner.bibNumber);
+                  (r) => r is String && r == raceRunner.runner.bibNumber);
             } else {
-              final conflictBib =
-                  int.tryParse(raceRunner.runner.bibNumber ?? '') ??
-                      raceRunner.runner.bibNumber;
-              index = _raceRunners.indexWhere((r) => r == conflictBib);
+              index = _raceRunners.indexWhere(
+                  (r) => r is String && r == raceRunner.runner.bibNumber);
             }
 
             if (index != -1) {

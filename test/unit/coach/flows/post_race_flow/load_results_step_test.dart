@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xceleration/coach/flows/model/flow_model.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart';
@@ -71,37 +73,26 @@ void main() {
       setUp(() => step = LoadResultsStep(controller: mockController));
       tearDown(() => step.dispose());
 
-      test('calls saveCurrentResults when canProceed conditions are met',
-          () async {
+      test('saves the results and moves on when saving succeeds', () async {
         stubController(resultsLoaded: true);
-        when(mockController.saveCurrentResults()).thenAnswer((_) async {});
+        when(mockController.saveCurrentResults()).thenAnswer((_) async => null);
 
         await step.onNext!();
 
         verify(mockController.saveCurrentResults()).called(1);
       });
 
-      test('skips saveCurrentResults when resultsLoaded is false', () async {
-        await step.onNext!();
+      test('keeps the flow on this step when saving fails', () async {
+        // Finishing anyway would mark the race done without its results.
+        stubController(resultsLoaded: true);
+        when(mockController.saveCurrentResults()).thenAnswer((_) async =>
+            const AppError(userMessage: 'Could not save the results.'));
 
-        verifyNever(mockController.saveCurrentResults());
-      });
-
-      test('skips saveCurrentResults when hasBibConflicts is true', () async {
-        stubController(resultsLoaded: true, hasBibConflicts: true);
-
-        await step.onNext!();
-
-        verifyNever(mockController.saveCurrentResults());
-      });
-
-      test('skips saveCurrentResults when hasTimingConflicts is true',
-          () async {
-        stubController(resultsLoaded: true, hasTimingConflicts: true);
-
-        await step.onNext!();
-
-        verifyNever(mockController.saveCurrentResults());
+        await expectLater(
+          step.onNext!(),
+          throwsA(isA<FlowStepBlocked>().having(
+              (e) => e.message, 'message', 'Could not save the results.')),
+        );
       });
     });
 

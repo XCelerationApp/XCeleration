@@ -241,6 +241,42 @@ void main() {
         expect([for (final r in saved) r.place], [1, 2]);
       });
 
+      test('refuses to save a time that cannot be read', () async {
+        // It used to be saved as 0:00, making that runner the race winner.
+        when(mockMasterRace.raceId).thenReturn(1);
+        controller.raceRunners = [_runner(1), _runner(2)];
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [
+            TimingDatum(time: '10:00.0'),
+            TimingDatum(time: 'TBD'),
+          ]),
+        ];
+
+        final error = await controller.saveCurrentResults();
+
+        expect(error, isNotNull);
+        expect(controller.hasError, isTrue);
+        verifyNever(mockMasterRace.saveResults(any));
+      });
+
+      test('returns an error instead of silently skipping on a count mismatch',
+          () async {
+        controller.raceRunners = [_runner(1), _runner(2)];
+        controller.timingChunks = [
+          TimingChunk(id: 0, timingData: [TimingDatum(time: '10:00.0')]),
+        ];
+
+        final error = await controller.saveCurrentResults();
+
+        expect(error, isNotNull);
+        verifyNever(mockMasterRace.saveResults(any));
+      });
+
+      test('returns an error while conflicts remain', () async {
+        controller.hasBibConflicts = true;
+        expect(await controller.saveCurrentResults(), isNotNull);
+      });
+
       test('sets an error when saving fails', () async {
         when(mockMasterRace.raceId).thenReturn(1);
         when(mockMasterRace.saveResults(any))
@@ -250,8 +286,9 @@ void main() {
           TimingChunk(id: 0, timingData: [TimingDatum(time: '10:00.0')]),
         ];
 
-        await controller.saveCurrentResults();
+        final error = await controller.saveCurrentResults();
 
+        expect(error, isNotNull);
         expect(controller.hasError, isTrue);
       });
     });
@@ -263,14 +300,14 @@ void main() {
         expect(controller.containsBibConflicts(), isFalse);
       });
 
-      test('returns false when raceRunners has no int entries', () {
+      test('returns false when raceRunners has no unresolved bib entries', () {
         controller.raceRunners = [_runner(1), _runner(2)];
         expect(controller.containsBibConflicts(), isFalse);
       });
 
-      test('returns true when raceRunners contains an int entry', () {
-        // int in the list represents an unresolved bib number conflict
-        controller.raceRunners = [_runner(1), 99];
+      test('returns true when raceRunners contains an unresolved bib', () {
+        // A String in the list is a bib number that still needs resolving.
+        controller.raceRunners = [_runner(1), '99'];
         expect(controller.containsBibConflicts(), isTrue);
       });
     });
@@ -422,7 +459,7 @@ void main() {
       });
 
       testWidgets(
-          'converts second occurrence of duplicate bib to int conflict',
+          'marks the second occurrence of a duplicate bib as a conflict',
           (tester) async {
         late BuildContext capturedContext;
         await tester.pumpWidget(
@@ -452,11 +489,68 @@ void main() {
         expect(controller.raceRunners, isNotNull);
         expect(controller.raceRunners!.length, 2);
         expect(controller.raceRunners![0], isA<RaceRunner>());
-        expect(controller.raceRunners![1], isA<int>());
+        expect(controller.raceRunners![1], '1');
       });
     });
 
     // -----------------------------------------------------------------------
+    group('processReceivedData — data integrity', () {
+      Future<BuildContext> pumpContext(WidgetTester tester) async {
+        late BuildContext ctx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (c) {
+            ctx = c;
+            return const SizedBox();
+          }),
+        ));
+        return ctx;
+      }
+
+      testWidgets('stops with an error when a finish time cannot be read',
+          (tester) async {
+        final ctx = await pumpContext(tester);
+        when(mockMasterRace.getRaceRunnerByBib('1'))
+            .thenAnswer((_) async => _runner(1));
+        when(mockMasterRace.getRaceRunnerByBib('2'))
+            .thenAnswer((_) async => _runner(2));
+        devices.bibRecorder!.data =
+            '{"teams":["EAGLES"],"r":[["1","R1",0,"11"],["2","R2",0,"11"]]}';
+        // "1O:05.0" is garbled; dropping it would shift runner 2 onto no time.
+        devices.raceTimer!.data = '10:00.0,1O:05.0,CR 0 11:00.0';
+
+        await controller.processReceivedData(ctx);
+
+        expect(controller.hasError, isTrue);
+        expect(controller.timingChunks, isNull);
+      });
+
+      testWidgets('stops with an error when no finish times arrive',
+          (tester) async {
+        final ctx = await pumpContext(tester);
+        when(mockMasterRace.getRaceRunnerByBib('1'))
+            .thenAnswer((_) async => _runner(1));
+        devices.bibRecorder!.data = '{"teams":["EAGLES"],"r":[["1","R1",0,"11"]]}';
+        devices.raceTimer!.data = ' ';
+
+        await controller.processReceivedData(ctx);
+
+        expect(controller.hasError, isTrue);
+      });
+
+      testWidgets('keeps a non-numeric unknown bib as text', (tester) async {
+        final ctx = await pumpContext(tester);
+        when(mockMasterRace.getRaceRunnerByBib('A12'))
+            .thenAnswer((_) async => null);
+        devices.bibRecorder!.data = '{"teams":[],"r":[["A12","",null,""]]}';
+        devices.raceTimer!.data = '10:00.0,CR 0 10:30.0';
+
+        await controller.processReceivedData(ctx);
+
+        expect(controller.raceRunners, ['A12']);
+        expect(controller.hasBibConflicts, isTrue);
+      });
+    });
+
     group('initialize', () {
       test('calls scheduler.addPostFrameCallback', () {
         final mockScheduler = MockIPostFrameCallbackScheduler();
@@ -588,7 +682,8 @@ void main() {
     group(
         '_ensureBibNumberAndRunnerRecordLengthsAreEqual via processReceivedData',
         () {
-      testWidgets('trims excess runners when raceRunners count > timing records',
+      testWidgets(
+          'keeps every bib and flags a missing time when bibs outnumber finishers',
           (tester) async {
         late BuildContext capturedContext;
         await tester.pumpWidget(
@@ -619,11 +714,16 @@ void main() {
 
         await controller.processReceivedData(capturedContext);
 
-        expect(controller.raceRunners?.length, 1);
+        // The earliest bib used to be deleted, shifting everyone's time.
+        expect(controller.raceRunners?.length, 2);
+        final conflict = controller.timingChunks!.last.conflictRecord!.conflict!;
+        expect(conflict.type, ConflictType.missingTime);
+        expect(conflict.offBy, 1);
+        expect(controller.hasTimingConflicts, isTrue);
       });
 
       testWidgets(
-          'adds missingTime conflict chunk when timing records > raceRunners count',
+          'flags an extra time when finishers outnumber bibs',
           (tester) async {
         late BuildContext capturedContext;
         await tester.pumpWidget(
@@ -650,14 +750,12 @@ void main() {
 
         await controller.processReceivedData(capturedContext);
 
-        final hasMissingTimeChunk = controller.timingChunks?.any(
-              (chunk) =>
-                  chunk.hasConflict &&
-                  chunk.conflictRecord!.conflict!.type ==
-                      ConflictType.missingTime,
-            ) ??
-            false;
-        expect(hasMissingTimeChunk, isTrue);
+        // Adding a missing-time conflict here made the mismatch worse.
+        expect(controller.timingChunks, hasLength(1));
+        final conflict = controller.timingChunks!.last.conflictRecord!.conflict!;
+        expect(conflict.type, ConflictType.extraTime);
+        expect(conflict.offBy, 1);
+        expect(controller.hasTimingConflicts, isTrue);
       });
     });
   });

@@ -6,11 +6,12 @@
 import 'dart:async' as _i6;
 import 'dart:ui' as _i8;
 
-import 'package:flutter/material.dart' as _i11;
+import 'package:flutter/material.dart' as _i12;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart'
     as _i9;
 import 'package:xceleration/coach/race_results/model/team_record.dart' as _i7;
+import 'package:xceleration/core/app_error.dart' as _i11;
 import 'package:xceleration/core/services/device_connection_service.dart'
     as _i5;
 import 'package:xceleration/shared/models/database/base_models.dart' as _i2;
@@ -501,16 +502,15 @@ class MockLoadResultsController extends _i1.Mock
           as _i6.Future<void>);
 
   @override
-  _i6.Future<void> saveCurrentResults() =>
+  _i6.Future<_i11.AppError?> saveCurrentResults() =>
       (super.noSuchMethod(
             Invocation.method(#saveCurrentResults, []),
-            returnValue: _i6.Future<void>.value(),
-            returnValueForMissingStub: _i6.Future<void>.value(),
+            returnValue: _i6.Future<_i11.AppError?>.value(),
           )
-          as _i6.Future<void>);
+          as _i6.Future<_i11.AppError?>);
 
   @override
-  _i6.Future<void> processReceivedData(_i11.BuildContext? context) =>
+  _i6.Future<void> processReceivedData(_i12.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#processReceivedData, [context]),
             returnValue: _i6.Future<void>.value(),
@@ -519,7 +519,7 @@ class MockLoadResultsController extends _i1.Mock
           as _i6.Future<void>);
 
   @override
-  _i6.Future<void> showBibConflictsSheet(_i11.BuildContext? context) =>
+  _i6.Future<void> showBibConflictsSheet(_i12.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#showBibConflictsSheet, [context]),
             returnValue: _i6.Future<void>.value(),
@@ -528,7 +528,7 @@ class MockLoadResultsController extends _i1.Mock
           as _i6.Future<void>);
 
   @override
-  _i6.Future<void> showTimingConflictsSheet(_i11.BuildContext? context) =>
+  _i6.Future<void> showTimingConflictsSheet(_i12.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#showTimingConflictsSheet, [context]),
             returnValue: _i6.Future<void>.value(),
