@@ -17,6 +17,7 @@ import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/widgets/download_race_sheet.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
+import '../../shared/utils/race_to_reopen.dart';
 import '../../shared/services/assistant_export_service.dart';
 import '../../shared/services/demo_race_generator.dart';
 import '../../../core/app_error.dart';
@@ -103,8 +104,9 @@ class TimingController extends TimingData {
       Success(:final value) => value,
       Failure() => <RaceRecord>[],
     };
-    if (races.isNotEmpty) {
-      _loadRace(races.last);
+    final race = raceToReopen(races);
+    if (race != null) {
+      await _loadRace(race);
     }
   }
 

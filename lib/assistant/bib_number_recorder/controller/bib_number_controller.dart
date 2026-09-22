@@ -14,6 +14,7 @@ import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import '../model/bib_datum_record.dart';
 import '../../shared/models/race_record.dart';
 import '../../shared/services/i_demo_race_generator.dart';
+import '../../shared/utils/race_to_reopen.dart';
 import '../../shared/models/bib_record.dart' as db_models;
 import '../../shared/models/runner.dart' as db_models;
 import 'package:xceleration/core/app_error.dart';
@@ -133,8 +134,9 @@ class BibNumberController extends BibNumberDataController {
         DeviceName.bibRecorder.toString());
 
     final result = await storage.getRaces(DeviceName.bibRecorder.toString());
-    if (result case Success(:final value) when value.isNotEmpty) {
-      await _loadRace(value.last);
+    if (result case Success(:final value)) {
+      final race = raceToReopen(value);
+      if (race != null) await _loadRace(race);
     }
   }
 
