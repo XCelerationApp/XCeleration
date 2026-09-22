@@ -7,10 +7,7 @@ class TimeFormatter {
   /// - For durations with minutes (no hours): "m:ss.xx"
   /// - For durations with seconds only: "ss.xx"
   static String formatDuration(Duration duration) {
-    final hours = duration.inHours;
-    final minutes = (duration.inMinutes % 60);
-    // Format seconds with exactly 2 decimal places
-    final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2);
+    final (hours, minutes, seconds) = _parts(duration);
 
     if (hours > 0) {
       return '$hours:${minutes.toString().padLeft(2, '0')}:${seconds.padLeft(5, '0')}';
@@ -21,16 +18,23 @@ class TimeFormatter {
     }
   }
 
+  /// Hours, minutes and seconds (to exactly 2 decimals) of [duration].
+  /// Rounds to hundredths first: rounding only the seconds turned 15:59.996
+  /// into "15:60.00".
+  static (int, int, String) _parts(Duration duration) {
+    final centis = (duration.inMilliseconds / 10).round();
+    final hours = centis ~/ 360000;
+    final minutes = (centis ~/ 6000) % 60;
+    final seconds = ((centis % 6000) / 100).toStringAsFixed(2);
+    return (hours, minutes, seconds);
+  }
+
   /// Formats a duration into a string with consistent "hh:mm:ss.xx" format,
   /// always including hours and using leading zeros.
   static String formatDurationWithZeros(Duration duration) {
-    final hours = duration.inHours;
+    final (hours, minutes, seconds) = _parts(duration);
     final hoursString = hours.toString().padLeft(2, '0');
-    final minutes = (duration.inMinutes % 60);
-
     final minutesString = minutes.toString().padLeft(2, '0');
-    // Format seconds with exactly 2 decimal places
-    final seconds = ((duration.inMilliseconds / 1000) % 60).toStringAsFixed(2);
     final secondsString = seconds.padLeft(5, '0');
 
     return '$hoursString:$minutesString:$secondsString';

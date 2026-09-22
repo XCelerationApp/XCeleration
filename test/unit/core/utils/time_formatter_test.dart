@@ -30,4 +30,30 @@ void main() {
       expect(parse('1O:05.0'), isNull);
     });
   });
+
+  group('formatDuration', () {
+    test('rounds up into the next minute instead of writing 60 seconds', () {
+      expect(
+          TimeFormatter.formatDuration(
+              const Duration(minutes: 15, seconds: 59, milliseconds: 996)),
+          '16:00.00');
+      expect(
+          TimeFormatter.formatDurationWithZeros(const Duration(
+              hours: 1, minutes: 59, seconds: 59, milliseconds: 999)),
+          '02:00:00.00');
+    });
+
+    test('keeps the usual formats', () {
+      expect(TimeFormatter.formatDuration(const Duration(seconds: 9, milliseconds: 50)),
+          '9.05');
+      expect(
+          TimeFormatter.formatDuration(
+              const Duration(minutes: 5, seconds: 3, milliseconds: 404)),
+          '5:03.40');
+      expect(
+          TimeFormatter.formatDuration(
+              const Duration(hours: 1, minutes: 2, seconds: 3)),
+          '1:02:03.00');
+    });
+  });
 }
