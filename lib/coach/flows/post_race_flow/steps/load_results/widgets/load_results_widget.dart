@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
+import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/typography.dart';
 import 'conflict_button.dart';
 import 'success_message.dart';
 import 'reload_button.dart';
@@ -43,6 +45,21 @@ class LoadResultsWidget extends StatelessWidget {
               ),
 
               const SizedBox(height: 24),
+
+              // Why the last load failed. Without this a failed load just
+              // looked like nothing happened.
+              if (controller.error case final error?) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    error.userMessage,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.bodyRegular
+                        .copyWith(color: AppColors.redColor),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               Column(
                 mainAxisSize: MainAxisSize.min,

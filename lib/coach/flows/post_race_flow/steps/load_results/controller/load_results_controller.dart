@@ -86,6 +86,7 @@ class LoadResultsController with ChangeNotifier {
     _resultsLoaded = false;
     _hasBibConflicts = false;
     _hasTimingConflicts = false;
+    _error = null;
     results = [];
     timingChunks = null;
     raceRunners = null;
@@ -159,10 +160,9 @@ class LoadResultsController with ChangeNotifier {
         case Success(:final value):
           bibData = value;
         case Failure(:final error):
-          _error = error;
           Logger.e(
               '[LoadResultsController.processReceivedData] ${error.originalException}');
-          notifyListeners();
+          _loadFailed(error);
           return;
       }
 
@@ -209,8 +209,13 @@ class LoadResultsController with ChangeNotifier {
           'LoadResultsController: Processed raceRunners: ${raceRunners?.length ?? 0} entries');
 
       if (raceRunners!.isEmpty) {
+        // Without bibs nothing would be saved, yet the step could still be
+        // finished: stop here instead.
         Logger.e('LoadResultsController: No race runners loaded');
-        raceRunners = null;
+        _loadFailed(const AppError(
+            userMessage: 'No bib numbers were received from the Bib '
+                'Recorder. Ask it to share again.'));
+        return;
       } else {
         Logger.d(
             'LoadResultsController: Race runners loaded successfully: ${raceRunners!.length} entries');
@@ -227,22 +232,20 @@ class LoadResultsController with ChangeNotifier {
             finishTimesData,
             strict: true);
       } on FormatException catch (e) {
-        _error = AppError(
+        Logger.e('[LoadResultsController.processReceivedData] $e');
+        _loadFailed(AppError(
           userMessage:
               'Some finish times could not be read. Ask the Timer to share again.',
           originalException: e,
-        );
-        Logger.e('[LoadResultsController.processReceivedData] $e');
-        notifyListeners();
+        ));
         return;
       }
 
       Logger.d('Loaded timing data: ${timingData.length}');
-      if (timingData.isEmpty && (raceRunners?.isNotEmpty ?? false)) {
-        _error = const AppError(
+      if (timingData.isEmpty) {
+        _loadFailed(const AppError(
             userMessage:
-                'No finish times were received from the Timer. Ask the Timer to share again.');
-        notifyListeners();
+                'No finish times were received from the Timer. Ask the Timer to share again.'));
         return;
       }
 
@@ -254,11 +257,14 @@ class LoadResultsController with ChangeNotifier {
       // Check if context is still mounted after second async operation
       if (!context.mounted) return;
 
+      final error =
+          _foldExtraTimesIntoConfirmedChunks() ?? _reconcileFinisherCounts();
+      if (error != null) {
+        _loadFailed(error);
+        return;
+      }
+
       _resultsLoaded = true;
-      notifyListeners();
-
-      _reconcileFinisherCounts();
-
       await _checkForConflicts();
     } else {
       Logger.e(
@@ -269,6 +275,45 @@ class LoadResultsController with ChangeNotifier {
         message: 'No data received from assistant devices.',
       );
     }
+  }
+
+  /// Records why loading failed and drops the half-loaded data, so nothing
+  /// from a failed load can be resolved or saved. Results saved earlier are
+  /// kept.
+  void _loadFailed(AppError error) {
+    _error = error;
+    timingChunks = null;
+    raceRunners = null;
+    _hasBibConflicts = false;
+    _hasTimingConflicts = false;
+    notifyListeners();
+  }
+
+  /// Older Timer versions allowed "extra time" straight after a confirmation,
+  /// leaving an extra-time chunk with fewer times than it says are extra; the
+  /// extras are among the confirmed times before it. Merges those confirmed
+  /// chunks into it so the coach can pick which times to remove.
+  AppError? _foldExtraTimesIntoConfirmedChunks() {
+    final chunks = timingChunks!;
+    for (int i = 0; i < chunks.length; i++) {
+      final chunk = chunks[i];
+      final conflict = chunk.conflictRecord?.conflict;
+      if (conflict?.type != ConflictType.extraTime) continue;
+      while (chunk.timingData.length < conflict!.offBy &&
+          i > 0 &&
+          chunks[i - 1].conflictRecord?.conflict?.type ==
+              ConflictType.confirmRunner) {
+        chunk.timingData.insertAll(0, chunks[i - 1].timingData);
+        chunks.removeAt(i - 1);
+        i--;
+      }
+      if (chunk.timingData.length < conflict.offBy) {
+        return const AppError(
+            userMessage: 'The Timer marked more extra times than it recorded. '
+                'Check the Timer and share again.');
+      }
+    }
+    return null;
   }
 
   /// Calculates total timing records across all chunks
@@ -286,13 +331,15 @@ class LoadResultsController with ChangeNotifier {
   ///   can move to the right place).
   /// - More finishers than bibs: the last chunk gets that many extra times
   ///   for the coach to remove.
-  void _reconcileFinisherCounts() {
+  ///
+  /// Returns an error if the difference can't be shown that way.
+  AppError? _reconcileFinisherCounts() {
     final chunks = timingChunks;
     final runners = raceRunners;
-    if (chunks == null || runners == null || chunks.isEmpty) return;
+    if (chunks == null || runners == null || chunks.isEmpty) return null;
 
     final diff = runners.length - _calculateTotalTimingRecords();
-    if (diff == 0) return;
+    if (diff == 0) return null;
     Logger.d('LoadResultsController: bibs and finishers differ by $diff');
 
     final last = chunks.last;
@@ -307,11 +354,10 @@ class LoadResultsController with ChangeNotifier {
     if (net < 0 && -net > last.timingData.length) {
       // More extra times than the last chunk holds: the coach cannot resolve
       // this from the last chunk alone, so stop instead of guessing.
-      _error = AppError(
+      return AppError(
         userMessage: 'The Timer recorded ${-diff} more finishers than the Bib '
             'Recorder. Check both devices and share again.',
       );
-      return;
     }
 
     // Missing finishers can finish after the Timer's last checkpoint, so
@@ -328,6 +374,7 @@ class LoadResultsController with ChangeNotifier {
               ? Conflict(type: ConflictType.extraTime, offBy: -net)
               : Conflict(type: ConflictType.confirmRunner, offBy: 1),
     );
+    return null;
   }
 
   Future<void> _checkForConflicts() async {

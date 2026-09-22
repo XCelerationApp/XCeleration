@@ -549,6 +549,64 @@ void main() {
         expect(controller.raceRunners, ['A12']);
         expect(controller.hasBibConflicts, isTrue);
       });
+
+      testWidgets(
+          'an old Timer\'s extra time after a confirmation becomes '
+          'resolvable', (tester) async {
+        final ctx = await pumpContext(tester);
+        for (final bib in ['1', '2']) {
+          when(mockMasterRace.getRaceRunnerByBib(bib))
+              .thenAnswer((_) async => _runner(int.parse(bib)));
+        }
+        devices.bibRecorder!.data =
+            '{"teams":["EAGLES"],"r":[["1","R1",0,"11"],["2","R2",0,"11"]]}';
+        // Three confirmed times, then "extra time" with no times of its own.
+        devices.raceTimer!.data =
+            '10:00.0,10:05.0,10:10.0,CR 0 10:15.0,ET 1 10:20.0';
+
+        await controller.processReceivedData(ctx);
+
+        expect(controller.hasError, isFalse);
+        final chunk = controller.timingChunks!.single;
+        expect(chunk.timingData.map((d) => d.time),
+            ['10:00.0', '10:05.0', '10:10.0']);
+        expect(chunk.conflictRecord!.conflict!.type, ConflictType.extraTime);
+        expect(chunk.recordCount, 2);
+        expect(controller.hasTimingConflicts, isTrue);
+      });
+
+      testWidgets('drops everything from a load that fails part-way',
+          (tester) async {
+        final ctx = await pumpContext(tester);
+        when(mockMasterRace.getRaceRunnerByBib('1'))
+            .thenAnswer((_) async => _runner(1));
+        devices.bibRecorder!.data =
+            '{"teams":["EAGLES"],"r":[["1","R1",0,"11"]]}';
+        // Four more finishers than bibs, more than the last chunk can drop.
+        devices.raceTimer!.data =
+            '10:00.0,10:01.0,10:02.0,CR 0 10:03.0,10:04.0,10:05.0,CR 0 10:06.0';
+
+        await controller.processReceivedData(ctx);
+
+        expect(controller.hasError, isTrue);
+        expect(controller.resultsLoaded, isFalse);
+        expect(controller.raceRunners, isNull);
+        expect(controller.timingChunks, isNull);
+        // Nothing half-loaded can be saved.
+        expect(await controller.saveCurrentResults(), isNull);
+        verifyNever(mockMasterRace.saveResults(any));
+      });
+
+      testWidgets('stops with an error when no bibs arrive', (tester) async {
+        final ctx = await pumpContext(tester);
+        devices.bibRecorder!.data = '{"teams":[],"r":[]}';
+        devices.raceTimer!.data = '10:00.0,CR 0 10:30.0';
+
+        await controller.processReceivedData(ctx);
+
+        expect(controller.hasError, isTrue);
+        expect(controller.resultsLoaded, isFalse);
+      });
     });
 
     group('initialize', () {
