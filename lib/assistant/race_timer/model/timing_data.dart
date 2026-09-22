@@ -9,6 +9,7 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../utils/timing_data_converter.dart';
 import 'chunk_cacher.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
 
 class TimingData with ChangeNotifier {
@@ -158,9 +159,10 @@ class TimingData with ChangeNotifier {
           _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.extraTime) {
+      // Cancels one extra time; may clear the conflict entirely, so save the
+      // whole chunk (reduceCurrentConflictByOne does) rather than assuming a
+      // conflict record is left.
       reduceCurrentConflictByOne(newTime: record.time);
-      _storage.saveChunkConflict(
-          _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
     } else {
       final int chunkId = currentChunk.id;
       cacheCurrentChunk();
@@ -190,9 +192,8 @@ class TimingData with ChangeNotifier {
             currentChunk.conflictRecord!);
       } else if (currentChunk.conflictRecord!.conflict?.type ==
           ConflictType.missingTime) {
+        // Cancels one missing time; see addMissingTimeRecord.
         reduceCurrentConflictByOne(newTime: record.time);
-        _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id,
-            currentChunk.conflictRecord!);
       } else {
         final int chunkId = currentChunk.id;
         cacheCurrentChunk();
@@ -219,6 +220,7 @@ class TimingData with ChangeNotifier {
     if (conflict.offBy <= 0) {
       currentChunk.conflictRecord = null;
     }
+    persistCurrentChunk();
     _cachedUiRecords = null;
     recordsSignal.value++;
     notifyListeners();
@@ -235,13 +237,35 @@ class TimingData with ChangeNotifier {
 
   void _saveCurrentChunkInDatabase() {
     if (_currentRace != null) {
-      _storage.saveChunk(_currentRace!.raceId, currentChunk);
+      _write(_storage.saveChunk(_currentRace!.raceId, currentChunk),
+          'save chunk ${currentChunk.id}');
     } else {
       Logger.e('Skipping save - no race loaded');
     }
   }
 
+  /// Saves [currentChunk] (times and conflict) after it was changed in place,
+  /// e.g. by an undo or a deleted record. Without this the change was lost on
+  /// restart and the removed conflict came back.
+  void persistCurrentChunk() => _saveCurrentChunkInDatabase();
+
+  /// Logs a storage write that failed instead of dropping the error.
+  void _write(Future<Result<void>> write, String what) {
+    write.then((result) {
+      if (result case Failure(:final error)) {
+        Logger.e('[TimingData] Could not $what: ${error.originalException}');
+      }
+    });
+  }
+
+  /// Removes [currentChunk] and makes the previous chunk current, deleting the
+  /// removed chunk's row from storage.
   void deleteCurrentChunk() {
+    final removedId = currentChunk.id;
+    if (_currentRace != null) {
+      _write(_storage.deleteChunk(_currentRace!.raceId, removedId),
+          'delete chunk $removedId');
+    }
     if (_chunkCacher.isEmpty) {
       currentChunk = TimingChunk(id: 0, timingData: []);
     } else {

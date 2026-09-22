@@ -276,6 +276,56 @@ void main() {
       });
     });
 
+    group('changes survive a restart', () {
+      test('undoing a confirmation is saved', () {
+        loadAndStartRace();
+        controller.logTime();
+        controller.confirmTimes();
+        clearInteractions(mockStorage);
+
+        controller.doUndoLastConflict();
+
+        final saved = verify(mockStorage.saveChunk(testRace.raceId, captureAny))
+            .captured
+            .last as TimingChunk;
+        expect(saved.conflictRecord, isNull);
+        expect(saved.timingData, hasLength(1));
+      });
+
+      test('deleting the only time in a chunk deletes that chunk, not the one '
+          'before it', () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.confirmTimes();
+        final previousId = controller.currentChunk.id;
+        controller.logTime(); // starts a new chunk
+        final emptiedId = controller.currentChunk.id;
+        final record = controller.uiRecords.last;
+
+        await controller.executeDeleteRecord(record);
+
+        verify(mockStorage.deleteChunk(testRace.raceId, emptiedId)).called(1);
+        verifyNever(mockStorage.deleteChunk(testRace.raceId, previousId));
+      });
+
+      test('a race whose times cannot be read is not opened', () async {
+        when(mockStorage.getChunks(any)).thenAnswer((_) async =>
+            const Failure(AppError(userMessage: 'Could not load')));
+        final race = RaceRecord(
+          raceId: 3,
+          date: DateTime(2024, 6, 1),
+          name: 'Unreadable',
+          type: DeviceName.raceTimer.toString(),
+          stopped: true,
+        );
+
+        await controller.loadOtherRace(race);
+
+        expect(controller.currentRace, isNull);
+        expect(controller.loadError, isNotNull);
+      });
+    });
+
     group('doClearRaceTimes', () {
       test('clears timing records and calls deleteChunks on storage', () async {
         loadAndStartRace();

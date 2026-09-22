@@ -49,6 +49,10 @@ class TimingController extends TimingData {
   final IHapticFeedback _hapticFeedback;
   bool isAudioPlayerReady = false;
 
+  /// Set when the last race could not be loaded; the race is left closed so
+  /// nothing is recorded over its unread times.
+  AppError? loadError;
+
   TimingController({
     required super.storage,
     AudioPlayer? audioPlayer,
@@ -147,16 +151,24 @@ class TimingController extends TimingData {
   }
 
   Future<void> _loadRace(RaceRecord raceRecord) async {
+    // Read the saved times first. If that fails the race must not open: new
+    // times would be saved over the unread chunks, which start at the same ids.
+    final chunksResult = await _storage.getChunks(raceRecord.raceId);
+    final List<TimingChunk> chunks;
+    switch (chunksResult) {
+      case Success(:final value):
+        chunks = value;
+      case Failure(:final error):
+        Logger.e('[TimingController._loadRace] ${error.originalException}');
+        loadError = error;
+        notifyListeners();
+        return;
+    }
+    loadError = null;
     currentRace = raceRecord;
     startTime = raceRecord.startedAt;
     raceDuration = raceRecord.duration;
     raceStopped = raceRecord.stopped;
-    // Load timing chunks
-    final chunksResult = await _storage.getChunks(raceRecord.raceId);
-    final chunks = switch (chunksResult) {
-      Success(:final value) => value,
-      Failure() => <TimingChunk>[],
-    };
 
     if (chunks.isNotEmpty) {
       // Set the last chunk as current
@@ -371,6 +383,8 @@ class TimingController extends TimingData {
     if (currentChunk.isEmpty) {
       deleteCurrentChunk();
     } else {
+      // Save the undo, or the conflict comes back after a restart.
+      persistCurrentChunk();
       invalidateRecordsCache();
       notifyListeners();
     }
@@ -439,13 +453,13 @@ class TimingController extends TimingData {
       if (index == -1) return false;
 
       currentChunk.timingData.removeAt(index);
-      _storage.updateChunkTimingData(
-          currentRace!.raceId, currentChunk.id, currentChunk.timingData);
       if (currentChunk.timingData.isEmpty && !currentChunk.hasConflict) {
+        // deleteCurrentChunk removes this chunk's row. Deleting by
+        // currentChunk.id afterwards deleted the previous chunk instead.
         deleteCurrentChunk();
-        _storage.deleteChunk(currentRace!.raceId, currentChunk.id);
         return true;
       }
+      persistCurrentChunk();
       invalidateRecordsCache();
       notifyListeners();
       return true;
@@ -457,6 +471,7 @@ class TimingController extends TimingData {
         if (currentChunk.timingData.isEmpty) {
           deleteCurrentChunk();
         } else {
+          persistCurrentChunk();
           invalidateRecordsCache();
           notifyListeners();
         }

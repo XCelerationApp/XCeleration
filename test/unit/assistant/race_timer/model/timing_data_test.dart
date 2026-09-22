@@ -50,6 +50,8 @@ void main() {
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.saveChunk(any, any))
         .thenAnswer((_) async => const Success(null));
+    when(mockStorage.deleteChunk(any, any))
+        .thenAnswer((_) async => const Success(null));
 
     timingData = TimingData(storage: mockStorage);
     timingData.currentRace = testRace;
@@ -413,6 +415,50 @@ void main() {
         timingData.deleteCurrentChunk();
 
         expect(timingData.currentChunk.timingData, isEmpty);
+        expect(timingData.currentChunk.hasConflict, isFalse);
+      });
+    });
+
+    group('storage stays in step with the chunks', () {
+      test('deleteCurrentChunk deletes the removed chunk, not the restored one',
+          () {
+        timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
+        timingData.addConfirmRecord(TimingDatum(
+            time: '0:11.00',
+            conflict: Conflict(type: ConflictType.confirmRunner)));
+        timingData.addRunnerTimeRecord(TimingDatum(time: '0:12.00'));
+        final removedId = timingData.currentChunk.id;
+
+        timingData.deleteCurrentChunk();
+
+        verify(mockStorage.deleteChunk(1, removedId)).called(1);
+        verifyNever(mockStorage.deleteChunk(1, timingData.currentChunk.id));
+      });
+
+      test('a missing time cancelling the last extra time saves a chunk with no '
+          'conflict instead of crashing', () {
+        timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
+        timingData.addExtraTimeRecord(TimingDatum(
+            time: '0:11.00', conflict: Conflict(type: ConflictType.extraTime)));
+        clearInteractions(mockStorage);
+
+        timingData.addMissingTimeRecord(TimingDatum(
+            time: '0:12.00', conflict: Conflict(type: ConflictType.missingTime)));
+
+        expect(timingData.currentChunk.hasConflict, isFalse);
+        final saved =
+            verify(mockStorage.saveChunk(1, captureAny)).captured.last as TimingChunk;
+        expect(saved.conflictRecord, isNull);
+      });
+
+      test('an extra time cancelling the last missing time does not crash', () {
+        timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
+        timingData.addMissingTimeRecord(TimingDatum(
+            time: '0:11.00', conflict: Conflict(type: ConflictType.missingTime)));
+
+        timingData.addExtraTimeRecord(TimingDatum(
+            time: '0:12.00', conflict: Conflict(type: ConflictType.extraTime)));
+
         expect(timingData.currentChunk.hasConflict, isFalse);
       });
     });
