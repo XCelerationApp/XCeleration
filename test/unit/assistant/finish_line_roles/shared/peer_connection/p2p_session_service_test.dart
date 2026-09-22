@@ -485,6 +485,40 @@ void main() {
       });
     });
 
+    test('the later role waits before inviting so only one side invites',
+        () async {
+      final follower = P2PSessionService(
+        localRole: Role.verifier,
+        raceId: 42,
+        raceKey: '42',
+        nearbyConnections: mockNearby,
+        prefs: mockPrefs,
+        outbox: MemoryP2POutbox(),
+      );
+      await follower.init();
+
+      fakeAsync((async) {
+        capturedStateCallback([
+          Device('bib-device-id', 'xce|BIB|42|bib-phone', 0),
+        ]);
+
+        // The Bib Recorder leads, so the Verifier does not invite at 2 s...
+        async.elapse(const Duration(seconds: 2));
+        verifyNever(mockNearby.invitePeer(
+          deviceID: 'bib-device-id',
+          deviceName: anyNamed('deviceName'),
+        ));
+
+        // ...but falls back to inviting if still unconnected.
+        async.elapse(const Duration(seconds: 6));
+        verify(mockNearby.invitePeer(
+          deviceID: 'bib-device-id',
+          deviceName: 'xce|BIB|42|bib-phone',
+        )).called(1);
+      });
+      await follower.dispose();
+    });
+
     test('ignores devices with unrecognised name format', () async {
       await capturedStateCallback([
         Device('rogue-id', 'SomeOtherApp', 2 /* SessionState.connected */),

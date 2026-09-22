@@ -127,6 +127,12 @@ class P2PSessionService {
   final Map<String, Timer> _inviteTimers = {};
   static const Duration _inviteDebounce = Duration(seconds: 2);
 
+  // Only one side of each pair should invite: when both do at once, Multipeer
+  // tears down both half-open sessions and the pair churns. The role that
+  // comes first in [Role] leads; the other only invites as a fallback if the
+  // peer is still unconnected after [_followerInviteDelay].
+  static const Duration _followerInviteDelay = Duration(seconds: 8);
+
   // Every instance drives the same native Nearby Connections session, so a
   // new session must not start advertising until the previous one has
   // finished stopping — otherwise the late stop call kills the new session.
@@ -309,7 +315,8 @@ class P2PSessionService {
           // Device visible but not connected — debounce the auto-invite so
           // rapid-fire notConnected events from the native layer don't spawn
           // competing invitations that prevent the connection from stabilising.
-          _scheduleInvite(device.deviceId, device.deviceName);
+          _scheduleInvite(device.deviceId, device.deviceName,
+              leads: localRole.index < role.index);
           _deviceIdToRole.remove(device.deviceId);
           // A stale device ID for a role that has since reconnected under a
           // new ID must not tear down the live connection.
@@ -448,9 +455,11 @@ class P2PSessionService {
   /// triggers the invitation.  This prevents the rapid-fire invite loop
   /// observed when the native Multipeer Connectivity layer drops and
   /// re-discovers the peer repeatedly.
-  void _scheduleInvite(String deviceId, String deviceName) {
+  void _scheduleInvite(String deviceId, String deviceName,
+      {required bool leads}) {
     _inviteTimers[deviceId]?.cancel();
-    _inviteTimers[deviceId] = Timer(_inviteDebounce, () async {
+    final delay = leads ? _inviteDebounce : _followerInviteDelay;
+    _inviteTimers[deviceId] = Timer(delay, () async {
       _inviteTimers.remove(deviceId);
       try {
         await _nearbyConnections.invitePeer(
