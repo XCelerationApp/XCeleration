@@ -41,14 +41,15 @@ class RaceRepository implements IRaceRepository {
   Future<Race?> getRace(int raceId) async {
     final db = await _db;
     final rows =
-        await db.query('races', where: 'race_id = ?', whereArgs: [raceId]);
+        await db.query('races', where: 'race_id = ? AND deleted_at IS NULL', whereArgs: [raceId]);
     return rows.isNotEmpty ? Race.fromJson(rows.first) : null;
   }
 
   @override
   Future<List<Race>> getAllRaces() async {
     final db = await _db;
-    final rows = await db.query('races', orderBy: 'race_date DESC');
+    final rows = await db.query('races',
+        where: 'deleted_at IS NULL', orderBy: 'race_date DESC');
     return rows.map((m) => Race.fromJson(m)).toList();
   }
 
@@ -70,8 +71,14 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<void> deleteRace(int raceId) async {
     final db = await _db;
-    final affectedRows =
-        await db.delete('races', where: 'race_id = ?', whereArgs: [raceId]);
+    // Marked deleted rather than removed, so the deletion can be pushed.
+    final now = SyncTimestamp.now();
+    final affectedRows = await db.update(
+      'races',
+      {'deleted_at': now, 'updated_at': now, 'is_dirty': 1},
+      where: 'race_id = ? AND deleted_at IS NULL',
+      whereArgs: [raceId],
+    );
     if (affectedRows == 0) {
       throw Exception('Race with id $raceId not found');
     }

@@ -46,7 +46,7 @@ class RunnerRepository implements IRunnerRepository {
     final db = await _db;
     final rows = await db.query(
       'runners',
-      where: 'runner_id = ?',
+      where: 'runner_id = ? AND deleted_at IS NULL',
       whereArgs: [runnerId],
     );
     return rows.isNotEmpty ? Runner.fromMap(rows.first) : null;
@@ -57,7 +57,7 @@ class RunnerRepository implements IRunnerRepository {
     final db = await _db;
     final rows = await db.query(
       'runners',
-      where: 'bib_number = ?',
+      where: 'bib_number = ? AND deleted_at IS NULL',
       whereArgs: [bibNumber],
     );
     return rows.isNotEmpty ? Runner.fromMap(rows.first) : null;
@@ -66,7 +66,8 @@ class RunnerRepository implements IRunnerRepository {
   @override
   Future<List<Runner>> getAllRunners() async {
     final db = await _db;
-    final rows = await db.query('runners', orderBy: 'name');
+    final rows =
+        await db.query('runners', where: 'deleted_at IS NULL', orderBy: 'name');
     return rows.map((m) => Runner.fromMap(m)).toList();
   }
 
@@ -75,7 +76,7 @@ class RunnerRepository implements IRunnerRepository {
     final db = await _db;
     final rows = await db.query(
       'runners',
-      where: 'name LIKE ? OR bib_number LIKE ?',
+      where: 'deleted_at IS NULL AND (name LIKE ? OR bib_number LIKE ?)',
       whereArgs: ['%$query%', '%$query%'],
       orderBy: 'name',
     );
@@ -118,7 +119,7 @@ class RunnerRepository implements IRunnerRepository {
     }
     await _ensureNoRaceResults(runnerId);
     final db = await _db;
-    await db.delete('runners', where: 'runner_id = ?', whereArgs: [runnerId]);
+    await _tombstoneRunner(db, runnerId);
     _writeBus?.notify();
   }
 
@@ -137,10 +138,27 @@ class RunnerRepository implements IRunnerRepository {
           whereArgs: [runnerId],
         );
       }
-      await txn
-          .delete('runners', where: 'runner_id = ?', whereArgs: [runnerId]);
+      await txn.update(
+        'runners',
+        {'deleted_at': now, 'updated_at': now, 'is_dirty': 1},
+        where: 'runner_id = ?',
+        whereArgs: [runnerId],
+      );
     });
     _writeBus?.notify();
+  }
+
+  /// Marks a runner deleted rather than removing the row, so the deletion can
+  /// be pushed. Uniqueness on the bib number ignores deleted rows, so the bib
+  /// is free for someone else straight away.
+  Future<void> _tombstoneRunner(DatabaseExecutor db, int runnerId) async {
+    final now = SyncTimestamp.now();
+    await db.update(
+      'runners',
+      {'deleted_at': now, 'updated_at': now, 'is_dirty': 1},
+      where: 'runner_id = ?',
+      whereArgs: [runnerId],
+    );
   }
 
   @override
@@ -148,7 +166,7 @@ class RunnerRepository implements IRunnerRepository {
     final db = await _db;
     final rows = await db.query(
       'runners',
-      where: 'bib_number = ?',
+      where: 'bib_number = ? AND deleted_at IS NULL',
       whereArgs: [bib],
     );
     return rows.map((m) => Runner.fromMap(m)).toList();
@@ -237,7 +255,8 @@ class RunnerRepository implements IRunnerRepository {
     final rows = await db.rawQuery('''
       SELECT r.* FROM runners r
       JOIN team_rosters tr ON r.runner_id = tr.runner_id
-      WHERE tr.team_id = ? AND tr.runner_id = ? AND tr.deleted_at IS NULL
+      WHERE tr.team_id = ? AND tr.runner_id = ?
+        AND tr.deleted_at IS NULL AND r.deleted_at IS NULL
     ''', [teamId, runnerId]);
     return rows.isNotEmpty ? Runner.fromMap(rows.first) : null;
   }
@@ -248,7 +267,7 @@ class RunnerRepository implements IRunnerRepository {
     final rows = await db.rawQuery('''
       SELECT r.* FROM runners r
       JOIN team_rosters tr ON r.runner_id = tr.runner_id
-      WHERE tr.team_id = ? AND tr.deleted_at IS NULL
+      WHERE tr.team_id = ? AND tr.deleted_at IS NULL AND r.deleted_at IS NULL
       ORDER BY r.name
     ''', [teamId]);
     return rows.map((m) => Runner.fromMap(m)).toList();
@@ -263,7 +282,7 @@ class RunnerRepository implements IRunnerRepository {
     final rows = await db.rawQuery('''
       SELECT t.* FROM teams t
       JOIN team_rosters tr ON t.team_id = tr.team_id
-      WHERE tr.runner_id = ? AND tr.deleted_at IS NULL
+      WHERE tr.runner_id = ? AND tr.deleted_at IS NULL AND t.deleted_at IS NULL
       ORDER BY t.name
     ''', [runnerId]);
     return rows.map((m) => Team.fromMap(m)).toList();

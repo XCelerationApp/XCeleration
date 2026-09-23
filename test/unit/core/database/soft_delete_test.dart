@@ -13,9 +13,9 @@ import 'package:xceleration/shared/models/database/base_models.dart';
 // membership comes back on the next device. Every read has to hide the
 // tombstone, and the same pair has to be joinable again afterwards.
 //
-// Runners, teams and races still delete outright. Tombstoning them needs the
-// unique bib number and team name to stop counting a tombstone, which is a
-// schema change at both ends — see the note in the commit that adds this.
+// The bib number, team name and finishing place a tombstone still holds must
+// not block those values being used again, which is what the partial unique
+// indexes in the schema are for.
 
 class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
   Database? _db;
@@ -74,7 +74,34 @@ void main() {
       ));
 
   group('deleting a runner', () {
-    test('still frees the bib number for a new runner', () async {
+    test('leaves a tombstone for the server instead of dropping the row',
+        () async {
+      final id = await addRunner();
+
+      await runners.removeRunner(id);
+
+      final db = await conn.database;
+      final row = (await db
+              .query('runners', where: 'runner_id = ?', whereArgs: [id]))
+          .single;
+      expect(row['deleted_at'], isNotNull,
+          reason: 'a dropped row can never be pushed');
+      expect(row['is_dirty'], 1, reason: 'the deletion still has to sync');
+    });
+
+    test('hides them from every way of looking a runner up', () async {
+      final id = await addRunner(bib: '101', name: 'Alice');
+
+      await runners.removeRunner(id);
+
+      expect(await runners.getRunner(id), isNull);
+      expect(await runners.getRunnerByBib('101'), isNull);
+      expect(await runners.getAllRunners(), isEmpty);
+      expect(await runners.searchRunners('Alice'), isEmpty);
+      expect(await runners.getRunnersByBibAll('101'), isEmpty);
+    });
+
+    test('frees the bib number for a new runner', () async {
       final id = await addRunner(bib: '101', name: 'Alice');
       await runners.removeRunner(id);
 
@@ -142,6 +169,55 @@ void main() {
 
       expect(await runners.getTeamRunner(teamId, runnerId), isNotNull);
       expect(await runners.getTeamRunners(teamId), hasLength(1));
+    });
+  });
+
+  group('deleting a team', () {
+    test('leaves a tombstone and hides it everywhere', () async {
+      final teamId = await addTeam(name: 'Eagles');
+
+      await teams.deleteTeam(teamId);
+
+      expect(await teams.getTeam(teamId), isNull);
+      expect(await teams.getTeamByName('Eagles'), isNull);
+      expect(await teams.getAllTeams(), isEmpty);
+      expect(await teams.searchTeams('Eag'), isEmpty);
+
+      final db = await conn.database;
+      final row = (await db.query('teams')).single;
+      expect(row['deleted_at'], isNotNull);
+      expect(row['is_dirty'], 1);
+    });
+
+    test('frees the team name for a new team', () async {
+      await teams.deleteTeam(await addTeam(name: 'Eagles'));
+
+      await addTeam(name: 'Eagles');
+
+      expect(await teams.getTeamByName('Eagles'), isNotNull);
+      expect(await teams.getAllTeams(), hasLength(1));
+    });
+  });
+
+  group('deleting a race', () {
+    test('leaves a tombstone and hides it', () async {
+      final raceId = await races.createRace(Race(
+        raceId: 0,
+        raceName: 'Invitational',
+        location: 'Park',
+        distance: 5,
+        distanceUnit: 'km',
+        flowState: Race.FLOW_SETUP,
+      ));
+
+      await races.deleteRace(raceId);
+
+      expect(await races.getRace(raceId), isNull);
+      expect(await races.getAllRaces(), isEmpty);
+      final db = await conn.database;
+      final row = (await db.query('races')).single;
+      expect(row['deleted_at'], isNotNull);
+      expect(row['is_dirty'], 1);
     });
   });
 

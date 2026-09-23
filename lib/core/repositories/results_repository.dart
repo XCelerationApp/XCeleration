@@ -29,6 +29,9 @@ class ResultsRepository implements IResultsRepository {
       // Replace in place rather than delete + insert: a runner who already
       // has a result keeps its row (and synced uuid), so the next push
       // updates the remote row instead of leaving a stale duplicate.
+      // Deleted rows are included on purpose: a runner who is put back into
+      // the results reuses their old row, which clears the deletion and keeps
+      // the uuid the server already knows.
       final existing = await txn.query('race_results',
           columns: ['result_id', 'runner_id'],
           where: 'race_id = ?',
@@ -59,9 +62,15 @@ class ResultsRepository implements IResultsRepository {
         }
       }
 
-      // Rows still parked belong to runners no longer in the results.
-      await txn.delete('race_results',
-          where: 'race_id = ? AND place < 0', whereArgs: [raceId]);
+      // Rows still parked belong to runners no longer in the results. Mark
+      // them deleted rather than removing them, so the removal is pushed.
+      final now = SyncTimestamp.now();
+      await txn.update(
+        'race_results',
+        {'deleted_at': now, 'updated_at': now, 'is_dirty': 1},
+        where: 'race_id = ? AND place < 0',
+        whereArgs: [raceId],
+      );
     });
     _writeBus?.notify();
   }
@@ -94,7 +103,7 @@ class ResultsRepository implements IResultsRepository {
     final db = await _db;
     final rows = await db.query(
       'race_results',
-      where: 'race_id = ? AND runner_id = ?',
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
     );
     return rows.isNotEmpty ? RaceResult.fromMap(rows.first) : null;
@@ -119,7 +128,7 @@ class ResultsRepository implements IResultsRepository {
       FROM race_results rr
       JOIN runners r ON rr.runner_id = r.runner_id
       LEFT JOIN teams t ON rr.team_id = t.team_id
-      WHERE rr.race_id = ?
+      WHERE rr.race_id = ? AND rr.deleted_at IS NULL AND r.deleted_at IS NULL
       ORDER BY rr.place
     ''', [raceId]);
     return rows.map((m) => RaceResult.fromMap(m)).toList();
@@ -136,7 +145,7 @@ class ResultsRepository implements IResultsRepository {
     final map = raceResult.toMap();
     map['is_dirty'] = 1;
     await db.update('race_results', map,
-        where: 'race_id = ? AND runner_id = ?',
+        where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
         whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!]);
     _writeBus?.notify();
   }
@@ -151,9 +160,12 @@ class ResultsRepository implements IResultsRepository {
           'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found');
     }
     final db = await _db;
-    await db.delete(
+    // Marked deleted rather than removed, so the deletion can be pushed.
+    final now = SyncTimestamp.now();
+    await db.update(
       'race_results',
-      where: 'race_id = ? AND runner_id = ?',
+      {'deleted_at': now, 'updated_at': now, 'is_dirty': 1},
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
       whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
     );
     _writeBus?.notify();
