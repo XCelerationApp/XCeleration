@@ -84,6 +84,9 @@ void main() {
       var nextRunnerId = 100;
       // "Sample Eagles" already exists from an earlier race; bib 901 is taken.
       teams['Sample Eagles'] = const Team(teamId: 9, name: 'Sample Eagles');
+      // Team names are unique app-wide, so the check goes to the repository.
+      when(mockTeams.getTeamByName(any)).thenAnswer(
+          (i) async => teams[i.positionalArguments.first as String]);
       when(mockMasterRace.getTeamByName(any)).thenAnswer(
           (i) async => teams[i.positionalArguments.first as String]);
       when(mockTeams.createTeam(any)).thenAnswer((i) async {

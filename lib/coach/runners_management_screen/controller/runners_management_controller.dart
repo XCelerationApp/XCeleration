@@ -460,10 +460,10 @@ class RunnersManagementController with ChangeNotifier {
     var bib = 900;
     var n = 0;
     for (var (name, abbreviation, color) in teams) {
-      // createTeam skips a name that already exists (without adding it to
-      // this race), so pick a new one.
+      // Team names are unique across the app, not just this race, so find a
+      // name no team anywhere has.
       final base = name;
-      for (var k = 2; await masterRace.getTeamByName(name) != null; k++) {
+      for (var k = 2; await _teams.getTeamByName(name) != null; k++) {
         name = '$base $k';
       }
       await createTeam(
