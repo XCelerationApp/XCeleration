@@ -68,22 +68,23 @@ create index if not exists idx_teams_abbreviation on public.teams(abbreviation);
 -------------------------------------------------------------------------------
 -- TEAM_ROSTERS - Which runners belong to which teams
 -------------------------------------------------------------------------------
+-- PK is (team_uuid, runner_uuid): a roster row is the pair it links, and a
+-- local integer id means nothing on another device. The uuid column is a
+-- server-side surrogate the app never sends.
 create table if not exists public.team_rosters (
-  team_id       bigint not null references public.teams(team_id) on delete cascade,
-  runner_id     bigint not null references public.runners(runner_id) on delete cascade,
+  team_uuid     uuid not null references public.teams(uuid)   on delete cascade,
+  runner_uuid   uuid not null references public.runners(uuid) on delete cascade,
+  owner_user_id uuid not null,
+  uuid          uuid not null default gen_random_uuid() unique,
   joined_date   timestamptz not null default now(),
-  uuid          uuid unique,
-  team_uuid     uuid,
-  runner_uuid   uuid,
-  owner_user_id uuid,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   deleted_at    timestamptz,
-  primary key (team_id, runner_id)
+  primary key (team_uuid, runner_uuid)
 );
 
-create index if not exists idx_team_rosters_team on public.team_rosters(team_id);
-create index if not exists idx_team_rosters_runner on public.team_rosters(runner_id);
+create index if not exists idx_team_rosters_team on public.team_rosters(team_uuid);
+create index if not exists idx_team_rosters_runner on public.team_rosters(runner_uuid);
 
 -------------------------------------------------------------------------------
 -- RACES - Core race information
@@ -113,21 +114,20 @@ create index if not exists idx_races_date on public.races(race_date);
 -------------------------------------------------------------------------------
 -- RACE_TEAM_PARTICIPATION - Teams participating in races
 -------------------------------------------------------------------------------
+-- PK is (race_uuid, team_uuid), for the same reason as team_rosters.
 create table if not exists public.race_team_participation (
-  race_id             bigint not null references public.races(race_id) on delete cascade,
-  team_id             bigint not null references public.teams(team_id) on delete cascade,
+  race_uuid           uuid not null references public.races(uuid) on delete cascade,
+  team_uuid           uuid not null references public.teams(uuid) on delete cascade,
+  owner_user_id       uuid not null,
+  uuid                uuid not null default gen_random_uuid() unique,
   team_color_override bigint,  -- ARGB 32-bit unsigned; same encoding as teams.color
-  uuid                uuid unique,
-  race_uuid           uuid,
-  team_uuid           uuid,
-  owner_user_id       uuid,
   created_at          timestamptz not null default now(),
   updated_at          timestamptz not null default now(),
   deleted_at          timestamptz,
-  primary key (race_id, team_id)
+  primary key (race_uuid, team_uuid)
 );
 
-create index if not exists idx_race_team_participation_race on public.race_team_participation(race_id);
+create index if not exists idx_race_team_participation_race on public.race_team_participation(race_uuid);
 
 -------------------------------------------------------------------------------
 -- RACE_PARTICIPANTS - Individual runner participation
