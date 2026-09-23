@@ -61,6 +61,8 @@ class TimingController extends TimingData {
     required super.storage,
     AudioPlayer? audioPlayer,
     IHapticFeedback? hapticFeedback,
+    super.now,
+    super.monotonic,
   })  : _storage = storage,
         _audioPlayer = audioPlayer,
         _hapticFeedback = hapticFeedback ?? HapticFeedbackService() {
@@ -249,7 +251,7 @@ class TimingController extends TimingData {
 
   void _startRace() {
     raceStopped = false;
-    startTime = DateTime.now();
+    startTime = clockNow;
     raceDuration = null;
     notifyListeners();
   }
@@ -361,10 +363,13 @@ class TimingController extends TimingData {
       return const RemoveExtraTimeError(
           AppError(userMessage: 'You cannot remove a confirmed time.'));
     }
-    // Cancels one missing time. Counting it as an extra instead could ask to
-    // delete the whole chunk, recorded times included.
+    // An extra time marks one of the times recorded since the last button,
+    // and there are none since the missing time. (This used to cancel the
+    // missing time, which threw away both the missed runner and the stray.)
     if (currentType == ConflictType.missingTime) {
-      return null;
+      return const RemoveExtraTimeError(AppError(
+          userMessage: 'There is no time to remove yet. Undo the missing '
+              'time first, or log the time and then remove it.'));
     }
 
     // Calculate the total offBy that would result after adding this record
@@ -435,7 +440,7 @@ class TimingController extends TimingData {
     if (startTime == null) {
       return endTime ?? Duration.zero;
     }
-    return DateTime.now().difference(startTime);
+    return clockNow.difference(startTime);
   }
 
   bool get isLastRecordUndoable {

@@ -176,7 +176,7 @@ void main() {
         expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 2);
       });
 
-      test('reduces extraTime offBy by one when extraTime conflict exists', () {
+      test('closes the extra-time batch and starts a missing-time one', () {
         timingData.addExtraTimeRecord(TimingDatum(
           time: '0:42.00',
           conflict: Conflict(type: ConflictType.extraTime, offBy: 2),
@@ -187,8 +187,11 @@ void main() {
           conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
         ));
 
+        expect(timingData.currentChunk.conflictRecord!.conflict!.type,
+            ConflictType.missingTime);
         expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 1);
         expect(timingData.currentChunk.conflictRecord!.time, '0:43.00');
+        expect(timingData.currentChunk.timingData, isEmpty);
       });
     });
 
@@ -224,8 +227,8 @@ void main() {
         expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 2);
       });
 
-      test('reduces missingTime offBy by one when missingTime conflict exists',
-          () {
+      test('leaves a missingTime conflict alone when nothing was recorded '
+          'since', () {
         timingData.addMissingTimeRecord(TimingDatum(
           time: '0:52.00',
           conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
@@ -236,8 +239,8 @@ void main() {
           conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
         ));
 
-        expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 1);
-        expect(timingData.currentChunk.conflictRecord!.time, '0:53.00');
+        expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 2);
+        expect(timingData.currentChunk.conflictRecord!.time, '0:52.00');
       });
     });
 
@@ -441,24 +444,27 @@ void main() {
         verifyNever(mockStorage.deleteChunk(1, timingData.currentChunk.id));
       });
 
-      test('a missing time cancelling the last extra time saves a chunk with no '
-          'conflict instead of crashing', () async {
+      test('a missing time after an extra time keeps both', () async {
+        // A stray tap marked as extra, and then a missed runner: two things
+        // that happened, not one cancelling the other.
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
         timingData.addExtraTimeRecord(TimingDatum(
             time: '0:11.00', conflict: Conflict(type: ConflictType.extraTime)));
-        clearInteractions(mockStorage);
 
         timingData.addMissingTimeRecord(TimingDatum(
             time: '0:12.00', conflict: Conflict(type: ConflictType.missingTime)));
 
-        expect(timingData.currentChunk.hasConflict, isFalse);
-        await timingData.pendingWrites;
-        final saved =
-            verify(mockStorage.saveChunk(1, captureAny)).captured.last as TimingChunk;
-        expect(saved.conflictRecord, isNull);
+        // The extra-time chunk is closed; the missing time starts a new one.
+        expect(timingData.currentChunk.conflictRecord!.conflict!.type,
+            ConflictType.missingTime);
+        expect(timingData.currentChunk.timingData, isEmpty);
+        final shared =
+            decodeAndDecompress(await timingData.encodedRecords()).split(',');
+        expect(shared, ['0:10.00', 'ET 1 0:11.00', 'MT 1 0:12.00']);
       });
 
-      test('an extra time cancelling the last missing time does not crash', () {
+      test('an extra time with nothing recorded since a missing time is '
+          'ignored', () {
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
         timingData.addMissingTimeRecord(TimingDatum(
             time: '0:11.00', conflict: Conflict(type: ConflictType.missingTime)));
@@ -466,7 +472,11 @@ void main() {
         timingData.addExtraTimeRecord(TimingDatum(
             time: '0:12.00', conflict: Conflict(type: ConflictType.extraTime)));
 
-        expect(timingData.currentChunk.hasConflict, isFalse);
+        // The missing time stands: the press is ignored rather than
+        // cancelling it (TimingController refuses it with a message).
+        expect(timingData.currentChunk.conflictRecord!.conflict!.type,
+            ConflictType.missingTime);
+        expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 1);
       });
     });
 

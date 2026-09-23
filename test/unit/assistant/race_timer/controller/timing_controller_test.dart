@@ -242,7 +242,7 @@ void main() {
         expect(controller.currentChunk.timingData, hasLength(2));
       });
 
-      test('cancels a missing time instead of deleting recorded times',
+      test('is refused when nothing was recorded since a missing time',
           () async {
         loadAndStartRace();
         controller.logTime(); // one recorded time
@@ -250,23 +250,23 @@ void main() {
 
         final result = await controller.removeExtraTime();
 
-        expect(result, isA<RemoveExtraTimeOk>());
+        // Cancelling the missing time here threw away both the missed
+        // runner and the stray tap.
+        expect(result, isA<RemoveExtraTimeError>());
         expect(controller.currentChunk.timingData, hasLength(1));
-        expect(controller.currentChunk.hasConflict, isFalse);
+        expect(controller.currentChunk.conflictRecord!.conflict!.type,
+            ConflictType.missingTime);
       });
 
-      test('cancels a missing time pressed right after a confirmation',
-          () async {
+      test('marks a stray tap logged after a missing time', () async {
         loadAndStartRace();
         controller.logTime();
-        controller.confirmTimes();
-        await controller.addMissingTime(); // chunk with no times
+        await controller.addMissingTime();
+        controller.logTime(); // the stray tap starts a new batch
 
         final result = await controller.removeExtraTime();
 
-        expect(result, isA<RemoveExtraTimeOk>());
-        expect(controller.currentChunk.hasConflict, isFalse);
-        expect(controller.runnerCount, 1);
+        expect(result, isA<RemoveExtraTimeConfirmRequired>());
       });
 
       test('extra times can be added up to the unconfirmed count', () async {

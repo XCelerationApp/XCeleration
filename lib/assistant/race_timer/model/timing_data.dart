@@ -58,6 +58,9 @@ class TimingData with ChangeNotifier {
   Duration? _anchorRaceTime;
   Duration _anchorMonotonic = Duration.zero;
 
+  /// The phone's clock, read through the same source as [raceElapsed].
+  DateTime get clockNow => _now();
+
   /// The race clock: time since the start while running, or the final time
   /// once stopped.
   ///
@@ -196,13 +199,14 @@ class TimingData with ChangeNotifier {
       currentChunk.conflictRecord!.time = record.time;
       currentChunk.conflictRecord!.conflict!.offBy++;
       _saveCurrentChunkInDatabase();
-    } else if (currentChunk.conflictRecord!.conflict?.type ==
-        ConflictType.extraTime) {
-      // Cancels one extra time; may clear the conflict entirely, so save the
-      // whole chunk (reduceCurrentConflictByOne does) rather than assuming a
-      // conflict record is left.
-      reduceCurrentConflictByOne(newTime: record.time);
     } else {
+      // Note: an open extra-time conflict is NOT cancelled by this press.
+      // They are two separate things that happened (a stray time, and then a
+      // missed runner), and cancelling them out lost both: the stray stayed
+      // in the results as a finisher and the missed runner vanished. The
+      // extra-time chunk is closed and the missing time starts a new one.
+      // To take back a press, use undo.
+
       final int chunkId = currentChunk.id;
       cacheCurrentChunk();
       currentChunk =
@@ -230,8 +234,12 @@ class TimingData with ChangeNotifier {
         _saveCurrentChunkInDatabase();
       } else if (currentChunk.conflictRecord!.conflict?.type ==
           ConflictType.missingTime) {
-        // Cancels one missing time; see addMissingTimeRecord.
-        reduceCurrentConflictByOne(newTime: record.time);
+        // An extra time marks one of the times already recorded, and there
+        // are none since the missing time. TimingController refuses this
+        // before it gets here; ignore it rather than record something wrong.
+        Logger.e('Ignoring extra time: nothing recorded since the missing '
+            'time. Undo the missing time instead.');
+        return;
       } else {
         final int chunkId = currentChunk.id;
         cacheCurrentChunk();
