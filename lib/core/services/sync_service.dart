@@ -555,13 +555,15 @@ class SyncService implements ISyncService {
     if (rows.isEmpty) return;
 
     final payload = <Map<String, dynamic>>[];
+    // The local primary key of each row in payload, in the same order.
+    final pushedKeys = <List<Object?>>[];
 
     for (final row in rows) {
       final copy = Map<String, dynamic>.from(row);
       copy.remove('is_dirty');
       // Remove local integer foreign keys — remote schema uses UUIDs
-      copy.remove('race_id');
-      copy.remove('runner_id');
+      final raceId = copy.remove('race_id');
+      final runnerId = copy.remove('runner_id');
       copy.remove('team_id');
 
       final raceUuid = copy['race_uuid'];
@@ -575,19 +577,22 @@ class SyncService implements ISyncService {
       copy['owner_user_id'] = uid;
       copy['created_at'] ??= copy['updated_at'] ?? DateTime.now().toUtc().toIso8601String();
       payload.add(copy);
+      pushedKeys.add([raceId, runnerId]);
     }
 
     if (payload.isNotEmpty) {
       await _syncClient.upsertRows(
           'race_participants', payload,
           onConflict: 'race_uuid,runner_uuid');
-      final pushedUuids =
-          payload.map((r) => r['uuid']).whereType<String>().toList();
-      if (pushedUuids.isNotEmpty) {
-        final qMarks = List.filled(pushedUuids.length, '?').join(',');
+      // Clear the dirty flag by local primary key: race_participants has no
+      // uuid column locally, so there is nothing else to match these rows on.
+      if (pushedKeys.isNotEmpty) {
+        final clause = List.filled(
+                pushedKeys.length, '(race_id = ? AND runner_id = ?)')
+            .join(' OR ');
         await db.rawUpdate(
-          'UPDATE race_participants SET is_dirty = 0 WHERE uuid IN ($qMarks)',
-          pushedUuids,
+          'UPDATE race_participants SET is_dirty = 0 WHERE $clause',
+          [for (final key in pushedKeys) ...key],
         );
       }
       Logger.d('Pushed ${payload.length} dirty records for race_participants');
@@ -746,18 +751,25 @@ class SyncService implements ISyncService {
       }
     }
 
-    await pullTable('runners', localPkColumn: 'runner_id');
-    await pullTable('teams', localPkColumn: 'team_id');
-    await pullTable('races', localPkColumn: 'race_id');
-    await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
-    await _pullRaceParticipants(accessibleOwnerIds, changedTables);
-
-    if (changedTables.isNotEmpty) {
-      _syncEventController.add(SyncEvent(
-        timestamp: DateTime.now(),
-        changedTables: changedTables,
-        changedRaceIds: changedRaceIds,
-      ));
+    try {
+      await pullTable('runners', localPkColumn: 'runner_id');
+      await pullTable('teams', localPkColumn: 'team_id');
+      await pullTable('races', localPkColumn: 'race_id');
+      // Participants before results: a result takes the team the runner raced
+      // for from this device's participant row, and each table's cursor only
+      // moves forward, so a result pulled first would never get one.
+      await _pullRaceParticipants(accessibleOwnerIds, changedTables);
+      await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
+    } finally {
+      // Announce whatever did arrive even if a later table failed, so the
+      // screens still refresh instead of showing stale data.
+      if (changedTables.isNotEmpty) {
+        _syncEventController.add(SyncEvent(
+          timestamp: DateTime.now(),
+          changedTables: changedTables,
+          changedRaceIds: changedRaceIds,
+        ));
+      }
     }
   }
 
@@ -969,6 +981,13 @@ class SyncService implements ISyncService {
   /// Pull race_participants from remote and resolve UUID-based foreign keys to
   /// local integer IDs before inserting or updating. Skips rows where any UUID
   /// cannot be resolved locally (will retry next sync).
+  ///
+  /// A participant is identified by the race and runner it joins, not by a
+  /// surrogate key: `(race_uuid, runner_uuid)` is the remote primary key and
+  /// `(race_id, runner_id)` is the local one. The remote row also carries its
+  /// own `uuid` column, which the local table does not have and which two
+  /// devices can disagree on for the same participant, so it is never used to
+  /// match or written locally.
   Future<void> _pullRaceParticipants(
       List<String> accessibleOwnerIds, Set<String> changedTables) async {
     final db = await _db.database;
@@ -1022,18 +1041,16 @@ class SyncService implements ISyncService {
       }
     }
 
-    // Batch-fetch all matching local race_participant rows by UUID in a single
-    // query to avoid N per-row round-trips.
-    final participantUuids =
-        data.map((r) => r['uuid']).whereType<String>().toList();
-    final localsByUuid = <String, Map<String, dynamic>>{};
-    if (participantUuids.isNotEmpty) {
-      final qMarks = List.filled(participantUuids.length, '?').join(',');
+    // Batch-fetch the local rows for every race in this payload in one query,
+    // keyed by the (race_id, runner_id) pair that identifies a participant.
+    final localsByKey = <String, Map<String, dynamic>>{};
+    final localRaceIds = raceUuidToId.values.toSet().toList();
+    if (localRaceIds.isNotEmpty) {
+      final qMarks = List.filled(localRaceIds.length, '?').join(',');
       final localRows = await db.rawQuery(
-          'SELECT * FROM $table WHERE uuid IN ($qMarks)', participantUuids);
+          'SELECT * FROM $table WHERE race_id IN ($qMarks)', localRaceIds);
       for (final r in localRows) {
-        final u = r['uuid'] as String?;
-        if (u != null) localsByUuid[u] = r;
+        localsByKey['${r['race_id']}:${r['runner_id']}'] = r;
       }
     }
 
@@ -1043,8 +1060,9 @@ class SyncService implements ISyncService {
     for (final row in data) {
       final remote = Map<String, dynamic>.from(row);
       remote.remove('owner_user_id');
+      // The remote surrogate key has no local column to live in.
+      remote.remove('uuid');
 
-      final uuid = remote['uuid'] as String?;
       final raceUuid = remote['race_uuid'] as String?;
       final runnerUuid = remote['runner_uuid'] as String?;
       final teamUuid = remote['team_uuid'] as String?;
@@ -1073,24 +1091,22 @@ class SyncService implements ISyncService {
       remote['runner_id'] = runnerId;
       if (teamId != null) remote['team_id'] = teamId;
 
-      final locals = uuid != null && localsByUuid.containsKey(uuid)
-          ? [localsByUuid[uuid]!]
-          : <Map<String, dynamic>>[];
+      final local = localsByKey['$raceId:$runnerId'];
 
       // Handle tombstones
       if (remote['deleted_at'] != null) {
-        if (locals.isEmpty) {
-          final insert = Map<String, dynamic>.from(remote);
-          insert['is_dirty'] = 0;
-          await db.insert(table, insert,
-              conflictAlgorithm: ConflictAlgorithm.replace);
-          hadWrites = true;
-        } else if (locals.first['deleted_at'] == null) {
+        if (local == null) {
+          // Nothing to delete: a participant this device never had. Storing
+          // the tombstone would mean inventing a row, and the cursor moves on
+          // either way.
+          Logger.d(
+              'Ignoring remote tombstone for unknown $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
+        } else if (local['deleted_at'] == null) {
           await db.update(
             table,
             {'deleted_at': remote['deleted_at'], 'is_dirty': 0},
-            where: 'uuid = ?',
-            whereArgs: [uuid],
+            where: 'race_id = ? AND runner_id = ?',
+            whereArgs: [raceId, runnerId],
           );
           Logger.d(
               'Applied remote tombstone to $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
@@ -1100,14 +1116,27 @@ class SyncService implements ISyncService {
         continue;
       }
 
-      if (locals.isEmpty) {
+      if (local == null) {
+        // team_id is NOT NULL locally, so a new row needs its team first.
+        if (teamId == null) {
+          if (teamUuid == null) {
+            // The remote row has no team at all, so waiting will not help.
+            Logger.d(
+                'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — no team_uuid, cannot be stored locally');
+            pullCursor.advance(remote['updated_at']?.toString());
+            continue;
+          }
+          Logger.d(
+              'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — team_uuid=$teamUuid not yet pulled locally. Will retry on next sync.');
+          pullCursor.holdBefore(remote['updated_at']?.toString());
+          continue;
+        }
         final insert = Map<String, dynamic>.from(remote);
         insert['is_dirty'] = 0;
         await db.insert(table, insert,
             conflictAlgorithm: ConflictAlgorithm.replace);
         hadWrites = true;
       } else {
-        final local = locals.first;
         final localUpdated =
             DateTime.tryParse(local['updated_at']?.toString() ?? '') ??
                 DateTime.fromMillisecondsSinceEpoch(0);
@@ -1131,7 +1160,8 @@ class SyncService implements ISyncService {
           final update = Map<String, dynamic>.from(remote);
           update['is_dirty'] = 0;
           await db.update(table, update,
-              where: 'uuid = ?', whereArgs: [uuid]);
+              where: 'race_id = ? AND runner_id = ?',
+              whereArgs: [raceId, runnerId]);
           Logger.d(
               'Updated $table race_uuid=$raceUuid runner_uuid=$runnerUuid from remote ($conflictReason)');
           hadWrites = true;
