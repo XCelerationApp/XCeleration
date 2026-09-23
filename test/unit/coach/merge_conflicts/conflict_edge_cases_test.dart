@@ -197,7 +197,10 @@ void main() {
       await c.resolveMissingTimeConflict(0);
 
       expect(c.hasConflicts, isTrue);
-      expect(_savedTimes(c), [_t(10)]);
+      // The entered time is kept with the chunk, the empty slot stays TBD,
+      // and the slot that is still empty is flagged.
+      expect(_savedTimes(c), [_t(10), _t(12), 'TBD']);
+      expect(c.timingChunks.single.conflictRecord!.conflict!.offBy, 1);
       expect(_ui(c, 0).records[2].validationError, isNotNull);
     });
 

@@ -115,6 +115,20 @@ class MergeConflictsController with ChangeNotifier {
       // explicitly clicks "Resolve Conflict".
       conflict.offBy--;
 
+      if (chunk.timingData.isEmpty) {
+        // Every time in the batch was a stray. There is nothing left to show
+        // or resolve, so close it here: it used to vanish from the screen
+        // while still counting as an unresolved conflict, with no way out.
+        chunk.conflictRecord = TimingDatum(
+          time: chunk.conflictRecord!.time,
+          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
+        );
+        _carryOverCountDifference(chunkIndex);
+        _needsUIRebuild = true;
+        consolidateConfirmedTimes();
+        return true;
+      }
+
       _needsUIRebuild = true;
       notifyListeners();
       return true;
@@ -168,10 +182,34 @@ class MergeConflictsController with ChangeNotifier {
       isOriginallyTBD: record.isOriginallyTBD,
       validationError: validationError,
     ));
+    // Keep the entered times with the chunk, not just in the text field:
+    // resolving another chunk rebuilds the list, which used to wipe whatever
+    // had been typed but not submitted.
+    _syncEnteredTimes(uiChunk);
     // Each record redraws itself as it is typed into, but the chunk's
     // "Resolve Conflict" button does not: without this it stayed greyed out
     // after the last time was typed, until something else redrew the list.
     if (uiChunk.isResolvedLocally != wasResolved) notifyListeners();
+  }
+
+  /// Copies a missing-time chunk's entered times into its timing data. An
+  /// empty or invalid slot stays TBD, so the chunk always holds one entry per
+  /// finisher and nothing unchecked is saved.
+  void _syncEnteredTimes(UIChunk uiChunk) {
+    final index = timingChunks.indexWhere((c) => c.id == uiChunk.chunkId);
+    if (index == -1) return;
+    final chunk = timingChunks[index];
+    if (chunk.conflictRecord?.conflict?.type != ConflictType.missingTime) {
+      return;
+    }
+    chunk.timingData
+      ..clear()
+      ..addAll(uiChunk.records.map((record) => TimingDatum(
+          time: record.isUnfilled || record.validationError != null
+              ? 'TBD'
+              : record.time)));
+    chunk.conflictRecord!.conflict!.offBy =
+        chunk.timingData.where((datum) => datum.time == 'TBD').length;
   }
 
   /// Called by widget when user taps the insert TBD button.
