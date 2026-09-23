@@ -80,16 +80,16 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
     );
   }
 
+  /// The card for the conflict being worked on. Chosen by the conflict's own
+  /// type rather than the flow step: this shell is still on screen while it
+  /// animates out towards the summary, and it rebuilds on the way.
   Widget _buildCardBody(BuildContext context) {
-    final controller = context.read<ConflictResolutionController>();
-    if (controller.isOnDuplicateStep1) {
-      return DuplicateStep1Card(
-        conflict: controller.currentConflict as MockDuplicateConflict,
-      );
-    }
-    return UnknownBibCard(
-      conflict: controller.currentConflict as MockUnknownConflict,
-    );
+    final conflict =
+        context.read<ConflictResolutionController>().currentConflict;
+    return switch (conflict) {
+      MockDuplicateConflict() => DuplicateStep1Card(conflict: conflict),
+      MockUnknownConflict() => UnknownBibCard(conflict: conflict),
+    };
   }
 }
 
