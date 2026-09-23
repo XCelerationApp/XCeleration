@@ -259,15 +259,18 @@ void main() {
         expect(await repo.getRunner(id), isNull);
       });
 
-      test('removes associated team_rosters rows', () async {
+      test('tombstones associated team_rosters rows', () async {
         final runnerId = await repo.createRunner(validRunner);
         final teamId = await insertTeam('Eagles');
         await repo.addRunnerToTeam(teamId, runnerId);
         await repo.deleteRunnerEverywhere(runnerId);
+        expect(await repo.getTeamRunners(teamId), isEmpty);
+        // The row itself stays so the removal can be pushed to the server.
         final db = await connProvider.database;
         final rows = await db.query('team_rosters',
             where: 'runner_id = ?', whereArgs: [runnerId]);
-        expect(rows, isEmpty);
+        expect(rows, hasLength(1));
+        expect(rows.first['deleted_at'], isNotNull);
       });
     });
 
