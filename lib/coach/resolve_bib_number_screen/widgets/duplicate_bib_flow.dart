@@ -9,7 +9,7 @@ import '../../../core/utils/ordinal.dart';
 import '../../../shared/models/database/race_runner.dart';
 import '../model/bib_conflict.dart';
 import 'duplicate_bib_card.dart';
-import 'nearby_finishers.dart';
+import 'finish_question.dart';
 
 /// Resolving a bib that was recorded at more than one finish, in two steps:
 /// which finish belongs to the runner holding the bib, then who each of the
@@ -96,10 +96,12 @@ class _DuplicateBibFlowState extends State<DuplicateBibFlow> {
           runnerName: widget.conflict.runner.runner.name ?? 'this runner',
         ),
         const SizedBox(height: AppSpacing.lg),
-        _LeftoverQuestion(
-          leftover: leftover,
-          bibNumber: widget.conflict.bibNumber,
-          remaining: _leftovers.length,
+        FinishQuestion(
+          occurrence: leftover,
+          reason: 'Bib #${widget.conflict.bibNumber} was a typo here',
+          note: _leftovers.length > 1
+              ? '${_leftovers.length} finishes left'
+              : null,
         ),
         const SizedBox(height: AppSpacing.md),
         widget.buildAssignment(
@@ -140,44 +142,6 @@ class _SettledBanner extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-/// The question for one leftover finish.
-class _LeftoverQuestion extends StatelessWidget {
-  const _LeftoverQuestion({
-    required this.leftover,
-    required this.bibNumber,
-    required this.remaining,
-  });
-
-  final ConflictOccurrence leftover;
-  final String bibNumber;
-  final int remaining;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Who finished ${ordinal(leftover.place)}?',
-          style: AppTypography.titleSemibold,
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          [
-            ?leftover.time,
-            'Bib #$bibNumber was a typo here',
-            if (remaining > 1) '$remaining finishes left',
-          ].join(' · '),
-          style:
-              AppTypography.caption.copyWith(color: AppColors.mediumColor),
-        ),
-        const SizedBox(height: AppSpacing.md),
-        NearbyFinishersPanel(nearby: leftover.nearby),
-      ],
     );
   }
 }

@@ -10,6 +10,7 @@ import '../../../core/theme/typography.dart';
 import '../model/bib_conflict.dart';
 import '../model/finish_order.dart';
 import 'duplicate_bib_flow.dart';
+import 'unknown_bib_card.dart';
 import '../screen/resolve_bib_number_screen.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
@@ -255,16 +256,22 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     final resolved = await sheet(
       context: context,
       title: 'Resolve Bib #${conflict.bibNumber}',
-      body: ResolveBibNumberScreen(
-        raceRunner: _placeholderFor(conflict.bibNumber),
-        raceId: widget.masterRace.raceId,
-        raceRunners: _raceRunners.whereType<RaceRunner>().toList(),
-        onComplete: (runner) => Navigator.pop(context, runner),
-        onAssignOriginalRaceRunner: (_) async {},
-        onRemoveEntry: () async {
-          Navigator.pop(context);
-          await _removeFinish(place);
-        },
+      body: UnknownBibCard(
+        conflict: conflict,
+        buildAssignment: (context) => SizedBox(
+          height: 420,
+          child: ResolveBibNumberScreen(
+            raceRunner: _placeholderFor(conflict.bibNumber),
+            raceId: widget.masterRace.raceId,
+            raceRunners: _raceRunners.whereType<RaceRunner>().toList(),
+            onComplete: (runner) => Navigator.pop(context, runner),
+            onAssignOriginalRaceRunner: (_) async {},
+            onRemoveEntry: () async {
+              Navigator.pop(context);
+              await _removeFinish(place);
+            },
+          ),
+        ),
       ),
     );
     if (resolved is RaceRunner) await _applyResolved({place: resolved});
