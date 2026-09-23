@@ -44,10 +44,25 @@ class _PullCursor {
 
   String? get value => _value;
 
+  /// Whether [candidate] is a later moment than [current].
+  ///
+  /// Compared as times, not as text. The same moment can be written more than
+  /// one way — a trailing 'Z' against '+00:00', with or without fractional
+  /// seconds — and text order disagrees with time order on those: '.' sorts
+  /// before 'Z'. A cursor that then refuses to move re-fetches the same rows
+  /// on every sync, and [holdBefore] matching the stored value can miss, which
+  /// leaves a row held for retry behind a cursor that has already passed it.
+  static bool isLater(String candidate, String current) {
+    final a = DateTime.tryParse(candidate);
+    final b = DateTime.tryParse(current);
+    if (a == null || b == null) return candidate.compareTo(current) > 0;
+    return a.isAfter(b);
+  }
+
   /// Call for every row that was applied or can safely be passed over.
   void advance(String? updatedAt) {
     if (_held || updatedAt == null) return;
-    if (_value != null && updatedAt.compareTo(_value!) <= 0) return;
+    if (_value != null && !isLater(updatedAt, _value!)) return;
     _beforeCurrentGroup = _value;
     _value = updatedAt;
   }
@@ -805,7 +820,7 @@ class SyncService implements ISyncService {
           }
           final updatedAtStr = remote['updated_at']?.toString();
           if (updatedAtStr != null &&
-              (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+              (newCursor == null || _PullCursor.isLater(updatedAtStr, newCursor))) {
             newCursor = updatedAtStr;
           }
           continue;
@@ -869,7 +884,7 @@ class SyncService implements ISyncService {
         }
         final updatedAtStr = remote['updated_at']?.toString();
         if (updatedAtStr != null &&
-            (newCursor == null || updatedAtStr.compareTo(newCursor) > 0)) {
+            (newCursor == null || _PullCursor.isLater(updatedAtStr, newCursor))) {
           newCursor = updatedAtStr;
         }
       }

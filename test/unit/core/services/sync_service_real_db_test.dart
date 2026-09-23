@@ -63,14 +63,18 @@ class _FakeSyncClient implements IRemoteSyncClient {
     if (failingTables.contains(table)) {
       throw StateError('fetch failed for $table');
     }
+    DateTime at(Object? row) =>
+        DateTime.parse((row as Map)['updated_at'].toString());
+    final after = cursor == null ? null : DateTime.parse(cursor);
     final rows = tables[table] ?? const [];
+    // Compared as times, as Postgres does: '...05Z' and '...05.5+00:00' are
+    // the same moment written two ways, and text order disagrees with time
+    // order on them.
     final visible = rows
-        .where((r) =>
-            cursor == null || r['updated_at'].toString().compareTo(cursor) > 0)
+        .where((r) => after == null || at(r).isAfter(after))
         .map((r) => Map<String, dynamic>.from(r))
         .toList();
-    visible.sort((a, b) =>
-        a['updated_at'].toString().compareTo(b['updated_at'].toString()));
+    visible.sort((a, b) => at(a).compareTo(at(b)));
     return visible;
   }
 
@@ -706,6 +710,28 @@ void main() {
       final result = (await db.query('race_results')).single;
       expect(result['result_id'], isNotNull,
           reason: 'the local key must survive the round trip');
+    });
+
+    test('moves the cursor on for a timestamp written a different way',
+        () async {
+      // '...05Z' and '...05.5+00:00' are half a second apart, but as text the
+      // '.' sorts before the 'Z', so the later row looks earlier. A cursor
+      // that does not move re-fetches the same rows on every sync for good.
+      seedRemoteParents(updatedAt: '2026-02-01T00:00:05Z');
+      await service.syncAll();
+
+      remote.tables['runners']!.single['name'] = 'Alice Renamed';
+      remote.tables['runners']!.single['updated_at'] =
+          '2026-02-01T00:00:05.500+00:00';
+      await service.syncAll();
+
+      final db = await conn.database;
+      final cursor = (await db.query('sync_state',
+              where: 'key = ?', whereArgs: ['cursor.runners']))
+          .single['value'];
+      expect(cursor, '2026-02-01T00:00:05.500+00:00',
+          reason: 'the cursor has to move past the row it just applied');
+      expect((await db.query('runners')).single['name'], 'Alice Renamed');
     });
 
     test('still reports what did arrive when a later table fails', () async {
