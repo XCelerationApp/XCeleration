@@ -88,6 +88,21 @@ void main() {
     expect(find.text(_t(11)), findsNothing, reason: 'the time is gone');
   });
 
+  testWidgets('both buttons fit side by side on a phone', (tester) async {
+    tester.view.physicalSize = const Size(375, 812);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+
+    final controller = buildController();
+    await pumpList(tester, controller);
+    controller.removeExtraTimeRecord(0, 1);
+    await tester.pumpAndSettle();
+
+    // A RenderFlex overflow would fail the test here.
+    expect(find.text('Undo'), findsOneWidget);
+    expect(find.text('Resolve Conflict'), findsOneWidget);
+  });
+
   testWidgets('tapping it puts the removed time back on screen',
       (tester) async {
     final controller = buildController();
