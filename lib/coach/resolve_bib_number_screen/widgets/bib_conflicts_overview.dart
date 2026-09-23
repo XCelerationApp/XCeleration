@@ -15,11 +15,17 @@ class BibConflictsOverview extends StatefulWidget {
   final List<dynamic> raceRunners;
   final Function(List<RaceRunner>) onResolved;
 
+  /// The Timer's finish time for each place it is not still unsure about,
+  /// keyed by place. A place the Timer flagged is absent: which time belongs
+  /// to which runner there has not been decided yet.
+  final Map<int, String> timesByPlace;
+
   const BibConflictsOverview({
     super.key,
     required this.masterRace,
     required this.raceRunners,
     required this.onResolved,
+    this.timesByPlace = const {},
   });
 
   @override
@@ -344,15 +350,15 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           padding: const EdgeInsets.all(16.0),
           child: Row(
             children: [
-              if (_duplicateRaceRunners!.contains(raceRunner)) ...[
-                Text(
+              SizedBox(
+                width: 34,
+                child: Text(
                   '$place.',
                   style: AppTypography.bodyRegular.copyWith(
                     color: AppColors.mediumColor,
                   ),
                 ),
-                const SizedBox(width: 8),
-              ],
+              ),
               Text(
                 '#${raceRunner.runner.bibNumber}',
                 style: TextStyle(
@@ -381,6 +387,13 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                           : 'Bib number not found',
                       style: AppTypography.bodyRegular.copyWith(
                         letterSpacing: 0.1,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.timesByPlace[place] ?? 'Time not settled yet',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.mediumColor,
                       ),
                     ),
                   ],

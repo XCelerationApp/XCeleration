@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import '../utils/settled_times.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/decode_utils.dart';
@@ -574,6 +575,8 @@ class LoadResultsController with ChangeNotifier {
       final bibConflictsWidget = BibConflictsOverview(
         masterRace: masterRace,
         raceRunners: raceRunners!, // Pass the full list including conflicts
+        // Which finish the coach is being asked about, and when it happened.
+        timesByPlace: settledTimesByPlace(timingChunks ?? const []),
         onResolved: (updatedRaceRunners) {
           Navigator.pop(context, updatedRaceRunners);
         },

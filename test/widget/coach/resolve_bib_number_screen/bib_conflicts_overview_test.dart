@@ -51,5 +51,52 @@ void main() {
     expect(find.text('Duplicate Bib Number'), findsOneWidget);
     // The duplicate finished third.
     expect(find.text('3.'), findsOneWidget);
+    // Every conflict says which finish it is, unknown bibs included.
+    expect(find.text('2.'), findsOneWidget);
+  });
+
+  testWidgets('shows the finish time of the place being resolved',
+      (tester) async {
+    when(masterRace.getRaceRunnerByBib('1'))
+        .thenAnswer((_) async => _runner(1));
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: BibConflictsOverview(
+          masterRace: masterRace,
+          raceRunners: [_runner(1), '99', '1'],
+          onResolved: (_) {},
+          timesByPlace: const {1: '15:01.20', 2: '15:04.80', 3: '15:09.10'},
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    // Without the time the coach is asked who finished here with nothing to
+    // go on but the bib number, which is the thing that is wrong.
+    expect(find.text('15:04.80'), findsOneWidget);
+    expect(find.text('15:09.10'), findsOneWidget);
+  });
+
+  testWidgets('says so when the Timer has not settled that place yet',
+      (tester) async {
+    when(masterRace.getRaceRunnerByBib('1'))
+        .thenAnswer((_) async => _runner(1));
+
+    await tester.pumpWidget(MaterialApp(
+      home: Scaffold(
+        body: BibConflictsOverview(
+          masterRace: masterRace,
+          raceRunners: [_runner(1), '99', '1'],
+          onResolved: (_) {},
+          // The Timer flagged the stretch these two finished in.
+          timesByPlace: const {1: '15:01.20'},
+        ),
+      ),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Time not settled yet'), findsNWidgets(2),
+        reason: 'better than showing a time that may belong to someone else');
   });
 }
