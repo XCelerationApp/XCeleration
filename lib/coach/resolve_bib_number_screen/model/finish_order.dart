@@ -21,13 +21,3 @@ List<dynamic> applyResolvedFinishes(
   }
   return updated;
 }
-
-/// [entries] without the finish at [place], everyone after it moving up one.
-///
-/// Only for a finish that should never have been recorded. A repeated bib is
-/// not one of those: somebody crossed the line there.
-List<dynamic> removeFinish(List<dynamic> entries, int place) {
-  final index = place - 1;
-  if (index < 0 || index >= entries.length) return List<dynamic>.from(entries);
-  return List<dynamic>.from(entries)..removeAt(index);
-}

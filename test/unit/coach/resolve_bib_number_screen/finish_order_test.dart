@@ -76,29 +76,4 @@ void main() {
       expect(_bibs(result), ['11']);
     });
   });
-
-  group('removing a finish', () {
-    test('moves everyone after it up one place', () {
-      final entries = [_runner(1, '11'), '99', _runner(2, '13')];
-
-      final result = removeFinish(entries, 2);
-
-      expect(_bibs(result), ['11', '13']);
-    });
-
-    test('leaves the finishes before it alone', () {
-      final entries = [_runner(1, '11'), _runner(2, '12'), '99'];
-
-      final result = removeFinish(entries, 3);
-
-      expect(_bibs(result), ['11', '12']);
-    });
-
-    test('ignores a place that is not in the race', () {
-      final entries = [_runner(1, '11')];
-
-      expect(_bibs(removeFinish(entries, 0)), ['11']);
-      expect(_bibs(removeFinish(entries, 2)), ['11']);
-    });
-  });
 }

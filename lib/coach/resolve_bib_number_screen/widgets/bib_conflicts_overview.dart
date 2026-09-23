@@ -84,12 +84,6 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     await _refreshConflicts();
   }
 
-  /// Drops a finish that should never have been recorded.
-  Future<void> _removeFinish(int place) async {
-    setState(() => _raceRunners = removeFinish(_raceRunners, place));
-    await _refreshConflicts();
-  }
-
   @override
   void didUpdateWidget(BibConflictsOverview oldWidget) {
     super.didUpdateWidget(oldWidget);
@@ -248,8 +242,12 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
     if (settled is Map<int, RaceRunner>) await _applyResolved(settled);
   }
 
-  /// A bib no runner has: assign it to someone, create them, or drop the
-  /// finish if it should never have been recorded.
+  /// A bib no runner has: assign it to someone, or create them.
+  ///
+  /// Somebody crossed the line here either way — the Bib Recorder taps once
+  /// per finisher — so the finish itself is never in question, only whose it
+  /// is. A time the Timer missed or added over is a timing conflict, resolved
+  /// after these.
   Future<void> _resolveUnknown(
       BuildContext context, UnknownBibConflict conflict) async {
     final place = conflict.occurrence.place;
@@ -266,10 +264,6 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             raceRunners: _raceRunners.whereType<RaceRunner>().toList(),
             onComplete: (runner) => Navigator.pop(context, runner),
             onAssignOriginalRaceRunner: (_) async {},
-            onRemoveEntry: () async {
-              Navigator.pop(context);
-              await _removeFinish(place);
-            },
           ),
         ),
       ),

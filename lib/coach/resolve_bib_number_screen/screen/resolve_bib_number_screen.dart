@@ -17,10 +17,6 @@ class ResolveBibNumberScreen extends StatefulWidget {
   final Function(RaceRunner) onComplete;
   final Future<void> Function(RaceRunner) onAssignOriginalRaceRunner;
 
-  /// Removes this bib from the results, for a bib the Bib Recorder entered
-  /// by mistake. Null hides the option.
-  final Future<void> Function()? onRemoveEntry;
-
   const ResolveBibNumberScreen({
     super.key,
     required this.raceRunners,
@@ -28,7 +24,6 @@ class ResolveBibNumberScreen extends StatefulWidget {
     required this.raceRunner,
     required this.onComplete,
     required this.onAssignOriginalRaceRunner,
-    this.onRemoveEntry,
   });
 
   @override
@@ -117,19 +112,6 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
     if (error != null && mounted) {
       DialogUtils.showErrorDialog(context, message: error.userMessage);
     }
-  }
-
-  Future<void> _confirmRemoveEntry(BuildContext context) async {
-    final confirmed = await DialogUtils.showConfirmationDialog(
-      context,
-      title: 'Remove Bib #${widget.raceRunner.runner.bibNumber}?',
-      content: 'Only do this if the Bib Recorder entered this bib by mistake '
-          '(for example, the same runner twice). Everyone who finished after '
-          'it moves up one place.',
-    );
-    if (!confirmed) return;
-    await widget.onRemoveEntry!();
-    if (context.mounted) Navigator.pop(context);
   }
 
   Widget _buildCreateNewForm(ResolveBibNumberController controller) {
@@ -238,14 +220,6 @@ class _ResolveBibNumberScreenState extends State<ResolveBibNumberScreen> {
                       }
                     },
                     text: 'This is the original runner',
-                    isPrimary: false,
-                  ),
-                  const SizedBox(height: 18),
-                ],
-                if (widget.onRemoveEntry != null) ...[
-                  ActionButton(
-                    onPressed: () => _confirmRemoveEntry(context),
-                    text: 'Entered by mistake: remove this bib',
                     isPrimary: false,
                   ),
                   const SizedBox(height: 18),
