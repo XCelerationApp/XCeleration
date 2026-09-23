@@ -116,6 +116,8 @@ CREATE TABLE sync_state (
 )''',
 ];
 
+const _userId = 'user-abc';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
@@ -158,9 +160,65 @@ void main() {
     await db.close();
   }
 
+  group('one database per user', () {
+    test('hands the old shared database to whoever signs in first', () async {
+      await seedOldDatabase();
+
+      await provider.openForUser(_userId);
+      final db = await provider.database;
+
+      expect((await db.query('runners')).single['name'], 'Alice',
+          reason: 'a coach must not open the app to an empty roster');
+      expect(File(p.join(dir.path, 'races.db')).existsSync(), isFalse,
+          reason: 'the shared file is gone once it has an owner');
+      expect(File(p.join(dir.path, 'races_$_userId.db')).existsSync(), isTrue);
+    });
+
+    test('a second account starts empty rather than seeing the first one\'s races',
+        () async {
+      await seedOldDatabase();
+      await provider.openForUser(_userId);
+      expect((await (await provider.database).query('runners')), hasLength(1));
+
+      await provider.openForUser('someone-else');
+
+      expect(await (await provider.database).query('runners'), isEmpty,
+          reason: 'one coach must not see another coach\'s runners');
+    });
+
+    test('keeps each user on their own file across reopens', () async {
+      await provider.openForUser(_userId);
+      await (await provider.database).insert(
+          'runners', {'name': 'Alice', 'grade': 10, 'bib_number': '101'});
+
+      await provider.openForUser('someone-else');
+      await (await provider.database).insert(
+          'runners', {'name': 'Bob', 'grade': 11, 'bib_number': '101'});
+
+      await provider.openForUser(_userId);
+      expect((await (await provider.database).query('runners')).single['name'],
+          'Alice');
+    });
+
+    test('refuses to hand out a database before anyone has signed in', () {
+      expect(() => provider.database, throwsStateError);
+    });
+
+    test('deleting a user\'s data leaves nothing on the phone', () async {
+      await provider.openForUser(_userId);
+      await (await provider.database).insert(
+          'runners', {'name': 'Alice', 'grade': 10, 'bib_number': '101'});
+
+      await provider.deleteUserData(_userId);
+
+      expect(File(p.join(dir.path, 'races_$_userId.db')).existsSync(), isFalse);
+    });
+  });
+
   test('keeps every row when upgrading an existing database', () async {
     await seedOldDatabase();
 
+    await provider.openForUser(_userId);
     final db = await provider.database;
 
     expect((await db.query('runners')).single['name'], 'Alice');
@@ -173,6 +231,7 @@ void main() {
 
   test('frees a deleted runner\'s bib number after the upgrade', () async {
     await seedOldDatabase();
+    await provider.openForUser(_userId);
     final db = await provider.database;
 
     await db.update('runners', {'deleted_at': '2026-01-01T00:00:00Z'},
@@ -190,6 +249,7 @@ void main() {
 
   test('still refuses two live runners with the same bib', () async {
     await seedOldDatabase();
+    await provider.openForUser(_userId);
     final db = await provider.database;
 
     await expectLater(
@@ -201,6 +261,7 @@ void main() {
 
   test('frees a deleted team\'s name after the upgrade', () async {
     await seedOldDatabase();
+    await provider.openForUser(_userId);
     final db = await provider.database;
 
     await db.update('teams', {'deleted_at': '2026-01-01T00:00:00Z'},
@@ -212,6 +273,7 @@ void main() {
 
   test('frees a deleted result\'s place after the upgrade', () async {
     await seedOldDatabase();
+    await provider.openForUser(_userId);
     final db = await provider.database;
 
     await db.update('race_results', {'deleted_at': '2026-01-01T00:00:00Z'},
@@ -225,6 +287,7 @@ void main() {
 
   test('marks the roster already on the phone for its first upload', () async {
     await seedOldDatabase();
+    await provider.openForUser(_userId);
     final db = await provider.database;
 
     // The roster predates either table syncing, so nothing was ever marked.
@@ -240,6 +303,7 @@ void main() {
 
   test('a fresh install gets the same uniqueness as an upgraded one',
       () async {
+    await provider.openForUser(_userId);
     final db = await provider.database;
 
     await db.insert(

@@ -4,13 +4,57 @@ import '../utils/local_schema.dart';
 import '../utils/logger.dart';
 import 'i_database_connection_provider.dart';
 
+/// Opens the coach's local database, one file per signed-in user.
+///
+/// A single shared file meant a second coach signing in on the same phone saw
+/// the first one's races, and deleting an account left them there.
 class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
   Database? _db;
+  String? _openUserId;
+
+  /// The file every user shared before there was one per user.
+  static const legacyFileName = 'races.db';
+
+  static String fileNameFor(String userId) => 'races_$userId.db';
 
   @override
   Future<Database> get database async {
-    _db ??= await _initDB('races.db');
-    return _db!;
+    final db = _db;
+    if (db == null) {
+      throw StateError(
+        'No database is open. openForUser() must be called when a user signs in.',
+      );
+    }
+    return db;
+  }
+
+  @override
+  Future<void> openForUser(String userId) async {
+    if (_openUserId == userId && _db != null) return;
+    await close();
+    await _claimLegacyDatabase(userId);
+    _db = await _initDB(fileNameFor(userId));
+    _openUserId = userId;
+  }
+
+  /// Hands the old shared database to [userId] the first time anyone signs in
+  /// after the switch to per-user files.
+  ///
+  /// Without this every coach opens the app to an empty roster, because their
+  /// races are in a file nothing reads any more. The signed-in session
+  /// survives an app update, so the first user to get here is the one who was
+  /// already using the phone; a second account signing in later finds the file
+  /// gone and starts from what the server has.
+  Future<void> _claimLegacyDatabase(String userId) async {
+    final directory = await getDatabasesPath();
+    final legacy = join(directory, legacyFileName);
+    final mine = join(directory, fileNameFor(userId));
+    if (!await databaseFactory.databaseExists(legacy)) return;
+    if (await databaseFactory.databaseExists(mine)) return;
+    await databaseFactory.writeDatabaseBytes(
+        mine, await databaseFactory.readDatabaseBytes(legacy));
+    await databaseFactory.deleteDatabase(legacy);
+    Logger.d('Moved the shared database to $userId');
   }
 
   Future<Database> _initDB(String fileName) async {
@@ -55,8 +99,8 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
     if (oldVersion < 16) {
       try {
-        await db.execute(
-            'ALTER TABLE race_results ADD COLUMN runner_uuid TEXT');
+        await db
+            .execute('ALTER TABLE race_results ADD COLUMN runner_uuid TEXT');
         Logger.d('Added runner_uuid column to race_results table');
       } catch (e) {
         Logger.d('runner_uuid column might already exist in race_results: $e');
@@ -153,16 +197,26 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> close() async {
-    final db = await database;
-    await db.close();
+    await _db?.close();
     _db = null;
+    _openUserId = null;
   }
 
   @override
   Future<void> deleteDatabase() async {
+    final userId = _openUserId;
+    await close();
+    if (userId == null) return;
     Logger.d('Deleting database');
-    final path = join(await getDatabasesPath(), 'races.db');
-    await databaseFactory.deleteDatabase(path);
-    _db = null;
+    await databaseFactory
+        .deleteDatabase(join(await getDatabasesPath(), fileNameFor(userId)));
+  }
+
+  @override
+  Future<void> deleteUserData(String userId) async {
+    if (_openUserId == userId) await close();
+    Logger.d('Deleting local data for a user');
+    await databaseFactory
+        .deleteDatabase(join(await getDatabasesPath(), fileNameFor(userId)));
   }
 }

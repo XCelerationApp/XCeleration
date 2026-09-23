@@ -248,6 +248,17 @@ class SyncService implements ISyncService {
   static const String cursorRaceTeamParticipation =
       'cursor.race_team_participation';
 
+  /// Whether a user's database is open. Asking for it before anyone has
+  /// signed in is a normal state at startup, not a failure.
+  Future<bool> _isDatabaseOpen() async {
+    try {
+      await _db.database;
+      return true;
+    } on StateError {
+      return false;
+    }
+  }
+
   Future<bool> _tableExists(Database db, String table) async {
     final rows = await db.rawQuery(
       "SELECT name FROM sqlite_master WHERE type='table' AND name=?",
@@ -356,6 +367,13 @@ class SyncService implements ISyncService {
     final db = await _db.database;
     await db.insert('sync_state', {'key': key, 'value': value},
         conflictAlgorithm: ConflictAlgorithm.replace);
+  }
+
+  @override
+  Future<void> clearSyncCursors() async {
+    final db = await _db.database;
+    await db.delete('sync_state', where: "key LIKE 'cursor.%'");
+    Logger.d('Cleared sync cursors');
   }
 
   Future<String?> getCursor(String key) async {
@@ -501,6 +519,14 @@ class SyncService implements ISyncService {
       // this check.
       if (!_auth.isSignedIn) {
         Logger.d('Sync skipped: user is not authenticated.');
+        return;
+      }
+
+      // Connectivity and write events can ask for a sync before the signed-in
+      // user's database has been opened. There is nothing to read or write
+      // until it is, so wait for the next trigger rather than failing.
+      if (!await _isDatabaseOpen()) {
+        Logger.d('Sync skipped: no database open yet.');
         return;
       }
 

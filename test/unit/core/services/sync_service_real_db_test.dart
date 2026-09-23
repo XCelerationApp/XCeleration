@@ -14,8 +14,15 @@ import 'package:xceleration/core/utils/local_schema.dart';
 class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
   Database? _db;
 
+  /// Whether a user has signed in. The real provider refuses to hand out a
+  /// database before that, and sync has to cope with being asked early.
+  bool opened = true;
+
   @override
   Future<Database> get database async {
+    if (!opened) {
+      throw StateError('No database is open.');
+    }
     _db ??= await databaseFactoryFfi.openDatabase(
       inMemoryDatabasePath,
       options: OpenDatabaseOptions(
@@ -40,6 +47,15 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
   Future<void> deleteDatabase() async {
     _db = null;
   }
+
+  @override
+  Future<void> openForUser(String userId) async {
+    opened = true;
+  }
+
+  @override
+  Future<void> deleteUserData(String userId) async => deleteDatabase();
+
 }
 
 /// A stand-in for the server: holds rows per table, honours the pull cursor
@@ -732,6 +748,21 @@ void main() {
       expect(cursor, '2026-02-01T00:00:05.500+00:00',
           reason: 'the cursor has to move past the row it just applied');
       expect((await db.query('runners')).single['name'], 'Alice Renamed');
+    });
+
+    test('waits rather than failing when no one has signed in yet', () async {
+      // Connectivity and write events can ask for a sync at startup, before
+      // the signed-in user's database has been opened.
+      conn.opened = false;
+      seedRemoteParents();
+      remote.tables['race_participants'] = [remoteParticipant()];
+
+      await service.syncAll();
+
+      conn.opened = true;
+      await service.syncAll();
+      expect(await participantRows(), hasLength(1),
+          reason: 'the sync that was skipped has to happen once it can');
     });
 
     test('still reports what did arrive when a later table fails', () async {

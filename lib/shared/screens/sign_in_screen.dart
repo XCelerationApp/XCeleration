@@ -4,7 +4,9 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:provider/provider.dart';
+import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/core/services/profile_service.dart';
 import 'package:xceleration/core/components/page_route_animations.dart';
 import 'package:xceleration/coach/races_screen/screen/races_screen.dart';
@@ -121,7 +123,19 @@ class _SignInScreenState extends State<SignInScreen>
     return true;
   }
 
+  /// Each user's races live in their own file, so nothing can be read or
+  /// synced until the right one is open.
+  Future<void> _openDatabaseForSignedInUser() async {
+    final userId = widget._authService.currentUserId;
+    if (userId == null) return;
+    await ServiceLocator.get<IDatabaseConnectionProvider>()
+        .openForUser(userId);
+  }
+
   Future<void> _submit() async {
+    // A second tap while the first is still going signs in twice and races
+    // two syncs against each other.
+    if (_busy) return;
     if (!_validate()) return;
     final syncService = context.read<ISyncService>();
     if (!await _connectivity.isOnline()) {
@@ -136,6 +150,7 @@ class _SignInScreenState extends State<SignInScreen>
         final resp = await widget._authService.signInWithEmailPassword(
             _emailController.text.trim(), _passwordController.text);
         if (mounted && resp.session != null) {
+          await _openDatabaseForSignedInUser();
           try {
             await widget._profileService.ensureProfileUpsert();
             await syncService.syncAll();
@@ -153,6 +168,7 @@ class _SignInScreenState extends State<SignInScreen>
               _emailController.text.trim(), _passwordController.text);
         }
         if (mounted) {
+          await _openDatabaseForSignedInUser();
           try {
             await widget._profileService.ensureProfileUpsert();
             await syncService.syncAll();

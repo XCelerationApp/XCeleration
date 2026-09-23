@@ -8,6 +8,8 @@ import '../assistant/bib_number_recorder/screen/bib_number_screen.dart';
 import '../assistant/bib_number_recorder/controller/bib_number_controller.dart';
 import '../assistant/shared/services/assistant_storage_service.dart';
 import '../assistant/shared/services/demo_race_generator_impl.dart';
+import '../core/repositories/i_database_connection_provider.dart';
+import '../core/services/service_locator.dart';
 import '../core/services/device_connection_factory_impl.dart';
 import '../core/services/post_frame_scheduler.dart';
 import '../core/services/tutorial_manager.dart';
@@ -579,7 +581,7 @@ class _RoleScreenState extends State<RoleScreen>
     super.dispose();
   }
 
-  void _onCoach() {
+  Future<void> _onCoach() async {
     final auth = widget.authService ?? AuthService.instance;
     final remoteApi = widget.remoteApiClient ?? RemoteApiClient();
     if (!auth.isSignedIn) {
@@ -596,6 +598,11 @@ class _RoleScreenState extends State<RoleScreen>
       );
       return;
     }
+    // Already signed in from a previous run, so this is where their database
+    // gets opened.
+    await ServiceLocator.get<IDatabaseConnectionProvider>()
+        .openForUser(auth.currentUserId!);
+    if (!mounted) return;
     Navigator.of(context).push(
       InitialPageRouteAnimation(child: const RacesScreen()),
     );

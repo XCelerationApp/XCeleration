@@ -44,6 +44,16 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> deleteDatabase() async => _db = null;
+
+  @override
+  Future<void> openForUser(String userId) async {
+    // The in-memory database is not per user; opening is a no-op.
+    await database;
+  }
+
+  @override
+  Future<void> deleteUserData(String userId) async => deleteDatabase();
+
 }
 
 void main() {
