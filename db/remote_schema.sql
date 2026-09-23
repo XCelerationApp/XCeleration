@@ -1,6 +1,9 @@
 -- Remote Database Schema (Postgres/Supabase)
 -- Mirrors the local normalized SQLite schema with sync-friendly fields
 -- Run in a Postgres-compatible environment (e.g., Supabase SQL editor)
+--
+-- This file describes the shape of the live database. The migrations under
+-- supabase/migrations are what actually built it; keep this in step with them.
 
 begin;
 
@@ -69,6 +72,13 @@ create table if not exists public.team_rosters (
   team_id       bigint not null references public.teams(team_id) on delete cascade,
   runner_id     bigint not null references public.runners(runner_id) on delete cascade,
   joined_date   timestamptz not null default now(),
+  uuid          uuid unique,
+  team_uuid     uuid,
+  runner_uuid   uuid,
+  owner_user_id uuid,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz,
   primary key (team_id, runner_id)
 );
 
@@ -106,7 +116,14 @@ create index if not exists idx_races_date on public.races(race_date);
 create table if not exists public.race_team_participation (
   race_id             bigint not null references public.races(race_id) on delete cascade,
   team_id             bigint not null references public.teams(team_id) on delete cascade,
-  team_color_override integer,
+  team_color_override bigint,  -- ARGB 32-bit unsigned; same encoding as teams.color
+  uuid                uuid unique,
+  race_uuid           uuid,
+  team_uuid           uuid,
+  owner_user_id       uuid,
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  deleted_at          timestamptz,
   primary key (race_id, team_id)
 );
 
@@ -114,14 +131,17 @@ create index if not exists idx_race_team_participation_race on public.race_team_
 
 -------------------------------------------------------------------------------
 -- RACE_PARTICIPANTS - Individual runner participation
--- PK is (race_uuid, runner_uuid) — app upserts on this pair.
+-- PK is (race_uuid, runner_uuid) — app upserts on this pair, and it is what
+-- the app matches a pulled row to its local one by. The uuid column below is a
+-- server-side surrogate key with no local counterpart; the app never sends it.
 -- No integer FK columns: cross-device identity is UUID-based.
 -------------------------------------------------------------------------------
 create table if not exists public.race_participants (
-  race_uuid     text        not null,
-  runner_uuid   text        not null,
-  team_uuid     text,
+  race_uuid     uuid        not null references public.races(uuid)   on delete cascade,
+  runner_uuid   uuid        not null references public.runners(uuid) on delete cascade,
+  team_uuid     uuid                 references public.teams(uuid)   on delete set null,
   owner_user_id uuid        not null,
+  uuid          uuid        not null default gen_random_uuid() unique,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   deleted_at    timestamptz,
@@ -145,8 +165,8 @@ create index if not exists idx_race_participants_owner on public.race_participan
 create table if not exists public.race_results (
   result_id   bigserial,            -- legacy; not used as PK by app
   uuid        uuid        not null primary key default gen_random_uuid(),
-  runner_uuid text,                 -- cross-device runner identity
-  race_uuid   text,                 -- cross-device race identity
+  runner_uuid uuid references public.runners(uuid) on delete cascade,
+  race_uuid   uuid references public.races(uuid)   on delete cascade,
   runner_id   bigint,               -- nullable legacy FK (app no longer sends)
   race_id     bigint,               -- nullable legacy FK (app no longer sends)
   team_id     bigint,               -- optional team association
