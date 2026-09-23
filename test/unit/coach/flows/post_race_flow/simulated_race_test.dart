@@ -124,8 +124,9 @@ void main() {
               simulator: RaceSimulator(random: Random(seed))))!;
           expect(controller.error, isNull, reason: race.notes.join('\n'));
 
-          // Bibs: the coach picks the real runner for a mistyped bib and
-          // removes a bib entered twice.
+          // Bibs: the coach names the real runner behind a mistyped bib, and
+          // says which finish a bib typed as another runner's belongs to.
+          // Every finish keeps a runner — none is ever dropped.
           final truthRunners = [for (final f in race.answerKey) f.runner];
           if (controller.hasBibConflicts) {
             await controller.applyResolvedRunners(truthRunners);

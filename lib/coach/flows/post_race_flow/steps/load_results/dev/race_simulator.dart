@@ -27,11 +27,12 @@ enum SimulatedScenario {
       'An extra time after the last confirmation, and the Timer did not '
           'notice.'),
   bibTypo('Mistyped bib', 'The Bib Recorder mistyped one bib number.'),
-  bibEnteredTwice(
-      'Bib entered twice', 'The Bib Recorder entered one runner twice.'),
+  bibCollision('Bib typed as another runner',
+      "The Bib Recorder typed one runner's bib as another runner's, so that "
+          'bib appears at two finishes.'),
   everything('Everything at once',
       'Missing time, extra time, a runner the Timer missed, a mistyped bib '
-          'and a bib entered twice.');
+          "and a bib typed as another runner's.");
 
   const SimulatedScenario(this.label, this.description);
   final String label;
@@ -177,17 +178,32 @@ class RaceSimulator {
     // Bib Recorder: every finisher in order, with its mistakes.
     final bibs = [for (final r in finishers) BibDatum.fromRaceRunner(r)];
     final taken = {for (final r in runners) r.runner.bibNumber};
-    int? twice;
-    if (has(SimulatedScenario.bibEnteredTwice)) {
-      final k = twice = 1 + _random.nextInt(bibs.length - 2);
-      bibs.insert(k + 1, BibDatum.fromRaceRunner(finishers[k]));
-      notes.add('Bib entered twice: ${describe(k)} appears again right after '
-          'themselves. Remove the second entry ("Entered by mistake").');
+    // Two runners whose entries are left alone, so each mistake stays legible.
+    final untouched = <int>{};
+    if (has(SimulatedScenario.bibCollision)) {
+      // One runner's bib typed as another's. Both finishes are real people:
+      // the count still matches, and the coach has to say which finish
+      // belongs to the runner whose bib it is.
+      final owner = _random.nextInt(finishers.length);
+      var mistyped = _random.nextInt(finishers.length);
+      while (mistyped == owner) {
+        mistyped = _random.nextInt(finishers.length);
+      }
+      final bib = finishers[owner].runner.bibNumber!;
+      bibs[mistyped] = BibDatum(bib: bib);
+      untouched..add(owner)..add(mistyped);
+      final first = owner < mistyped ? owner : mistyped;
+      final second = owner < mistyped ? mistyped : owner;
+      notes.add('Bib typed as another runner: #$bib is at places '
+          '${first + 1} and ${second + 1}. Place ${owner + 1} is '
+          '${describe(owner)}, whose bib it is. The other finish is really '
+          '${describe(mistyped)} — choose them as the existing runner.');
     }
     if (has(SimulatedScenario.bibTypo)) {
-      // Not the runner entered twice, or their duplicate would disappear.
+      // Not a runner the collision already touched, or one mistake would
+      // swallow the other.
       var k = _random.nextInt(finishers.length);
-      while (k == twice) {
+      while (untouched.contains(k)) {
         k = _random.nextInt(finishers.length);
       }
       final real = finishers[k].runner.bibNumber!;
