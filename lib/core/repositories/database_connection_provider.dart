@@ -114,6 +114,12 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
             Logger.d('$column might already exist in ${entry.key}: $e');
           }
         }
+        // These rows were written before either table synced, so none of them
+        // is marked dirty and the roster already on this phone would never be
+        // uploaded. Mark them once so the next sync carries them up.
+        final marked = await db.rawUpdate(
+            'UPDATE ${entry.key} SET is_dirty = 1 WHERE deleted_at IS NULL');
+        Logger.d('Marked $marked ${entry.key} rows for their first upload');
       }
     }
   }

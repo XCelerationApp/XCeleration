@@ -152,6 +152,9 @@ void main() {
         {'race_id': 1, 'runner_id': 1, 'place': 1, 'finish_time': 900000});
     await db.insert(
         'race_participants', {'race_id': 1, 'runner_id': 1, 'team_id': 1});
+    await db.insert('team_rosters', {'team_id': 1, 'runner_id': 1});
+    await db
+        .insert('race_team_participation', {'race_id': 1, 'team_id': 1});
     await db.close();
   }
 
@@ -218,6 +221,21 @@ void main() {
 
     expect(await db.query('race_results', where: 'deleted_at IS NULL'),
         hasLength(1));
+  });
+
+  test('marks the roster already on the phone for its first upload', () async {
+    await seedOldDatabase();
+    final db = await provider.database;
+
+    // The roster predates either table syncing, so nothing was ever marked.
+    final roster = (await db.query('team_rosters')).single;
+    expect(roster['is_dirty'], 1,
+        reason: 'otherwise the roster on this phone never reaches the server');
+    expect(roster.containsKey('team_uuid'), isTrue);
+    expect(roster.containsKey('runner_uuid'), isTrue);
+
+    final inRace = (await db.query('race_team_participation')).single;
+    expect(inRace['is_dirty'], 1);
   });
 
   test('a fresh install gets the same uniqueness as an upgraded one',
