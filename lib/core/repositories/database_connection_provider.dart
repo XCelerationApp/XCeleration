@@ -19,7 +19,7 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
     return await openDatabase(
       path,
-      version: 17,
+      version: 18,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -81,6 +81,47 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
         }
       }
     }
+
+    if (oldVersion < 18) {
+      // A deleted row is kept so its deletion can be pushed, but it still held
+      // the bib number, team name or place, which blocked the value being used
+      // again. SQLite cannot drop a table constraint, so these three tables are
+      // rebuilt without theirs and the uniqueness moves to partial indexes that
+      // ignore deleted rows.
+      for (final table in ['runners', 'teams', 'race_results']) {
+        await _rebuildTable(db, table);
+      }
+      for (final stmt in createIndexStatements()) {
+        await db.execute(stmt);
+      }
+    }
+  }
+
+  /// Rebuilds [table] to match [localSchemaSql], keeping every row.
+  ///
+  /// Foreign keys are off (sqflite does not enable them), so dropping the old
+  /// table while other tables name it in a REFERENCES clause is safe; the
+  /// rename puts the name back.
+  Future<void> _rebuildTable(Database db, String table) async {
+    final temporary = '${table}__rebuild';
+    await db.execute('DROP TABLE IF EXISTS $temporary');
+    await db.execute(createTableStatement(table)
+        .replaceFirst('IF NOT EXISTS $table', 'IF NOT EXISTS $temporary'));
+
+    Future<Set<String>> columnsOf(String name) async =>
+        (await db.rawQuery('PRAGMA table_info($name)'))
+            .map((row) => row['name'] as String)
+            .toSet();
+    final existing = await columnsOf(table);
+    final wanted = await columnsOf(temporary);
+    final shared =
+        wanted.where(existing.contains).map((c) => '"$c"').join(', ');
+
+    await db
+        .execute('INSERT INTO $temporary ($shared) SELECT $shared FROM $table');
+    await db.execute('DROP TABLE $table');
+    await db.execute('ALTER TABLE $temporary RENAME TO $table');
+    Logger.d('Rebuilt $table for schema v18');
   }
 
   @override
