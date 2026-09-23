@@ -176,13 +176,23 @@ create table if not exists public.race_results (
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
   deleted_at  timestamptz,
-  unique (race_uuid, runner_uuid)   -- one result per runner per race
+  -- One LIVE result per runner per race; see the partial unique index below.
 );
 
 drop trigger if exists race_results_set_updated_at on public.race_results;
 create trigger race_results_set_updated_at
 before update on public.race_results
 for each row execute procedure trigger_set_timestamp();
+
+-- Uniqueness ignores soft-deleted rows, so a deleted runner's bib number,
+-- a deleted team's name and a removed result do not block the value being
+-- used again. The local SQLite schema carries the same partial indexes.
+create unique index if not exists race_results_runner_live_key
+  on public.race_results (race_uuid, runner_uuid) where deleted_at is null;
+create unique index if not exists runners_bib_number_owner_live_key
+  on public.runners (bib_number, owner_user_id) where deleted_at is null;
+create unique index if not exists teams_name_owner_live_key
+  on public.teams (name, owner_user_id) where deleted_at is null;
 
 create index if not exists idx_race_results_race_uuid on public.race_results(race_uuid);
 create index if not exists idx_race_results_owner     on public.race_results(owner_user_id);
