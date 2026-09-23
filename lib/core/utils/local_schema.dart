@@ -32,6 +32,8 @@ CREATE TABLE IF NOT EXISTS teams (
 CREATE TABLE IF NOT EXISTS team_rosters (
   team_id INTEGER NOT NULL,
   runner_id INTEGER NOT NULL,
+  team_uuid TEXT,
+  runner_uuid TEXT,
   joined_date TEXT DEFAULT CURRENT_TIMESTAMP,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -46,6 +48,8 @@ CREATE TABLE IF NOT EXISTS team_rosters (
 CREATE TABLE IF NOT EXISTS race_team_participation (
   race_id INTEGER NOT NULL,
   team_id INTEGER NOT NULL,
+  race_uuid TEXT,
+  team_uuid TEXT,
   team_color_override INTEGER,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,

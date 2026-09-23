@@ -19,7 +19,7 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
     return await openDatabase(
       path,
-      version: 18,
+      version: 19,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -93,6 +93,27 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
       }
       for (final stmt in createIndexStatements()) {
         await db.execute(stmt);
+      }
+    }
+
+    if (oldVersion < 19) {
+      // Which runners are on which team, and which teams are in which race,
+      // only ever lived on one phone. Syncing them needs the parents named by
+      // uuid, since a local integer id means nothing on another device.
+      const columns = {
+        'team_rosters': ['team_uuid', 'runner_uuid'],
+        'race_team_participation': ['race_uuid', 'team_uuid'],
+      };
+      for (final entry in columns.entries) {
+        for (final column in entry.value) {
+          try {
+            await db
+                .execute('ALTER TABLE ${entry.key} ADD COLUMN $column TEXT');
+            Logger.d('Added $column column to ${entry.key}');
+          } catch (e) {
+            Logger.d('$column might already exist in ${entry.key}: $e');
+          }
+        }
       }
     }
   }
