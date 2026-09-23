@@ -49,9 +49,10 @@ void main() {
     expect(find.text('2 Unfound Bib Numbers'), findsOneWidget);
     expect(find.text('#99'), findsOneWidget);
     expect(find.text('Duplicate Bib Number'), findsOneWidget);
-    // The duplicate finished third.
-    expect(find.text('3.'), findsOneWidget);
-    // Every conflict says which finish it is, unknown bibs included.
+    // Both places the bib was recorded at, not just the later one: neither is
+    // correct until the coach says which.
+    expect(find.text('Recorded at 1, 3'), findsOneWidget);
+    // The unknown bib says which finish it is.
     expect(find.text('2.'), findsOneWidget);
   });
 
@@ -75,7 +76,6 @@ void main() {
     // Without the time the coach is asked who finished here with nothing to
     // go on but the bib number, which is the thing that is wrong.
     expect(find.text('15:04.80'), findsOneWidget);
-    expect(find.text('15:09.10'), findsOneWidget);
   });
 
   testWidgets('says so when the Timer has not settled that place yet',
@@ -96,7 +96,7 @@ void main() {
     ));
     await tester.pumpAndSettle();
 
-    expect(find.text('Time not settled yet'), findsNWidgets(2),
+    expect(find.text('Time not settled yet'), findsOneWidget,
         reason: 'better than showing a time that may belong to someone else');
   });
 }

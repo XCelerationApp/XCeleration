@@ -7,6 +7,9 @@ import 'package:xceleration/shared/models/database/runner.dart';
 import 'package:xceleration/shared/models/database/team.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
+import '../model/bib_conflict.dart';
+import '../model/finish_order.dart';
+import 'duplicate_bib_flow.dart';
 import '../screen/resolve_bib_number_screen.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
@@ -34,12 +37,9 @@ class BibConflictsOverview extends StatefulWidget {
 
 class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   late List<dynamic> _raceRunners;
-  List<RaceRunner>? _unknownRaceRunners;
-  Set<RaceRunner>? _duplicateRaceRunners;
-  // Where each conflict tile's entry sits in [_raceRunners] (its finish
-  // position). Keyed by identity: every tile has its own RaceRunner.
-  final Map<RaceRunner, int> _entryIndex = Map.identity();
-  List<RaceRunner>? _errorRaceRunners;
+
+  /// What is wrong with the finish order, or null while it is being worked out.
+  List<BibConflict>? _conflicts;
   bool _resolved = false;
   bool _isRefreshing = false;
   // Set when looking up conflicts failed. Must not be mistaken for "no
@@ -50,97 +50,43 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
   void initState() {
     super.initState();
     _raceRunners = List.from(widget.raceRunners);
-    Logger.d('Loading race runners');
-
-    _getErrorRaceRunners();
+    _refreshConflicts();
   }
 
-  Future<void> _getErrorRaceRunners() async {
+  Future<void> _refreshConflicts() async {
     if (_isRefreshing) return;
     _isRefreshing = true;
     _resolved = false;
-    Logger.d('Race Runners: $_raceRunners');
     try {
-      final unknownRunners = <RaceRunner>[];
-      final duplicateRunners = <RaceRunner>{};
-      final entryIndex = <RaceRunner, int>{};
-
-      // Find duplicate bibs within the resolved runners
-      final seenBibs = <String>{};
-      for (int i = 0; i < _raceRunners.length; i++) {
-        final item = _raceRunners[i];
-        if (item is RaceRunner) {
-          final bibNumber = item.runner.bibNumber;
-          if (bibNumber == null) continue;
-          if (seenBibs.contains(bibNumber)) {
-            duplicateRunners.add(item);
-            entryIndex[item] = i;
-          } else {
-            seenBibs.add(bibNumber);
-          }
-        }
-      }
-
-      // Collect runners for bib numbers that need resolution.
-      // Fire all DB lookups concurrently rather than awaiting each one in turn.
-      final futures = <Future<RaceRunner?>>[];
-      final futureIndices = <int>[];
-
-      for (int i = 0; i < _raceRunners.length; i++) {
-        // Unresolved entries hold the bib number as text.
-        final bibNumber = _raceRunners[i];
-        if (bibNumber is String) {
-          if (seenBibs.contains(bibNumber)) {
-            futures.add(widget.masterRace.getRaceRunnerByBib(bibNumber));
-            futureIndices.add(i);
-          } else {
-            // Create a placeholder runner for display purposes
-            final placeholder = RaceRunner(
-              raceId: widget.masterRace.raceId,
-              runner: Runner(bibNumber: bibNumber),
-              team: Team(),
-            );
-            unknownRunners.add(placeholder);
-            entryIndex[placeholder] = i;
-          }
-        }
-      }
-
-      final resolved = await Future.wait(futures);
-      for (int j = 0; j < resolved.length; j++) {
-        final runner = resolved[j];
-        if (runner == null) {
-          // DB lookup returned nothing — treat as unknown
-          final placeholder = RaceRunner(
-            raceId: widget.masterRace.raceId,
-            runner: Runner(bibNumber: _raceRunners[futureIndices[j]].toString()),
-            team: Team(),
-          );
-          unknownRunners.add(placeholder);
-          entryIndex[placeholder] = futureIndices[j];
-        } else {
-          duplicateRunners.add(runner);
-          entryIndex[runner] = futureIndices[j];
-        }
-      }
-
+      final conflicts = await detectBibConflicts(
+        entries: _raceRunners,
+        timesByPlace: widget.timesByPlace,
+        lookupBib: widget.masterRace.getRaceRunnerByBib,
+      );
       if (mounted) {
         setState(() {
           _loadFailed = false;
-          _unknownRaceRunners = unknownRunners;
-          _duplicateRaceRunners = duplicateRunners;
-          _entryIndex
-            ..clear()
-            ..addAll(entryIndex);
-          _errorRaceRunners = [...unknownRunners, ...duplicateRunners];
+          _conflicts = conflicts;
         });
       }
     } catch (e) {
-      Logger.e('[BibConflictsOverview._getErrorRaceRunners] $e');
+      Logger.e('[BibConflictsOverview._refreshConflicts] $e');
       if (mounted) setState(() => _loadFailed = true);
     } finally {
       _isRefreshing = false;
     }
+  }
+
+  /// Writes the runners the coach settled on into the finish order.
+  Future<void> _applyResolved(Map<int, RaceRunner> settled) async {
+    setState(() => _raceRunners = applyResolvedFinishes(_raceRunners, settled));
+    await _refreshConflicts();
+  }
+
+  /// Drops a finish that should never have been recorded.
+  Future<void> _removeFinish(int place) async {
+    setState(() => _raceRunners = removeFinish(_raceRunners, place));
+    await _refreshConflicts();
   }
 
   @override
@@ -150,7 +96,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
       setState(() {
         _raceRunners = List.from(widget.raceRunners);
       });
-      _getErrorRaceRunners();
+      _refreshConflicts();
     }
   }
 
@@ -164,19 +110,19 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             const Text('Could not check the bib numbers.'),
             const SizedBox(height: 12),
             TextButton(
-              onPressed: _getErrorRaceRunners,
+              onPressed: _refreshConflicts,
               child: const Text('Try again'),
             ),
           ],
         ),
       );
     }
-    if (_unknownRaceRunners == null) {
+    final conflicts = _conflicts;
+    if (conflicts == null) {
       return const Center(child: CircularProgressIndicator());
     }
-    final errorRaceRunners = _errorRaceRunners!;
 
-    if (errorRaceRunners.isEmpty) {
+    if (conflicts.isEmpty) {
       // All conflicts resolved - call onResolved callback exactly once per resolution event.
       if (!_resolved) {
         _resolved = true;
@@ -232,7 +178,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '${errorRaceRunners.length} Unfound Bib Numbers',
+                '${conflicts.length} Unfound Bib Numbers',
                 style: AppTypography.headerSemibold.copyWith(
                   color: AppColors.darkColor,
                 ),
@@ -253,10 +199,10 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
           margin: const EdgeInsets.symmetric(horizontal: 16),
           child: ListView.separated(
             padding: const EdgeInsets.symmetric(vertical: 12),
-            itemCount: errorRaceRunners.length,
+            itemCount: conflicts.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) =>
-                _buildConflictTile(context, errorRaceRunners[index]),
+                _buildConflictTile(context, conflicts[index]),
           ),
         ),
       ],
@@ -265,27 +211,84 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
 
   /// Replaces the unresolved entry behind [raceRunner]'s tile with
   /// [replacement], or removes it when [replacement] is null.
-  Future<void> _updateEntry(RaceRunner raceRunner, RaceRunner? replacement) async {
-    final index = _entryIndex[raceRunner];
-    // Only an unresolved entry is replaced: if the list changed since the
-    // tile was built, do nothing rather than overwrite a resolved runner.
-    if (index == null ||
-        index >= _raceRunners.length ||
-        _raceRunners[index] is! String) {
-      return;
+  /// Opens the right resolution flow for [conflict].
+  Future<void> _resolve(BuildContext context, BibConflict conflict) async {
+    switch (conflict) {
+      case DuplicateBibConflict():
+        await _resolveDuplicate(context, conflict);
+      case UnknownBibConflict():
+        await _resolveUnknown(context, conflict);
     }
-    setState(() {
-      if (replacement == null) {
-        _raceRunners.removeAt(index);
-      } else {
-        _raceRunners[index] = replacement;
-      }
-    });
-    await _getErrorRaceRunners();
   }
 
-  Widget _buildConflictTile(BuildContext context, RaceRunner raceRunner) {
-    final place = (_entryIndex[raceRunner] ?? 0) + 1;
+  /// A bib recorded at more than one finish: which one is the runner's, then
+  /// who each of the others was.
+  Future<void> _resolveDuplicate(
+      BuildContext context, DuplicateBibConflict conflict) async {
+    final settled = await sheet(
+      context: context,
+      title: 'Bib #${conflict.bibNumber} recorded twice',
+      body: DuplicateBibFlow(
+        conflict: conflict,
+        onComplete: (resolved) => Navigator.pop(context, resolved),
+        buildAssignment: (context, leftover, onAssigned) => SizedBox(
+          height: 420,
+          child: ResolveBibNumberScreen(
+            raceRunner: _placeholderFor(conflict.bibNumber),
+            raceId: widget.masterRace.raceId,
+            raceRunners: _raceRunners.whereType<RaceRunner>().toList(),
+            onComplete: onAssigned,
+            // The runner whose bib it is has already been settled in step one.
+            onAssignOriginalRaceRunner: (_) async {},
+          ),
+        ),
+      ),
+    );
+    if (settled is Map<int, RaceRunner>) await _applyResolved(settled);
+  }
+
+  /// A bib no runner has: assign it to someone, create them, or drop the
+  /// finish if it should never have been recorded.
+  Future<void> _resolveUnknown(
+      BuildContext context, UnknownBibConflict conflict) async {
+    final place = conflict.occurrence.place;
+    final resolved = await sheet(
+      context: context,
+      title: 'Resolve Bib #${conflict.bibNumber}',
+      body: ResolveBibNumberScreen(
+        raceRunner: _placeholderFor(conflict.bibNumber),
+        raceId: widget.masterRace.raceId,
+        raceRunners: _raceRunners.whereType<RaceRunner>().toList(),
+        onComplete: (runner) => Navigator.pop(context, runner),
+        onAssignOriginalRaceRunner: (_) async {},
+        onRemoveEntry: () async {
+          Navigator.pop(context);
+          await _removeFinish(place);
+        },
+      ),
+    );
+    if (resolved is RaceRunner) await _applyResolved({place: resolved});
+  }
+
+  /// Stands in for the runner behind a bib that has not been identified yet.
+  RaceRunner _placeholderFor(String bibNumber) => RaceRunner(
+        raceId: widget.masterRace.raceId,
+        runner: Runner(bibNumber: bibNumber),
+        team: Team(),
+      );
+
+  Widget _buildConflictTile(BuildContext context, BibConflict conflict) {
+    final isDuplicate = conflict is DuplicateBibConflict;
+    final places = switch (conflict) {
+      DuplicateBibConflict(:final occurrences) =>
+        occurrences.map((o) => o.place).toList(),
+      UnknownBibConflict(:final occurrence) => [occurrence.place],
+    };
+    final time = switch (conflict) {
+      DuplicateBibConflict() => null,
+      UnknownBibConflict(:final occurrence) => occurrence.time,
+    };
+
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(
@@ -296,55 +299,7 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
         ),
       ),
       child: InkWell(
-        onTap: () async {
-          final updatedRaceRunner = await sheet(
-            context: context,
-            title: 'Resolve Bib #${raceRunner.runner.bibNumber} Conflict',
-            body: ResolveBibNumberScreen(
-              raceRunner: raceRunner,
-              raceId: widget.masterRace.raceId,
-              raceRunners: _raceRunners.whereType<RaceRunner>().toList(),
-              onComplete: (record) => Navigator.pop(context, record),
-              onRemoveEntry: () => _updateEntry(raceRunner, null),
-              onAssignOriginalRaceRunner: (record) async {
-                // Only a runner that exists can be the original.
-                if (record.runner.runnerId == null) return;
-                int position = 0;
-                for (final item in _duplicateRaceRunners!) {
-                  if (item == record) {
-                    break;
-                  }
-                  if (item.runner.bibNumber == record.runner.bibNumber) {
-                    position++;
-                  }
-                }
-                setState(() {
-                  for (int i = 0; i < _raceRunners.length; i++) {
-                    final item = _raceRunners[i];
-                    if (item is RaceRunner &&
-                        item.runner.bibNumber == record.runner.bibNumber) {
-                      // Mark other entries with the same bib as unresolved
-                      final bib = item.runner.bibNumber;
-                      if (bib != null) _raceRunners[i] = bib;
-                    } else if (item is String &&
-                        item == record.runner.bibNumber) {
-                      if (position == 0) {
-                        _raceRunners[i] = record;
-                      } else {
-                        position--;
-                      }
-                    }
-                  }
-                });
-                await _getErrorRaceRunners();
-              },
-            ),
-          );
-
-          if (updatedRaceRunner is RaceRunner) {
-            await _updateEntry(raceRunner, updatedRaceRunner);
-          }
-        },
+        onTap: () => _resolve(context, conflict),
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -353,14 +308,14 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
               SizedBox(
                 width: 34,
                 child: Text(
-                  '$place.',
+                  '${places.first}.',
                   style: AppTypography.bodyRegular.copyWith(
                     color: AppColors.mediumColor,
                   ),
                 ),
               ),
               Text(
-                '#${raceRunner.runner.bibNumber}',
+                '#${conflict.bibNumber}',
                 style: TextStyle(
                   color: AppColors.primaryColor,
                   fontWeight: FontWeight.bold,
@@ -372,17 +327,8 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    if (_duplicateRaceRunners!.contains(raceRunner)) ...[
-                      Text(
-                        '${raceRunner.runner.name ?? ''}.',
-                        style: AppTypography.bodyRegular.copyWith(
-                          color: AppColors.mediumColor,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                    ],
                     Text(
-                      _duplicateRaceRunners!.contains(raceRunner)
+                      isDuplicate
                           ? 'Duplicate Bib Number'
                           : 'Bib number not found',
                       style: AppTypography.bodyRegular.copyWith(
@@ -391,7 +337,9 @@ class _BibConflictsOverviewState extends State<BibConflictsOverview> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      widget.timesByPlace[place] ?? 'Time not settled yet',
+                      isDuplicate
+                          ? 'Recorded at ${places.join(', ')}'
+                          : (time ?? 'Time not settled yet'),
                       style: AppTypography.caption.copyWith(
                         color: AppColors.mediumColor,
                       ),
