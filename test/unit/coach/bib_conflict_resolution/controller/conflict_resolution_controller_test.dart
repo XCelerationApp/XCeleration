@@ -337,6 +337,31 @@ void main() {
         expect(controller.hasPending, isFalse);
       });
 
+      test('returns to the summary from the first conflict', () {
+        // Otherwise the first conflict is a dead end: back does nothing and
+        // the screen cannot be left.
+        final controller = _makeController();
+        expect(controller.isOnSummary, isFalse);
+
+        controller.goBack();
+
+        expect(controller.isOnSummary, isTrue);
+      });
+
+      test('undoes a pending resolution before leaving the first conflict',
+          () {
+        final controller = _makeController();
+        controller.prepareAssign(_runnerA, 'Bib #10');
+
+        controller.goBack();
+        expect(controller.hasPending, isFalse);
+        expect(controller.isOnSummary, isFalse,
+            reason: 'the first back press takes back the pending choice');
+
+        controller.goBack();
+        expect(controller.isOnSummary, isTrue);
+      });
+
       test('steps back one conflict and removes log entry', () {
         final controller = _makeController(
           conflicts: [_duplicateConflict, _unknownConflict],
@@ -451,9 +476,18 @@ void main() {
     // --- canGoBack ---
 
     group('canGoBack', () {
-      test('false at the start with no pending', () {
-        final controller = _makeController();
+      test('false on the summary, which is where the flow starts', () {
+        final controller = ConflictResolutionController(
+          conflicts: [_duplicateConflict],
+          unassignedRunners: [_runnerA, _runnerB],
+        );
+        expect(controller.isOnSummary, isTrue);
         expect(controller.canGoBack, isFalse);
+      });
+
+      test('true on the first conflict, which goes back to the summary', () {
+        final controller = _makeController();
+        expect(controller.canGoBack, isTrue);
       });
 
       test('true when a resolution is pending', () {

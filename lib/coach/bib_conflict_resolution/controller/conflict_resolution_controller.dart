@@ -61,11 +61,9 @@ class ConflictResolutionController extends ChangeNotifier {
   bool get isOnCompletion => _currentStep == _FlowStep.completion;
   bool get isGoingBack => _isGoingBack;
 
-  /// True whenever the back button should be active.
-  bool get canGoBack =>
-      _hasPending ||
-      _currentConflictIndex > 0 ||
-      _currentStep == _FlowStep.completion;
+  /// True whenever the back button should be active. Every step but the
+  /// summary has somewhere to go back to, and the summary is the way out.
+  bool get canGoBack => _currentStep != _FlowStep.summary;
 
   bool get hasPending => _hasPending;
   String get pendingLabel => _pendingLabel;
@@ -346,7 +344,13 @@ class ConflictResolutionController extends ChangeNotifier {
       _currentConflictIndex--;
       _currentStep = _stepForConflict(_conflicts[_currentConflictIndex]);
       notifyListeners();
+      return;
     }
+    // Nothing resolved yet, so back goes where the recorder came from. Without
+    // this the first conflict is a dead end: the button does nothing and the
+    // screen cannot be left.
+    _currentStep = _FlowStep.summary;
+    notifyListeners();
   }
 
   void _clearPending() {

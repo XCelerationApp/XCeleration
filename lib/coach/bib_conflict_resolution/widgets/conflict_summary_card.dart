@@ -29,7 +29,8 @@ class ConflictSummaryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: AppSpacing.xl),
+            const _LeaveButton(),
+            const SizedBox(height: AppSpacing.lg),
             _Header(
               duplicateCount: duplicateCount,
               unknownCount: unknownCount,
@@ -46,6 +47,35 @@ class ConflictSummaryCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// The way out of the flow. The summary is where it starts, so nothing here
+/// goes back to — without this the whole screen is a dead end.
+class _LeaveButton extends StatelessWidget {
+  const _LeaveButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+      onPressed: () => Navigator.of(context).maybePop(),
+      icon: const Icon(
+        Icons.arrow_back,
+        size: AppSpacing.lg,
+        color: AppColors.primaryColor,
+      ),
+      label: Text(
+        'Back',
+        style: AppTypography.smallBodySemibold.copyWith(
+          color: AppColors.primaryColor,
+        ),
+      ),
+      style: TextButton.styleFrom(
+        padding: EdgeInsets.zero,
+        minimumSize: Size.zero,
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
       ),
     );
   }
