@@ -165,6 +165,28 @@ void main() {
       expect(_savedTimes(c), [_t(10), _t(12), _t(14)]);
     });
 
+    test('typing the last time enables the Resolve button', () async {
+      final c = _controller(
+        [_chunk(0, [10, 14], ConflictType.missingTime, end: 15)],
+        _runners(3),
+      );
+      c.insertTbdAt(0, 1);
+      var notified = 0;
+      c.addListener(() => notified++);
+
+      _type(c, 0, 1, _t(12));
+
+      // The button reads isResolvedLocally at build time, so the list has to
+      // be told to rebuild when the chunk becomes resolvable.
+      expect(_ui(c, 0).isResolvedLocally, isTrue);
+      expect(notified, greaterThan(0));
+
+      // And again when it stops being resolvable.
+      notified = 0;
+      _type(c, 0, 1, '');
+      expect(notified, greaterThan(0));
+    });
+
     test('resolving is refused while a slot is still empty', () async {
       final c = _controller(
         [_chunk(0, [10], ConflictType.missingTime, offBy: 2, end: 15)],

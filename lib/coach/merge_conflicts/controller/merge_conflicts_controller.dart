@@ -159,6 +159,7 @@ class MergeConflictsController with ChangeNotifier {
     final uiChunk = _getUIChunk(chunkId);
     if (uiChunk == null) return;
     final record = uiChunk.records[recordIndex];
+    final wasResolved = uiChunk.isResolvedLocally;
     record.timeController.text = newValue;
     final validationError =
         _validateTimeInChunk(uiChunk, recordIndex, newValue);
@@ -167,6 +168,10 @@ class MergeConflictsController with ChangeNotifier {
       isOriginallyTBD: record.isOriginallyTBD,
       validationError: validationError,
     ));
+    // Each record redraws itself as it is typed into, but the chunk's
+    // "Resolve Conflict" button does not: without this it stayed greyed out
+    // after the last time was typed, until something else redrew the list.
+    if (uiChunk.isResolvedLocally != wasResolved) notifyListeners();
   }
 
   /// Called by widget when user taps the insert TBD button.

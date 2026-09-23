@@ -683,24 +683,29 @@ void main() {
 
     // -----------------------------------------------------------------------
     group('updateMissingTimeRecord', () {
-      test('updates timeController text without notifying controller listeners',
-          () {
-        final chunk = _missingTimeChunk(1, ['TBD'], 1, endTime: '5:00.0');
+      test('updates timeController text, notifying only when the chunk '
+          'becomes resolvable', () {
+        final chunk =
+            _missingTimeChunk(1, ['1:00.0', 'TBD'], 1, endTime: '5:00.0');
         final controller = _buildController(
           timingChunks: [chunk],
-          raceRunners: _runners(1),
+          raceRunners: _runners(2),
         );
 
         final uiChunk = controller.uiChunks.first;
-        var notified = false;
-        controller.addListener(() => notified = true);
+        var notified = 0;
+        controller.addListener(() => notified++);
 
-        controller.updateMissingTimeRecord(uiChunk.chunkId, 0, '2:00.0');
+        // Still not a valid time: each UIRecord redraws itself, and the
+        // controller stays quiet.
+        controller.updateMissingTimeRecord(uiChunk.chunkId, 1, '2:');
+        expect(uiChunk.records[1].timeController.text, '2:');
+        expect(notified, 0);
 
-        expect(uiChunk.records.first.timeController.text, '2:00.0');
-        // Controller-level notifyListeners() is intentionally NOT called on
-        // each keystroke — UIRecord notifies its own listeners instead.
-        expect(notified, isFalse);
+        // Now the chunk can be resolved, so the list has to rebuild for the
+        // "Resolve Conflict" button to turn on.
+        controller.updateMissingTimeRecord(uiChunk.chunkId, 1, '2:00.0');
+        expect(notified, 1);
       });
 
       test('sets validation error for invalid time', () {
