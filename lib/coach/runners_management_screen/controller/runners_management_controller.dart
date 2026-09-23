@@ -417,15 +417,22 @@ class RunnersManagementController with ChangeNotifier {
   // TEAM OPERATIONS
   // ============================================================================
 
-  Future<void> createTeam(Team team) async {
-    if (team.name == null || team.name!.trim().isEmpty) return;
+  /// Creates [team], returning why it could not be created, or null on success.
+  ///
+  /// A name already in use used to return quietly and the sheet closed as
+  /// though the team had been made. Team names are unique across the whole
+  /// app, not just this race, so this happens to a coach who has the name on
+  /// another race.
+  Future<AppError?> createTeam(Team team) async {
+    if (team.name == null || team.name!.trim().isEmpty) {
+      return const AppError(userMessage: 'Enter a team name.');
+    }
 
     try {
-      // Check if team already exists
       final existingTeam = await masterRace.getTeamByName(team.name!);
       if (existingTeam != null) {
-        // Team already exists, do nothing
-        return;
+        return AppError(
+            userMessage: 'A team named "${team.name}" already exists.');
       }
 
       // Persist team and capture newly assigned id
@@ -437,9 +444,13 @@ class RunnersManagementController with ChangeNotifier {
         colorOverride: team.color?.toARGB32(),
       ));
       await forceRefresh();
+      return null;
     } catch (e) {
       Logger.e('Error creating team: $e');
-      throw Exception('Failed to create team: $e');
+      return AppError(
+        userMessage: 'Could not create the team. Please try again.',
+        originalException: e,
+      );
     }
   }
 

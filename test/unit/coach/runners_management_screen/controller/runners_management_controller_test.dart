@@ -251,13 +251,26 @@ void main() {
         verifyNever(mockTeams.createTeam(any));
       });
 
-      test('does nothing when team already exists', () async {
+      test('says so when the name is already taken', () async {
+        // Names are unique across the whole app, so this happens to a coach
+        // who already has the name on another race.
         const existingTeam = Team(teamId: 1, name: 'Team A', abbreviation: 'TA');
         when(mockMasterRace.getTeamByName('Team A')).thenAnswer((_) async => existingTeam);
 
-        await controller.createTeam(const Team(name: 'Team A', abbreviation: 'TA'));
+        final error = await controller
+            .createTeam(const Team(name: 'Team A', abbreviation: 'TA'));
 
         verifyNever(mockTeams.createTeam(any));
+        expect(error, isNotNull,
+            reason: 'the sheet used to close as though it had worked');
+        expect(error!.userMessage, contains('Team A'));
+      });
+
+      test('says so when the name is blank', () async {
+        final error = await controller.createTeam(const Team(name: '  '));
+
+        verifyNever(mockTeams.createTeam(any));
+        expect(error, isNotNull);
       });
 
       test('creates team and adds team participant when team does not exist', () async {
@@ -265,13 +278,14 @@ void main() {
         when(mockTeams.createTeam(any)).thenAnswer((_) async => 2);
         when(mockMasterRace.addTeamParticipant(any)).thenAnswer((_) async {});
 
-        await controller.createTeam(const Team(
+        final error = await controller.createTeam(const Team(
           teamId: 2,
           name: 'New Team',
           abbreviation: 'NT',
           color: Color(0xFF2196F3),
         ));
 
+        expect(error, isNull, reason: 'success reports no error');
         verify(mockTeams.createTeam(any)).called(1);
         verify(mockMasterRace.addTeamParticipant(any)).called(1);
 
