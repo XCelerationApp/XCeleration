@@ -231,8 +231,11 @@ class SyncService implements ISyncService {
     'is_dirty',
     'deleted_at',
     'owner_user_id',
-    // Local integer PKs / FKs — not synced as data columns
+    // Local integer PKs / FKs — not synced as data columns. Push strips these
+    // from the payload, so the remote row has none of them and comparing them
+    // would report a difference on every row.
     'id',
+    'result_id',
     'runner_id',
     'team_id',
     'race_id',

@@ -88,6 +88,19 @@ class _FakeSyncClient implements IRemoteSyncClient {
   Future<void> upsertRows(String table, List<Map<String, dynamic>> rows,
       {required String onConflict}) async {
     upserts.add((table: table, rows: rows));
+    // Keep what was pushed, so the next pull sees it the way the server would.
+    final keyColumns = onConflict.split(',');
+    final stored = tables.putIfAbsent(table, () => []);
+    for (final row in rows) {
+      final copy = Map<String, dynamic>.from(row);
+      final existing = stored
+          .indexWhere((e) => keyColumns.every((k) => e[k] == copy[k]));
+      if (existing >= 0) {
+        stored[existing] = {...stored[existing], ...copy};
+      } else {
+        stored.add(copy);
+      }
+    }
   }
 }
 
@@ -516,6 +529,51 @@ void main() {
       expect(result['team_id'], team['team_id'],
           reason:
               'team scoring needs the result to know which team the runner ran for');
+    });
+
+    test('does not treat a result it just pushed as changed on the way back',
+        () async {
+      final db = await conn.database;
+      final raceId = await db.insert('races', {
+        'uuid': raceUuid,
+        'name': 'Invitational',
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 0,
+      });
+      final runnerId = await db.insert('runners', {
+        'uuid': runnerUuid,
+        'name': 'Alice',
+        'grade': 10,
+        'bib_number': '101',
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 0,
+      });
+      await db.insert('race_results', {
+        'uuid': 'result-uuid-1',
+        'race_id': raceId,
+        'runner_id': runnerId,
+        'race_uuid': raceUuid,
+        'runner_uuid': runnerUuid,
+        'place': 1,
+        'finish_time': 900000,
+        'updated_at': '2026-01-02T00:00:00Z',
+        'is_dirty': 1,
+      });
+
+      final events = <SyncEvent>[];
+      final sub = service.syncEvents.listen(events.add);
+      await service.syncAll();
+      await Future<void>.delayed(Duration.zero);
+      await sub.cancel();
+
+      // result_id is this device's own key and is stripped before pushing, so
+      // finding it absent from the row that comes back is not a change.
+      expect(events.expand((e) => e.changedTables), isNot(contains('race_results')),
+          reason: 'a row this device just pushed has not changed');
+
+      final result = (await db.query('race_results')).single;
+      expect(result['result_id'], isNotNull,
+          reason: 'the local key must survive the round trip');
     });
 
     test('still reports what did arrive when a later table fails', () async {
