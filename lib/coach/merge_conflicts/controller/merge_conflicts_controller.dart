@@ -15,6 +15,25 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../../../core/utils/enums.dart';
 import 'package:flutter/material.dart';
 
+/// What a conflict batch looked like just before the coach pressed + or X.
+class _BatchEdit {
+  _BatchEdit({
+    required this.label,
+    required this.times,
+    required this.offBy,
+    required this.entered,
+  });
+
+  /// Names the change for the Undo button, e.g. 'removing 15:42.64'.
+  final String label;
+  final List<String> times;
+  final int offBy;
+
+  /// What each row's text field held, which differs from [times] while a time
+  /// is half-typed or does not parse.
+  final List<String> entered;
+}
+
 class MergeConflictsController with ChangeNotifier {
   late final MasterRace masterRace;
   late final List<TimingChunk> timingChunks;
@@ -33,6 +52,83 @@ class MergeConflictsController with ChangeNotifier {
   /// Force UI rebuild (used by UIChunk when records change)
   void invalidateUICache() {
     _needsUIRebuild = true;
+  }
+
+  /// Undo history per conflict batch, oldest first. A batch keeps its history
+  /// until it is resolved: pressing "Resolve Conflict" is the coach saying the
+  /// batch is right, so there is nothing left to take back.
+  final Map<int, List<_BatchEdit>> _undoStacks = {};
+
+  /// Whether the batch with [chunkId] has a + or X press to take back.
+  bool canUndo(int chunkId) => _undoStacks[chunkId]?.isNotEmpty ?? false;
+
+  /// What undoing the batch with [chunkId] would take back, or null if there
+  /// is nothing to take back.
+  String? undoLabel(int chunkId) =>
+      canUndo(chunkId) ? _undoStacks[chunkId]!.last.label : null;
+
+  /// Takes back the last + or X press in the batch with [chunkId], putting its
+  /// times, its count and anything typed into it back as they were.
+  void undo(int chunkId) {
+    final stack = _undoStacks[chunkId];
+    if (stack == null || stack.isEmpty) return;
+    final index = timingChunks.indexWhere((c) => c.id == chunkId);
+    if (index == -1) return;
+
+    final edit = stack.removeLast();
+    if (stack.isEmpty) _undoStacks.remove(chunkId);
+
+    final chunk = timingChunks[index];
+    chunk.timingData
+      ..clear()
+      ..addAll(edit.times.map((time) => TimingDatum(time: time)));
+    chunk.conflictRecord?.conflict?.offBy = edit.offBy;
+    _needsUIRebuild = true;
+
+    // Rebuild the rows now, then put back what was in the text fields: a time
+    // that was typed but not submitted is not what the coach asked to undo.
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk != null && uiChunk.records.length == edit.entered.length) {
+      for (int i = 0; i < uiChunk.records.length; i++) {
+        final record = uiChunk.records[i];
+        if (record.time == edit.entered[i]) continue;
+        record.updateConflictTime(ConflictTime(
+          time: edit.entered[i],
+          isOriginallyTBD: record.isOriginallyTBD,
+        ));
+      }
+    }
+    notifyListeners();
+  }
+
+  /// Remembers the batch with [chunkId] as it is now, so the press about to
+  /// happen can be taken back.
+  void _recordEdit(int chunkId, String label) {
+    final index = timingChunks.indexWhere((c) => c.id == chunkId);
+    if (index == -1) return;
+    final uiChunk = _getUIChunk(chunkId);
+    // Fold what is on screen into the chunk first: a placed TBD lives only in
+    // the rows until something writes it down, and a snapshot of the chunk
+    // without it would undo to a batch the coach never saw.
+    if (uiChunk != null) _syncEnteredTimes(uiChunk);
+    final chunk = timingChunks[index];
+    _undoStacks.putIfAbsent(chunkId, () => <_BatchEdit>[]).add(_BatchEdit(
+          label: label,
+          times: chunk.timingData.map((datum) => datum.time).toList(),
+          offBy: chunk.conflictRecord?.conflict?.offBy ?? 0,
+          entered:
+              uiChunk?.records.map((record) => record.time).toList() ?? const [],
+        ));
+  }
+
+  /// Drops the history of every batch that is no longer an open conflict.
+  void _pruneUndoStacks() {
+    _undoStacks.removeWhere((chunkId, _) {
+      final index = timingChunks.indexWhere((c) => c.id == chunkId);
+      if (index == -1) return true;
+      final type = timingChunks[index].conflictRecord?.conflict?.type;
+      return type != ConflictType.extraTime && type != ConflictType.missingTime;
+    });
   }
 
   MergeConflictsController({
@@ -110,6 +206,7 @@ class MergeConflictsController with ChangeNotifier {
     }
 
     if (recordIndex >= 0 && recordIndex < chunk.timingData.length) {
+      _recordEdit(chunkId, 'removing ${chunk.timingData[recordIndex].time}');
       chunk.timingData.removeAt(recordIndex);
       // Don't auto-convert to confirmRunner when offBy reaches 0: the user
       // explicitly clicks "Resolve Conflict".
@@ -124,6 +221,7 @@ class MergeConflictsController with ChangeNotifier {
           conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
         );
         _carryOverCountDifference(chunkIndex);
+        _pruneUndoStacks();
         _needsUIRebuild = true;
         consolidateConfirmedTimes();
         return true;
@@ -246,6 +344,7 @@ class MergeConflictsController with ChangeNotifier {
     if (from == null) return;
     // Removing a slot before the target shifts the target left by one.
     final to = from < recordIndex ? recordIndex - 1 : recordIndex;
+    _recordEdit(chunkId, 'moving the missing time');
 
     // The text field holds what the coach typed; it can differ from
     // conflictTime until the value is submitted.
@@ -276,6 +375,9 @@ class MergeConflictsController with ChangeNotifier {
       }
     }
     uiChunk.lastInsertedIndex = to;
+    // Keep the moved slot with the chunk, not only in the rows, so a rebuild
+    // cannot lose it and undo has something to put back.
+    _syncEnteredTimes(uiChunk);
     notifyListeners();
   }
 
@@ -361,6 +463,9 @@ class MergeConflictsController with ChangeNotifier {
       conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
     );
     _carryOverCountDifference(chunkIndex);
+
+    // The coach committed this batch, so there is nothing left to take back.
+    _undoStacks.remove(chunkId);
 
     // Invalidate UI cache since conflict type changed
     _needsUIRebuild = true;
@@ -620,6 +725,7 @@ class MergeConflictsController with ChangeNotifier {
     // Replace timingChunks with consolidated version
     timingChunks.clear();
     timingChunks.addAll(consolidatedChunks);
+    _pruneUndoStacks();
   }
 
   /// Check if a TimingChunk contains confirmRunner records
