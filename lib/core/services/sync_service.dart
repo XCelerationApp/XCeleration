@@ -991,6 +991,21 @@ class SyncService implements ISyncService {
       }
     }
 
+    await _fetchMissingParents(
+      db: db,
+      parentTable: 'runners',
+      parentIdColumn: 'runner_id',
+      uuids: runnerUuids,
+      resolved: runnerUuidToId,
+    );
+    await _fetchMissingParents(
+      db: db,
+      parentTable: 'races',
+      parentIdColumn: 'race_id',
+      uuids: raceUuids,
+      resolved: raceUuidToId,
+    );
+
     // A result's team is the team the runner raced for, which this device
     // records in race_participants. The team_id on the remote row is another
     // device's local id and must not be used.
@@ -1149,6 +1164,48 @@ class SyncService implements ISyncService {
     }
   }
 
+  /// Fetches parents named in a payload that are not local yet, and inserts
+  /// them.
+  ///
+  /// A pull only asks for rows changed since its cursor, so a runner added to
+  /// a race today, but not edited since last season, is never sent again. The
+  /// child row would then be held back at every sync from now on, waiting for
+  /// a parent that will never arrive on its own.
+  Future<void> _fetchMissingParents({
+    required Database db,
+    required String parentTable,
+    required String parentIdColumn,
+    required List<String> uuids,
+    required Map<String, int> resolved,
+  }) async {
+    final missing = uuids.where((u) => !resolved.containsKey(u)).toList();
+    if (missing.isEmpty) return;
+
+    final rows = await _syncClient.fetchByUuids(parentTable, missing);
+    if (rows.isEmpty) return;
+
+    for (final row in rows) {
+      final insert = Map<String, dynamic>.from(row)
+        ..remove('owner_user_id')
+        // The remote id comes from a sequence shared by every user and means
+        // nothing here; SQLite assigns its own.
+        ..remove(parentIdColumn)
+        ..['is_dirty'] = 0;
+      await db.insert(parentTable, insert,
+          conflictAlgorithm: ConflictAlgorithm.replace);
+    }
+
+    final qMarks = List.filled(missing.length, '?').join(',');
+    final stored = await db.rawQuery(
+      'SELECT uuid, $parentIdColumn FROM $parentTable WHERE uuid IN ($qMarks)',
+      missing,
+    );
+    for (final row in stored) {
+      resolved[row['uuid'] as String] = row[parentIdColumn] as int;
+    }
+    Logger.d('Fetched ${rows.length} $parentTable rows a child row needed');
+  }
+
   /// Pull a bridge table, turning the uuids that name its parents back into
   /// this device's integer ids. A row whose parent has not arrived yet is left
   /// for a later sync rather than dropped.
@@ -1193,6 +1250,13 @@ class SyncService implements ISyncService {
           byUuid[row['uuid'] as String] = row[parent.parentIdColumn] as int;
         }
       }
+      await _fetchMissingParents(
+        db: db,
+        parentTable: parent.parentTable,
+        parentIdColumn: parent.parentIdColumn,
+        uuids: uuids,
+        resolved: byUuid,
+      );
       resolved[parent.uuidColumn] = byUuid;
     }
 

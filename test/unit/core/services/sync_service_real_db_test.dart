@@ -765,6 +765,28 @@ void main() {
       expect((await db.query('runners')).single['name'], 'Alice Renamed');
     });
 
+    test('fetches a parent that will never be sent again', () async {
+      // The runner was last edited a season ago and is added to a race today.
+      // A pull only asks for rows changed since its cursor, so the runner is
+      // never sent, and the participant would be held back at every sync from
+      // now on waiting for them.
+      seedRemoteParents(updatedAt: '2026-01-01T00:00:00Z');
+      await service.syncAll();
+
+      final db = await conn.database;
+      await db.delete('runners');
+      expect(await db.query('runners'), isEmpty);
+
+      remote.tables['race_participants'] = [
+        remoteParticipant(updatedAt: '2026-06-01T00:00:00Z')
+      ];
+      await service.syncAll();
+
+      expect(await db.query('runners'), hasLength(1),
+          reason: 'the runner the participant needs has to be fetched');
+      expect(await participantRows(), hasLength(1));
+    });
+
     test('waits rather than failing when no one has signed in yet', () async {
       // Connectivity and write events can ask for a sync at startup, before
       // the signed-in user's database has been opened.

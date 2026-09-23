@@ -534,6 +534,10 @@ void main() {
             };
 
         setUp(() {
+          // The unknown parent is not on the server either, so asking for it
+          // by uuid comes back empty and the row stays skipped.
+          when(mockSyncClient.fetchByUuids(any, any))
+              .thenAnswer((_) async => []);
           when(mockDatabase.rawQuery(
                   argThat(contains('FROM runners WHERE uuid IN')), any))
               .thenAnswer((_) async => [
