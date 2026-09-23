@@ -498,6 +498,138 @@ void main() {
     });
   });
 
+  group('team rosters', () {
+    /// A roster row on the server saying Alice runs for the Eagles.
+    Map<String, dynamic> remoteRoster({
+      String updatedAt = '2026-01-02T00:00:00Z',
+      String? deletedAt,
+    }) =>
+        {
+          'uuid': 'roster-uuid-1',
+          'team_uuid': teamUuid,
+          'runner_uuid': runnerUuid,
+          'owner_user_id': 'owner-1',
+          'created_at': '2026-01-02T00:00:00Z',
+          'updated_at': updatedAt,
+          'deleted_at': deletedAt,
+        };
+
+    test('brings a team roster down onto a device that has none', () async {
+      seedRemoteParents();
+      remote.tables['team_rosters'] = [remoteRoster()];
+
+      await service.syncAll();
+
+      final db = await conn.database;
+      final rows = await db.query('team_rosters');
+      expect(rows, hasLength(1),
+          reason: 'which runners are on which team has to travel');
+      expect(rows.single['team_id'], (await db.query('teams')).single['team_id']);
+      expect(
+          rows.single['runner_id'], (await db.query('runners')).single['runner_id']);
+      expect(rows.single['is_dirty'], 0);
+    });
+
+    test('sends a local roster row and marks it as synced', () async {
+      final db = await conn.database;
+      final teamId = await db.insert('teams', {
+        'uuid': teamUuid,
+        'name': 'Eagles',
+        'color': 0,
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 0,
+      });
+      final runnerId = await db.insert('runners', {
+        'uuid': runnerUuid,
+        'name': 'Alice',
+        'grade': 10,
+        'bib_number': '101',
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 0,
+      });
+      await db.insert('team_rosters', {
+        'team_id': teamId,
+        'runner_id': runnerId,
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 1,
+      });
+
+      await service.syncAll();
+
+      final pushed =
+          remote.upserts.where((u) => u.table == 'team_rosters').toList();
+      expect(pushed, hasLength(1));
+      expect(pushed.single.rows.single['team_uuid'], teamUuid,
+          reason: 'the parents have to be named by uuid, not local id');
+      expect(pushed.single.rows.single['runner_uuid'], runnerUuid);
+      expect(pushed.single.rows.single.containsKey('team_id'), isFalse,
+          reason: 'a local id means nothing on another device');
+
+      final rows = await db.query('team_rosters');
+      expect(rows.single['is_dirty'], 0);
+    });
+
+    test('takes a runner off the team when another device did', () async {
+      seedRemoteParents();
+      remote.tables['team_rosters'] = [remoteRoster()];
+      await service.syncAll();
+
+      remote.tables['team_rosters'] = [
+        remoteRoster(
+            updatedAt: '2026-01-05T00:00:00Z',
+            deletedAt: '2026-01-05T00:00:00Z')
+      ];
+      await service.syncAll();
+
+      final db = await conn.database;
+      final rows = await db.query('team_rosters');
+      expect(rows.single['deleted_at'], '2026-01-05T00:00:00Z');
+    });
+
+    test('retries a roster row whose runner has not arrived yet', () async {
+      seedRemoteParents();
+      final heldBack = remote.tables['runners']!;
+      remote.tables['runners'] = [];
+      remote.tables['team_rosters'] = [remoteRoster()];
+
+      await service.syncAll();
+      final db = await conn.database;
+      expect(await db.query('team_rosters'), isEmpty);
+
+      remote.tables['runners'] = heldBack;
+      await service.syncAll();
+
+      expect(await db.query('team_rosters'), hasLength(1));
+    });
+  });
+
+  group('teams in a race', () {
+    test('brings the race\'s teams down, with their colour override',
+        () async {
+      seedRemoteParents();
+      remote.tables['race_team_participation'] = [
+        {
+          'uuid': 'rtp-uuid-1',
+          'race_uuid': raceUuid,
+          'team_uuid': teamUuid,
+          'team_color_override': 4283215696,
+          'owner_user_id': 'owner-1',
+          'created_at': '2026-01-02T00:00:00Z',
+          'updated_at': '2026-01-02T00:00:00Z',
+          'deleted_at': null,
+        }
+      ];
+
+      await service.syncAll();
+
+      final db = await conn.database;
+      final rows = await db.query('race_team_participation');
+      expect(rows, hasLength(1));
+      expect(rows.single['team_color_override'], 4283215696);
+      expect(rows.single['race_id'], (await db.query('races')).single['race_id']);
+    });
+  });
+
   group('the rest of the sync', () {
     test('a result gets its team from the participant pulled alongside it',
         () async {

@@ -62,6 +62,115 @@ class _PullCursor {
   }
 }
 
+/// One parent a bridge row points at: the column naming it by uuid, the local
+/// integer column, and where the uuid is looked up.
+class _BridgeParent {
+  const _BridgeParent({
+    required this.uuidColumn,
+    required this.idColumn,
+    required this.parentTable,
+    required this.parentIdColumn,
+  });
+
+  final String uuidColumn;
+  final String idColumn;
+  final String parentTable;
+  final String parentIdColumn;
+}
+
+/// A join table whose identity is the pair of parents it links: `(race_id,
+/// runner_id)` locally and `(race_uuid, runner_uuid)` on the server, the
+/// primary key at both ends.
+class _BridgeTable {
+  const _BridgeTable({
+    required this.table,
+    required this.keyParents,
+    this.otherParents = const [],
+  });
+
+  final String table;
+
+  /// The parents that identify a row.
+  final List<_BridgeParent> keyParents;
+
+  /// Parents a row also points at without being identified by them. Their
+  /// local columns are NOT NULL, so a new row cannot be written until they
+  /// resolve.
+  final List<_BridgeParent> otherParents;
+
+  List<_BridgeParent> get allParents => [...keyParents, ...otherParents];
+
+  String get cursorKey => 'cursor.$table';
+
+  /// What an upsert of this table deduplicates on.
+  String get conflictTarget => keyParents.map((p) => p.uuidColumn).join(',');
+
+  String get keyColumns => keyParents.map((p) => p.uuidColumn).join(' and ');
+
+  String get keyWhereClause =>
+      '(${keyParents.map((p) => '${p.idColumn} = ?').join(' AND ')})';
+
+  String keyOf(List<Object?> ids) => ids.join(':');
+}
+
+const _raceParticipants = _BridgeTable(
+  table: 'race_participants',
+  keyParents: [
+    _BridgeParent(
+        uuidColumn: 'race_uuid',
+        idColumn: 'race_id',
+        parentTable: 'races',
+        parentIdColumn: 'race_id'),
+    _BridgeParent(
+        uuidColumn: 'runner_uuid',
+        idColumn: 'runner_id',
+        parentTable: 'runners',
+        parentIdColumn: 'runner_id'),
+  ],
+  otherParents: [
+    _BridgeParent(
+        uuidColumn: 'team_uuid',
+        idColumn: 'team_id',
+        parentTable: 'teams',
+        parentIdColumn: 'team_id'),
+  ],
+);
+
+const _teamRosters = _BridgeTable(
+  table: 'team_rosters',
+  keyParents: [
+    _BridgeParent(
+        uuidColumn: 'team_uuid',
+        idColumn: 'team_id',
+        parentTable: 'teams',
+        parentIdColumn: 'team_id'),
+    _BridgeParent(
+        uuidColumn: 'runner_uuid',
+        idColumn: 'runner_id',
+        parentTable: 'runners',
+        parentIdColumn: 'runner_id'),
+  ],
+);
+
+const _raceTeamParticipation = _BridgeTable(
+  table: 'race_team_participation',
+  keyParents: [
+    _BridgeParent(
+        uuidColumn: 'race_uuid',
+        idColumn: 'race_id',
+        parentTable: 'races',
+        parentIdColumn: 'race_id'),
+    _BridgeParent(
+        uuidColumn: 'team_uuid',
+        idColumn: 'team_id',
+        parentTable: 'teams',
+        parentIdColumn: 'team_id'),
+  ],
+);
+
+/// Every join table that syncs, in the order a pull has to apply them.
+const _bridgeTables = [_teamRosters, _raceTeamParticipation, _raceParticipants];
+
 /// Helper class to track data conflicts
 class _DataConflictResult {
   final bool hasConflict;
@@ -120,6 +229,9 @@ class SyncService implements ISyncService {
   static const String cursorRaces = 'cursor.races';
   static const String cursorRaceResults = 'cursor.race_results';
   static const String cursorRaceParticipants = 'cursor.race_participants';
+  static const String cursorTeamRosters = 'cursor.team_rosters';
+  static const String cursorRaceTeamParticipation =
+      'cursor.race_team_participation';
 
   Future<bool> _tableExists(Database db, String table) async {
     final rows = await db.rawQuery(
@@ -136,7 +248,9 @@ class SyncService implements ISyncService {
       'teams',
       'races',
       'race_participants',
-      'race_results'
+      'race_results',
+      'team_rosters',
+      'race_team_participation',
     ];
     for (final t in needed) {
       if (!await _tableExists(db, t)) return false;
@@ -206,6 +320,20 @@ class SyncService implements ISyncService {
       SET team_uuid = (SELECT uuid FROM teams WHERE teams.team_id = race_participants.team_id)
       WHERE team_uuid IS NULL
     ''');
+
+    // Name each bridge row's parents by uuid, so it can be pushed.
+    for (final bridge in _bridgeTables) {
+      for (final parent in bridge.allParents) {
+        await db.rawUpdate('''
+          UPDATE ${bridge.table}
+          SET ${parent.uuidColumn} = (
+            SELECT uuid FROM ${parent.parentTable}
+            WHERE ${parent.parentTable}.${parent.parentIdColumn} = ${bridge.table}.${parent.idColumn}
+          )
+          WHERE ${parent.uuidColumn} IS NULL
+        ''');
+      }
+    }
   }
 
   // Placeholder: persist cursors in sync_state
@@ -453,7 +581,9 @@ class SyncService implements ISyncService {
     await pushTable('teams', 'uuid', localPkColumn: 'team_id');
     await pushTable('races', 'uuid', localPkColumn: 'race_id');
     await _pushRaceResults();
-    await _pushRaceParticipants();
+    for (final bridge in _bridgeTables) {
+      await _pushBridgeTable(bridge);
+    }
   }
 
   /// Push dirty race_results rows using UUID-based foreign keys.
@@ -539,67 +669,62 @@ class SyncService implements ISyncService {
     }
   }
 
-  /// Push dirty race_participants rows using UUID-based foreign keys.
-  /// Strips local integer race_id/runner_id/team_id from the remote payload and
-  /// requires race_uuid/runner_uuid to be present.
-  Future<void> _pushRaceParticipants() async {
+  /// Push dirty rows of a bridge table, naming its parents by uuid.
+  ///
+  /// Local integer ids are this device's own and mean nothing on another, so
+  /// they are stripped; a row whose key uuids are not filled in yet is left
+  /// dirty and picked up on a later sync.
+  Future<void> _pushBridgeTable(_BridgeTable spec) async {
     final db = await _db.database;
 
-    // Auth guard: defensive check in case _pushRaceParticipants is called
-    // outside syncAll(). In the normal flow the top-level guard in syncAll()
-    // ensures the user is authenticated before any push method is reached.
+    // Auth guard: defensive check in case this is called outside syncAll().
     final uid = _auth.currentUserId;
     if (uid == null) {
-      Logger.d('Push skipped: user is not authenticated (race_participants).');
+      Logger.d('Push skipped: user is not authenticated (${spec.table}).');
       return;
     }
 
-    final rows = await db.query('race_participants', where: 'is_dirty = 1');
+    final rows = await db.query(spec.table, where: 'is_dirty = 1');
     if (rows.isEmpty) return;
 
     final payload = <Map<String, dynamic>>[];
-    // The local primary key of each row in payload, in the same order.
+    // The local key of each row in payload, in the same order.
     final pushedKeys = <List<Object?>>[];
 
     for (final row in rows) {
       final copy = Map<String, dynamic>.from(row);
       copy.remove('is_dirty');
-      // Remove local integer foreign keys — remote schema uses UUIDs
-      final raceId = copy.remove('race_id');
-      final runnerId = copy.remove('runner_id');
-      copy.remove('team_id');
+      final key = [for (final parent in spec.keyParents) row[parent.idColumn]];
+      for (final parent in spec.allParents) {
+        copy.remove(parent.idColumn);
+      }
 
-      final raceUuid = copy['race_uuid'];
-      final runnerUuid = copy['runner_uuid'];
-      if (raceUuid == null || runnerUuid == null) {
-        Logger.d(
-            'Skipping race_participant — missing race_uuid or runner_uuid');
+      if (spec.keyParents.any((parent) => copy[parent.uuidColumn] == null)) {
+        Logger.d('Skipping ${spec.table} row — ${spec.keyColumns} not resolved yet');
         continue;
       }
 
       copy['owner_user_id'] = uid;
-      copy['created_at'] ??= copy['updated_at'] ?? DateTime.now().toUtc().toIso8601String();
+      copy['created_at'] ??=
+          copy['updated_at'] ?? DateTime.now().toUtc().toIso8601String();
       payload.add(copy);
-      pushedKeys.add([raceId, runnerId]);
+      pushedKeys.add(key);
     }
 
-    if (payload.isNotEmpty) {
-      await _syncClient.upsertRows(
-          'race_participants', payload,
-          onConflict: 'race_uuid,runner_uuid');
-      // Clear the dirty flag by local primary key: race_participants has no
-      // uuid column locally, so there is nothing else to match these rows on.
-      if (pushedKeys.isNotEmpty) {
-        final clause = List.filled(
-                pushedKeys.length, '(race_id = ? AND runner_id = ?)')
-            .join(' OR ');
-        await db.rawUpdate(
-          'UPDATE race_participants SET is_dirty = 0 WHERE $clause',
-          [for (final key in pushedKeys) ...key],
-        );
-      }
-      Logger.d('Pushed ${payload.length} dirty records for race_participants');
-    }
+    if (payload.isEmpty) return;
+
+    await _syncClient.upsertRows(spec.table, payload,
+        onConflict: spec.conflictTarget);
+
+    // Clear the dirty flag by local primary key: a bridge table has no uuid
+    // column locally, so there is nothing else to match these rows on.
+    final clause = List.filled(pushedKeys.length, spec.keyWhereClause)
+        .join(' OR ');
+    await db.rawUpdate(
+      'UPDATE ${spec.table} SET is_dirty = 0 WHERE $clause',
+      [for (final key in pushedKeys) ...key],
+    );
+    Logger.d('Pushed ${payload.length} dirty records for ${spec.table}');
   }
 
   // Pull changed rows
@@ -758,10 +883,12 @@ class SyncService implements ISyncService {
       await pullTable('runners', localPkColumn: 'runner_id');
       await pullTable('teams', localPkColumn: 'team_id');
       await pullTable('races', localPkColumn: 'race_id');
-      // Participants before results: a result takes the team the runner raced
+      // Join tables before results: a result takes the team the runner raced
       // for from this device's participant row, and each table's cursor only
       // moves forward, so a result pulled first would never get one.
-      await _pullRaceParticipants(accessibleOwnerIds, changedTables);
+      for (final bridge in _bridgeTables) {
+        await _pullBridgeTable(bridge, accessibleOwnerIds, changedTables);
+      }
       await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
     } finally {
       // Announce whatever did arrive even if a later table failed, so the
@@ -981,22 +1108,22 @@ class SyncService implements ISyncService {
     }
   }
 
-  /// Pull race_participants from remote and resolve UUID-based foreign keys to
-  /// local integer IDs before inserting or updating. Skips rows where any UUID
-  /// cannot be resolved locally (will retry next sync).
+  /// Pull a bridge table, turning the uuids that name its parents back into
+  /// this device's integer ids. A row whose parent has not arrived yet is left
+  /// for a later sync rather than dropped.
   ///
-  /// A participant is identified by the race and runner it joins, not by a
-  /// surrogate key: `(race_uuid, runner_uuid)` is the remote primary key and
-  /// `(race_id, runner_id)` is the local one. The remote row also carries its
-  /// own `uuid` column, which the local table does not have and which two
-  /// devices can disagree on for the same participant, so it is never used to
-  /// match or written locally.
-  Future<void> _pullRaceParticipants(
-      List<String> accessibleOwnerIds, Set<String> changedTables) async {
+  /// Rows are matched on the pair of parents they link, which is the primary
+  /// key at both ends. The server also gives each row its own `uuid`, which
+  /// has no local column and which two devices can disagree on for the same
+  /// pair, so it is never used to match and never written locally.
+  Future<void> _pullBridgeTable(
+    _BridgeTable spec,
+    List<String> accessibleOwnerIds,
+    Set<String> changedTables,
+  ) async {
     final db = await _db.database;
-
-    const table = 'race_participants';
-    const cursorKey = cursorRaceParticipants;
+    final table = spec.table;
+    final cursorKey = spec.cursorKey;
     final cursor = await getCursor(cursorKey);
 
     final data = await _syncClient.fetchTableRows(
@@ -1006,54 +1133,42 @@ class SyncService implements ISyncService {
     );
     if (data.isEmpty) return;
 
-    // Batch-resolve all UUIDs to local integer IDs
-    final raceUuids =
-        data.map((r) => r['race_uuid']).whereType<String>().toSet().toList();
-    final runnerUuids =
-        data.map((r) => r['runner_uuid']).whereType<String>().toSet().toList();
-    final teamUuids =
-        data.map((r) => r['team_uuid']).whereType<String>().toSet().toList();
-
-    final raceUuidToId = <String, int>{};
-    final runnerUuidToId = <String, int>{};
-    final teamUuidToId = <String, int>{};
-
-    if (raceUuids.isNotEmpty) {
-      final qMarks = List.filled(raceUuids.length, '?').join(',');
-      final rows = await db.rawQuery(
-          'SELECT uuid, race_id FROM races WHERE uuid IN ($qMarks)', raceUuids);
-      for (final r in rows) {
-        raceUuidToId[r['uuid'] as String] = r['race_id'] as int;
+    // Batch-resolve every parent uuid in the payload to a local integer id.
+    final resolved = <String, Map<String, int>>{};
+    for (final parent in spec.allParents) {
+      final uuids = data
+          .map((row) => row[parent.uuidColumn])
+          .whereType<String>()
+          .toSet()
+          .toList();
+      final byUuid = <String, int>{};
+      if (uuids.isNotEmpty) {
+        final qMarks = List.filled(uuids.length, '?').join(',');
+        final rows = await db.rawQuery(
+          'SELECT uuid, ${parent.parentIdColumn} FROM ${parent.parentTable} WHERE uuid IN ($qMarks)',
+          uuids,
+        );
+        for (final row in rows) {
+          byUuid[row['uuid'] as String] = row[parent.parentIdColumn] as int;
+        }
       }
-    }
-    if (runnerUuids.isNotEmpty) {
-      final qMarks = List.filled(runnerUuids.length, '?').join(',');
-      final rows = await db.rawQuery(
-          'SELECT uuid, runner_id FROM runners WHERE uuid IN ($qMarks)',
-          runnerUuids);
-      for (final r in rows) {
-        runnerUuidToId[r['uuid'] as String] = r['runner_id'] as int;
-      }
-    }
-    if (teamUuids.isNotEmpty) {
-      final qMarks = List.filled(teamUuids.length, '?').join(',');
-      final rows = await db.rawQuery(
-          'SELECT uuid, team_id FROM teams WHERE uuid IN ($qMarks)', teamUuids);
-      for (final r in rows) {
-        teamUuidToId[r['uuid'] as String] = r['team_id'] as int;
-      }
+      resolved[parent.uuidColumn] = byUuid;
     }
 
-    // Batch-fetch the local rows for every race in this payload in one query,
-    // keyed by the (race_id, runner_id) pair that identifies a participant.
+    // Batch-fetch the local rows that could match, in one query: everything
+    // belonging to a parent this payload mentions.
+    final anchor = spec.keyParents.first;
+    final anchorIds = resolved[anchor.uuidColumn]!.values.toSet().toList();
     final localsByKey = <String, Map<String, dynamic>>{};
-    final localRaceIds = raceUuidToId.values.toSet().toList();
-    if (localRaceIds.isNotEmpty) {
-      final qMarks = List.filled(localRaceIds.length, '?').join(',');
+    if (anchorIds.isNotEmpty) {
+      final qMarks = List.filled(anchorIds.length, '?').join(',');
       final localRows = await db.rawQuery(
-          'SELECT * FROM $table WHERE race_id IN ($qMarks)', localRaceIds);
-      for (final r in localRows) {
-        localsByKey['${r['race_id']}:${r['runner_id']}'] = r;
+        'SELECT * FROM $table WHERE ${anchor.idColumn} IN ($qMarks)',
+        anchorIds,
+      );
+      for (final row in localRows) {
+        localsByKey[spec.keyOf(
+            [for (final parent in spec.keyParents) row[parent.idColumn]])] = row;
       }
     }
 
@@ -1066,76 +1181,81 @@ class SyncService implements ISyncService {
       // The remote surrogate key has no local column to live in.
       remote.remove('uuid');
 
-      final raceUuid = remote['race_uuid'] as String?;
-      final runnerUuid = remote['runner_uuid'] as String?;
-      final teamUuid = remote['team_uuid'] as String?;
+      final updatedAt = remote['updated_at']?.toString();
 
-      if (raceUuid == null || runnerUuid == null) {
-        Logger.d(
-            'Skipping race_participant — missing race_uuid or runner_uuid');
-        pullCursor.advance(remote['updated_at']?.toString());
+      if (spec.keyParents.any((p) => remote[p.uuidColumn] == null)) {
+        Logger.d('Skipping $table row — ${spec.keyColumns} missing');
+        pullCursor.advance(updatedAt);
         continue;
       }
 
-      final raceId = raceUuidToId[raceUuid];
-      final runnerId = runnerUuidToId[runnerUuid];
+      // Turn each parent uuid into a local id.
+      final ids = <String, int?>{};
+      for (final parent in spec.allParents) {
+        final uuid = remote[parent.uuidColumn] as String?;
+        ids[parent.uuidColumn] =
+            uuid == null ? null : resolved[parent.uuidColumn]![uuid];
+      }
 
-      if (raceId == null || runnerId == null) {
+      if (spec.keyParents.any((p) => ids[p.uuidColumn] == null)) {
         Logger.d(
-            'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — not yet pulled locally. Will retry on next sync.');
-        pullCursor.holdBefore(remote['updated_at']?.toString());
+            'Skipping $table row — a parent is not local yet. Will retry on next sync.');
+        pullCursor.holdBefore(updatedAt);
         continue;
       }
 
-      final teamId = teamUuid != null ? teamUuidToId[teamUuid] : null;
+      for (final parent in spec.allParents) {
+        final id = ids[parent.uuidColumn];
+        if (id != null) remote[parent.idColumn] = id;
+      }
 
-      // Inject resolved local integer IDs
-      remote['race_id'] = raceId;
-      remote['runner_id'] = runnerId;
-      if (teamId != null) remote['team_id'] = teamId;
+      final key =
+          spec.keyOf([for (final p in spec.keyParents) ids[p.uuidColumn]]);
+      final local = localsByKey[key];
 
-      final local = localsByKey['$raceId:$runnerId'];
-
-      // Handle tombstones
       if (remote['deleted_at'] != null) {
         if (local == null) {
-          // Nothing to delete: a participant this device never had. Storing
-          // the tombstone would mean inventing a row, and the cursor moves on
+          // Nothing to delete: a row this device never had. Storing the
+          // tombstone would mean inventing one, and the cursor moves on
           // either way.
-          Logger.d(
-              'Ignoring remote tombstone for unknown $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
+          Logger.d('Ignoring remote tombstone for unknown $table row');
         } else if (local['deleted_at'] == null) {
           await db.update(
             table,
             {'deleted_at': remote['deleted_at'], 'is_dirty': 0},
-            where: 'race_id = ? AND runner_id = ?',
-            whereArgs: [raceId, runnerId],
+            where: spec.keyWhereClause,
+            whereArgs: [for (final p in spec.keyParents) ids[p.uuidColumn]],
           );
-          Logger.d(
-              'Applied remote tombstone to $table race_uuid=$raceUuid runner_uuid=$runnerUuid');
+          Logger.d('Applied remote tombstone to $table');
           hadWrites = true;
         }
-        pullCursor.advance(remote['updated_at']?.toString());
+        pullCursor.advance(updatedAt);
         continue;
       }
 
       if (local == null) {
-        // team_id is NOT NULL locally, so a new row needs its team first.
-        if (teamId == null) {
-          if (teamUuid == null) {
-            // The remote row has no team at all, so waiting will not help.
-            Logger.d(
-                'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — no team_uuid, cannot be stored locally');
-            pullCursor.advance(remote['updated_at']?.toString());
-            continue;
+        // A parent whose local column is NOT NULL has to be resolved first.
+        _BridgeParent? missing;
+        for (final parent in spec.otherParents) {
+          if (ids[parent.uuidColumn] == null) {
+            missing = parent;
+            break;
           }
-          Logger.d(
-              'Skipping race_participant race_uuid=$raceUuid runner_uuid=$runnerUuid — team_uuid=$teamUuid not yet pulled locally. Will retry on next sync.');
-          pullCursor.holdBefore(remote['updated_at']?.toString());
+        }
+        if (missing != null) {
+          if (remote[missing.uuidColumn] == null) {
+            // The remote row names no parent at all, so waiting will not help.
+            Logger.d(
+                'Skipping $table row — no ${missing.uuidColumn}, cannot be stored locally');
+            pullCursor.advance(updatedAt);
+          } else {
+            Logger.d(
+                'Skipping $table row — ${missing.uuidColumn} not yet pulled locally. Will retry on next sync.');
+            pullCursor.holdBefore(updatedAt);
+          }
           continue;
         }
-        final insert = Map<String, dynamic>.from(remote);
-        insert['is_dirty'] = 0;
+        final insert = Map<String, dynamic>.from(remote)..['is_dirty'] = 0;
         await db.insert(table, insert,
             conflictAlgorithm: ConflictAlgorithm.replace);
         hadWrites = true;
@@ -1143,38 +1263,22 @@ class SyncService implements ISyncService {
         final localUpdated =
             DateTime.tryParse(local['updated_at']?.toString() ?? '') ??
                 DateTime.fromMillisecondsSinceEpoch(0);
-        final remoteUpdated =
-            DateTime.tryParse(remote['updated_at']?.toString() ?? '') ??
-                DateTime.fromMillisecondsSinceEpoch(0);
-
-        bool shouldUpdateLocal = false;
-        String conflictReason = '';
+        final remoteUpdated = DateTime.tryParse(updatedAt ?? '') ??
+            DateTime.fromMillisecondsSinceEpoch(0);
 
         if (remoteUpdated.isAfter(localUpdated)) {
-          shouldUpdateLocal = true;
-          conflictReason = 'remote_newer';
-        } else if (localUpdated.isAfter(remoteUpdated)) {
-          conflictReason = 'local_newer';
-        } else {
-          conflictReason = 'no_conflict_identical_data';
-        }
-
-        if (shouldUpdateLocal) {
-          final update = Map<String, dynamic>.from(remote);
-          update['is_dirty'] = 0;
+          final update = Map<String, dynamic>.from(remote)..['is_dirty'] = 0;
           await db.update(table, update,
-              where: 'race_id = ? AND runner_id = ?',
-              whereArgs: [raceId, runnerId]);
-          Logger.d(
-              'Updated $table race_uuid=$raceUuid runner_uuid=$runnerUuid from remote ($conflictReason)');
+              where: spec.keyWhereClause,
+              whereArgs: [for (final p in spec.keyParents) ids[p.uuidColumn]]);
+          Logger.d('Updated $table row from remote (remote_newer)');
           hadWrites = true;
         } else {
-          Logger.d(
-              'Kept local $table race_uuid=$raceUuid runner_uuid=$runnerUuid ($conflictReason)');
+          Logger.d('Kept local $table row');
         }
       }
 
-      pullCursor.advance(remote['updated_at']?.toString());
+      pullCursor.advance(updatedAt);
     }
 
     if (hadWrites) changedTables.add(table);
