@@ -156,6 +156,21 @@ class _FakeAuth implements IAuthService {
   @override
   Future<void> sendPasswordResetEmail(String email) =>
       throw UnimplementedError();
+
+  @override
+  Future<AuthResponse> verifyEmailOtp(String email, String token) =>
+      throw UnimplementedError();
+
+  @override
+  Future<AuthResponse> verifyPasswordResetOtp(String email, String token) =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> updatePassword(String newPassword) => throw UnimplementedError();
+
+  @override
+  Future<void> resendEmailConfirmation(String email) =>
+      throw UnimplementedError();
 }
 
 void main() {

@@ -76,6 +76,28 @@ class AuthService implements IAuthService {
         .signInWithPassword(email: email, password: password);
   }
 
+  /// Verifies the code emailed after sign-up.
+  @override
+  Future<AuthResponse> verifyEmailOtp(String email, String token) =>
+      _client.auth.verifyOTP(email: email, token: token, type: OtpType.signup);
+
+  /// Verifies the code emailed for a password reset. The session it returns is
+  /// what lets [updatePassword] run.
+  @override
+  Future<AuthResponse> verifyPasswordResetOtp(String email, String token) =>
+      _client.auth
+          .verifyOTP(email: email, token: token, type: OtpType.recovery);
+
+  /// Sets a new password for the signed-in user.
+  @override
+  Future<void> updatePassword(String newPassword) =>
+      _client.auth.updateUser(UserAttributes(password: newPassword));
+
+  /// Sends the sign-up code again.
+  @override
+  Future<void> resendEmailConfirmation(String email) =>
+      _client.auth.resend(type: OtpType.signup, email: email);
+
   /// Sends a password reset email. Configure Redirect URLs in Supabase Auth.
   @override
   Future<void> sendPasswordResetEmail(String email) async {
