@@ -61,6 +61,28 @@ void main() {
       expect(duplicate.occurrences.map((o) => o.place), [1, 3, 4]);
     });
 
+    test('gives each finish its own neighbours', () async {
+      // Choosing between two finishes means knowing who each sits between.
+      final alice = _runner(1, '12', name: 'Alice');
+      final conflicts = await detectBibConflicts(
+        entries: [
+          _runner(2, '11', name: 'First'),
+          alice,
+          _runner(3, '13', name: 'Third'),
+          alice,
+          _runner(4, '14', name: 'Fifth'),
+        ],
+        timesByPlace: const {},
+        lookupBib: _lookup({'12': alice}),
+      );
+
+      final duplicate = conflicts.single as DuplicateBibConflict;
+      expect(duplicate.occurrences[0].nearby.map((f) => f.name),
+          ['First', 'Third']);
+      expect(duplicate.occurrences[1].nearby.map((f) => f.name),
+          ['Third', 'Fifth']);
+    });
+
     test('pairs an unresolved entry with the runner that holds the bib',
         () async {
       // The second recording of bib 12 never got matched to a runner, so it
@@ -153,10 +175,10 @@ void main() {
       );
 
       final unknown = conflicts.single as UnknownBibConflict;
-      expect(unknown.nearby.map((f) => f.name), ['Ahead', 'Behind']);
-      expect(unknown.nearby.map((f) => f.place), [1, 3]);
-      expect(unknown.nearby.first.time, '15:00.00');
-      expect(unknown.nearby.first.bibNumber, '11');
+      expect(unknown.occurrence.nearby.map((f) => f.name), ['Ahead', 'Behind']);
+      expect(unknown.occurrence.nearby.map((f) => f.place), [1, 3]);
+      expect(unknown.occurrence.nearby.first.time, '15:00.00');
+      expect(unknown.occurrence.nearby.first.bibNumber, '11');
     });
 
     test('leaves other conflicts out of the nearby finishers', () async {
@@ -168,7 +190,7 @@ void main() {
       );
 
       final first = conflicts.first as UnknownBibConflict;
-      expect(first.nearby.map((f) => f.name), ['Known']);
+      expect(first.occurrence.nearby.map((f) => f.name), ['Known']);
     });
   });
 }

@@ -2,7 +2,11 @@ import 'package:xceleration/shared/models/database/race_runner.dart';
 
 /// One finish the coach is being asked about.
 class ConflictOccurrence {
-  const ConflictOccurrence({required this.place, this.time});
+  const ConflictOccurrence({
+    required this.place,
+    this.time,
+    this.nearby = const [],
+  });
 
   /// Finish place, counting from 1.
   final int place;
@@ -10,6 +14,11 @@ class ConflictOccurrence {
   /// The Timer's time for that place, or null where the Timer flagged the
   /// stretch it falls in and which time belongs to whom is still in dispute.
   final String? time;
+
+  /// The nearest finisher either side of this place, in finish order. Each
+  /// finish carries its own: choosing between two of them means knowing who
+  /// each one sits between.
+  final List<NearbyFinisher> nearby;
 }
 
 /// A finisher near a conflict whose own bib is not in question, shown so the
@@ -32,12 +41,9 @@ class NearbyFinisher {
 
 /// Something wrong with the finish order the Bib Recorder handed over.
 sealed class BibConflict {
-  const BibConflict({required this.bibNumber, required this.nearby});
+  const BibConflict({required this.bibNumber});
 
   final String bibNumber;
-
-  /// The nearest finisher either side, in finish order.
-  final List<NearbyFinisher> nearby;
 
   /// Where the conflict sits in the finish order, for listing them in order.
   int get firstPlace;
@@ -50,7 +56,6 @@ class DuplicateBibConflict extends BibConflict {
     required super.bibNumber,
     required this.runner,
     required this.occurrences,
-    required super.nearby,
   });
 
   /// The runner the bib belongs to.
@@ -69,7 +74,6 @@ class UnknownBibConflict extends BibConflict {
   const UnknownBibConflict({
     required super.bibNumber,
     required this.occurrence,
-    required super.nearby,
   });
 
   final ConflictOccurrence occurrence;
@@ -118,9 +122,6 @@ Future<List<BibConflict>> detectBibConflicts({
     if (isDuplicate || isUnknown) disputed.addAll(entry.value);
   }
 
-  ConflictOccurrence occurrenceAt(int place) =>
-      ConflictOccurrence(place: place, time: timesByPlace[place]);
-
   /// The nearest settled finisher either side of [place].
   List<NearbyFinisher> nearbyTo(int place) {
     NearbyFinisher? at(int candidate) {
@@ -151,6 +152,12 @@ Future<List<BibConflict>> detectBibConflicts({
     ];
   }
 
+  ConflictOccurrence occurrenceAt(int place) => ConflictOccurrence(
+        place: place,
+        time: timesByPlace[place],
+        nearby: nearbyTo(place),
+      );
+
   final conflicts = <BibConflict>[];
   for (final entry in placesByBib.entries) {
     final bib = entry.key;
@@ -163,7 +170,6 @@ Future<List<BibConflict>> detectBibConflicts({
         conflicts.add(UnknownBibConflict(
           bibNumber: bib,
           occurrence: occurrenceAt(place),
-          nearby: nearbyTo(place),
         ));
       }
     } else if (places.length > 1) {
@@ -171,7 +177,6 @@ Future<List<BibConflict>> detectBibConflicts({
         bibNumber: bib,
         runner: runner,
         occurrences: places.map(occurrenceAt).toList(),
-        nearby: nearbyTo(places.first),
       ));
     }
   }
