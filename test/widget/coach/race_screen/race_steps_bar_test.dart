@@ -19,9 +19,9 @@ void main() {
         home: Scaffold(
           body: Padding(
             padding: const EdgeInsets.all(16),
-            // About what the header leaves beside its action button.
+            // The full width of the header on the narrowest phone.
             child: SizedBox(
-              width: 170,
+              width: 288,
               child: RaceStepsBar(
                   stage: RaceStage.of(state), color: AppColors.primaryColor),
             ),

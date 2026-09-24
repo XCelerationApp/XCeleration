@@ -121,10 +121,7 @@ class _RaceHeaderState extends State<RaceHeader> {
                     ],
                     // Race title (editable)
                     _buildTitle(race, canEdit),
-                    if (!isFinished) ...[
-                      const SizedBox(height: AppSpacing.md),
-                      RaceStepsBar(stage: stage, color: statusColor),
-                    ],
+
                   ],
                 ),
               ),
@@ -140,6 +137,13 @@ class _RaceHeaderState extends State<RaceHeader> {
             ],
           ),
         ),
+        // Full width below the title, so each step's name fits on one line.
+        if (!isFinished)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(
+                AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.md),
+            child: RaceStepsBar(stage: stage, color: statusColor),
+          ),
         const Divider(height: 1, thickness: 1, color: AppColors.lightColor),
       ],
     );
