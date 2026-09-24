@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
+import '../../shared/models/database/master_race.dart';
 import '../utils/local_schema.dart';
 import '../utils/logger.dart';
 import 'i_database_connection_provider.dart';
@@ -223,6 +224,10 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
   Future<void> close() => _inTurn(_close);
 
   Future<void> _close() async {
+    // Races held in memory belong to this database. Race numbers start at 1
+    // in every user's file, so the next user's race 1 would otherwise open
+    // with this one's runners and results.
+    MasterRace.clearAllInstances();
     await _db?.close();
     _db = null;
     _openUserId = null;
