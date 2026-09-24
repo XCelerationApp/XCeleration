@@ -330,12 +330,13 @@ class FlowController extends ChangeNotifier {
     }
   }
 
+  /// Stops listening to the steps but leaves them working. A race keeps its
+  /// flow's steps and shows them again each time the flow opens; disposing
+  /// them here left a reopened Load Results step unable to tell the flow its
+  /// conflicts were resolved, so Save Results stayed greyed out.
   @override
   void dispose() {
     _contentChangeSubscription?.cancel();
-    for (final step in steps) {
-      step.dispose();
-    }
     super.dispose();
   }
 }
