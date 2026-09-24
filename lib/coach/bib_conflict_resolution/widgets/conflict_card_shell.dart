@@ -73,7 +73,7 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
         ),
         if (hasPending)
           Positioned(
-            bottom: AppSpacing.xl,
+            bottom: AppSpacing.sm,
             left: AppSpacing.lg,
             right: AppSpacing.lg,
             child: const _UndoToastWrapper(),
