@@ -99,7 +99,8 @@ class RunnerRepository implements IRunnerRepository {
   Future<int> countRaceResults(int runnerId) async {
     final db = await _db;
     final rows = await db.rawQuery(
-        'SELECT COUNT(*) AS n FROM race_results WHERE runner_id = ?',
+        'SELECT COUNT(*) AS n FROM race_results '
+        'WHERE runner_id = ? AND deleted_at IS NULL',
         [runnerId]);
     return (rows.first['n'] as int?) ?? 0;
   }
@@ -225,7 +226,10 @@ class RunnerRepository implements IRunnerRepository {
     // Validate team existence via raw SQL (avoids cross-repo dep)
     final db = await _db;
     final teamRows = await db
-        .query('teams', where: 'team_id = ?', whereArgs: [newTeamId], limit: 1);
+        .query('teams',
+            where: 'team_id = ? AND deleted_at IS NULL',
+            whereArgs: [newTeamId],
+            limit: 1);
     if (teamRows.isEmpty) throw Exception('Team with id $newTeamId not found');
     final now = SyncTimestamp.now();
     await db.transaction((txn) async {

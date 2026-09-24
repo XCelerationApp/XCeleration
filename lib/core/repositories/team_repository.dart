@@ -106,7 +106,9 @@ class TeamRepository implements ITeamRepository {
     // race_results.team_id cascades on delete, so deleting a team with
     // results would erase those results from every race.
     final rows = await db.rawQuery(
-        'SELECT COUNT(*) AS n FROM race_results WHERE team_id = ?', [teamId]);
+        'SELECT COUNT(*) AS n FROM race_results '
+        'WHERE team_id = ? AND deleted_at IS NULL',
+        [teamId]);
     if (((rows.first['n'] as int?) ?? 0) > 0) {
       throw const DataInUseException(
           'This team has saved race results, so it cannot be deleted.');

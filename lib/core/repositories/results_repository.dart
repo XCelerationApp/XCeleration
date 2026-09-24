@@ -81,7 +81,7 @@ class ResultsRepository implements IResultsRepository {
       final db = await _db;
       final existing = await db.query(
         'race_results',
-        where: 'race_id = ? AND runner_id = ?',
+        where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
         whereArgs: [result.raceId, result.runner!.runnerId],
       );
       if (existing.isNotEmpty) throw Exception('RaceResult already exists');

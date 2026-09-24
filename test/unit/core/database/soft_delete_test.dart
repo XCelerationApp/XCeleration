@@ -151,6 +151,49 @@ void main() {
     });
   });
 
+  group('results that were deleted', () {
+    /// A result for [runnerId] in a new race, already deleted.
+    Future<void> deletedResult(int runnerId, {int? teamId}) async {
+      final db = await conn.database;
+      final raceId = await db.insert('races', {'name': 'Invitational'});
+      await db.insert('race_results', {
+        'race_id': raceId,
+        'runner_id': runnerId,
+        'team_id': teamId,
+        'place': 1,
+        'finish_time': 900000,
+        'deleted_at': '2026-01-01T00:00:00Z',
+      });
+    }
+
+    test('do not stop the runner being deleted', () async {
+      final id = await addRunner();
+      await deletedResult(id);
+
+      await runners.deleteRunnerEverywhere(id);
+
+      expect(await runners.getRunner(id), isNull);
+    });
+
+    test('do not stop the team being deleted', () async {
+      final runnerId = await addRunner();
+      final teamId = await addTeam();
+      await deletedResult(runnerId, teamId: teamId);
+
+      await teams.deleteTeam(teamId);
+
+      expect(await teams.getTeam(teamId), isNull);
+    });
+  });
+
+  test('a runner cannot be moved onto a deleted team', () async {
+    final runnerId = await addRunner();
+    final teamId = await addTeam();
+    await teams.deleteTeam(teamId);
+
+    await expectLater(runners.setRunnerTeam(runnerId, teamId), throwsException);
+  });
+
   group('removing a runner from a team', () {
     test('tombstones the roster row and hides it', () async {
       final teamId = await addTeam();
