@@ -56,28 +56,34 @@ class PreRaceController {
   void _initializeSteps() {
     _reviewRunnersStep = ReviewRunnersStep(
       masterRace: masterRace,
-      onNext: () async {
-        final encodedRaceData = await encodeRaceData(masterRace);
-        if (encodedRaceData == '') {
-          Logger.e('Failed to encode race data');
-          return;
-        }
-        devices.raceTimer!.data = encodedRaceData;
-        final encodedBibData = await encodeBibData(masterRace);
-        if (encodedBibData == '') {
-          Logger.e('Failed to encode runners data');
-          return;
-        }
-        devices.bibRecorder!.data = '$encodedRaceData---$encodedBibData';
-      },
+      onNext: _prepareShareData,
     );
     _shareRaceStep = ShareRaceStep(devices: devices);
     _preRaceFlowCompleteStep = PreRaceFlowCompleteStep();
   }
 
+  /// Encodes the race and its roster for the assistants to receive.
+  Future<void> _prepareShareData() async {
+    final encodedRaceData = await encodeRaceData(masterRace);
+    if (encodedRaceData == '') {
+      Logger.e('Failed to encode race data');
+      return;
+    }
+    devices.raceTimer!.data = encodedRaceData;
+    final encodedBibData = await encodeBibData(masterRace);
+    if (encodedBibData == '') {
+      Logger.e('Failed to encode runners data');
+      return;
+    }
+    devices.bibRecorder!.data = '$encodedRaceData---$encodedBibData';
+  }
+
   Future<bool> showPreRaceFlow(
       BuildContext context, bool showProgressIndicator) async {
     final int startIndex = _lastStepIndex ?? 0;
+    // Reopening past the review step skips the step that encodes the race,
+    // and the roster may have changed since the sheet was closed.
+    if (startIndex > 0) await _prepareShareData();
     // Ensure initial proceed state is computed before rendering the sheet
     await _reviewRunnersStep.seedInitialProceed();
     if (!context.mounted) {
