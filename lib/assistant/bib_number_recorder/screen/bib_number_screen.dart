@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/components/dialog_utils.dart';
+import '../../../core/services/screen_awake.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/utils/enums.dart';
 import '../../../core/theme/app_colors.dart';
@@ -47,6 +48,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   void _onControllerChanged() {
+    // The screen stays on while recording.
+    ScreenAwake.set(
+        _controller.currentRace != null && !_controller.raceStopped);
     if (_controller.runnersJustLoaded) {
       _controller.clearRunnersJustLoaded();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -128,6 +132,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   void dispose() {
     _controller.removeListener(_onControllerChanged);
+    ScreenAwake.set(false);
     _controller.dispose();
     super.dispose();
   }
