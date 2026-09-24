@@ -183,6 +183,14 @@ class MockRaceScreenController extends _i1.Mock
           as List<_i13.Team>);
 
   @override
+  bool get canEditResults =>
+      (super.noSuchMethod(
+            Invocation.getter(#canEditResults),
+            returnValue: false,
+          )
+          as bool);
+
+  @override
   bool get canEdit =>
       (super.noSuchMethod(Invocation.getter(#canEdit), returnValue: false)
           as bool);

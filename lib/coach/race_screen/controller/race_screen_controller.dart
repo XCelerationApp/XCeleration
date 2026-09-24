@@ -69,6 +69,9 @@ class RaceScreenController with ChangeNotifier {
     return _teams!;
   }
 
+  /// Whether this coach may correct the results once the race is finished.
+  bool get canEditResults => parentController.canEdit;
+
   bool get canEdit {
     if (_isInitialLoading) {
       throw StateError('CanEdit not loaded yet - check isLoading first');

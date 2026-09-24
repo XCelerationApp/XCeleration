@@ -5,6 +5,7 @@ import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import '../controller/race_results_controller.dart';
+import '../edit/edit_results_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../widgets/share_button.dart';
@@ -14,9 +15,13 @@ import '../widgets/team_results_widget.dart';
 class ResultsScreen extends StatefulWidget {
   final MasterRace masterRace;
 
+  /// Whether to offer Edit Results.
+  final bool canEdit;
+
   const ResultsScreen({
     super.key,
     required this.masterRace,
+    this.canEdit = false,
   });
 
   @override
@@ -34,6 +39,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
       syncStream: context.read<ISyncService>().syncEvents,
     );
     _controller.loadRaceResults(widget.masterRace);
+  }
+
+  /// Opens the results for correcting, and shows them afresh if any change
+  /// was saved.
+  Future<void> _editResults() async {
+    final saved = await EditResultsScreen.open(context, widget.masterRace);
+    if (!saved || !mounted) return;
+    widget.masterRace.invalidateCache();
+    await _controller.loadRaceResults(widget.masterRace);
   }
 
   @override
@@ -86,6 +100,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  if (widget.canEdit)
+                                    Align(
+                                      alignment: Alignment.centerRight,
+                                      child: TextButton.icon(
+                                        onPressed: _editResults,
+                                        icon: const Icon(Icons.edit_outlined),
+                                        label: const Text('Edit Results'),
+                                      ),
+                                    ),
                                   TeamResultsWidget(
                                     raceResultsData:
                                         controller.raceResultsData!,
