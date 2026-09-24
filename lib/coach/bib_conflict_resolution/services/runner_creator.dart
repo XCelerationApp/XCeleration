@@ -45,24 +45,27 @@ Future<Result<RaceRunner>> saveNewRunner(
       grade: newRunner.grade,
     );
 
+    // The finish goes to whoever is saved with this bib, so that is who the
+    // coach is shown, even if a different name was typed.
     final existing = await masterRace.getRunnerByBib(newRunner.bibNumber);
-    final int runnerId;
+    final Runner saved;
     if (existing?.runnerId != null) {
-      runnerId = existing!.runnerId!;
+      saved = existing!;
     } else {
-      runnerId = await masterRace.createRunner(runner);
+      final runnerId = await masterRace.createRunner(runner);
       await masterRace.addRunnerToTeam(team.teamId!, runnerId);
+      saved = runner.copyWith(runnerId: runnerId);
     }
 
     await masterRace.addRaceParticipant(RaceParticipant(
       raceId: masterRace.raceId,
-      runnerId: runnerId,
+      runnerId: saved.runnerId!,
       teamId: team.teamId!,
     ));
 
     return Success(RaceRunner(
       raceId: masterRace.raceId,
-      runner: runner.copyWith(runnerId: runnerId),
+      runner: saved,
       team: team,
     ));
   } catch (e) {

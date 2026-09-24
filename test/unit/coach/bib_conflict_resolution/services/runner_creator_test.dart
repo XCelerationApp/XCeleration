@@ -60,6 +60,18 @@ void main() {
     verifyNever(masterRace.createRunner(any));
   });
 
+  test('shows who the bib really belongs to, not the name typed', () async {
+    // The finish is saved against runner 9, so the review has to name them.
+    when(masterRace.getRunnerByBib('412')).thenAnswer((_) async =>
+        const Runner(runnerId: 9, name: 'Jordan Lee', bibNumber: '412', grade: 11));
+
+    final result = await saveNewRunner(masterRace, newRunner);
+
+    final saved = (result as Success).value.runner;
+    expect(saved.name, 'Jordan Lee');
+    expect(saved.grade, 11);
+  });
+
   test('says so when the team is not in the race', () async {
     final result = await saveNewRunner(
       masterRace,
