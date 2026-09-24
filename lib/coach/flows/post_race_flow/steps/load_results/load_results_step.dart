@@ -15,8 +15,9 @@ class LoadResultsStep extends FlowStep {
     required this.controller,
   }) : super(
           title: 'Load Results',
-          description:
-              'Load the results of the race from the assistant devices.',
+          description: 'The times and bibs load as each volunteer\'s phone '
+              'connects. Fix anything flagged, then save.',
+          nextLabel: 'Save Results',
           // Initialize with a placeholder
           content: SizedBox.shrink(),
           onNext: () async {
@@ -49,5 +50,16 @@ class LoadResultsStep extends FlowStep {
         return controller.resultsLoaded &&
             !controller.hasBibConflicts &&
             !controller.hasTimingConflicts;
+      };
+
+  @override
+  String? Function()? get blockedReason => () {
+        if (!controller.resultsLoaded) {
+          return 'Waiting for the times and bibs from your volunteers.';
+        }
+        if (controller.hasBibConflicts || controller.hasTimingConflicts) {
+          return 'Resolve the conflicts above, then save.';
+        }
+        return null;
       };
 }

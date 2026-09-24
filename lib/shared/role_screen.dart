@@ -346,7 +346,7 @@ class _AssistantScreenState extends State<_AssistantScreen>
       ),
       _RoleData(
         label: 'Bib Recorder',
-        description: "Enter bib numbers in finishing order. Syncs with the coach's device.",
+        description: "Type each runner's bib number as they finish, in order",
         onPressed: _onRecorder,
       ),
     ];

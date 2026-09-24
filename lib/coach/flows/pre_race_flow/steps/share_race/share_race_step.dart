@@ -13,5 +13,6 @@ class ShareRaceStep extends FlowStep {
               'then Timer or Bib Recorder, and tap Get Race from Coach.',
           content: ShareRaceWidget(devices: devices),
           canProceed: () => true,
+          nextLabel: 'Done Sending',
         );
 }

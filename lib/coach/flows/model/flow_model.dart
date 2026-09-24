@@ -28,6 +28,10 @@ class FlowStep {
   /// the step.
   final Future<void> Function()? onNext;
   final VoidCallback? onBack;
+
+  /// What the button under the step says, such as 'Save Results'. Without
+  /// it the button says Next, or Done on the last step.
+  final String? nextLabel;
   final StreamController<void> _contentChangeController;
 
   FlowStep({
@@ -39,6 +43,7 @@ class FlowStep {
     this.blockedReason,
     this.onNext,
     this.onBack,
+    this.nextLabel,
   }) : _contentChangeController = StreamController<void>.broadcast();
 
   Stream<void> get onContentChange => _contentChangeController.stream;

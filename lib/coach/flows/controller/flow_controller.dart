@@ -450,7 +450,9 @@ Future<bool> showFlow({
           Selector<FlowController, (bool, int, String?)>(
             selector: (_, c) => (c.canProceed, c.currentIndex, c.blockedReason),
             builder: (ctx, data, _) {
-              final (canProceed, _, blockedReason) = data;
+              final (canProceed, index, blockedReason) = data;
+              final label = steps[index].nextLabel ??
+                  (index == steps.length - 1 ? 'Done' : 'Next');
               return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
                 child: Column(
@@ -467,7 +469,7 @@ Future<bool> showFlow({
                       const SizedBox(height: AppSpacing.sm),
                     ],
                     FullWidthButton(
-                      text: 'Next',
+                      text: label,
                       borderRadius: 6,
                       fontSize: 16,
                       textColor: Colors.white,

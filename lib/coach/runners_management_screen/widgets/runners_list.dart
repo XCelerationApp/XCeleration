@@ -130,7 +130,8 @@ class _RunnersListState extends State<RunnersList> {
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
       itemCount: teams.length,
       itemBuilder: (context, index) {
           final team = teams[index];
