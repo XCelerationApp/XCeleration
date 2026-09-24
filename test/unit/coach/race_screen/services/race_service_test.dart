@@ -59,8 +59,17 @@ void main() {
         'of this race.');
   });
 
-  test('says so when the race has no teams at all', () async {
+  test('says so when the race has no runners at all', () async {
     expect(await service.whyRunnersNotReady(_Race([], [])),
-        'This race has no teams yet. Add a team to continue.');
+        'This race has no runners yet. Add a team and its runners to '
+        'continue.');
+  });
+
+  test('a runner\'s team counts even if the race was never linked to it',
+      () async {
+    // Races that came from another phone before those links synced.
+    final race = _Race([], [_on(_eagles), _on(_hawks)]);
+
+    expect(await service.whyRunnersNotReady(race), isNull);
   });
 }

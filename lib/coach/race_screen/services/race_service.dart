@@ -37,12 +37,16 @@ class RaceService implements IRaceService {
 
   @override
   Future<String?> whyRunnersNotReady(IMasterRaceResolver masterRace) async {
-    final teamsList = await masterRace.teams;
-    if (teamsList.isEmpty) {
-      return 'This race has no teams yet. Add a team to continue.';
+    final raceRunnersList = await masterRace.raceRunners;
+    if (raceRunnersList.isEmpty) {
+      return 'This race has no runners yet. Add a team and its runners to '
+          'continue.';
     }
 
-    final raceRunnersList = await masterRace.raceRunners;
+    // A runner's team is in the race even if the race was never linked to
+    // it: races that came from another phone before those links synced lack
+    // them. Only a team linked to the race with nobody on it holds it up.
+    final teamsList = await masterRace.teams;
     final teamsWithRunners =
         raceRunnersList.map((rr) => rr.team.teamId).toSet();
     final empty = [

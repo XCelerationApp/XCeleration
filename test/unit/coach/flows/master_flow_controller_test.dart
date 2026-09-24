@@ -61,6 +61,7 @@ void main() {
     when(mockMasterRace.raceId).thenReturn(1);
     when(mockMasterRace.race).thenAnswer((_) async => _testRace);
     when(mockMasterRace.teams).thenAnswer((_) async => []);
+    when(mockMasterRace.raceRunners).thenAnswer((_) async => []);
     when(mockMasterRace.teamtoRaceRunnersMap).thenAnswer((_) async => {});
     when(mockRaceController.form).thenReturn(fakeForm);
     when(mockRaceController.teamsOrNull).thenReturn(null);

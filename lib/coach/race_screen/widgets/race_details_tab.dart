@@ -112,7 +112,12 @@ class RaceDetailsTab extends StatelessWidget {
     final teams = controller.teams;
     final canEdit = controller.canEdit;
     final runnerCount = raceRunners.length;
-    final teamCount = teams.length;
+    // A runner's team counts even if it was never added to the race itself:
+    // races that came from another phone before those links synced lack them.
+    final teamCount = {
+      for (final team in teams) team.teamId,
+      for (final runner in raceRunners) runner.team.teamId,
+    }.length;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
