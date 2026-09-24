@@ -1,3 +1,5 @@
+import '../../../core/theme/app_border_radius.dart';
+import '../../../core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/components/dialog_utils.dart';
@@ -48,12 +50,15 @@ class BottomControlsWidget extends StatelessWidget {
     if (controller.isLastRecordUndoable) {
       return _buildControlButton(
         icon: Icons.undo,
+        label: 'Undo',
         color: Colors.grey[700]!,
         onTap: () => _handleUndoLastConflict(context),
       );
     } else {
+      // Pressed once the Bib Recorder has the same number of runners.
       return _buildControlButton(
         icon: Icons.check,
+        label: 'Counts match',
         color: Colors.green,
         onTap: () => _handleConfirmTimes(context),
       );
@@ -62,22 +67,30 @@ class BottomControlsWidget extends StatelessWidget {
 
   Widget _buildControlButton({
     required IconData icon,
+    required String label,
     required Color color,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(30),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: ColorUtils.withOpacity(color, 0.1),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: 30,
-          color: color,
+      borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.sm),
+              decoration: BoxDecoration(
+                color: ColorUtils.withOpacity(color, 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 30, color: color),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(label,
+                style: AppTypography.caption.copyWith(color: color)),
+          ],
         ),
       ),
     );
@@ -91,20 +104,20 @@ class BottomControlsWidget extends StatelessWidget {
           PopupMenuItem<void>(
             onTap: () => _handleAddMissingTime(context),
             child: Text(
-              '+ (Add finish time)',
+              'I missed a runner (add a time)',
               style: AppTypography.bodySemibold,
             ),
           ),
           PopupMenuItem<void>(
             onTap: () => _handleRemoveExtraTime(context),
             child: Text(
-              '- (Remove finish time)',
+              'I tapped an extra time (remove one)',
               style: AppTypography.bodySemibold,
             ),
           ),
         ],
         child: Text(
-          'Adjust # of times',
+          'Counts differ?',
           style: AppTypography.titleRegular,
         ),
       ),
