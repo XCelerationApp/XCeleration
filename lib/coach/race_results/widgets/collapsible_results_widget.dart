@@ -102,6 +102,24 @@ TextStyle get _headerStyle =>
 
 const _tabular = [FontFeature.tabularFigures()];
 
+/// "Place" over the narrow place column, shrunk rather than wrapped at a
+/// large text size.
+class _PlaceHeader extends StatelessWidget {
+  const _PlaceHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _placeWidth,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text('Place', style: _headerStyle),
+      ),
+    );
+  }
+}
+
 /// Pre-built [CollapsibleResultsWidget] variant for individual race results.
 class CollapsibleIndividualResultsWidget extends StatelessWidget {
   final List<ResultsRecord> results;
@@ -118,7 +136,7 @@ class CollapsibleIndividualResultsWidget extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          SizedBox(width: _placeWidth, child: Text('Place', style: _headerStyle)),
+          const _PlaceHeader(),
           Expanded(child: Text('Runner', style: _headerStyle)),
           Text('Time', style: _headerStyle),
         ],
@@ -195,7 +213,7 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          SizedBox(width: _placeWidth, child: Text('Place', style: _headerStyle)),
+          const _PlaceHeader(),
           Expanded(child: Text('Team', style: _headerStyle)),
           Text('Score', style: _headerStyle),
         ],

@@ -50,11 +50,17 @@ class AppHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Shrinks to fit beside the buttons at a large text size, rather
+          // than cutting the title down to "My ...".
           Flexible(
-            child: Text(
-              title,
-              style: titleStyle ?? AppTypography.displayMedium,
-              overflow: TextOverflow.ellipsis,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                maxLines: 1,
+                style: titleStyle ?? AppTypography.displayMedium,
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),

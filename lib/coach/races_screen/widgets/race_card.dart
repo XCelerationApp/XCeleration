@@ -156,14 +156,21 @@ class _RaceCardState extends State<RaceCard> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(race.raceName ?? 'Unnamed Race',
+        // The badge drops below the name when both do not fit, rather than
+        // squeezing the name until it breaks mid-word at a large text size.
+        SizedBox(
+          width: double.infinity,
+          child: Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.xs,
+            children: [
+              Text(race.raceName ?? 'Unnamed Race',
                   style: AppTypography.headerSemibold),
-            ),
-            StatusBadge(flowState: widget.flowState),
-          ],
+              StatusBadge(flowState: widget.flowState),
+            ],
+          ),
         ),
         if (race.location != null && race.location!.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
