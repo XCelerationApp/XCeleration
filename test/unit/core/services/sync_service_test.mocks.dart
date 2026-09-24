@@ -213,23 +213,15 @@ class MockIRemoteSyncClient extends _i1.Mock implements _i7.IRemoteSyncClient {
   }
 
   @override
-  _i4.Future<List<String>> fetchAccessibleOwnerIds(String? userId) =>
-      (super.noSuchMethod(
-            Invocation.method(#fetchAccessibleOwnerIds, [userId]),
-            returnValue: _i4.Future<List<String>>.value(<String>[]),
-          )
-          as _i4.Future<List<String>>);
-
-  @override
   _i4.Future<List<Map<String, dynamic>>> fetchTableRows(
     String? table,
-    List<String>? ownerIds, {
+    String? ownerId, {
     String? cursor,
   }) =>
       (super.noSuchMethod(
             Invocation.method(
               #fetchTableRows,
-              [table, ownerIds],
+              [table, ownerId],
               {#cursor: cursor},
             ),
             returnValue: _i4.Future<List<Map<String, dynamic>>>.value(

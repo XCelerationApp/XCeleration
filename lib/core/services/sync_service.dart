@@ -778,10 +778,14 @@ class SyncService implements ISyncService {
       return;
     }
 
+    // Only the signed-in coach's own rows. Another coach's runners can hold
+    // the same bib numbers, and saving one here would replace the coach's own
+    // runner with the same bib.
     final uid = _auth.currentUserId;
-    final accessibleOwnerIds = uid != null
-        ? await _syncClient.fetchAccessibleOwnerIds(uid)
-        : <String>[];
+    if (uid == null) {
+      Logger.d('Pull skipped: user is not authenticated.');
+      return;
+    }
 
     final changedTables = <String>{};
     final changedRaceIds = <int>{};
@@ -791,7 +795,7 @@ class SyncService implements ISyncService {
       final cursor = await getCursor(cursorKey);
       final data = await _syncClient.fetchTableRows(
         table,
-        accessibleOwnerIds,
+        uid,
         cursor: cursor,
       );
 
@@ -930,9 +934,9 @@ class SyncService implements ISyncService {
       // for from this device's participant row, and each table's cursor only
       // moves forward, so a result pulled first would never get one.
       for (final bridge in _bridgeTables) {
-        await _pullBridgeTable(bridge, accessibleOwnerIds, changedTables);
+        await _pullBridgeTable(bridge, uid, changedTables);
       }
-      await _pullRaceResults(accessibleOwnerIds, changedTables, changedRaceIds);
+      await _pullRaceResults(uid, changedTables, changedRaceIds);
     } finally {
       // Announce whatever did arrive even if a later table failed, so the
       // screens still refresh instead of showing stale data.
@@ -950,7 +954,7 @@ class SyncService implements ISyncService {
   /// local integer IDs before inserting or updating. Skips any row whose
   /// runner_uuid or race_uuid cannot be resolved locally (will retry next sync).
   Future<void> _pullRaceResults(
-      List<String> accessibleOwnerIds,
+      String ownerId,
       Set<String> changedTables,
       Set<int> changedRaceIds) async {
     final db = await _db.database;
@@ -961,7 +965,7 @@ class SyncService implements ISyncService {
 
     final data = await _syncClient.fetchTableRows(
       table,
-      accessibleOwnerIds,
+      ownerId,
       cursor: cursor,
     );
     if (data.isEmpty) return;
@@ -1218,7 +1222,7 @@ class SyncService implements ISyncService {
   /// pair, so it is never used to match and never written locally.
   Future<void> _pullBridgeTable(
     _BridgeTable spec,
-    List<String> accessibleOwnerIds,
+    String ownerId,
     Set<String> changedTables,
   ) async {
     final db = await _db.database;
@@ -1228,7 +1232,7 @@ class SyncService implements ISyncService {
 
     final data = await _syncClient.fetchTableRows(
       table,
-      accessibleOwnerIds,
+      ownerId,
       cursor: cursor,
     );
     if (data.isEmpty) return;

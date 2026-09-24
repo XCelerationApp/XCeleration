@@ -72,12 +72,9 @@ class _FakeSyncClient implements IRemoteSyncClient {
   Future<void> Function(String table)? whileUploading;
 
   @override
-  Future<List<String>> fetchAccessibleOwnerIds(String userId) async => [userId];
-
-  @override
   Future<List<Map<String, dynamic>>> fetchTableRows(
     String table,
-    List<String> ownerIds, {
+    String ownerId, {
     String? cursor,
   }) async {
     if (failingTables.contains(table)) {
@@ -91,6 +88,7 @@ class _FakeSyncClient implements IRemoteSyncClient {
     // the same moment written two ways, and text order disagrees with time
     // order on them.
     final visible = rows
+        .where((r) => r['owner_user_id'] == ownerId)
         .where((r) => after == null || at(r).isAfter(after))
         .map((r) => Map<String, dynamic>.from(r))
         .toList();
@@ -535,6 +533,60 @@ void main() {
 
       expect(remote.upserts.where((u) => u.table == 'race_participants'),
           isEmpty);
+    });
+  });
+
+  group('another coach\'s data', () {
+    test('is never pulled onto this coach\'s phone', () async {
+      remote.tables['runners'] = [
+        {
+          'runner_id': 950,
+          'uuid': 'someone-elses-runner',
+          'owner_user_id': 'another-coach',
+          'name': 'Blake',
+          'grade': 11,
+          'bib_number': '101',
+          'created_at': '2026-01-01T00:00:00Z',
+          'updated_at': '2026-01-01T00:00:00Z',
+          'deleted_at': null,
+        }
+      ];
+
+      await service.syncAll();
+
+      expect(await (await conn.database).query('runners'), isEmpty);
+    });
+
+    test('cannot take the place of the coach\'s own runner with that bib',
+        () async {
+      // Bibs are unique per coach on the server, but on the phone across
+      // everything it holds, so saving Blake would have replaced Alice.
+      final db = await conn.database;
+      await db.insert('runners', {
+        'uuid': runnerUuid,
+        'name': 'Alice',
+        'grade': 10,
+        'bib_number': '101',
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 0,
+      });
+      remote.tables['runners'] = [
+        {
+          'runner_id': 950,
+          'uuid': 'someone-elses-runner',
+          'owner_user_id': 'another-coach',
+          'name': 'Blake',
+          'grade': 11,
+          'bib_number': '101',
+          'created_at': '2026-01-02T00:00:00Z',
+          'updated_at': '2026-01-02T00:00:00Z',
+          'deleted_at': null,
+        }
+      ];
+
+      await service.syncAll();
+
+      expect((await db.query('runners')).single['name'], 'Alice');
     });
   });
 

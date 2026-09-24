@@ -3,15 +3,15 @@
 /// Isolates [SyncService] from the Supabase fluent API, making each class
 /// independently testable and swappable.
 abstract interface class IRemoteSyncClient {
-  /// Returns the owner IDs accessible to [userId]:
-  /// the user themselves, plus any coaches who have shared access.
-  Future<List<String>> fetchAccessibleOwnerIds(String userId);
-
-  /// Fetches rows from [table] belonging to [ownerIds] that were updated
-  /// after [cursor] (when provided). Returns rows ordered by `updated_at`.
+  /// Fetches rows from [table] owned by [ownerId] that were updated after
+  /// [cursor] (when provided). Returns rows ordered by `updated_at`.
+  ///
+  /// Only ever one owner: the coach's database holds their own races.
+  /// Another coach's runners can share bib numbers with theirs, which the
+  /// server allows (bibs are unique per coach) but the phone does not.
   Future<List<Map<String, dynamic>>> fetchTableRows(
     String table,
-    List<String> ownerIds, {
+    String ownerId, {
     String? cursor,
   });
 
