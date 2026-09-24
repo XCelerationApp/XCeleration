@@ -117,17 +117,37 @@ void main() {
       expect(find.text('See More'), findsOneWidget);
     });
 
-    testWidgets('truncates names longer than 18 characters', (tester) async {
+    testWidgets('fades a long name at the edge instead of widening the table',
+        (tester) async {
       final results = [
-        _result(1, 'Bartholomew McAllister', 'EA',
+        _result(1, 'Bartholomew Maximilian McAllister-Worthington', 'EA',
             const Duration(minutes: 18)),
       ];
 
       await tester.pumpWidget(
           _wrap(CollapsibleIndividualResultsWidget(results: results)));
 
-      expect(find.text('Bartholomew McAlli...'), findsOneWidget);
-      expect(find.text('Bartholomew McAllister'), findsNothing);
+      final name = tester.widget<Text>(
+          find.text('Bartholomew Maximilian McAllister-Worthington'));
+      expect(name.overflow, TextOverflow.ellipsis);
+      expect(name.maxLines, 1);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps the time on screen on a narrow phone', (tester) async {
+      tester.view.physicalSize = const Size(320, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final results = [
+        _result(1, 'Alice Smith', 'EA', const Duration(minutes: 18)),
+      ];
+
+      await tester.pumpWidget(
+          _wrap(CollapsibleIndividualResultsWidget(results: results)));
+
+      expect(find.byType(SingleChildScrollView), findsNothing);
+      final time = tester.getRect(find.text('18:00.00'));
+      expect(time.right, lessThanOrEqualTo(320));
     });
   });
 
@@ -153,8 +173,8 @@ void main() {
           .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
 
       expect(find.text('Team'), findsOneWidget);
-      expect(find.text('Scorers'), findsOneWidget);
       expect(find.text('Score'), findsOneWidget);
+      expect(find.textContaining('Scorers: '), findsOneWidget);
     });
 
     testWidgets('displays team abbreviation in result row', (tester) async {
