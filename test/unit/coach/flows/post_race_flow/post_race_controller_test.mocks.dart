@@ -59,6 +59,11 @@ class _FakeDevicesManager_3 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
+class _FakeDuration_4 extends _i1.SmartFake implements Duration {
+  _FakeDuration_4(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
 /// A class which mocks [MasterRace].
 ///
 /// See the documentation for Mockito's code generation for more information.
@@ -404,6 +409,14 @@ class MockLoadResultsController extends _i1.Mock
           as _i5.DevicesManager);
 
   @override
+  Duration get timeShift =>
+      (super.noSuchMethod(
+            Invocation.getter(#timeShift),
+            returnValue: _FakeDuration_4(this, Invocation.getter(#timeShift)),
+          )
+          as Duration);
+
+  @override
   bool get resultsLoaded =>
       (super.noSuchMethod(Invocation.getter(#resultsLoaded), returnValue: false)
           as bool);
@@ -469,6 +482,11 @@ class MockLoadResultsController extends _i1.Mock
   bool get hasListeners =>
       (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
           as bool);
+
+  @override
+  _i11.AppError? shiftAllTimes(Duration? by) =>
+      (super.noSuchMethod(Invocation.method(#shiftAllTimes, [by]))
+          as _i11.AppError?);
 
   @override
   void initialize() => super.noSuchMethod(

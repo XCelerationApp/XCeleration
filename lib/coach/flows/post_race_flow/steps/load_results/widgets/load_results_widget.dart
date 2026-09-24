@@ -1,3 +1,4 @@
+import 'adjust_times.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
@@ -94,6 +95,11 @@ class LoadResultsWidget extends StatelessWidget {
                     else
                       const SuccessMessage(),
                     const SizedBox(height: 16),
+                    AdjustTimesTile(
+                      shift: controller.timeShift,
+                      onShift: controller.shiftAllTimes,
+                    ),
+                    const SizedBox(height: 8),
                   ],
 
                   // Reload button

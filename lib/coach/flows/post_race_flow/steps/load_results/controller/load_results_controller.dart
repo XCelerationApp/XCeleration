@@ -1,3 +1,4 @@
+import '../utils/time_shift.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
@@ -42,6 +43,29 @@ class LoadResultsController with ChangeNotifier {
   /// (unknown or duplicate bib).
   List<dynamic>? raceRunners;
   final DevicesManager devices;
+
+  /// How far every time has been moved for a Timer who started late (positive)
+  /// or early (negative). Zero until the coach adjusts them.
+  Duration get timeShift => _timeShift;
+  Duration _timeShift = Duration.zero;
+
+  /// Moves every loaded time by [by], for a Timer who pressed Start late or
+  /// early. Returns why nothing was moved, if it was refused.
+  AppError? shiftAllTimes(Duration by) {
+    final chunks = timingChunks;
+    if (chunks == null) {
+      return const AppError(userMessage: 'Load the results first.');
+    }
+    final refused = shiftTimes(chunks, by);
+    if (refused != null) return AppError(userMessage: refused);
+    // The times the Timer recorded, told apart from ones the coach typed in,
+    // have to move with them.
+    _recordedTimes = _recordedTimes?.map((chunkId, times) =>
+        MapEntry(chunkId, {for (final t in times) shiftedTime(t, by)}));
+    _timeShift += by;
+    notifyListeners();
+    return null;
+  }
 
   // The last chunk's conflict as the Timer sent it, so the finisher count
   // can be reconciled again (e.g. after a bib is removed) from the original.
@@ -106,6 +130,7 @@ class LoadResultsController with ChangeNotifier {
     timingChunks = null;
     raceRunners = null;
     _recordedTimes = null;
+    _timeShift = Duration.zero;
     _haveLastConflictAsSent = false;
     notifyListeners();
   }
@@ -268,6 +293,7 @@ class LoadResultsController with ChangeNotifier {
 
       // Immediately convert to timing chunks for internal use
       timingChunks = timingChunksFromTimingData(timingData);
+      _timeShift = Duration.zero;
 
       Logger.d('Converted to timing chunks: ${timingChunks?.length ?? 0}');
 

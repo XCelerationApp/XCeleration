@@ -31,6 +31,7 @@ void main() {
     when(mockController.resultsLoaded).thenReturn(resultsLoaded);
     when(mockController.hasBibConflicts).thenReturn(hasBibConflicts);
     when(mockController.hasTimingConflicts).thenReturn(hasTimingConflicts);
+    when(mockController.timeShift).thenReturn(Duration.zero);
   }
 
   setUp(() {
