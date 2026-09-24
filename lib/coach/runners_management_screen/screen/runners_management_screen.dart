@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Selector, ChangeNotifierProvider
 import 'package:xceleration/core/services/i_sync_service.dart';
@@ -141,7 +141,8 @@ class _TeamsAndRunnersManagementWidgetState
                 ),
               ],
               const Spacer(),
-              if (kDebugMode &&
+              // Test tools: in debug and profile builds, never in the store build.
+              if (!kReleaseMode &&
                   !controller.isViewMode &&
                   controller.totalRunnerCount == 0)
                 IconButton(

@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:xceleration/core/repositories/database_connection_provider.dart';
+import 'package:xceleration/shared/models/database/master_race.dart';
 
 // Upgrading a database that already has races in it. These run the real
 // provider against a real file, because an upgrade that goes wrong does so
@@ -215,6 +216,18 @@ void main() {
 
       expect((await (await provider.database).query('runners')).single['name'],
           'Alice');
+    });
+
+    test('forgets the races it had loaded when another account signs in',
+        () async {
+      // Race numbers start at 1 in every account's database, so a race kept
+      // in memory from the last account would open in place of this one's.
+      await provider.openForUser(_userId);
+      final theirs = MasterRace.getInstance(1);
+
+      await provider.openForUser('someone-else');
+
+      expect(MasterRace.getInstance(1), isNot(same(theirs)));
     });
 
     test('a second account starts empty rather than seeing the first one\'s races',

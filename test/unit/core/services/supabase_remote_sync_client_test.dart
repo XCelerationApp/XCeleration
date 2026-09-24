@@ -36,34 +36,28 @@ void main() {
 
   group('SupabaseRemoteSyncClient', () {
     group('fetchTableRows', () {
-      test('filters by owner when a single owner id is given', () async {
-        await syncClient.fetchTableRows('runners', ['user-1']);
+      test('asks only for the given owner\'s rows', () async {
+        await syncClient.fetchTableRows('runners', 'user-1');
 
         expect(sentParams()['owner_user_id'], ['eq.user-1']);
-      });
-
-      test('ORs owner filters when several owner ids are given', () async {
-        await syncClient.fetchTableRows('runners', ['user-1', 'coach-2']);
-
-        expect(sentParams()['or'],
-            ['(owner_user_id.eq.user-1,owner_user_id.eq.coach-2)']);
+        expect(sentParams().containsKey('or'), isFalse);
       });
 
       test('only requests rows updated after the cursor', () async {
-        await syncClient.fetchTableRows('runners', ['user-1'],
+        await syncClient.fetchTableRows('runners', 'user-1',
             cursor: '2026-09-01T00:00:00.000Z');
 
         expect(sentParams()['updated_at'], ['gt.2026-09-01T00:00:00.000Z']);
       });
 
       test('omits the cursor filter when there is no cursor', () async {
-        await syncClient.fetchTableRows('runners', ['user-1']);
+        await syncClient.fetchTableRows('runners', 'user-1');
 
         expect(sentParams().containsKey('updated_at'), isFalse);
       });
 
       test('orders by updated_at and caps the page at 1000 rows', () async {
-        await syncClient.fetchTableRows('runners', ['user-1']);
+        await syncClient.fetchTableRows('runners', 'user-1');
 
         expect(sentParams()['order'], ['updated_at.asc.nullslast']);
         expect(sentParams()['limit'], ['1000']);

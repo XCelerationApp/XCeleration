@@ -395,8 +395,6 @@ void main() {
         // Common setup for pullAll tests: schema exists, user authenticated
         _stubSchemaExists(mockDatabase);
         when(mockAuth.currentUserId).thenReturn('user-1');
-        when(mockSyncClient.fetchAccessibleOwnerIds('user-1'))
-            .thenAnswer((_) async => ['user-1']);
         _stubEmptyRemoteTables(mockSyncClient);
         _stubNoCursors(mockDatabase);
         when(mockDatabase.insert(any, any,

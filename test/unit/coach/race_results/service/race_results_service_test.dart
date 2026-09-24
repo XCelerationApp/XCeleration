@@ -389,6 +389,106 @@ void main() {
     });
   });
 
+  group('RaceResultsService - displacement', () {
+    const service = RaceResultsService();
+    const a = Team(teamId: 1, name: 'A', abbreviation: 'A');
+    const b = Team(teamId: 2, name: 'B', abbreviation: 'B');
+
+    Map<String, int> scores(List<(String, Team)> chuteOrder) {
+      final results = [
+        for (final (i, (bib, team)) in chuteOrder.indexed)
+          db.RaceResult(
+            place: i + 1,
+            runner: Runner(name: bib, bibNumber: bib, grade: 11),
+            team: team,
+            finishTime: Duration(minutes: 17, seconds: i * 3),
+          ),
+      ];
+      final teams = service
+          .calculateTeamResults(service.calculateIndividualResults(results));
+      service.sortAndPlaceTeams(teams);
+      return {for (final t in teams) t.team.name!: t.score};
+    }
+
+    test('a sixth and seventh runner push back the other team\'s scorers', () {
+      final order = [
+        ('B1', b),
+        for (var i = 1; i <= 7; i++) ('A$i', a),
+        for (var i = 2; i <= 5; i++) ('B$i', b),
+      ];
+
+      // A: 2+3+4+5+6. B's last four are pushed behind A6 and A7: 1+9+10+11+12.
+      expect(scores(order), {'A': 20, 'B': 43});
+    });
+
+    test('an eighth runner pushes nobody back', () {
+      final order = [
+        ('B1', b),
+        for (var i = 1; i <= 8; i++) ('A$i', a),
+        for (var i = 2; i <= 5; i++) ('B$i', b),
+      ];
+
+      // A8 takes no team place, so B still scores 1+9+10+11+12.
+      expect(scores(order), {'A': 20, 'B': 43});
+    });
+  });
+
+  group('RaceResultsService - a three-team meet', () {
+    late MockMasterRace masterRace;
+    const a = Team(teamId: 1, name: 'A', abbreviation: 'A');
+    const b = Team(teamId: 2, name: 'B', abbreviation: 'B');
+    const c = Team(teamId: 3, name: 'C', abbreviation: 'C');
+
+    setUp(() {
+      masterRace = MockMasterRace();
+      when(masterRace.race).thenAnswer((_) async => Race(
+          raceId: 1, raceName: 'Tri Meet', raceDate: DateTime(2026, 9, 12)));
+      // A, B, C, A, B, C, ... seven runners each.
+      when(masterRace.results).thenAnswer((_) async => [
+            for (var i = 0; i < 21; i++)
+              db.RaceResult(
+                place: i + 1,
+                runner: Runner(
+                    name: 'R$i', bibNumber: '${100 + i}', grade: 10),
+                team: [a, b, c][i % 3],
+                finishTime: Duration(minutes: 17, seconds: i * 4),
+              ),
+          ]);
+    });
+
+    Future<RaceResultsData> calculate() async =>
+        ((await const RaceResultsService()
+                .calculateCompleteRaceResults(masterRace))
+            as Success<RaceResultsData>)
+            .value;
+
+    test('scores every team over the whole field', () async {
+      final data = await calculate();
+
+      expect([for (final t in data.overallTeamResults) '${t.team.name} ${t.score}'],
+          ['A 35', 'B 40', 'C 45']);
+    });
+
+    test('scores each pair as a dual meet, without the third team', () async {
+      final data = await calculate();
+
+      final duals = [
+        for (final pair in data.headToHeadTeamResults)
+          [for (final t in pair) '${t.team.name} ${t.score}'].join(' v ')
+      ];
+      expect(duals, ['A 25 v B 30', 'A 25 v C 30', 'B 25 v C 30']);
+    });
+
+    test('the dual meets leave the overall scores and places alone',
+        () async {
+      final data = await calculate();
+
+      expect([for (final t in data.overallTeamResults) t.score], [35, 40, 45]);
+      expect([for (final r in data.individualResults) r.place],
+          List.generate(21, (i) => i + 1));
+    });
+  });
+
   group('RaceResultsService - calculateCompleteRaceResults', () {
     late MockMasterRace mockMasterRace;
 

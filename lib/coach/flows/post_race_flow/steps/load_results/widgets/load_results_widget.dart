@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart' show kDebugMode;
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
@@ -46,7 +46,8 @@ class LoadResultsWidget extends StatelessWidget {
                 inSheet: closeWhenDone,
               ),
 
-              if (kDebugMode) ...[
+              // Test tools: in debug and profile builds, never in the store build.
+              if (!kReleaseMode) ...[
                 const SizedBox(height: 12),
                 SimulateResultsButton(controller: controller),
               ],

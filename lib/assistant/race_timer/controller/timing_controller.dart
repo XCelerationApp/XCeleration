@@ -127,34 +127,41 @@ class TimingController extends TimingData {
           if (data == null) {
             return;
           }
-          late RaceRecord raceRecord;
-          try {
-            Logger.d('Received race data: $data');
-            raceRecord = RaceRecord.fromEncodedString(data,
-                type: DeviceName.raceTimer.toString());
-
-            Logger.d(
-                'Parsed race record: ${raceRecord.name}, date: ${raceRecord.date}');
-          } catch (e) {
-            Logger.e('Error parsing race data: $e');
-            return;
-          }
-          try {
-            await _storage.saveNewRace(raceRecord);
-            clearRecords();
-            // Also save an initial empty timing chunk for this race, so that the UI is ready for entry.
-            // (If a chunk with id 0 already exists, this will update it.)
-            await _storage.saveChunk(
-              raceRecord.raceId,
-              TimingChunk(id: 0, timingData: []),
-            );
-            _loadRace(raceRecord);
-          } catch (e) {
-            Logger.e('Error saving race: $e');
-          }
+          await loadRaceFromCoach(data);
         },
       ),
     );
+  }
+
+  /// Opens the race the coach sent as [data].
+  ///
+  /// A race already on this phone is opened with the times recorded for it:
+  /// the coach may well send the same race twice. Only a race new to this
+  /// phone starts from an empty first batch.
+  @visibleForTesting
+  Future<void> loadRaceFromCoach(String data) async {
+    final RaceRecord sent;
+    try {
+      sent = RaceRecord.fromEncodedString(data,
+          type: DeviceName.raceTimer.toString());
+    } catch (e) {
+      Logger.e('Error parsing race data: $e');
+      return;
+    }
+    switch (await _storage.receiveRace(sent)) {
+      case Failure(:final error):
+        Logger.e('[TimingController.loadRaceFromCoach] '
+            '${error.originalException}');
+      case Success(:final value):
+        clearRecords();
+        if (value.isNew) {
+          await _storage.saveChunk(
+            value.race.raceId,
+            TimingChunk(id: 0, timingData: []),
+          );
+        }
+        await _loadRace(value.race);
+    }
   }
 
   Future<void> _loadRace(RaceRecord raceRecord) async {

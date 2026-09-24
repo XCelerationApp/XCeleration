@@ -26,7 +26,8 @@ class CreateRunnerSheet extends StatefulWidget {
   final List<String> teams;
 
   /// Called with confirmed data when the form is submitted.
-  final void Function(String name, String bibNumber, String team, int grade) onCreated;
+  final void Function(String name, String bibNumber, String team, int grade)
+  onCreated;
 
   /// Bib that cannot be reused (set for duplicate step2).
   final String? forbiddenBib;
@@ -71,8 +72,10 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
       return;
     }
     if (widget.forbiddenBib != null && trimmed == widget.forbiddenBib) {
-      setState(() =>
-          _bibError = 'Bib #${widget.forbiddenBib} is the duplicate — choose a new number');
+      setState(
+        () => _bibError =
+            'Bib #${widget.forbiddenBib} is the duplicate — choose a new number',
+      );
       return;
     }
     if (widget.allKnownBibs.contains(trimmed)) {
@@ -104,68 +107,72 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _FormField(
-          label: 'Runner name',
-          hint: 'e.g. John Smith',
-          controller: _nameController,
-          error: _nameError,
-          onChanged: _validateName,
-          keyboardType: TextInputType.name,
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        if (widget.autoBib != null)
-          _AutoBibDisplay(bibNumber: widget.autoBib!)
-        else
+    // Scrolls because it is filled in with the keyboard up, which leaves less
+    // than half the screen on a smaller phone.
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
           _FormField(
-            label: 'Bib number',
-            hint: widget.forbiddenBib != null
-                ? 'Not #${widget.forbiddenBib} — that bib is taken'
-                : 'e.g. 421',
-            controller: _bibController,
-            error: _bibError,
-            onChanged: _validateBib,
-            keyboardType: TextInputType.number,
+            label: 'Runner name',
+            hint: 'e.g. John Smith',
+            controller: _nameController,
+            error: _nameError,
+            onChanged: _validateName,
+            keyboardType: TextInputType.name,
           ),
-        const SizedBox(height: AppSpacing.lg),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              flex: 3,
-              child: _DropdownField<String>(
-                label: 'Team',
-                hint: 'Select team',
-                value: _selectedTeam,
-                items: widget.teams,
-                itemLabel: (t) => t,
-                onChanged: (t) => setState(() => _selectedTeam = t),
-              ),
+          const SizedBox(height: AppSpacing.lg),
+          if (widget.autoBib != null)
+            _AutoBibDisplay(bibNumber: widget.autoBib!)
+          else
+            _FormField(
+              label: 'Bib number',
+              hint: widget.forbiddenBib != null
+                  ? 'Not #${widget.forbiddenBib} — that bib is taken'
+                  : 'e.g. 421',
+              controller: _bibController,
+              error: _bibError,
+              onChanged: _validateBib,
+              keyboardType: TextInputType.number,
             ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              flex: 2,
-              child: _DropdownField<int>(
-                label: 'Grade',
-                hint: 'Grade',
-                value: _selectedGrade,
-                items: _grades,
-                itemLabel: (g) => '${g}th',
-                onChanged: (g) => setState(() => _selectedGrade = g),
+          const SizedBox(height: AppSpacing.lg),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 3,
+                child: _DropdownField<String>(
+                  label: 'Team',
+                  hint: 'Select team',
+                  value: _selectedTeam,
+                  items: widget.teams,
+                  itemLabel: (t) => t,
+                  onChanged: (t) => setState(() => _selectedTeam = t),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: AppSpacing.xl),
-        FullWidthButton(
-          text: 'Add Runner',
-          onPressed: _canSubmit ? _submit : null,
-          isEnabled: _canSubmit,
-        ),
-      ],
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                flex: 2,
+                child: _DropdownField<int>(
+                  label: 'Grade',
+                  hint: 'Grade',
+                  value: _selectedGrade,
+                  items: _grades,
+                  itemLabel: (g) => '${g}th',
+                  onChanged: (g) => setState(() => _selectedGrade = g),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          FullWidthButton(
+            text: 'Add Runner',
+            onPressed: _canSubmit ? _submit : null,
+            isEnabled: _canSubmit,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -205,7 +212,9 @@ class _FormField extends StatelessWidget {
             ),
             errorText: error,
             filled: true,
-            fillColor: AppColors.lightColor.withValues(alpha: AppOpacity.medium),
+            fillColor: AppColors.lightColor.withValues(
+              alpha: AppOpacity.medium,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
               borderSide: BorderSide.none,
@@ -303,11 +312,15 @@ class _DropdownField<T> extends StatelessWidget {
             onChanged: onChanged,
             isExpanded: true,
             underline: const SizedBox.shrink(),
-            style: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor),
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.darkColor,
+            ),
             hint: Text(
               hint,
               style: AppTypography.bodyRegular.copyWith(
-                color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
+                color: AppColors.mediumColor.withValues(
+                  alpha: AppOpacity.solid,
+                ),
               ),
             ),
             items: items.map((item) {

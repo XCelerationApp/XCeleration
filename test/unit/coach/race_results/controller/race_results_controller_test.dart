@@ -147,6 +147,37 @@ void main() {
         await syncController.close();
       });
 
+      test('reads the results afresh rather than from what the race cached',
+          () async {
+        // The race keeps its results in memory; recalculating from those
+        // would show the same results the sync just replaced.
+        final syncController = StreamController<SyncEvent>.broadcast();
+        controller.dispose();
+        controller = RaceResultsController(
+          service: mockService,
+          syncStream: syncController.stream,
+        );
+        when(mockService.calculateCompleteRaceResults(any))
+            .thenAnswer((_) async => Success(RaceResultsData(
+                  resultsTitle: 'Initial',
+                  individualResults: [],
+                  overallTeamResults: [],
+                  headToHeadTeamResults: [],
+                )));
+        await controller.loadRaceResults(mockMasterRace);
+        clearInteractions(mockMasterRace);
+
+        syncController.add(SyncEvent(
+          timestamp: DateTime.now(),
+          changedTables: {'race_results'},
+        ));
+        await Future.microtask(() {});
+
+        verify(mockMasterRace.invalidateCache()).called(1);
+
+        await syncController.close();
+      });
+
       test('does not reload when syncEvents emits without race_results table',
           () async {
         final syncController = StreamController<SyncEvent>.broadcast();

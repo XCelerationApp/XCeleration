@@ -4,6 +4,7 @@ import 'package:xceleration/assistant/shared/models/bib_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/models/runner.dart';
 import 'package:xceleration/assistant/shared/services/assistant_storage_service.dart';
+import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
@@ -84,6 +85,71 @@ void main() {
 
           expect(r1, isA<Success<void>>());
           expect(r2, isA<Success<void>>());
+        });
+      });
+
+      group('receiveRace', () {
+        final sent = RaceRecord(
+          raceId: 3,
+          date: DateTime(2026, 9, 12),
+          name: 'Invitational',
+          type: 'timer',
+        );
+
+        test('stores a race it has not seen', () async {
+          final received =
+              (await AssistantStorageService.instance.receiveRace(sent))
+                  as Success<ReceivedRace>;
+
+          expect(received.value.isNew, isTrue);
+          expect(received.value.race.raceId, 3);
+          final stored =
+              await AssistantStorageService.instance.getRace(3, 'timer');
+          expect((stored as Success).value?.name, 'Invitational');
+        });
+
+        test('the same race sent again opens the copy already here', () async {
+          await AssistantStorageService.instance.receiveRace(sent);
+          await AssistantStorageService.instance.saveChunk(
+              3, TimingChunk(id: 0, timingData: [TimingDatum(time: '1:00.00')]));
+
+          final received =
+              (await AssistantStorageService.instance.receiveRace(sent))
+                  as Success<ReceivedRace>;
+
+          expect(received.value.isNew, isFalse);
+          expect(received.value.race.raceId, 3);
+          final chunk = await AssistantStorageService.instance.getChunk(3, 0);
+          expect((chunk as Success).value?.timingData, hasLength(1),
+              reason: 'times already recorded must survive a second load');
+        });
+
+        test('another race with a number already in use gets its own',
+            () async {
+          // Race numbers start again at 1 for every coach account, and one
+          // volunteer's phone can help several coaches.
+          await AssistantStorageService.instance.receiveRace(sent);
+          await AssistantStorageService.instance.saveChunk(
+              3, TimingChunk(id: 0, timingData: [TimingDatum(time: '1:00.00')]));
+          final other = RaceRecord(
+            raceId: 3,
+            date: DateTime(2026, 9, 19),
+            name: 'Conference Finals',
+            type: 'timer',
+          );
+
+          final received =
+              (await AssistantStorageService.instance.receiveRace(other))
+                  as Success<ReceivedRace>;
+
+          expect(received.value.isNew, isTrue);
+          expect(received.value.race.raceId, isNot(3));
+          expect(received.value.race.name, 'Conference Finals');
+          final old = await AssistantStorageService.instance.getRace(3, 'timer');
+          expect((old as Success).value?.name, 'Invitational');
+          final oldChunk = await AssistantStorageService.instance.getChunk(3, 0);
+          expect((oldChunk as Success).value?.timingData, hasLength(1),
+              reason: 'the earlier race keeps its times');
         });
       });
 

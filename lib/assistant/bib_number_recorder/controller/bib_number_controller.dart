@@ -358,30 +358,38 @@ class BibNumberController extends BibNumberDataController {
       return Failure(AppError(userMessage: 'Failed to parse race data: $e'));
     }
 
-    final saveResult = await storage.saveNewRace(raceRecord);
-    if (saveResult case Failure(:final error)) {
-      Logger.e(
-          '[BibNumberController.processLoadedRaceData] ${error.originalException}');
-      return Failure(error);
+    // The coach may send the same race again, for instance with runners
+    // added since: that opens the race already here, bibs and all.
+    final RaceRecord race;
+    switch (await storage.receiveRace(raceRecord)) {
+      case Success(:final value):
+        race = value.race;
+      case Failure(:final error):
+        Logger.e(
+            '[BibNumberController.processLoadedRaceData] ${error.originalException}');
+        return Failure(error);
     }
 
-    if (loadedRunners.isNotEmpty) {
-      final dbRunners = loadedRunners
-          .map((runner) => db_models.Runner(
-                raceId: raceRecord.raceId,
-                bibNumber: runner.bib,
-                name: runner.name,
-                teamAbbreviation: runner.teamAbbreviation,
-                grade: runner.grade,
-                teamColor: runner.teamColor,
-                createdAt: DateTime.now(),
-              ))
-          .toList();
-      await storage.saveRunners(raceRecord.raceId, dbRunners);
+    if (loadedRunners.isEmpty) {
+      await loadOtherRace(race);
+      return const Success(null);
     }
+
+    final dbRunners = loadedRunners
+        .map((runner) => db_models.Runner(
+              raceId: race.raceId,
+              bibNumber: runner.bib,
+              name: runner.name,
+              teamAbbreviation: runner.teamAbbreviation,
+              grade: runner.grade,
+              teamColor: runner.teamColor,
+              createdAt: DateTime.now(),
+            ))
+        .toList();
+    await storage.saveRunners(race.raceId, dbRunners);
 
     clearBibRecords();
-    await _loadRaceWithRunners(raceRecord, loadedRunners);
+    await _loadRaceWithRunners(race, loadedRunners);
     return const Success(null);
   }
 

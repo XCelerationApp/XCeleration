@@ -82,6 +82,45 @@ void main() {
 
     // -----------------------------------------------------------------------
     group('showPreRaceFlow', () {
+      testWidgets('reopening at the share step sends the roster as it is now',
+          (tester) async {
+        // Closed at the share step, a runner added, then reopened there: the
+        // assistants must get the roster with that runner.
+        var roster = 'roster-before';
+        Future<bool> closeAtShareStep({
+          required BuildContext context,
+          required List<FlowStep> steps,
+          bool showProgressIndicator = true,
+          int initialIndex = 0,
+          StepChangedCallback? onStepChanged,
+          void Function(int lastIndex)? onDismiss,
+        }) async {
+          onDismiss?.call(1);
+          return false;
+        }
+
+        final controller = _buildController(
+          mockMasterRace,
+          devices: devices,
+          encodeRaceData: (_) async => 'race',
+          encodeBibData: (_) async => roster,
+          showFlowFn: closeAtShareStep,
+        );
+        BuildContext? ctx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            ctx = context;
+            return const SizedBox();
+          }),
+        ));
+        await controller.showPreRaceFlow(ctx!, false);
+
+        roster = 'roster-after';
+        await controller.showPreRaceFlow(ctx!, false);
+
+        expect(devices.bibRecorder!.data, 'race---roster-after');
+      });
+
       testWidgets('starts at index 0 on first call and resumes at persisted index on next call',
           (tester) async {
         final capturedIndices = <int>[];
@@ -102,6 +141,8 @@ void main() {
         final controller = _buildController(
           mockMasterRace,
           devices: devices,
+          encodeRaceData: (_) async => 'race',
+          encodeBibData: (_) async => 'roster',
           showFlowFn: fakeShowFlow,
         );
 
