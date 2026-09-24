@@ -69,26 +69,25 @@ class Race {
       uuid: race['uuid'],
       ownerUserId: race['owner_user_id']?.toString(),
       raceName: race['name'],
-      raceDate:
-          race['race_date'] != null ? DateTime.parse(race['race_date']) : null,
+      raceDate: _dateOrNull(race['race_date']),
       location: race['location'] ?? '',
       distance: race['distance'] != null
           ? double.parse(race['distance'].toString())
           : 0.0,
       distanceUnit: race['distance_unit'] ?? 'mi',
       flowState: race['flow_state'] ?? FLOW_SETUP,
-      createdAt: race['created_at'] != null
-          ? DateTime.parse(race['created_at'])
-          : null,
-      updatedAt: race['updated_at'] != null
-          ? DateTime.parse(race['updated_at'])
-          : null,
-      deletedAt: race['deleted_at'] != null
-          ? DateTime.parse(race['deleted_at'])
-          : null,
+      createdAt: _dateOrNull(race['created_at']),
+      updatedAt: _dateOrNull(race['updated_at']),
+      deletedAt: _dateOrNull(race['deleted_at']),
       isDirty: race['is_dirty'],
     );
   }
+
+  /// A stored date, or null when there is none or it cannot be read. The
+  /// race_date column defaults to '', and one unreadable row must not stop
+  /// the whole races list from loading.
+  static DateTime? _dateOrNull(Object? value) =>
+      value == null ? null : DateTime.tryParse(value.toString());
 
   // Convert a Race into a Map
   Map<String, dynamic> toMap() {
