@@ -94,7 +94,7 @@ class _RaceCardState extends State<RaceCard> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.lg),
-                child: _buildCardContent(),
+                child: _buildCardContent(context),
               ),
             ),
           ),
@@ -151,27 +151,36 @@ class _RaceCardState extends State<RaceCard> {
     );
   }
 
-  Widget _buildCardContent() {
+  Widget _buildCardContent(BuildContext context) {
     final race = widget.race;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // The badge drops below the name when both do not fit, rather than
-        // squeezing the name until it breaks mid-word at a large text size.
-        SizedBox(
-          width: double.infinity,
-          child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: AppSpacing.sm,
-            runSpacing: AppSpacing.xs,
+        // At a large text size the badge goes below the name, rather than
+        // squeezing the name until it breaks mid-word.
+        if (MediaQuery.textScalerOf(context).scale(1) > 1.3)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(race.raceName ?? 'Unnamed Race',
                   style: AppTypography.headerSemibold),
+              const SizedBox(height: AppSpacing.xs),
+              StatusBadge(flowState: widget.flowState),
+            ],
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: Text(race.raceName ?? 'Unnamed Race',
+                    style: AppTypography.headerSemibold,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: AppSpacing.sm),
               StatusBadge(flowState: widget.flowState),
             ],
           ),
-        ),
         if (race.location != null && race.location!.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           _RaceCardLocation(location: race.location!),
