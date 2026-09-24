@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xceleration/coach/resolve_bib_number_screen/model/finish_order.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/model/finish_order.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
 import 'package:xceleration/shared/models/database/team.dart';

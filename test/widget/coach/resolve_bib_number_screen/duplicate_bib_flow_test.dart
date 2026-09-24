@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xceleration/coach/resolve_bib_number_screen/model/bib_conflict.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/model/bib_conflict.dart';
 import 'package:xceleration/coach/resolve_bib_number_screen/widgets/duplicate_bib_flow.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/runner.dart';

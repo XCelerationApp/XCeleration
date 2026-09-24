@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xceleration/coach/resolve_bib_number_screen/model/bib_conflict.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/model/bib_conflict.dart';
 import 'package:xceleration/coach/resolve_bib_number_screen/widgets/unknown_bib_card.dart';
 
 // Resolving a bib no runner has.

@@ -7,7 +7,7 @@ import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/ordinal.dart';
-import '../model/bib_conflict.dart';
+import '../../bib_conflict_resolution/model/bib_conflict.dart';
 import 'nearby_finishers.dart';
 
 /// Asks which of the finishes a repeated bib was recorded at belongs to the

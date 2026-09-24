@@ -4,7 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/ordinal.dart';
-import '../model/bib_conflict.dart';
+import '../../bib_conflict_resolution/model/bib_conflict.dart';
 import 'nearby_finishers.dart';
 
 /// Asks who finished at one place, with everything known about that finish:

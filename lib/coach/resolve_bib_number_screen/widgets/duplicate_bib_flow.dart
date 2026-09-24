@@ -7,7 +7,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/ordinal.dart';
 import '../../../shared/models/database/race_runner.dart';
-import '../model/bib_conflict.dart';
+import '../../bib_conflict_resolution/model/bib_conflict.dart';
 import 'duplicate_bib_card.dart';
 import 'finish_question.dart';
 

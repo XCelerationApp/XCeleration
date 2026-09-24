@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
-import '../model/bib_conflict.dart';
+import '../../bib_conflict_resolution/model/bib_conflict.dart';
 
 /// Who finished either side of a disputed place, so the coach can tell which
 /// stretch of the race a finish sits in.
