@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_nearby_connections/flutter_nearby_connections.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/services/screen_awake.dart';
 import 'package:xceleration/core/utils/connection_utils.dart';
 import 'package:xceleration/core/utils/data_protocol.dart';
 import 'package:xceleration/core/utils/enums.dart';
@@ -35,9 +36,17 @@ class WirelessConnectionController extends ChangeNotifier {
         _devices = devices,
         _callback = callback;
 
+  /// How long to keep looking for the other phone. A volunteer may take a
+  /// while to open the right screen; a one-minute limit made the coach try
+  /// again after any wait.
+  static const searchTimeout = Duration(minutes: 10);
+
   Future<void> initialize() async {
     if (_isDisposed) return;
     _connectionCompleter = Completer<void>();
+    // iOS pauses the connection when the phone locks, so keep it awake while
+    // this screen is open.
+    ScreenAwake.set(true, reason: 'transfer');
 
     try {
       final checkResult =
@@ -112,7 +121,7 @@ class WirelessConnectionController extends ChangeNotifier {
         deviceFoundCallback: _deviceFoundCallback,
         deviceConnectingCallback: _deviceConnectingCallback,
         deviceConnectedCallback: _deviceConnectedCallback,
-        timeout: const Duration(seconds: 60),
+        timeout: searchTimeout,
         timeoutCallback: () async {
           if (_isDisposed) return;
           if (_devices.allDevicesFinished()) return;
@@ -293,6 +302,7 @@ class WirelessConnectionController extends ChangeNotifier {
   @override
   void dispose() {
     _isDisposed = true;
+    ScreenAwake.set(false, reason: 'transfer');
     if (_messageMonitorToken != null) {
       _deviceConnectionService.stopMessageMonitoring(_messageMonitorToken!);
     }

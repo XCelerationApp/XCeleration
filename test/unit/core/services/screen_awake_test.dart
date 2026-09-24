@@ -19,6 +19,7 @@ void main() {
 
   tearDown(() async {
     await ScreenAwake.set(false);
+    await ScreenAwake.set(false, reason: 'transfer');
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, null);
   });
@@ -47,5 +48,19 @@ void main() {
     await ScreenAwake.set(true);
 
     expect(ScreenAwake.isOn, isTrue);
+  });
+
+  test('stays on while any reason still wants it', () async {
+    await ScreenAwake.set(true);
+    await ScreenAwake.set(true, reason: 'transfer');
+    await ScreenAwake.set(false);
+
+    expect(ScreenAwake.isOn, isTrue,
+        reason: 'the race stopped, but a transfer is still open');
+
+    await ScreenAwake.set(false, reason: 'transfer');
+
+    expect(ScreenAwake.isOn, isFalse);
+    expect(calls, [true, false]);
   });
 }
