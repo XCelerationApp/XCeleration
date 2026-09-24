@@ -17,7 +17,8 @@ import '../widgets/race_controls_widget.dart';
 import '../widgets/keyboard_accessory_bar.dart';
 import '../widgets/runners_loaded_sheet.dart';
 import '../../shared/widgets/race_header_widget.dart';
-import '../../../core/components/race_components.dart' as core;
+import '../../../core/theme/app_spacing.dart';
+import '../../shared/widgets/race_day_controls.dart';
 import '../../../core/components/coach_mark.dart';
 
 class BibNumberScreen extends StatefulWidget {
@@ -144,141 +145,172 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           onTap: () => FocusScope.of(context).unfocus(),
           child: Scaffold(
             resizeToAvoidBottomInset: true,
-            body: Column(children: [
-              // AppHeader never depends on controller state — built once.
-              AppHeader(
-                title: 'Bib Recorder',
-                currentRole: Role.bibRecorder,
-                tutorialManager: _controller.tutorialManager,
-                titleStyle: AppTypography.displaySmall,
-                onRoleTap: () => RoleSelectorSheet.showRoleSelection(
-                    context, Role.bibRecorder),
-                onSettingsTap: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => SettingsScreen(
-                      currentRole: Role.bibRecorder.toValueString(),
-                    ),
-                  ),
-                ),
-              ),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Column(children: [
-                  // RaceHeaderWidget only rebuilds when the current race changes.
-                  ValueListenableBuilder<RaceRecord?>(
-                    valueListenable: _controller.currentRaceNotifier,
-                    builder: (context, currentRace, _) => CoachMark(
-                      id: 'race_header_tutorial',
+            // While recording, the big header and practice banner give way
+            // so the bibs being typed stay in view above the number pad.
+            body: ListenableBuilder(
+              listenable: _controller,
+              builder: (context, _) {
+                final live =
+                    _controller.currentRace != null && !_controller.raceStopped;
+                return Column(children: [
+                  if (live)
+                    SizedBox(height: MediaQuery.paddingOf(context).top)
+                  else
+                    AppHeader(
+                      title: 'Bib Recorder',
+                      currentRole: Role.bibRecorder,
                       tutorialManager: _controller.tutorialManager,
-                      config: const CoachMarkConfig(
-                        title: 'Race Information',
-                        description:
-                            'This shows your current race. A practice race is loaded so you can try things out. Tap Get Race from Coach for the real one.',
-                        icon: Icons.info_outline,
-                        alignmentY: AlignmentY.bottom,
-                        type: CoachMarkType.targeted,
-                        backgroundColor: Color(0xFF1976D2),
-                      ),
-                      child: RaceHeaderWidget(
-                        currentRace: currentRace,
-                        role: DeviceName.bibRecorder,
-                        onLoadRace: () =>
-                            _controller.showLoadRaceSheet(context),
-                        onShowOtherRaces: () =>
-                            _controller.showOtherRaces(context),
-                        onDeleteRace: () => _controller.deleteCurrentRace(),
-                        onShowRunners: currentRace != null
-                            ? () =>
-                                _controller.showRunnersLoadedSheet(context)
-                            : null,
-                        onDownloadRace: currentRace != null
-                            ? () => _controller.downloadRace(context)
-                            : null,
-                        clearRecordsLabel: 'Clear Bibs',
-                        canClearRecords: () =>
-                            _controller.raceStopped &&
-                            _controller.bibRecords.isNotEmpty,
-                        onClearRecords: () async {
-                          final confirmed =
-                              await DialogUtils.showConfirmationDialog(
-                            context,
-                            title: 'Clear Bibs',
-                            content: 'Are you sure you want to clear all the '
-                                'recorded bibs?',
-                          );
-                          if (confirmed) await _controller.clearRecordedBibs();
-                        },
+                      titleStyle: AppTypography.displaySmall,
+                      onRoleTap: () => RoleSelectorSheet.showRoleSelection(
+                          context, Role.bibRecorder),
+                      onSettingsTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => SettingsScreen(
+                            currentRole: Role.bibRecorder.toValueString(),
+                          ),
+                        ),
                       ),
                     ),
+                  Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                    child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          _buildRaceHeader(context, live),
+                          const SizedBox(height: AppSpacing.sm),
+                          _buildRaceStatusWidget(),
+                        ]),
                   ),
-                  const SizedBox(height: 8),
-                  // Race status and controls rebuild on data changes (bib
-                  // count, race stopped), but NOT on focus changes.
-                  ListenableBuilder(
-                    listenable: _controller,
-                    builder: (context, _) => Column(children: [
-                      _buildRaceStatusWidget(),
-                      const SizedBox(height: 16),
-                      RaceControlsWidget(
-                        controller: _controller,
-                        onShare: _onShareBibNumbers,
-                      ),
-                    ]),
+                  const SizedBox(height: AppSpacing.sm),
+
+                  // BibListWidget manages its own listener.
+                  Expanded(
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                      child: BibListWidget(controller: _controller),
+                    ),
                   ),
-                ]),
-              ),
 
-              // BibListWidget manages its own listener — no wrapper needed.
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: BibListWidget(controller: _controller),
-                ),
-              ),
-
-              // KeyboardAccessoryBar uses ValueListenableBuilder internally
-              // for isKeyboardVisible; wraps in ListenableBuilder here so it
-              // still reflects raceStopped / bibRecords changes.
-              ListenableBuilder(
-                listenable: _controller,
-                builder: (context, _) => KeyboardAccessoryBar(
-                  controller: _controller,
-                  onDone: () => FocusScope.of(context).unfocus(),
-                ),
-              ),
-            ]),
+                  // Next Bib above the number pad while typing; otherwise the
+                  // big button in the thumb area.
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _controller.keyboardVisibleNotifier,
+                    builder: (context, keyboardUp, _) {
+                      if (KeyboardAccessoryBar.isShowing(
+                          _controller, keyboardUp)) {
+                        return KeyboardAccessoryBar(
+                          controller: _controller,
+                          onDone: () => FocusScope.of(context).unfocus(),
+                        );
+                      }
+                      return SafeArea(
+                        top: false,
+                        minimum:
+                            const EdgeInsets.only(bottom: AppSpacing.lg),
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
+                              AppSpacing.sm, AppSpacing.lg, 0),
+                          child: RaceControlsWidget(
+                            controller: _controller,
+                            onShare: _onShareBibNumbers,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ]);
+              },
+            ),
           ),
         ),
       ),
     );
   }
 
+  Widget _buildRaceHeader(BuildContext context, bool live) {
+    // RaceHeaderWidget only rebuilds when the current race changes.
+    return ValueListenableBuilder<RaceRecord?>(
+      valueListenable: _controller.currentRaceNotifier,
+      builder: (context, currentRace, _) => CoachMark(
+        id: 'race_header_tutorial',
+        tutorialManager: _controller.tutorialManager,
+        config: const CoachMarkConfig(
+          title: 'Race Information',
+          description:
+              'This shows your current race. A practice race is loaded so you can try things out. Tap Get Race from Coach for the real one.',
+          icon: Icons.info_outline,
+          alignmentY: AlignmentY.bottom,
+          type: CoachMarkType.targeted,
+          backgroundColor: Color(0xFF1976D2),
+        ),
+        child: RaceHeaderWidget(
+          currentRace: currentRace,
+          role: DeviceName.bibRecorder,
+          compact: live,
+          onLoadRace: () => _controller.showLoadRaceSheet(context),
+          onShowOtherRaces: () => _controller.showOtherRaces(context),
+          onDeleteRace: () => _controller.deleteCurrentRace(),
+          onShowRunners: currentRace != null
+              ? () => _controller.showRunnersLoadedSheet(context)
+              : null,
+          onDownloadRace: currentRace != null
+              ? () => _controller.downloadRace(context)
+              : null,
+          clearRecordsLabel: 'Clear Bibs',
+          canClearRecords: () =>
+              _controller.raceStopped && _controller.bibRecords.isNotEmpty,
+          onClearRecords: () async {
+            final confirmed = await DialogUtils.showConfirmationDialog(
+              context,
+              title: 'Clear Bibs',
+              content: 'This removes every bib recorded for this race.',
+              confirmText: 'Clear Bibs',
+              cancelText: 'Cancel',
+              destructive: true,
+            );
+            if (confirmed) await _controller.clearRecordedBibs();
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmStop() async {
+    FocusScope.of(context).unfocus();
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Stop Recording?',
+      content: 'Stop once every runner has finished. You can resume if you '
+          'stop too early.',
+      confirmText: 'Stop',
+      cancelText: 'Keep Recording',
+      destructive: true,
+    );
+    if (confirmed && mounted) _controller.raceStopped = true;
+  }
+
   Widget _buildRaceStatusWidget() {
-    String status;
-    Color statusColor;
-
-    if (_controller.currentRace == null) {
-      status = 'No Race Loaded';
-      statusColor = Colors.grey;
-    } else if (_controller.raceStopped) {
-      if (_controller.bibRecords.isNotEmpty) {
-        status = 'Completed';
-        statusColor = Colors.green[700]!;
-      } else {
-        status = 'Ready';
-        statusColor = Colors.black54;
-      }
-    } else {
-      status = 'In Progress';
+    if (_controller.currentRace == null) return const SizedBox.shrink();
+    final count = _controller.countNonEmptyBibNumbers();
+    final String status;
+    final Color statusColor;
+    if (!_controller.raceStopped) {
+      status = 'Recording';
       statusColor = AppColors.primaryColor;
+    } else if (_controller.bibRecords.isNotEmpty) {
+      status = 'Stopped';
+      statusColor = Colors.green.shade700;
+    } else {
+      status = 'Ready';
+      statusColor = AppColors.mediumColor;
     }
-
-    return core.RaceStatusHeaderWidget(
+    return RaceDayStatusBar(
       status: status,
-      statusColor: statusColor,
-      recordCount: _controller.bibRecords.length,
-      recordLabel: 'Bibs',
+      color: statusColor,
+      count: '$count ${count == 1 ? 'bib' : 'bibs'}',
+      onStop: _controller.raceStopped ? null : _confirmStop,
     );
   }
 }

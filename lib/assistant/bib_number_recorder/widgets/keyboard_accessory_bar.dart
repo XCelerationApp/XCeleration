@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 import '../../../../core/theme/app_colors.dart';
-import '../../../../core/theme/typography.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../shared/widgets/race_day_controls.dart';
 import '../controller/bib_number_controller.dart';
 import 'dart:io';
 
+/// Sits right on top of the number pad while a bib is typed. Next Bib is
+/// where the thumb already is, so a volunteer can type a bib and move on
+/// without reaching up the screen; the number pad has no return key.
 class KeyboardAccessoryBar extends StatelessWidget {
   final VoidCallback onDone;
   final BibNumberController controller;
@@ -14,57 +18,52 @@ class KeyboardAccessoryBar extends StatelessWidget {
     required this.onDone,
   });
 
+  /// Whether the bar is showing in place of the big Add Bib button.
+  static bool isShowing(BibNumberController controller, bool keyboardUp) =>
+      keyboardUp &&
+      !controller.raceStopped &&
+      (Platform.isIOS || Platform.isAndroid) &&
+      controller.bibRecords.isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     return ValueListenableBuilder<bool>(
       valueListenable: controller.keyboardVisibleNotifier,
       builder: (context, isKeyboardVisible, child) {
-        if (controller.raceStopped ||
-            !(Platform.isIOS || Platform.isAndroid) ||
-            !isKeyboardVisible ||
-            controller.bibRecords.isEmpty) {
+        if (!isShowing(controller, isKeyboardVisible)) {
           return const SizedBox.shrink();
         }
         return child!;
       },
-      child: Column(children: [
-      Padding(
-          padding: EdgeInsets.symmetric(horizontal: 4),
-          child: Container(
-            height: 44,
-            decoration: BoxDecoration(
-                color: Color(0xFFD2D5DB), // iOS numeric keypad color
-                border: Border(
-                  top: BorderSide(
-                    color: Color(0xFFBBBBBB),
-                    width: 0.5,
-                  ),
-                ),
-                borderRadius: BorderRadius.circular(4)),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 16.0),
-                  child: TextButton(
-                    onPressed: onDone,
-                    style: TextButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      overlayColor: const Color.fromARGB(255, 78, 78, 80),
-                    ),
-                    child: Text(
-                      'Done',
-                      style: AppTypography.bodySemibold.copyWith(
-                        color: AppColors.darkColor,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
+        child: Row(
+          children: [
+            Expanded(
+              child: RaceDayButton(
+                key: const ValueKey('hide_keypad_button'),
+                label: 'Hide',
+                icon: Icons.keyboard_hide_outlined,
+                color: AppColors.mediumColor,
+                onPressed: onDone,
+              ),
             ),
-          )),
-      const SizedBox(height: 6)
-    ]),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              flex: 2,
+              child: RaceDayButton(
+                key: const ValueKey('next_bib_button'),
+                label: 'Next Bib',
+                icon: Icons.arrow_downward_rounded,
+                color: AppColors.primaryColor,
+                filled: true,
+                onPressed: controller.addBib,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

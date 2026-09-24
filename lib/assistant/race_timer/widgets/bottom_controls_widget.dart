@@ -1,11 +1,13 @@
-import '../../../core/theme/app_border_radius.dart';
-import '../../../core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/components/dialog_utils.dart';
+import '../../shared/widgets/race_day_controls.dart';
 import '../controller/timing_controller.dart';
-import 'package:xceleration/core/utils/color_utils.dart';
 
+/// The two count checks above Log Finish. When there is a break in the
+/// runners, the Timer compares counts with the Bib Recorder and taps one.
 class BottomControlsWidget extends StatelessWidget {
   final TimingController controller;
 
@@ -16,109 +18,61 @@ class BottomControlsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: ColorUtils.withOpacity(Colors.black, 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-        children: [
-          _buildMainControlButton(context),
-          Container(
-            height: 30,
-            width: 1,
-            color: ColorUtils.withOpacity(Colors.grey, 0.3),
-          ),
-          _buildAdjustTimesButton(context),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(child: _buildMainControlButton(context)),
+        const SizedBox(width: AppSpacing.md),
+        Expanded(child: _buildAdjustTimesButton(context)),
+      ],
     );
   }
 
   Widget _buildMainControlButton(BuildContext context) {
     // Show undo button if last record is a conflict, otherwise show confirm button
     if (controller.isLastRecordUndoable) {
-      return _buildControlButton(
-        icon: Icons.undo,
+      return RaceDayButton(
         label: 'Undo',
-        color: Colors.grey[700]!,
-        onTap: () => _handleUndoLastConflict(context),
-      );
-    } else {
-      // Pressed once the Bib Recorder has the same number of runners.
-      return _buildControlButton(
-        icon: Icons.check,
-        label: 'Counts match',
-        color: Colors.green,
-        onTap: () => _handleConfirmTimes(context),
+        icon: Icons.undo,
+        color: AppColors.mediumColor,
+        onPressed: () => _handleUndoLastConflict(context),
       );
     }
-  }
-
-  Widget _buildControlButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: ColorUtils.withOpacity(color, 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 30, color: color),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(label,
-                style: AppTypography.caption.copyWith(color: color)),
-          ],
-        ),
-      ),
+    // Pressed once the Bib Recorder has the same number of runners.
+    return RaceDayButton(
+      label: 'Counts match',
+      icon: Icons.check,
+      color: Colors.green.shade700,
+      onPressed: () => _handleConfirmTimes(context),
     );
   }
 
   Widget _buildAdjustTimesButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(8.0),
-      child: PopupMenuButton<void>(
-        itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
-          PopupMenuItem<void>(
-            onTap: () => _handleAddMissingTime(context),
-            child: Text(
-              'I missed a runner (add a time)',
-              style: AppTypography.bodySemibold,
-            ),
+    return PopupMenuButton<void>(
+      tooltip: 'Counts differ?',
+      position: PopupMenuPosition.over,
+      itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
+        PopupMenuItem<void>(
+          onTap: () => _handleAddMissingTime(context),
+          child: Text(
+            'I missed a runner (add a time)',
+            style: AppTypography.bodySemibold,
           ),
-          PopupMenuItem<void>(
-            onTap: () => _handleRemoveExtraTime(context),
-            child: Text(
-              'I tapped an extra time (remove one)',
-              style: AppTypography.bodySemibold,
-            ),
+        ),
+        PopupMenuItem<void>(
+          onTap: () => _handleRemoveExtraTime(context),
+          child: Text(
+            'I tapped an extra time (remove one)',
+            style: AppTypography.bodySemibold,
           ),
-        ],
-        child: Text(
-          'Counts differ?',
-          style: AppTypography.titleRegular,
+        ),
+      ],
+      // The menu opens on tap; the button only draws the outline.
+      child: const IgnorePointer(
+        child: RaceDayButton(
+          label: 'Counts differ?',
+          icon: Icons.unfold_more,
+          color: AppColors.darkColor,
+          onPressed: _noop,
         ),
       ),
     );
@@ -170,3 +124,5 @@ class BottomControlsWidget extends StatelessWidget {
     }
   }
 }
+
+void _noop() {}

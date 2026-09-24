@@ -18,24 +18,21 @@ class TimerDisplayWidget extends StatelessWidget {
           : Stream.periodic(const Duration(milliseconds: 10)),
       builder: (context, _) {
         final elapsed = controller.raceElapsed;
-        return Container(
+        // Scales down rather than wrapping on a narrow phone or at a large
+        // text size; even-width digits keep it from jittering as it counts.
+        return FittedBox(
+          fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          width: MediaQuery.of(context).size.width * 0.9,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
           child: Text(
             TimeFormatter.formatDurationWithZeros(elapsed),
+            maxLines: 1,
             style: AppTypography.displayLarge.copyWith(
-              fontSize: MediaQuery.of(context).size.width * 0.11,
               letterSpacing: -0.5,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         );
       },
     );
   }
-
 }

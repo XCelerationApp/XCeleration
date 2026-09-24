@@ -1,6 +1,7 @@
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_opacity.dart';
 import '../../../core/components/button_components.dart';
+import '../../../core/components/dialog_utils.dart';
 import '../services/demo_race_generator.dart';
 import '../../../core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
@@ -30,6 +31,10 @@ class RaceHeaderWidget extends StatelessWidget {
   /// Whether there is anything to clear, checked when the menu opens.
   final bool Function()? canClearRecords;
 
+  /// While the race runs, the header shrinks to one slim line and the
+  /// practice banner becomes a small tag, leaving the room for the race.
+  final bool compact;
+
   const RaceHeaderWidget({
     super.key,
     required this.currentRace,
@@ -42,12 +47,13 @@ class RaceHeaderWidget extends StatelessWidget {
     this.onClearRecords,
     this.clearRecordsLabel = 'Clear',
     this.canClearRecords,
+    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: compact ? 4 : 8),
         child: AnimatedBuilder(
           animation: Listenable.merge([
             if (currentRace != null) _RaceNotifier(currentRace!),
@@ -58,7 +64,8 @@ class RaceHeaderWidget extends StatelessWidget {
             }
             // The practice race opens by default, and nothing said it was
             // not the real one.
-            if (onLoadRace != null &&
+            if (!compact &&
+                onLoadRace != null &&
                 DemoRaceGenerator.isDemoRace(currentRace!)) {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -126,8 +133,9 @@ class RaceHeaderWidget extends StatelessWidget {
   }
 
   Widget _buildRaceHeader(BuildContext context) {
+    final isPractice = DemoRaceGenerator.isDemoRace(currentRace!);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.fromLTRB(16, compact ? 2 : 6, 4, compact ? 2 : 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -161,7 +169,21 @@ class RaceHeaderWidget extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
+          if (compact && isPractice) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor
+                    .withValues(alpha: AppOpacity.light),
+                borderRadius: BorderRadius.circular(AppBorderRadius.full),
+              ),
+              child: Text('Practice',
+                  style: AppTypography.captionBold
+                      .copyWith(color: AppColors.primaryColor)),
+            ),
+          ],
+          const SizedBox(width: 4),
           FutureBuilder<List<dynamic>>(
             future: _getOtherRaces(),
             builder: (context, snapshot) {
@@ -312,33 +334,17 @@ class RaceHeaderWidget extends StatelessWidget {
     }
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Race'),
-        content: Text(
-          'Are you sure you want to delete "${currentRace!.formattedTitle}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    ).then((confirmed) {
-      if (confirmed == true) {
-        onDeleteRace?.call();
-      }
-    });
+  Future<void> _showDeleteConfirmation(BuildContext context) async {
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Delete Race?',
+      content: 'This deletes "${currentRace!.formattedTitle}" and everything '
+          'recorded for it from this phone. It cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    );
+    if (confirmed) onDeleteRace?.call();
   }
 
   Future<List<RaceRecord>> _getOtherRaces() async {

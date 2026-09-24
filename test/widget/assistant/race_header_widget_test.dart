@@ -64,13 +64,14 @@ void main() {
         raceId: -1, date: DateTime(2026, 9, 26), name: 'Demo Race', type: 'x');
 
     Future<void> show(WidgetTester tester, RaceRecord shown,
-        {required VoidCallback onLoad}) async {
+        {required VoidCallback onLoad, bool compact = false}) async {
       await tester.pumpWidget(MaterialApp(
         home: Scaffold(
           body: RaceHeaderWidget(
             currentRace: shown,
             role: DeviceName.raceTimer,
             onLoadRace: onLoad,
+            compact: compact,
           ),
         ),
       ));
@@ -95,6 +96,13 @@ void main() {
       await show(tester, race, onLoad: () {});
 
       expect(find.textContaining('practice'), findsNothing);
+    });
+
+    testWidgets('shrinks to a small tag while the race runs', (tester) async {
+      await show(tester, practice, onLoad: () {}, compact: true);
+
+      expect(find.text('Practice'), findsOneWidget);
+      expect(find.textContaining('This is a practice race'), findsNothing);
     });
   });
 }
