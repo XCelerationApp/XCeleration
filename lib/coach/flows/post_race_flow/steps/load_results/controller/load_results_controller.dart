@@ -13,7 +13,11 @@ import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
-import 'package:xceleration/coach/resolve_bib_number_screen/widgets/bib_conflicts_overview.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/controller/conflict_resolution_controller.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/model/bib_conflict.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/model/finish_order.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/screen/conflict_resolution_screen.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/services/runner_creator.dart';
 import 'package:xceleration/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../core/utils/encode_utils.dart';
@@ -563,45 +567,60 @@ class LoadResultsController with ChangeNotifier {
       return;
     }
 
-    List<RaceRunner?>? updatedRaceRunners;
+    final Map<int, RaceRunner>? settled;
     try {
-      // Check if context is still mounted
-      if (!context.mounted) {
-        Logger.d('Context is not mounted, cannot show sheet');
-        return;
-      }
-
-      // Try to create the BibConflictsOverview widget first
-      final bibConflictsWidget = BibConflictsOverview(
-        masterRace: masterRace,
-        raceRunners: raceRunners!, // Pass the full list including conflicts
+      final entries = List<dynamic>.from(raceRunners!);
+      final conflicts = await detectBibConflicts(
+        entries: entries,
         // Which finish the coach is being asked about, and when it happened.
         timesByPlace: settledTimesByPlace(timingChunks ?? const []),
-        onResolved: (updatedRaceRunners) {
-          Navigator.pop(context, updatedRaceRunners);
-        },
+        lookupBib: masterRace.getRaceRunnerByBib,
       );
+      final inRace = await masterRace.raceRunners;
+      final teams = await masterRace.teams;
+      final race = await masterRace.race;
+      final recordedBibs = {
+        for (final entry in entries)
+          if (entry is RaceRunner) ?entry.runner.bibNumber else if (entry is String) entry,
+      };
+      if (!context.mounted) return;
 
-      updatedRaceRunners = await sheet(
-        context: context,
-        title: 'Resolve Bib Numbers',
-        body: bibConflictsWidget,
-        useRootNavigator: true,
+      settled = await ConflictResolutionScreen.open(
+        context,
+        create: () => ConflictResolutionController(
+          conflicts: conflicts,
+          // Who a mistyped bib might really have been: runners in the race
+          // who are not placed anywhere in the finish order.
+          candidates: [
+            for (final runner in inRace)
+              if (!recordedBibs.contains(runner.runner.bibNumber)) runner,
+          ],
+          knownBibs: {
+            ...recordedBibs,
+            for (final runner in inRace) ?runner.runner.bibNumber,
+          },
+          teams: [for (final team in teams) ?team.name],
+          raceName: race.raceName ?? '',
+          createRunner: (newRunner) => saveNewRunner(masterRace, newRunner),
+        ),
       );
     } catch (e, stackTrace) {
-      Logger.e('Error showing bib conflicts sheet: $e');
+      Logger.e('Error opening bib conflict resolution: $e');
       Logger.e('Stack trace: $stackTrace');
       if (!context.mounted) return;
       DialogUtils.showErrorDialog(
         context,
-        message: 'Failed to open bib conflict resolution sheet: $e',
+        message: 'Could not open bib conflict resolution. Please try again.',
       );
       return;
     }
 
-    // Update runner records only if a result was returned (conflicts were actually resolved)
-    if (updatedRaceRunners != null) {
-      await applyResolvedRunners(updatedRaceRunners);
+    // Write who finished at each settled place back into the finish order.
+    if (settled != null) {
+      final updated = applyResolvedFinishes(raceRunners!, settled);
+      await applyResolvedRunners([
+        for (final entry in updated) entry is RaceRunner ? entry : null,
+      ]);
     }
 
     // If there are still timing conflicts, open the timing conflicts sheet
