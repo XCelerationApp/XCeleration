@@ -220,4 +220,30 @@ void main() {
     // A RenderFlex overflow fails the test.
     expect(find.text('Who finished 21st?'), findsOneWidget);
   });
+
+  for (final (name, size) in const [
+    ('iPhone 13 Pro', Size(390, 844)),
+    ('iPhone SE', Size(375, 667)),
+  ]) {
+    testWidgets('every stage fits on an $name', (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.reset);
+
+      // A RenderFlex overflow at any stage fails the test.
+      await open(tester);
+      await start(tester);
+      await tester.tap(find.text('16th place'));
+      await tester.pumpAndSettle();
+      controller.prepareAssignForDuplicate(_gray, '21st');
+      await controller.commitPending();
+      await tester.pumpAndSettle();
+      expect(find.text('UNKNOWN BIB'), findsOneWidget);
+      controller.prepareAssign(_nico, '17th');
+      await tester.pumpAndSettle();
+      await controller.commitPending();
+      await tester.pumpAndSettle();
+      expect(find.text('All conflicts resolved'), findsOneWidget);
+    });
+  }
 }
