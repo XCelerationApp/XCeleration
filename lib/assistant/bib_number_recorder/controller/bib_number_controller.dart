@@ -66,6 +66,9 @@ class BibNumberController extends BibNumberDataController {
   // Debounce timer for validations
   Timer? _debounceTimer;
 
+  /// The row whose check [_debounceTimer] is waiting to run, if any.
+  int? _pendingCheckIndex;
+
   // Flag to notify screen that runners were just loaded (screen shows the sheet)
   bool _runnersJustLoaded = false;
   bool get runnersJustLoaded => _runnersJustLoaded;
@@ -614,8 +617,19 @@ class BibNumberController extends BibNumberDataController {
     String bibNumber, {
     int? index,
   }) async {
-    // Cancel any pending debounce timer
+    // A check still waiting on another row runs now rather than being
+    // dropped: moving on to the next bib within half a second used to leave
+    // an unknown bib unflagged.
+    final pending = _pendingCheckIndex;
+    if (_debounceTimer?.isActive == true &&
+        pending != null &&
+        pending != index &&
+        pending < bibRecords.length) {
+      _debounceTimer!.cancel();
+      await validateBibNumber(pending, bibRecords[pending].bib);
+    }
     _debounceTimer?.cancel();
+    _pendingCheckIndex = null;
 
     if (index != null) {
       // Update existing record (immediately update the text but debounce validation)
@@ -627,7 +641,9 @@ class BibNumberController extends BibNumberDataController {
         updateBibRecord(index, updatedRecord);
 
         // Debounce the validation to prevent rapid UI updates while typing
+        _pendingCheckIndex = index;
         _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
+          _pendingCheckIndex = null;
           await validateBibNumber(index, bibNumber);
         });
       }

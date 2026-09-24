@@ -604,6 +604,42 @@ void main() {
       });
     });
 
+    group('moving on quickly', () {
+      // A volunteer types a bib and taps Next Bib at once, well inside the
+      // half second the check waits for typing to stop. Starting the next
+      // bib used to cancel that check, so some unknown bibs never said
+      // "Runner not found".
+      test('still checks every bib left behind', () {
+        fakeAsync((async) {
+          final controller = buildController();
+          controller.runners.add(BibDatum(
+            bib: '42',
+            name: 'Alice',
+            teamAbbreviation: 'EAG',
+            grade: '10',
+          ));
+
+          for (final (i, bib) in ['901', '42', '902', '903'].indexed) {
+            controller.handleBibNumber('');
+            async.flushMicrotasks();
+            controller.handleBibNumber(bib, index: i);
+            async.elapse(const Duration(milliseconds: 100));
+          }
+          // The volunteer moves on again, and nothing waits out the delay.
+          controller.handleBibNumber('');
+          async.flushMicrotasks();
+
+          final flags = [
+            for (final r in controller.bibRecords.take(4)) r.flags.notInDatabase
+          ];
+          expect(flags, [true, false, true, true]);
+          expect(controller.bibRecords[1].name, 'Alice');
+
+          controller.dispose();
+        });
+      });
+    });
+
     group('addBib', () {
       test('adds a new empty record when bib list is empty', () async {
         final controller = buildController();
