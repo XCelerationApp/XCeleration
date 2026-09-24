@@ -150,6 +150,7 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
                 conflictPosition: widget.occurrence.place,
                 conflictBib: widget.conflict.bibNumber,
                 conflictTime: widget.occurrence.time,
+                conflictLabel: 'Is this ${widget.conflict.runner.runner.name ?? 'them'}?',
               ),
               child: Text(
                 'See more ↓',

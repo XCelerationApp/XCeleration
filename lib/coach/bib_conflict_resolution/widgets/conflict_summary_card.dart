@@ -31,10 +31,7 @@ class ConflictSummaryCard extends StatelessWidget {
           children: [
             const _LeaveButton(),
             const SizedBox(height: AppSpacing.lg),
-            _Header(
-              duplicateCount: duplicateCount,
-              unknownCount: unknownCount,
-            ),
+            _Header(duplicateCount: duplicateCount, unknownCount: unknownCount),
             const SizedBox(height: AppSpacing.xl),
             _ConflictTypeCards(
               duplicateCount: duplicateCount,
@@ -49,8 +46,8 @@ class ConflictSummaryCard extends StatelessWidget {
               text: allResolved
                   ? 'Review Results'
                   : controller.resolvedCount == 0
-                      ? 'Start Resolving'
-                      : 'Continue Resolving',
+                  ? 'Start Resolving'
+                  : 'Continue Resolving',
               onPressed: controller.startResolving,
             ),
           ],
@@ -135,24 +132,28 @@ class _ConflictTypeCards extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        ConflictButton(
-          title: 'Duplicate Bibs',
-          subtitle: '$duplicateCount bib${duplicateCount == 1 ? '' : 's'} recorded at more than one finish place. '
-              'You\'ll pick which is correct, then fix the other.',
-          icon: Icons.copy_outlined,
-          color: Colors.orange,
-          onPressed: () {},
-          isEnabled: false,
-        ),
-        ConflictButton(
-          title: 'Unknown Bibs',
-          subtitle: '$unknownCount bib${unknownCount == 1 ? '' : 's'} not found in the database. '
-              'Assign to an existing runner or create a new one.',
-          icon: Icons.help_outline,
-          color: AppColors.primaryColor,
-          onPressed: () {},
-          isEnabled: false,
-        ),
+        if (duplicateCount > 0)
+          ConflictButton(
+            title: 'Duplicate Bibs',
+            subtitle:
+                '$duplicateCount bib${duplicateCount == 1 ? '' : 's'} recorded at more than one finish place. '
+                'You\'ll pick which is correct, then fix the other.',
+            icon: Icons.copy_outlined,
+            color: Colors.orange,
+            onPressed: () {},
+            isEnabled: false,
+          ),
+        if (unknownCount > 0)
+          ConflictButton(
+            title: 'Unknown Bibs',
+            subtitle:
+                '$unknownCount bib${unknownCount == 1 ? '' : 's'} not found in the database. '
+                'Assign to an existing runner or create a new one.',
+            icon: Icons.help_outline,
+            color: AppColors.primaryColor,
+            onPressed: () {},
+            isEnabled: false,
+          ),
       ],
     );
   }
@@ -209,13 +210,13 @@ class _ConflictRow extends StatelessWidget {
     final places = ConflictResolutionController.placesOf(conflict);
     final (kind, detail) = switch (conflict) {
       DuplicateBibConflict() => (
-          'Duplicate bib',
-          'Recorded ${places.map(ordinal).join(', ')}',
-        ),
+        'Duplicate bib',
+        'Recorded ${places.map(ordinal).join(', ')}',
+      ),
       UnknownBibConflict(:final occurrence) => (
-          'Unknown bib',
-          [ordinal(occurrence.place), ?occurrence.time].join(' · '),
-        ),
+        'Unknown bib',
+        [ordinal(occurrence.place), ?occurrence.time].join(' · '),
+      ),
     };
 
     return GestureDetector(
@@ -239,7 +240,9 @@ class _ConflictRow extends StatelessWidget {
             Text(
               '#${conflict.bibNumber}',
               style: AppTypography.bodySemibold.copyWith(
-                color: resolved ? AppColors.mediumColor : AppColors.primaryColor,
+                color: resolved
+                    ? AppColors.mediumColor
+                    : AppColors.primaryColor,
               ),
             ),
             const SizedBox(width: AppSpacing.md),
@@ -250,15 +253,18 @@ class _ConflictRow extends StatelessWidget {
                   Text(kind, style: AppTypography.smallBodySemibold),
                   Text(
                     resolved ? 'Resolved · tap to change' : detail,
-                    style: AppTypography.caption
-                        .copyWith(color: AppColors.mediumColor),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.mediumColor,
+                    ),
                   ),
                 ],
               ),
             ),
             Icon(
               resolved ? Icons.check_circle : Icons.chevron_right,
-              color: resolved ? AppColors.statusFinished : AppColors.primaryColor,
+              color: resolved
+                  ? AppColors.statusFinished
+                  : AppColors.primaryColor,
               size: 20,
             ),
           ],

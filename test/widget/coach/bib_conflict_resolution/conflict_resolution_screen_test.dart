@@ -97,6 +97,25 @@ void main() {
     expect(find.text('#9567'), findsOneWidget);
   });
 
+  testWidgets('only describes the kinds of conflict the race has',
+      (tester) async {
+    controller = ConflictResolutionController(
+      conflicts: [_duplicate],
+      candidates: [_gray],
+      knownBibs: const {},
+      teams: const ['Eagles'],
+      raceName: 'Invitational',
+      createRunner: (_) async => Success(_gray),
+    );
+    await tester.pumpWidget(MaterialApp(
+      home: ConflictResolutionScreen(create: () => controller),
+    ));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Duplicate Bibs'), findsOneWidget);
+    expect(find.text('Unknown Bibs'), findsNothing);
+  });
+
   testWidgets('any conflict can be done first', (tester) async {
     await open(tester);
 

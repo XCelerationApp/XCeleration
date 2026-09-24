@@ -19,6 +19,7 @@ void showNearbySheet(
   required int conflictPosition,
   required String conflictBib,
   String? conflictTime,
+  String conflictLabel = 'Unknown runner',
 }) {
   FocusManager.instance.primaryFocus?.unfocus();
   showModalBottomSheet<void>(
@@ -54,6 +55,7 @@ void showNearbySheet(
                   conflictPosition: conflictPosition,
                   conflictBib: conflictBib,
                   conflictTime: conflictTime,
+                  conflictLabel: conflictLabel,
                 ),
               ),
             ],
@@ -73,6 +75,7 @@ class NearbyFinishersSheet extends StatelessWidget {
     required this.conflictPosition,
     required this.conflictBib,
     this.conflictTime,
+    this.conflictLabel = 'Unknown runner',
   });
 
   final List<NearbyFinisher> entries;
@@ -81,6 +84,9 @@ class NearbyFinishersSheet extends StatelessWidget {
 
   /// Null when the Timer has not settled that place.
   final String? conflictTime;
+
+  /// What the disputed row says in place of a runner's name.
+  final String conflictLabel;
 
   static const _windowSize = 4;
 
@@ -106,6 +112,7 @@ class NearbyFinishersSheet extends StatelessWidget {
           position: conflictPosition,
           bib: conflictBib,
           time: conflictTime,
+          label: conflictLabel,
         ),
       ),
     ]..sort((a, b) => a.$1.compareTo(b.$1));
@@ -258,11 +265,13 @@ class _ConflictFinisherRow extends StatelessWidget {
     required this.position,
     required this.bib,
     this.time,
+    required this.label,
   });
 
   final int position;
   final String bib;
   final String? time;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -288,7 +297,7 @@ class _ConflictFinisherRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Unknown runner', style: AppTypography.smallBodySemibold),
+                Text(label, style: AppTypography.smallBodySemibold),
               ],
             ),
           ),
