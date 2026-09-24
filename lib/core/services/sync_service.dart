@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_remote_api_client.dart';
@@ -350,14 +351,27 @@ class SyncService implements ISyncService {
     // Name each bridge row's parents by uuid, so it can be pushed.
     for (final bridge in _bridgeTables) {
       for (final parent in bridge.allParents) {
-        await db.rawUpdate('''
-          UPDATE ${bridge.table}
-          SET ${parent.uuidColumn} = (
+        final parentUuid = '''(
             SELECT uuid FROM ${parent.parentTable}
             WHERE ${parent.parentTable}.${parent.parentIdColumn} = ${bridge.table}.${parent.idColumn}
-          )
+          )''';
+        await db.rawUpdate('''
+          UPDATE ${bridge.table}
+          SET ${parent.uuidColumn} = $parentUuid
           WHERE ${parent.uuidColumn} IS NULL
         ''');
+        // A row can be pointed at a different parent after its uuid was
+        // filled in, like a runner moved to another team in a race. The uuid
+        // is what goes to the server, so it has to follow, and the row has to
+        // be sent again if it already went up naming the old parent.
+        await db.rawUpdate('''
+          UPDATE ${bridge.table}
+          SET ${parent.uuidColumn} = $parentUuid,
+              is_dirty = 1,
+              updated_at = ?
+          WHERE $parentUuid IS NOT NULL
+            AND ${parent.uuidColumn} != $parentUuid
+        ''', [SyncTimestamp.now()]);
       }
     }
   }

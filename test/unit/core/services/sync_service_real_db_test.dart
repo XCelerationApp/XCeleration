@@ -394,10 +394,17 @@ void main() {
       remote.tables['race_participants'] = [remoteParticipant()];
       await service.syncAll();
 
+      // The coach moves Alice to another team on this phone.
       final db = await conn.database;
+      final chosen = await db.insert('teams', {
+        'uuid': 'chosen-locally',
+        'name': 'Hawks',
+        'color': 0,
+        'updated_at': '2026-06-01T00:00:00Z',
+      });
       await db.update(
         'race_participants',
-        {'team_uuid': 'chosen-locally', 'updated_at': '2026-06-01T00:00:00Z'},
+        {'team_id': chosen, 'updated_at': '2026-06-01T00:00:00Z', 'is_dirty': 1},
       );
 
       remote.tables['race_participants'] = [
@@ -533,6 +540,60 @@ void main() {
 
       expect(remote.upserts.where((u) => u.table == 'race_participants'),
           isEmpty);
+    });
+  });
+
+  group('moving a runner to another team in a race', () {
+    test('sends the new team, not the one the row was first synced with',
+        () async {
+      final db = await conn.database;
+      final raceId = await db.insert('races', {
+        'uuid': raceUuid,
+        'name': 'Invitational',
+        'updated_at': '2026-01-01T00:00:00Z',
+      });
+      final runnerId = await db.insert('runners', {
+        'uuid': runnerUuid,
+        'name': 'Alice',
+        'grade': 10,
+        'bib_number': '101',
+        'updated_at': '2026-01-01T00:00:00Z',
+      });
+      final eagles = await db.insert('teams', {
+        'uuid': teamUuid,
+        'name': 'Eagles',
+        'color': 0,
+        'updated_at': '2026-01-01T00:00:00Z',
+      });
+      final hawks = await db.insert('teams', {
+        'uuid': 'team-uuid-2',
+        'name': 'Hawks',
+        'color': 0,
+        'updated_at': '2026-01-01T00:00:00Z',
+      });
+      await db.insert('race_participants', {
+        'race_id': raceId,
+        'runner_id': runnerId,
+        'team_id': eagles,
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 1,
+      });
+      await service.syncAll();
+
+      await db.update(
+          'race_participants',
+          {'team_id': hawks, 'updated_at': '2026-01-02T00:00:00Z', 'is_dirty': 1},
+          where: 'runner_id = ?',
+          whereArgs: [runnerId]);
+      remote.upserts.clear();
+      await service.syncAll();
+
+      final pushed = remote.upserts
+          .where((u) => u.table == 'race_participants')
+          .single
+          .rows
+          .single;
+      expect(pushed['team_uuid'], 'team-uuid-2');
     });
   });
 
