@@ -1,3 +1,4 @@
+import '../../../core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/result.dart';
 import '../../../core/theme/app_colors.dart';
@@ -15,6 +16,16 @@ class RaceHeaderWidget extends StatelessWidget {
   final VoidCallback? onShowRunners;
   final VoidCallback? onDownloadRace;
 
+  /// Clears what has been recorded for this race. It sits in the menu, away
+  /// from the Share button it used to be next to.
+  final VoidCallback? onClearRecords;
+
+  /// The menu label for [onClearRecords], such as 'Clear Times'.
+  final String clearRecordsLabel;
+
+  /// Whether there is anything to clear, checked when the menu opens.
+  final bool Function()? canClearRecords;
+
   const RaceHeaderWidget({
     super.key,
     required this.currentRace,
@@ -24,6 +35,9 @@ class RaceHeaderWidget extends StatelessWidget {
     this.onDeleteRace,
     this.onShowRunners,
     this.onDownloadRace,
+    this.onClearRecords,
+    this.clearRecordsLabel = 'Clear',
+    this.canClearRecords,
   });
 
   @override
@@ -212,6 +226,22 @@ class RaceHeaderWidget extends StatelessWidget {
                     );
                   }
 
+                  if (onClearRecords != null &&
+                      (canClearRecords?.call() ?? true)) {
+                    items.add(
+                      PopupMenuItem<String>(
+                        value: 'clear_records',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.clear_all, size: 18),
+                            const SizedBox(width: AppSpacing.sm),
+                            Text(clearRecordsLabel),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
                   // Always show "Delete Race"
                   if (onDeleteRace != null) {
                     items.add(
@@ -253,6 +283,9 @@ class RaceHeaderWidget extends StatelessWidget {
         break;
       case 'download_race':
         onDownloadRace?.call();
+        break;
+      case 'clear_records':
+        onClearRecords?.call();
         break;
       case 'delete_race':
         _showDeleteConfirmation(context);

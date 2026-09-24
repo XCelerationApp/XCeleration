@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import '../../../core/components/button_components.dart';
-import '../../../core/components/dialog_utils.dart';
 import '../controller/bib_number_controller.dart';
 
 class RaceControlsWidget extends StatelessWidget {
@@ -31,7 +30,7 @@ class RaceControlsWidget extends StatelessWidget {
     final buttonText = !controller.raceStopped
         ? 'Stop'
         : controller.bibRecords.isNotEmpty
-            ? 'Cont.'
+            ? 'Resume'
             : 'Start';
     final buttonColor = controller.currentRace == null
         ? const Color(0xFF777777).withAlpha((0.5 * 255).round())
@@ -73,32 +72,17 @@ class RaceControlsWidget extends StatelessWidget {
   }
 
   Widget _buildLogButton(BuildContext context) {
+    // Adds only while the race runs. Clearing the bibs is in the race menu,
+    // away from Share Bibs, which it used to sit beside.
+    final isEnabled = !controller.raceStopped && controller.canAddBib;
     return CircularButton(
-      text: (controller.bibRecords.isEmpty || !controller.raceStopped)
-          ? 'Add'
-          : 'Clear',
-      color: ((!controller.raceStopped && controller.canAddBib) ||
-              (controller.raceStopped && controller.bibRecords.isNotEmpty))
+      text: 'Add',
+      color: isEnabled
           ? const Color(0xFF777777)
           : const Color(0xFF777777).withAlpha((0.5 * 255).round()),
       fontSize: 18,
       fontWeight: FontWeight.w600,
-      onPressed: () async {
-        if (controller.bibRecords.isNotEmpty && controller.raceStopped) {
-          final bool confirmation = await DialogUtils.showConfirmationDialog(
-              context,
-              title: 'Confirm Deletion',
-              content: 'Are you sure you want to clear all the recorded bibs?');
-          if (confirmation) {
-            controller.clearBibRecords();
-          }
-        } else if (!controller.raceStopped && controller.canAddBib) {
-          await controller.addBib();
-        } else if (controller.raceStopped && controller.bibRecords.isEmpty) {
-          // do nothing
-          return;
-        }
-      },
+      onPressed: isEnabled ? controller.addBib : null,
     );
   }
 }

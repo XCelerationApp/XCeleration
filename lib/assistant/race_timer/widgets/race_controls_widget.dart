@@ -33,7 +33,7 @@ class RaceControlsWidget extends StatelessWidget {
   Widget _buildRaceControlButton(BuildContext context) {
     final buttonText = controller.raceStopped == false
         ? 'Stop'
-        : (controller.startTime != null ? 'Cont.' : 'Start');
+        : (controller.startTime != null ? 'Resume' : 'Start');
     final buttonColor = controller.currentRace == null
         ? const Color.fromARGB(255, 201, 201, 201)
         : controller.raceStopped
@@ -115,47 +115,20 @@ class RaceControlsWidget extends StatelessWidget {
   }
 
   Widget _buildLogButton(BuildContext context) {
-    // Determine if button should be enabled
-    final bool isEnabled = controller.raceStopped
-        ? controller
-            .hasTimingData // Clear button: enabled only if there are records
-        : controller.startTime !=
-            null; // Log button: enabled only if race has started
-
-    // Determine button text
-    final String buttonText =
-        controller.raceStopped && controller.hasTimingData ? 'Clear' : 'Log';
-
-    // Determine button color based on enabled state
-    final Color buttonColor = isEnabled
-        ? const Color(0xFF777777) // Enabled: dark gray
-        : const Color.fromARGB(255, 201, 201, 201); // Disabled: light gray
-
-    // Determine button function
-    final VoidCallback? buttonFunction = isEnabled
-        ? (controller.raceStopped
-            ? () => _handleClearRaceTimes(context)
-            : () => _handleLogButtonPress(context))
-        : null;
+    // Logs only while the race runs. Clearing the times is in the race menu,
+    // away from Share Times, which it used to sit beside.
+    final bool isEnabled =
+        !controller.raceStopped && controller.startTime != null;
 
     return CircularButton(
-      text: buttonText,
-      color: buttonColor,
+      text: 'Log',
+      color: isEnabled
+          ? const Color(0xFF777777) // Enabled: dark gray
+          : const Color.fromARGB(255, 201, 201, 201), // Disabled: light gray
       fontSize: 18,
       fontWeight: FontWeight.w600,
-      onPressed: buttonFunction,
+      onPressed: isEnabled ? () => _handleLogButtonPress(context) : null,
     );
-  }
-
-  Future<void> _handleClearRaceTimes(BuildContext context) async {
-    final confirmed = await DialogUtils.showConfirmationDialog(
-      context,
-      title: 'Clear Race Times',
-      content: 'Are you sure you want to clear all race times?',
-    );
-    if (confirmed && context.mounted) {
-      await controller.doClearRaceTimes();
-    }
   }
 
   Future<void> _handleLogButtonPress(BuildContext context) async {

@@ -124,6 +124,21 @@ class _TimingScreenState extends State<TimingScreen>
                               message: error.userMessage);
                         }
                       },
+                      clearRecordsLabel: 'Clear Times',
+                      canClearRecords: () =>
+                          _controller.raceStopped && _controller.hasTimingData,
+                      onClearRecords: () async {
+                        final confirmed =
+                            await DialogUtils.showConfirmationDialog(
+                          context,
+                          title: 'Clear Race Times',
+                          content:
+                              'Are you sure you want to clear all race times?',
+                        );
+                        if (confirmed && context.mounted) {
+                          await _controller.doClearRaceTimes();
+                        }
+                      },
                     ),
                   );
                 },

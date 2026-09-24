@@ -195,6 +195,20 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                         onDownloadRace: currentRace != null
                             ? () => _controller.downloadRace(context)
                             : null,
+                        clearRecordsLabel: 'Clear Bibs',
+                        canClearRecords: () =>
+                            _controller.raceStopped &&
+                            _controller.bibRecords.isNotEmpty,
+                        onClearRecords: () async {
+                          final confirmed =
+                              await DialogUtils.showConfirmationDialog(
+                            context,
+                            title: 'Clear Bibs',
+                            content: 'Are you sure you want to clear all the '
+                                'recorded bibs?',
+                          );
+                          if (confirmed) await _controller.clearRecordedBibs();
+                        },
                       ),
                     ),
                   ),
