@@ -1,6 +1,9 @@
 -- Remote Database Schema (Postgres/Supabase)
 -- Mirrors the local normalized SQLite schema with sync-friendly fields
 -- Run in a Postgres-compatible environment (e.g., Supabase SQL editor)
+--
+-- This file describes the shape of the live database. The migrations under
+-- supabase/migrations are what actually built it; keep this in step with them.
 
 begin;
 
@@ -65,15 +68,23 @@ create index if not exists idx_teams_abbreviation on public.teams(abbreviation);
 -------------------------------------------------------------------------------
 -- TEAM_ROSTERS - Which runners belong to which teams
 -------------------------------------------------------------------------------
+-- PK is (team_uuid, runner_uuid): a roster row is the pair it links, and a
+-- local integer id means nothing on another device. The uuid column is a
+-- server-side surrogate the app never sends.
 create table if not exists public.team_rosters (
-  team_id       bigint not null references public.teams(team_id) on delete cascade,
-  runner_id     bigint not null references public.runners(runner_id) on delete cascade,
+  team_uuid     uuid not null references public.teams(uuid)   on delete cascade,
+  runner_uuid   uuid not null references public.runners(uuid) on delete cascade,
+  owner_user_id uuid not null,
+  uuid          uuid not null default gen_random_uuid() unique,
   joined_date   timestamptz not null default now(),
-  primary key (team_id, runner_id)
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now(),
+  deleted_at    timestamptz,
+  primary key (team_uuid, runner_uuid)
 );
 
-create index if not exists idx_team_rosters_team on public.team_rosters(team_id);
-create index if not exists idx_team_rosters_runner on public.team_rosters(runner_id);
+create index if not exists idx_team_rosters_team on public.team_rosters(team_uuid);
+create index if not exists idx_team_rosters_runner on public.team_rosters(runner_uuid);
 
 -------------------------------------------------------------------------------
 -- RACES - Core race information
@@ -103,25 +114,34 @@ create index if not exists idx_races_date on public.races(race_date);
 -------------------------------------------------------------------------------
 -- RACE_TEAM_PARTICIPATION - Teams participating in races
 -------------------------------------------------------------------------------
+-- PK is (race_uuid, team_uuid), for the same reason as team_rosters.
 create table if not exists public.race_team_participation (
-  race_id             bigint not null references public.races(race_id) on delete cascade,
-  team_id             bigint not null references public.teams(team_id) on delete cascade,
-  team_color_override integer,
-  primary key (race_id, team_id)
+  race_uuid           uuid not null references public.races(uuid) on delete cascade,
+  team_uuid           uuid not null references public.teams(uuid) on delete cascade,
+  owner_user_id       uuid not null,
+  uuid                uuid not null default gen_random_uuid() unique,
+  team_color_override bigint,  -- ARGB 32-bit unsigned; same encoding as teams.color
+  created_at          timestamptz not null default now(),
+  updated_at          timestamptz not null default now(),
+  deleted_at          timestamptz,
+  primary key (race_uuid, team_uuid)
 );
 
-create index if not exists idx_race_team_participation_race on public.race_team_participation(race_id);
+create index if not exists idx_race_team_participation_race on public.race_team_participation(race_uuid);
 
 -------------------------------------------------------------------------------
 -- RACE_PARTICIPANTS - Individual runner participation
--- PK is (race_uuid, runner_uuid) — app upserts on this pair.
+-- PK is (race_uuid, runner_uuid) — app upserts on this pair, and it is what
+-- the app matches a pulled row to its local one by. The uuid column below is a
+-- server-side surrogate key with no local counterpart; the app never sends it.
 -- No integer FK columns: cross-device identity is UUID-based.
 -------------------------------------------------------------------------------
 create table if not exists public.race_participants (
-  race_uuid     text        not null,
-  runner_uuid   text        not null,
-  team_uuid     text,
+  race_uuid     uuid        not null references public.races(uuid)   on delete cascade,
+  runner_uuid   uuid        not null references public.runners(uuid) on delete cascade,
+  team_uuid     uuid                 references public.teams(uuid)   on delete set null,
   owner_user_id uuid        not null,
+  uuid          uuid        not null default gen_random_uuid() unique,
   created_at    timestamptz not null default now(),
   updated_at    timestamptz not null default now(),
   deleted_at    timestamptz,
@@ -145,8 +165,8 @@ create index if not exists idx_race_participants_owner on public.race_participan
 create table if not exists public.race_results (
   result_id   bigserial,            -- legacy; not used as PK by app
   uuid        uuid        not null primary key default gen_random_uuid(),
-  runner_uuid text,                 -- cross-device runner identity
-  race_uuid   text,                 -- cross-device race identity
+  runner_uuid uuid references public.runners(uuid) on delete cascade,
+  race_uuid   uuid references public.races(uuid)   on delete cascade,
   runner_id   bigint,               -- nullable legacy FK (app no longer sends)
   race_id     bigint,               -- nullable legacy FK (app no longer sends)
   team_id     bigint,               -- optional team association
@@ -155,14 +175,24 @@ create table if not exists public.race_results (
   finish_time integer,              -- milliseconds
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
-  deleted_at  timestamptz,
-  unique (race_uuid, runner_uuid)   -- one result per runner per race
+  deleted_at  timestamptz
+  -- One LIVE result per runner per race; see the partial unique index below.
 );
 
 drop trigger if exists race_results_set_updated_at on public.race_results;
 create trigger race_results_set_updated_at
 before update on public.race_results
 for each row execute procedure trigger_set_timestamp();
+
+-- Uniqueness ignores soft-deleted rows, so a deleted runner's bib number,
+-- a deleted team's name and a removed result do not block the value being
+-- used again. The local SQLite schema carries the same partial indexes.
+create unique index if not exists race_results_runner_live_key
+  on public.race_results (race_uuid, runner_uuid) where deleted_at is null;
+create unique index if not exists runners_bib_number_owner_live_key
+  on public.runners (bib_number, owner_user_id) where deleted_at is null;
+create unique index if not exists teams_name_owner_live_key
+  on public.teams (name, owner_user_id) where deleted_at is null;
 
 create index if not exists idx_race_results_race_uuid on public.race_results(race_uuid);
 create index if not exists idx_race_results_owner     on public.race_results(owner_user_id);

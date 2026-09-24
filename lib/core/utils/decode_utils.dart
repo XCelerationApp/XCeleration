@@ -44,8 +44,13 @@ class BibDecodeUtils {
           teamsList.map((e) => e?.toString() ?? '').toList();
 
       final List<BibDatum> bibs = [];
-      for (final row in rows) {
-        if (row is List && row.length >= 4) {
+      for (final (index, row) in rows.indexed) {
+        // Fail rather than skip: bibs are matched to finish times by
+        // position, so a dropped row would shift every later bib.
+        if (row is! List || row.length < 4) {
+          throw FormatException('Bib row ${index + 1} is malformed: $row');
+        }
+        {
           final String bib = row[0]?.toString() ?? '';
           final String name = row[1]?.toString() ?? '';
           final int? tIdx = row[2] is num ? (row[2] as num).toInt() : null;
@@ -84,9 +89,15 @@ class ConflictInfo {
 
 class TimingDecodeUtils {
   /// Decodes a string of race times into TimingData
+  ///
+  /// With [strict], an entry that cannot be read throws a [FormatException]
+  /// instead of being dropped. The coach uses strict mode because times are
+  /// matched to bibs by position, so a silently dropped time would shift every
+  /// later time onto the wrong runner.
   static Future<List<TimingDatum>> decodeEncodedTimingData(
       String encodedTimingData,
-      {bool isFromDatabase = false}) async {
+      {bool isFromDatabase = false,
+      bool strict = false}) async {
     if (encodedTimingData.isEmpty) {
       return [];
     }
@@ -124,6 +135,10 @@ class TimingDecodeUtils {
       try {
         return TimingDatum.fromEncodedString(encodedTimingDatum);
       } catch (e) {
+        if (strict) {
+          throw FormatException(
+              'Timing entry "$encodedTimingDatum" could not be read: $e');
+        }
         Logger.d('Error processing timing datum: $e');
         return null;
       }

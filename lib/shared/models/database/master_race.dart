@@ -108,7 +108,10 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
       return _teamRaceRunnersMap!;
     }
 
-    _teamRaceRunnersMap = {};
+    // Build into a local map and store it once complete. Writing into the
+    // field across the awaits below let a build started after a cache reset
+    // share the same map, so every runner was listed twice.
+    final map = <Team, List<RaceRunner>>{};
 
     // 1) Start with all teams participating in the race so teams with
     //    zero runners are still shown in the UI
@@ -116,7 +119,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
 
     final teamIdToTeam = {for (final t in teamsList) t.teamId: t};
     for (final team in teamsList) {
-      _teamRaceRunnersMap![team] = [];
+      map[team] = [];
     }
 
     // 2) Add runners, ensuring we use the same Team instance as in teamsList
@@ -124,11 +127,11 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
 
     for (final raceRunner in raceRunnersList) {
       final teamKey = teamIdToTeam[raceRunner.team.teamId] ?? raceRunner.team;
-      _teamRaceRunnersMap![teamKey] ??= [];
-      _teamRaceRunnersMap![teamKey]!.add(raceRunner);
+      map[teamKey] ??= [];
+      map[teamKey]!.add(raceRunner);
     }
 
-    return _teamRaceRunnersMap!;
+    return _teamRaceRunnersMap = map;
   }
 
   @override

@@ -564,7 +564,7 @@ void main() {
       verifyNever(mockAuth.sendPasswordResetEmail(any));
     });
 
-    testWidgets('tapping with filled email calls sendPasswordResetEmail',
+    testWidgets('tapping with filled email sends the code and asks for it',
         (tester) async {
       await tester.pumpWidget(_wrap(
         SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
@@ -578,7 +578,8 @@ void main() {
       await _settle(tester);
 
       verify(mockAuth.sendPasswordResetEmail('reset@test.com')).called(1);
-      expect(find.text('Reset email sent'), findsOneWidget);
+      // The code is typed into the app rather than followed as a link.
+      expect(find.text('Reset your\npassword'), findsOneWidget);
     });
   });
 }

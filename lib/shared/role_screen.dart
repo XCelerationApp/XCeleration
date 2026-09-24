@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../coach/bib_conflict_resolution/screen/conflict_resolution_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
 import '../spectator/races_screen/screen/spectator_races_screen.dart';
 import '../assistant/race_timer/screen/timing_screen.dart';
@@ -8,6 +6,8 @@ import '../assistant/bib_number_recorder/screen/bib_number_screen.dart';
 import '../assistant/bib_number_recorder/controller/bib_number_controller.dart';
 import '../assistant/shared/services/assistant_storage_service.dart';
 import '../assistant/shared/services/demo_race_generator_impl.dart';
+import '../core/repositories/i_database_connection_provider.dart';
+import '../core/services/service_locator.dart';
 import '../core/services/device_connection_factory_impl.dart';
 import '../core/services/post_frame_scheduler.dart';
 import '../core/services/tutorial_manager.dart';
@@ -17,6 +17,8 @@ import '../core/theme/app_border_radius.dart';
 import '../core/theme/app_opacity.dart';
 import '../core/theme/app_animations.dart';
 import '../core/theme/typography.dart';
+import '../core/utils/logger.dart';
+import '../core/components/dialog_utils.dart';
 import '../core/components/page_route_animations.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/i_remote_api_client.dart';
@@ -414,29 +416,6 @@ class _AssistantScreenState extends State<_AssistantScreen>
                   Expanded(child: _buildRoleList()),
                 ],
               ),
-              // Prototype entry point: debug builds only.
-              if (kDebugMode) ...[
-                SizedBox(height: 40),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).push(
-                      InitialPageRouteAnimation(
-                        child: const ConflictResolutionScreen(),
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white54),
-                      padding: const EdgeInsets.all(14),
-                      minimumSize: const Size(300, 50),
-                    ),
-                    child: const Text(
-                      '[DEV] Conflict Resolution Prototype',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -579,7 +558,7 @@ class _RoleScreenState extends State<RoleScreen>
     super.dispose();
   }
 
-  void _onCoach() {
+  Future<void> _onCoach() async {
     final auth = widget.authService ?? AuthService.instance;
     final remoteApi = widget.remoteApiClient ?? RemoteApiClient();
     if (!auth.isSignedIn) {
@@ -596,6 +575,20 @@ class _RoleScreenState extends State<RoleScreen>
       );
       return;
     }
+    // Already signed in from a previous run, so this is where their database
+    // gets opened.
+    try {
+      await ServiceLocator.get<IDatabaseConnectionProvider>()
+          .openForUser(auth.currentUserId!);
+    } catch (e) {
+      Logger.e('Could not open the coach database: $e');
+      if (!mounted) return;
+      DialogUtils.showErrorDialog(context,
+          message: 'Could not open your races. Please restart the app and '
+              'try again.');
+      return;
+    }
+    if (!mounted) return;
     Navigator.of(context).push(
       InitialPageRouteAnimation(child: const RacesScreen()),
     );
@@ -632,34 +625,6 @@ class _RoleScreenState extends State<RoleScreen>
                   Expanded(child: _buildRoleList()),
                 ],
               ),
-              // Prototype entry point: debug builds only.
-              if (kDebugMode)
-                Positioned(
-                  bottom: AppSpacing.sm,
-                  left: AppSpacing.lg,
-                  right: AppSpacing.lg,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => Navigator.of(context).push(
-                          InitialPageRouteAnimation(
-                            child: const ConflictResolutionScreen(),
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white54),
-                          padding: const EdgeInsets.all(14),
-                          minimumSize: const Size(300, 50),
-                        ),
-                        child: const Text(
-                          '[DEV] Conflict Resolution Prototype',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
         ),

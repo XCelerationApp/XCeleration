@@ -40,7 +40,10 @@ dependencies:
   uuid: ^4.4.2
 
   # Device Features
-  flutter_nearby_connections: ^1.1.2
+  # Our copy of 1.1.2, which calls Flutter from the main thread on iOS. The
+  # published plugin does not, and Flutter can drop the message or crash.
+  flutter_nearby_connections:
+    path: packages/flutter_nearby_connections
   audioplayers: ^6.1.0
   share_plus: ^12.0.1
   url_launcher: ^6.1.10

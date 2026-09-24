@@ -20,12 +20,10 @@ class LoadResultsStep extends FlowStep {
           // Initialize with a placeholder
           content: SizedBox.shrink(),
           onNext: () async {
-            // Save results when user clicks next
-            if (controller.resultsLoaded &&
-                !controller.hasBibConflicts &&
-                !controller.hasTimingConflicts) {
-              await controller.saveCurrentResults();
-            }
+            // Save results when user clicks next. A failed save must keep the
+            // flow here: finishing would mark the race done without results.
+            final error = await controller.saveCurrentResults();
+            if (error != null) throw FlowStepBlocked(error.userMessage);
           },
         ) {
     // Listen to controller changes and notify the flow system

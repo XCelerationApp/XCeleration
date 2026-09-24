@@ -102,9 +102,15 @@ Future<void> _runApp() async {
     ),
   );
 
-  // Kick off a background sync shortly after startup
+  // Kick off a background sync shortly after startup. A user signed in on a
+  // previous run has not reached a screen that opens their database yet, so
+  // open it here — otherwise there is nothing for the sync to read or write.
   WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final userId = authService.currentUserId;
+    if (userId == null) return;
     try {
+      await ServiceLocator.get<IDatabaseConnectionProvider>()
+          .openForUser(userId);
       await syncService.syncAll();
     } catch (_) {}
   });

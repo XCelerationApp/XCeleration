@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/time_formatter.dart';
 import '../../../core/theme/typography.dart';
-import '../model/timing_data.dart';
 import '../controller/timing_controller.dart';
 
 class TimerDisplayWidget extends StatelessWidget {
@@ -18,8 +17,7 @@ class TimerDisplayWidget extends StatelessWidget {
           ? const Stream<int>.empty()
           : Stream.periodic(const Duration(milliseconds: 10)),
       builder: (context, _) {
-        final elapsed = _calculateElapsedTime(
-            controller.startTime, controller.raceDuration, controller);
+        final elapsed = controller.raceElapsed;
         return Container(
           alignment: Alignment.centerLeft,
           padding: const EdgeInsets.symmetric(vertical: 8),
@@ -40,11 +38,4 @@ class TimerDisplayWidget extends StatelessWidget {
     );
   }
 
-  Duration _calculateElapsedTime(
-      DateTime? startTime, Duration? raceDuration, TimingData timingData) {
-    if (timingData.raceStopped || startTime == null) {
-      return raceDuration ?? Duration.zero;
-    }
-    return DateTime.now().difference(startTime);
-  }
 }

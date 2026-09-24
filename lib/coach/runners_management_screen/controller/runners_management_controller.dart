@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/repositories/i_race_repository.dart';
 import 'package:xceleration/core/repositories/i_runner_repository.dart';
 import 'package:xceleration/core/repositories/i_team_repository.dart';
@@ -256,6 +257,8 @@ class RunnersManagementController with ChangeNotifier {
       if (context.mounted) {
         Navigator.of(context).pop();
       }
+    } on DataInUseException {
+      rethrow; // carries a message for the user
     } catch (e) {
       Logger.e('Error handling runner submission: $e');
       throw Exception('Failed to save runner: $e');
@@ -269,6 +272,18 @@ class RunnersManagementController with ChangeNotifier {
     int targetTeamId,
   ) async {
     final int? oldRunnerId = raceRunner.runner.runnerId;
+
+    // This merge deletes the edited runner at the end. Check before changing
+    // anything: deleting a runner cascades to their saved race results.
+    if (oldRunnerId != null &&
+        oldRunnerId != existingRunner.runnerId &&
+        await _runners.countRaceResults(oldRunnerId) > 0) {
+      throw DataInUseException(
+          'Bib ${raceRunner.runner.bibNumber} already belongs to '
+          '${existingRunner.name ?? 'another runner'}, and this runner has '
+          'saved race results, so the two cannot be merged. Use a different '
+          'bib number.');
+    }
 
     // Remove current runner's race mapping if it exists
     if (oldRunnerId != null) {
@@ -324,6 +339,21 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> _updateExistingRunner(
       RaceRunner raceRunner, int targetTeamId) async {
+    // Other runners with this bib are deleted below; refuse before changing
+    // anything if one of them has saved race results.
+    final duplicates = [
+      for (final r in await _runners.getRunnersByBibAll(raceRunner.runner.bibNumber!))
+        if (r.runnerId != null && r.runnerId != raceRunner.runner.runnerId) r,
+    ];
+    for (final r in duplicates) {
+      if (await _runners.countRaceResults(r.runnerId!) > 0) {
+        throw DataInUseException(
+            'Another runner (${r.name ?? 'unnamed'}) also has bib '
+            '${r.bibNumber} and has saved race results. Use a different bib '
+            'number.');
+      }
+    }
+
     // Update runner details and team mappings
     await _races.updateRunnerWithTeams(
       runner: raceRunner.runner,
@@ -387,15 +417,22 @@ class RunnersManagementController with ChangeNotifier {
   // TEAM OPERATIONS
   // ============================================================================
 
-  Future<void> createTeam(Team team) async {
-    if (team.name == null || team.name!.trim().isEmpty) return;
+  /// Creates [team], returning why it could not be created, or null on success.
+  ///
+  /// A name already in use used to return quietly and the sheet closed as
+  /// though the team had been made. Team names are unique across the whole
+  /// app, not just this race, so this happens to a coach who has the name on
+  /// another race.
+  Future<AppError?> createTeam(Team team) async {
+    if (team.name == null || team.name!.trim().isEmpty) {
+      return const AppError(userMessage: 'Enter a team name.');
+    }
 
     try {
-      // Check if team already exists
       final existingTeam = await masterRace.getTeamByName(team.name!);
       if (existingTeam != null) {
-        // Team already exists, do nothing
-        return;
+        return AppError(
+            userMessage: 'A team named "${team.name}" already exists.');
       }
 
       // Persist team and capture newly assigned id
@@ -407,10 +444,61 @@ class RunnersManagementController with ChangeNotifier {
         colorOverride: team.color?.toARGB32(),
       ));
       await forceRefresh();
+      return null;
     } catch (e) {
       Logger.e('Error creating team: $e');
-      throw Exception('Failed to create team: $e');
+      return AppError(
+        userMessage: 'Could not create the team. Please try again.',
+        originalException: e,
+      );
     }
+  }
+
+  /// Debug builds only: adds three teams of seven runners, so the race flow
+  /// can be tried without typing a roster. Bibs start at 901 and skip any
+  /// already taken.
+  Future<void> addSampleRoster() async {
+    const teams = [
+      ('Sample Eagles', 'EAG', 0xFF1565C0),
+      ('Sample Hawks', 'HAW', 0xFFC62828),
+      ('Sample Owls', 'OWL', 0xFF2E7D32),
+    ];
+    const names = [
+      'Avery', 'Blake', 'Casey', 'Devon', 'Emery', 'Finley', 'Gray', //
+      'Harper', 'Indigo', 'Jordan', 'Kai', 'Logan', 'Morgan', 'Nico',
+      'Oakley', 'Parker', 'Quinn', 'Riley', 'Sage', 'Taylor', 'Umi',
+    ];
+    var bib = 900;
+    var n = 0;
+    for (var (name, abbreviation, color) in teams) {
+      // Team names are unique across the app, not just this race, so find a
+      // name no team anywhere has.
+      final base = name;
+      for (var k = 2; await _teams.getTeamByName(name) != null; k++) {
+        name = '$base $k';
+      }
+      await createTeam(
+          Team(name: name, abbreviation: abbreviation, color: Color(color)));
+      final team = await masterRace.getTeamByName(name);
+      if (team?.teamId == null) continue;
+      for (var i = 0; i < 7; i++) {
+        do {
+          bib++;
+        } while (await _runners.getRunnerByBib('$bib') != null);
+        final runnerId = await masterRace.createRunner(Runner(
+          name: '${names[n++ % names.length]} ${base.split(' ').last}',
+          bibNumber: '$bib',
+          grade: 9 + i % 4,
+        ));
+        await masterRace.addRunnerToTeam(team!.teamId!, runnerId);
+        await masterRace.addRaceParticipant(RaceParticipant(
+          raceId: masterRace.raceId,
+          runnerId: runnerId,
+          teamId: team.teamId!,
+        ));
+      }
+    }
+    await forceRefresh();
   }
 
   Future<void> showAddRunnerToTeam(BuildContext context, Team team) async {
@@ -684,7 +772,7 @@ class RunnersManagementController with ChangeNotifier {
     if (!context.mounted) return;
 
     try {
-      List<Map<String, dynamic>> importData;
+      SpreadsheetRows importData;
 
       if (action == SpreadsheetImportAction.recent) {
         // Show the recent spreadsheets picker and process the selected file.
@@ -702,16 +790,23 @@ class RunnersManagementController with ChangeNotifier {
         );
       }
 
-      if (importData.isEmpty) {
+      if (importData.runners.isEmpty) {
         if (context.mounted) {
+          final skipped = importData.skipped;
           DialogUtils.showErrorDialog(context,
-              message: 'No Valid Runners Loaded');
+              message: skipped.isEmpty
+                  ? 'No Valid Runners Loaded'
+                  : 'No Valid Runners Loaded. ${skipped.length} '
+                      '${skipped.length == 1 ? 'row was' : 'rows were'} '
+                      'skipped:\n${skipped.take(5).join('\n')}'
+                      '${skipped.length > 5 ? '\n…' : ''}');
         }
         return;
       }
 
       if (!context.mounted) return;
-      await _importRunnersFromData(context, team, importData);
+      await _importRunnersFromData(context, team, importData.runners,
+          skippedRows: importData.skipped);
     } catch (e) {
       Logger.e('Error handling spreadsheet load: $e');
       if (context.mounted) {
@@ -727,13 +822,17 @@ class RunnersManagementController with ChangeNotifier {
   Future<void> _importRunnersFromData(
     BuildContext context,
     Team team,
-    List<Map<String, dynamic>> importData,
-  ) async {
+    List<Map<String, dynamic>> importData, {
+    List<String> skippedRows = const [],
+  }) async {
       // Let the user select which imported rows to add
       final selectedRows = await sheet(
         context: context,
         title: 'Select Runners to Add',
-        body: ImportedRunnersSelectionSheet(importedRunners: importData),
+        body: ImportedRunnersSelectionSheet(
+          importedRunners: importData,
+          skippedRows: skippedRows,
+        ),
       ) as List<Map<String, dynamic>>?;
 
       // If user cancels or selects none, stop silently

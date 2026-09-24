@@ -272,6 +272,8 @@ class FlowController extends ChangeNotifier {
 
   FlowStep get currentStep => steps[_currentIndex];
 
+  /// Moves to the next step. Throws [FlowStepBlocked] (and stays put) if the
+  /// current step's [FlowStep.onNext] refuses.
   Future<void> goToNext() async {
     if (currentStep.onNext != null) {
       await currentStep.onNext!();
@@ -425,15 +427,22 @@ Future<bool> showFlow({
                   onPressed: canProceed
                       ? () async {
                           final c = ctx.read<FlowController>();
-                          if (c.canGoForward) {
-                            await c.goToNext();
-                          } else if (c.isLastStep) {
-                            if (c.currentStep.onNext != null) {
-                              await c.currentStep.onNext!();
+                          try {
+                            if (c.canGoForward) {
+                              await c.goToNext();
+                            } else if (c.isLastStep) {
+                              if (c.currentStep.onNext != null) {
+                                await c.currentStep.onNext!();
+                              }
+                              completed = true;
+                              if (!contextToUse.mounted) return;
+                              Navigator.of(context, rootNavigator: true).pop();
                             }
-                            completed = true;
-                            if (!contextToUse.mounted) return;
-                            Navigator.of(context, rootNavigator: true).pop();
+                          } on FlowStepBlocked catch (e) {
+                            // Stay on this step and say why.
+                            if (!ctx.mounted) return;
+                            DialogUtils.showErrorDialog(ctx,
+                                message: e.message);
                           }
                         }
                       : null,

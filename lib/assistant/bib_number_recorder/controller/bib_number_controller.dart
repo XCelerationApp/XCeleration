@@ -14,6 +14,7 @@ import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import '../model/bib_datum_record.dart';
 import '../../shared/models/race_record.dart';
 import '../../shared/services/i_demo_race_generator.dart';
+import '../../shared/utils/race_to_reopen.dart';
 import '../../shared/models/bib_record.dart' as db_models;
 import '../../shared/models/runner.dart' as db_models;
 import 'package:xceleration/core/app_error.dart';
@@ -133,8 +134,9 @@ class BibNumberController extends BibNumberDataController {
         DeviceName.bibRecorder.toString());
 
     final result = await storage.getRaces(DeviceName.bibRecorder.toString());
-    if (result case Success(:final value) when value.isNotEmpty) {
-      await _loadRace(value.last);
+    if (result case Success(:final value)) {
+      final race = raceToReopen(value);
+      if (race != null) await _loadRace(race);
     }
   }
 
@@ -356,30 +358,38 @@ class BibNumberController extends BibNumberDataController {
       return Failure(AppError(userMessage: 'Failed to parse race data: $e'));
     }
 
-    final saveResult = await storage.saveNewRace(raceRecord);
-    if (saveResult case Failure(:final error)) {
-      Logger.e(
-          '[BibNumberController.processLoadedRaceData] ${error.originalException}');
-      return Failure(error);
+    // The coach may send the same race again, for instance with runners
+    // added since: that opens the race already here, bibs and all.
+    final RaceRecord race;
+    switch (await storage.receiveRace(raceRecord)) {
+      case Success(:final value):
+        race = value.race;
+      case Failure(:final error):
+        Logger.e(
+            '[BibNumberController.processLoadedRaceData] ${error.originalException}');
+        return Failure(error);
     }
 
-    if (loadedRunners.isNotEmpty) {
-      final dbRunners = loadedRunners
-          .map((runner) => db_models.Runner(
-                raceId: raceRecord.raceId,
-                bibNumber: runner.bib,
-                name: runner.name,
-                teamAbbreviation: runner.teamAbbreviation,
-                grade: runner.grade,
-                teamColor: runner.teamColor,
-                createdAt: DateTime.now(),
-              ))
-          .toList();
-      await storage.saveRunners(raceRecord.raceId, dbRunners);
+    if (loadedRunners.isEmpty) {
+      await loadOtherRace(race);
+      return const Success(null);
     }
+
+    final dbRunners = loadedRunners
+        .map((runner) => db_models.Runner(
+              raceId: race.raceId,
+              bibNumber: runner.bib,
+              name: runner.name,
+              teamAbbreviation: runner.teamAbbreviation,
+              grade: runner.grade,
+              teamColor: runner.teamColor,
+              createdAt: DateTime.now(),
+            ))
+        .toList();
+    await storage.saveRunners(race.raceId, dbRunners);
 
     clearBibRecords();
-    await _loadRaceWithRunners(raceRecord, loadedRunners);
+    await _loadRaceWithRunners(race, loadedRunners);
     return const Success(null);
   }
 

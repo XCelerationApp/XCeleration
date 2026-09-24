@@ -4,7 +4,6 @@ import '../widgets/race_details_tab.dart';
 import '../controller/race_screen_controller.dart';
 import '../../../core/components/sliding_page_view.dart';
 import '../../runners_management_screen/screen/runners_management_screen.dart';
-import '../widgets/race_header.dart';
 
 /// Shared placeholder shown in the second page of the [SlidingPageView]
 /// before the runners management panel is navigated to.
@@ -67,19 +66,12 @@ class TabBarViewWidget extends StatelessWidget {
                   debugPrint('Error navigating to race details: $error');
                 });
               },
-              firstPage: Column(
-                children: [
-                  RaceHeader(
-                    controller: controller,
-                  ),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: RaceDetailsTab(
-                        controller: controller,
-                      ),
-                    ),
-                  ),
-                ],
+              // No RaceHeader here: the finished-race screen already shows it
+              // above the tabs, so this repeated the race's name.
+              firstPage: SingleChildScrollView(
+                child: RaceDetailsTab(
+                  controller: controller,
+                ),
               ),
               secondPage: Builder(
                 builder: (context) {
