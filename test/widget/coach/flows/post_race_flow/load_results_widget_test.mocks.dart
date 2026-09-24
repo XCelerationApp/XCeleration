@@ -4,15 +4,18 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i7;
-import 'dart:ui' as _i9;
+import 'dart:ui' as _i11;
 
-import 'package:flutter/material.dart' as _i8;
+import 'package:flutter/material.dart' as _i9;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart'
     as _i4;
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/dev/race_simulator.dart'
+    as _i10;
+import 'package:xceleration/core/app_error.dart' as _i8;
 import 'package:xceleration/core/services/device_connection_service.dart'
     as _i3;
-import 'package:xceleration/core/utils/enums.dart' as _i10;
+import 'package:xceleration/core/utils/enums.dart' as _i12;
 import 'package:xceleration/shared/models/database/base_models.dart' as _i5;
 import 'package:xceleration/shared/models/database/master_race.dart' as _i2;
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart'
@@ -184,16 +187,15 @@ class MockLoadResultsController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> saveCurrentResults() =>
+  _i7.Future<_i8.AppError?> saveCurrentResults() =>
       (super.noSuchMethod(
             Invocation.method(#saveCurrentResults, []),
-            returnValue: _i7.Future<void>.value(),
-            returnValueForMissingStub: _i7.Future<void>.value(),
+            returnValue: _i7.Future<_i8.AppError?>.value(),
           )
-          as _i7.Future<void>);
+          as _i7.Future<_i8.AppError?>);
 
   @override
-  _i7.Future<void> processReceivedData(_i8.BuildContext? context) =>
+  _i7.Future<void> processReceivedData(_i9.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#processReceivedData, [context]),
             returnValue: _i7.Future<void>.value(),
@@ -202,7 +204,23 @@ class MockLoadResultsController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> showBibConflictsSheet(_i8.BuildContext? context) =>
+  _i7.Future<_i10.SimulatedRace?> loadSimulatedResults(
+    _i9.BuildContext? context,
+    _i10.SimulatedScenario? scenario, {
+    _i10.RaceSimulator? simulator,
+  }) =>
+      (super.noSuchMethod(
+            Invocation.method(
+              #loadSimulatedResults,
+              [context, scenario],
+              {#simulator: simulator},
+            ),
+            returnValue: _i7.Future<_i10.SimulatedRace?>.value(),
+          )
+          as _i7.Future<_i10.SimulatedRace?>);
+
+  @override
+  _i7.Future<void> showBibConflictsSheet(_i9.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#showBibConflictsSheet, [context]),
             returnValue: _i7.Future<void>.value(),
@@ -211,7 +229,16 @@ class MockLoadResultsController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> showTimingConflictsSheet(_i8.BuildContext? context) =>
+  _i7.Future<void> applyResolvedRunners(List<_i5.RaceRunner?>? updated) =>
+      (super.noSuchMethod(
+            Invocation.method(#applyResolvedRunners, [updated]),
+            returnValue: _i7.Future<void>.value(),
+            returnValueForMissingStub: _i7.Future<void>.value(),
+          )
+          as _i7.Future<void>);
+
+  @override
+  _i7.Future<void> showTimingConflictsSheet(_i9.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#showTimingConflictsSheet, [context]),
             returnValue: _i7.Future<void>.value(),
@@ -236,13 +263,13 @@ class MockLoadResultsController extends _i1.Mock
           as bool);
 
   @override
-  void addListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i9.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -269,20 +296,20 @@ class MockDevicesManager extends _i1.Mock implements _i3.DevicesManager {
   }
 
   @override
-  _i10.DeviceName get currentDeviceName =>
+  _i12.DeviceName get currentDeviceName =>
       (super.noSuchMethod(
             Invocation.getter(#currentDeviceName),
-            returnValue: _i10.DeviceName.coach,
+            returnValue: _i12.DeviceName.coach,
           )
-          as _i10.DeviceName);
+          as _i12.DeviceName);
 
   @override
-  _i10.DeviceType get currentDeviceType =>
+  _i12.DeviceType get currentDeviceType =>
       (super.noSuchMethod(
             Invocation.getter(#currentDeviceType),
-            returnValue: _i10.DeviceType.advertiserDevice,
+            returnValue: _i12.DeviceType.advertiserDevice,
           )
-          as _i10.DeviceType);
+          as _i12.DeviceType);
 
   @override
   bool get toSpectator =>
@@ -312,7 +339,7 @@ class MockDevicesManager extends _i1.Mock implements _i3.DevicesManager {
   );
 
   @override
-  bool hasDevice(_i10.DeviceName? name) =>
+  bool hasDevice(_i12.DeviceName? name) =>
       (super.noSuchMethod(
             Invocation.method(#hasDevice, [name]),
             returnValue: false,
@@ -320,7 +347,7 @@ class MockDevicesManager extends _i1.Mock implements _i3.DevicesManager {
           as bool);
 
   @override
-  _i3.ConnectedDevice? getDevice(_i10.DeviceName? name) =>
+  _i3.ConnectedDevice? getDevice(_i12.DeviceName? name) =>
       (super.noSuchMethod(Invocation.method(#getDevice, [name]))
           as _i3.ConnectedDevice?);
 

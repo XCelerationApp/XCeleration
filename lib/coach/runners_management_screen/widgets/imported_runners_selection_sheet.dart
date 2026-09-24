@@ -6,9 +6,13 @@ class ImportedRunnersSelectionSheet extends StatefulWidget {
   final List<Map<String, dynamic>>
       importedRunners; // expects keys: name, grade, bib
 
+  /// Spreadsheet rows that could not be imported, with the reason.
+  final List<String> skippedRows;
+
   const ImportedRunnersSelectionSheet({
     super.key,
     required this.importedRunners,
+    this.skippedRows = const [],
   });
 
   @override
@@ -56,6 +60,39 @@ class _ImportedRunnersSelectionSheetState
     return indices;
   }
 
+  /// Says which spreadsheet rows were left out, so a runner missing from the
+  /// list isn't a surprise on race day.
+  Widget _buildSkippedRows() {
+    final count = widget.skippedRows.length;
+    return ExpansionTile(
+      tilePadding: EdgeInsets.zero,
+      leading: const Icon(Icons.warning_amber_rounded,
+          color: AppColors.primaryColor),
+      title: Text(
+        '$count ${count == 1 ? 'row was' : 'rows were'} not imported',
+        style: AppTypography.bodyMedium,
+      ),
+      subtitle: const Text('Tap to see why'),
+      children: [
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 160),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final row in widget.skippedRows)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 2),
+                  child: Text(row,
+                      style: AppTypography.bodyRegular
+                          .copyWith(color: AppColors.mediumColor)),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final visible = _visibleIndices();
@@ -64,6 +101,7 @@ class _ImportedRunnersSelectionSheetState
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.skippedRows.isNotEmpty) _buildSkippedRows(),
           Row(
             children: [
               Checkbox(value: _selectAll, onChanged: _toggleAll),

@@ -1,9 +1,13 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
+import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/typography.dart';
 import 'conflict_button.dart';
 import 'success_message.dart';
 import 'reload_button.dart';
 import '../controller/load_results_controller.dart';
+import '../dev/simulate_results_button.dart';
 
 /// Widget that handles loading and displaying race results
 class LoadResultsWidget extends StatelessWidget {
@@ -42,7 +46,28 @@ class LoadResultsWidget extends StatelessWidget {
                 inSheet: closeWhenDone,
               ),
 
+              // Test tools: in debug and profile builds, never in the store build.
+              if (!kReleaseMode) ...[
+                const SizedBox(height: 12),
+                SimulateResultsButton(controller: controller),
+              ],
+
               const SizedBox(height: 24),
+
+              // Why the last load failed. Without this a failed load just
+              // looked like nothing happened.
+              if (controller.error case final error?) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Text(
+                    error.userMessage,
+                    textAlign: TextAlign.center,
+                    style: AppTypography.bodyRegular
+                        .copyWith(color: AppColors.redColor),
+                  ),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               Column(
                 mainAxisSize: MainAxisSize.min,

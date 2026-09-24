@@ -5,8 +5,11 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import '../core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import '../core/components/page_route_animations.dart';
 import 'role_screen.dart';
 
@@ -206,13 +209,18 @@ class SettingsScreen extends StatelessWidget {
           cancelText: 'Cancel',
         );
         if (!confirmed || !context.mounted) return;
+        final userId = AuthService.instance.currentUserId;
+        if (userId == null) return;
         try {
           await DialogUtils.executeWithLoadingDialog(context,
               loadingMessage: 'Deleting account...', operation: () async {
             await AuthService.instance.deleteCurrentUserAccount();
           });
           if (!context.mounted) return;
-          // Ensure the local session is cleared after account deletion
+          // The account is gone from the server; the races must not stay on
+          // the phone, where the next person to sign in would find them.
+          await ServiceLocator.get<IDatabaseConnectionProvider>()
+              .deleteUserData(userId);
           await AuthService.instance.signOut();
           if (!context.mounted) return;
           DialogUtils.showSuccessDialog(context, message: 'Account deleted');
@@ -239,6 +247,17 @@ class SettingsScreen extends StatelessWidget {
       Icons.logout,
       isSelected: false,
       onTap: () async {
+        // A cursor belongs to the account that set it, and the database to the
+        // user whose races are in it. Both have to go before the next sign-in.
+        // Settings is reachable from the assistant and spectator screens too,
+        // where the coach database may never have been opened: then there is
+        // no cursor to clear, and signing out must still go ahead.
+        try {
+          await context.read<ISyncService>().clearSyncCursors();
+        } on StateError {
+          Logger.d('Sign out: no database open, so no sync cursors to clear');
+        }
+        await ServiceLocator.get<IDatabaseConnectionProvider>().close();
         await AuthService.instance.signOut();
         if (!context.mounted) return;
         Navigator.of(context).pushAndRemoveUntil(

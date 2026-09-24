@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:provider/provider.dart';
+import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
+import 'otp_verification_screen.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/core/services/profile_service.dart';
 import 'package:xceleration/core/components/page_route_animations.dart';
 import 'package:xceleration/coach/races_screen/screen/races_screen.dart';
@@ -121,7 +124,19 @@ class _SignInScreenState extends State<SignInScreen>
     return true;
   }
 
+  /// Each user's races live in their own file, so nothing can be read or
+  /// synced until the right one is open.
+  Future<void> _openDatabaseForSignedInUser() async {
+    final userId = widget._authService.currentUserId;
+    if (userId == null) return;
+    await ServiceLocator.get<IDatabaseConnectionProvider>()
+        .openForUser(userId);
+  }
+
   Future<void> _submit() async {
+    // A second tap while the first is still going signs in twice and races
+    // two syncs against each other.
+    if (_busy) return;
     if (!_validate()) return;
     final syncService = context.read<ISyncService>();
     if (!await _connectivity.isOnline()) {
@@ -136,6 +151,7 @@ class _SignInScreenState extends State<SignInScreen>
         final resp = await widget._authService.signInWithEmailPassword(
             _emailController.text.trim(), _passwordController.text);
         if (mounted && resp.session != null) {
+          await _openDatabaseForSignedInUser();
           try {
             await widget._profileService.ensureProfileUpsert();
             await syncService.syncAll();
@@ -149,10 +165,21 @@ class _SignInScreenState extends State<SignInScreen>
         final resp = await widget._authService.signUpWithEmailPassword(
             _emailController.text.trim(), _passwordController.text);
         if (resp.session == null) {
-          await widget._authService.signInWithEmailPassword(
-              _emailController.text.trim(), _passwordController.text);
+          // The address has to be confirmed first. Signing in here would only
+          // fail with 'email not confirmed'.
+          if (!mounted) return;
+          await Navigator.of(context).push(MaterialPageRoute<void>(
+            builder: (_) => OtpVerificationScreen(
+              email: _emailController.text.trim(),
+              mode: OtpMode.signup,
+              authService: widget._authService,
+              profileService: widget._profileService,
+            ),
+          ));
+          return;
         }
         if (mounted) {
+          await _openDatabaseForSignedInUser();
           try {
             await widget._profileService.ensureProfileUpsert();
             await syncService.syncAll();
@@ -232,12 +259,14 @@ class _SignInScreenState extends State<SignInScreen>
     try {
       await widget._authService
           .sendPasswordResetEmail(_emailController.text.trim());
-      if (mounted) {
-        DialogUtils.showMessageDialog(context,
-            title: 'Reset email sent',
-            message:
-                "We've sent a password reset link to ${_emailController.text.trim()}.");
-      }
+      if (!mounted) return;
+      await Navigator.of(context).push(MaterialPageRoute<void>(
+        builder: (_) => OtpVerificationScreen(
+          email: _emailController.text.trim(),
+          mode: OtpMode.passwordReset,
+          authService: widget._authService,
+        ),
+      ));
     } catch (e) {
       if (mounted) {
         DialogUtils.showMessageDialog(context,

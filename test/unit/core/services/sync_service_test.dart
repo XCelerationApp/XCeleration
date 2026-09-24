@@ -224,6 +224,16 @@ void main() {
                 onConflict: anyNamed('onConflict')))
             .thenAnswer((_) async {});
         when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 1);
+        // Marking rows sent runs in a transaction.
+        final mockTxn = MockTransaction();
+        when(mockTxn.rawUpdate(any, any)).thenAnswer((_) async => 1);
+        when(mockDatabase.transaction<void>(any,
+                exclusive: anyNamed('exclusive')))
+            .thenAnswer((invocation) {
+          final callback = invocation.positionalArguments[0]
+              as Future<void> Function(Transaction);
+          return callback(mockTxn).then<Null>((_) => null);
+        });
 
         await service.pushAll();
 
@@ -385,8 +395,6 @@ void main() {
         // Common setup for pullAll tests: schema exists, user authenticated
         _stubSchemaExists(mockDatabase);
         when(mockAuth.currentUserId).thenReturn('user-1');
-        when(mockSyncClient.fetchAccessibleOwnerIds('user-1'))
-            .thenAnswer((_) async => ['user-1']);
         _stubEmptyRemoteTables(mockSyncClient);
         _stubNoCursors(mockDatabase);
         when(mockDatabase.insert(any, any,
@@ -534,6 +542,10 @@ void main() {
             };
 
         setUp(() {
+          // The unknown parent is not on the server either, so asking for it
+          // by uuid comes back empty and the row stays skipped.
+          when(mockSyncClient.fetchByUuids(any, any))
+              .thenAnswer((_) async => []);
           when(mockDatabase.rawQuery(
                   argThat(contains('FROM runners WHERE uuid IN')), any))
               .thenAnswer((_) async => [

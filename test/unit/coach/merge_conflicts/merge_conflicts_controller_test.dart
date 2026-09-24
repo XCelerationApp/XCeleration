@@ -183,14 +183,16 @@ void main() {
         expect(controller.hasConflicts, isFalse);
       });
 
-      test('returns true when list has more than one chunk', () {
+      test('returns false for several confirmed chunks', () {
+        // Resolved means no missing/extra-time conflict remains, not "exactly
+        // one chunk": a clean chunk between confirmed ones never merges.
         final controller = _buildController(
           timingChunks: [
             _confirmChunk(1, ['1:00.0']),
             _confirmChunk(2, ['2:00.0']),
           ],
         );
-        expect(controller.hasConflicts, isTrue);
+        expect(controller.hasConflicts, isFalse);
       });
 
       test('returns true when single chunk has extraTime conflict', () {
@@ -359,7 +361,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveExtraTimeConflict(0);
+        await controller.resolveExtraTimeConflict(1);
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,
@@ -367,7 +369,7 @@ void main() {
         );
       });
 
-      test('does nothing if index is out of range', () async {
+      test('does nothing if no chunk has that id', () async {
         final controller = _buildController(
           timingChunks: [
             _extraTimeChunk(1, ['1:00.0'], 1)
@@ -375,7 +377,7 @@ void main() {
           raceRunners: _runners(0),
         );
 
-        await controller.resolveExtraTimeConflict(5); // out of range
+        await controller.resolveExtraTimeConflict(5); // unknown id
 
         // Chunk should be unchanged.
         expect(
@@ -392,7 +394,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveExtraTimeConflict(0);
+        await controller.resolveExtraTimeConflict(1);
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,
@@ -413,7 +415,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveMissingTimeConflict(0);
+        await controller.resolveMissingTimeConflict(1);
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,
@@ -421,7 +423,7 @@ void main() {
         );
       });
 
-      test('does nothing if index is out of range', () async {
+      test('does nothing if no chunk has that id', () async {
         final controller = _buildController(
           timingChunks: [
             _missingTimeChunk(1, ['TBD'], 1)
@@ -429,7 +431,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveMissingTimeConflict(99);
+        await controller.resolveMissingTimeConflict(99); // unknown id
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,
@@ -445,7 +447,7 @@ void main() {
           raceRunners: _runners(1),
         );
 
-        await controller.resolveMissingTimeConflict(0);
+        await controller.resolveMissingTimeConflict(1);
 
         expect(
           controller.timingChunks.first.conflictRecord!.conflict!.type,
@@ -681,24 +683,29 @@ void main() {
 
     // -----------------------------------------------------------------------
     group('updateMissingTimeRecord', () {
-      test('updates timeController text without notifying controller listeners',
-          () {
-        final chunk = _missingTimeChunk(1, ['TBD'], 1, endTime: '5:00.0');
+      test('updates timeController text, notifying only when the chunk '
+          'becomes resolvable', () {
+        final chunk =
+            _missingTimeChunk(1, ['1:00.0', 'TBD'], 1, endTime: '5:00.0');
         final controller = _buildController(
           timingChunks: [chunk],
-          raceRunners: _runners(1),
+          raceRunners: _runners(2),
         );
 
         final uiChunk = controller.uiChunks.first;
-        var notified = false;
-        controller.addListener(() => notified = true);
+        var notified = 0;
+        controller.addListener(() => notified++);
 
-        controller.updateMissingTimeRecord(uiChunk.chunkId, 0, '2:00.0');
+        // Still not a valid time: each UIRecord redraws itself, and the
+        // controller stays quiet.
+        controller.updateMissingTimeRecord(uiChunk.chunkId, 1, '2:');
+        expect(uiChunk.records[1].timeController.text, '2:');
+        expect(notified, 0);
 
-        expect(uiChunk.records.first.timeController.text, '2:00.0');
-        // Controller-level notifyListeners() is intentionally NOT called on
-        // each keystroke — UIRecord notifies its own listeners instead.
-        expect(notified, isFalse);
+        // Now the chunk can be resolved, so the list has to rebuild for the
+        // "Resolve Conflict" button to turn on.
+        controller.updateMissingTimeRecord(uiChunk.chunkId, 1, '2:00.0');
+        expect(notified, 1);
       });
 
       test('sets validation error for invalid time', () {
@@ -717,7 +724,8 @@ void main() {
 
     // -----------------------------------------------------------------------
     group('insertTbdAt', () {
-      test('inserts new TBD record at index for confirmRunner chunk', () {
+      test('does nothing for a confirmRunner chunk', () {
+        // A TBD there would add a finisher the timing data does not have.
         final chunk = _confirmChunk(1, ['1:00.0', '2:00.0']);
         final controller = _buildController(
           timingChunks: [chunk],
@@ -725,12 +733,10 @@ void main() {
         );
 
         final uiChunk = controller.uiChunks.first;
-        final countBefore = uiChunk.records.length;
 
         controller.insertTbdAt(uiChunk.chunkId, 0);
 
-        expect(uiChunk.records.length, countBefore + 1);
-        expect(uiChunk.records.first.time, 'TBD');
+        expect(uiChunk.times, ['1:00.0', '2:00.0']);
       });
 
       test('moves existing TBD to target index for missingTime chunk', () {

@@ -9,7 +9,9 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../utils/timing_data_converter.dart';
 import 'chunk_cacher.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/time_formatter.dart';
 
 class TimingData with ChangeNotifier {
   TimingChunk currentChunk = TimingChunk(id: 0, timingData: []);
@@ -31,13 +33,54 @@ class TimingData with ChangeNotifier {
   /// Widgets that display or depend on timing records should listen to this.
   final ValueNotifier<int> recordsSignal = ValueNotifier(0);
 
+  /// [now] is the phone's clock and [monotonic] a clock that only moves
+  /// forward; both can be replaced in tests.
   TimingData({
     required IAssistantStorageService storage,
     ChunkCacher? chunkCacher,
     RaceTimerDataConverter? timingDataConverter,
+    DateTime Function()? now,
+    Duration Function()? monotonic,
   })  : _storage = storage,
         _chunkCacher = chunkCacher ?? ChunkCacher(),
-        _timingDataConverter = timingDataConverter ?? RaceTimerDataConverter();
+        _timingDataConverter = timingDataConverter ?? RaceTimerDataConverter(),
+        _now = now ?? DateTime.now,
+        _monotonic = monotonic ?? _appClockElapsed;
+
+  static final Stopwatch _appClock = Stopwatch()..start();
+  static Duration _appClockElapsed() => _appClock.elapsed;
+
+  final DateTime Function() _now;
+  final Duration Function() _monotonic;
+
+  // Race time at the anchor and the monotonic clock's reading then. Reset
+  // (to null) whenever the start time, running state or race changes.
+  Duration? _anchorRaceTime;
+  Duration _anchorMonotonic = Duration.zero;
+
+  /// The phone's clock, read through the same source as [raceElapsed].
+  DateTime get clockNow => _now();
+
+  /// The race clock: time since the start while running, or the final time
+  /// once stopped.
+  ///
+  /// The phone's clock is only read once, when the race starts, continues or
+  /// is reopened; after that time is measured with a clock that can't go
+  /// backwards. Reading the phone's clock on every tap meant a clock change
+  /// mid-race (e.g. an automatic time sync) could make a later runner's time
+  /// earlier than the one before, and reorder the results.
+  Duration get raceElapsed {
+    final start = _startTime;
+    if (start == null) return _raceDuration ?? Duration.zero;
+    if (_raceStopped) return _raceDuration ?? _now().difference(start);
+    final anchor = _anchorRaceTime;
+    if (anchor == null) {
+      _anchorRaceTime = _now().difference(start);
+      _anchorMonotonic = _monotonic();
+      return _anchorRaceTime!;
+    }
+    return anchor + (_monotonic() - _anchorMonotonic);
+  }
   Duration? _raceDuration;
   bool _raceStopped = true;
   RaceRecord? _currentRace;
@@ -56,6 +99,7 @@ class TimingData with ChangeNotifier {
     }
     _storage.updateRaceStatus(_currentRace!.raceId, _currentRace!.type, value);
     _raceStopped = value;
+    _anchorRaceTime = null;
     raceStateSignal.value++;
     notifyListeners();
   }
@@ -68,6 +112,7 @@ class TimingData with ChangeNotifier {
       throw Exception('Race isn\'t loaded');
     }
     _startTime = time;
+    _anchorRaceTime = null;
     _storage.updateRaceStartTime(
         _currentRace!.raceId, _currentRace!.type, time);
     raceStateSignal.value++;
@@ -93,6 +138,7 @@ class TimingData with ChangeNotifier {
       return;
     }
     _currentRace = race;
+    _anchorRaceTime = null;
     raceInfoSignal.value++;
     notifyListeners();
   }
@@ -103,8 +149,7 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.timingData.add(record);
-      _storage.addLoggedTimingDatum(
-          _currentRace!.raceId, currentChunk.id, record);
+      _saveCurrentChunkInDatabase();
     } else {
       final int chunkId = currentChunk.id;
       cacheCurrentChunk();
@@ -123,12 +168,11 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.conflictRecord = record;
-      _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id, record);
+      _saveCurrentChunkInDatabase();
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.confirmRunner) {
       currentChunk.conflictRecord!.time = record.time;
-      _storage.saveChunkConflict(
-          _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
+      _saveCurrentChunkInDatabase();
     } else {
       final int chunkId = currentChunk.id;
       cacheCurrentChunk();
@@ -149,19 +193,20 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.conflictRecord = record;
-      _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id, record);
+      _saveCurrentChunkInDatabase();
     } else if (currentChunk.conflictRecord!.conflict?.type ==
         ConflictType.missingTime) {
       currentChunk.conflictRecord!.time = record.time;
       currentChunk.conflictRecord!.conflict!.offBy++;
-      _storage.saveChunkConflict(
-          _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
-    } else if (currentChunk.conflictRecord!.conflict?.type ==
-        ConflictType.extraTime) {
-      reduceCurrentConflictByOne(newTime: record.time);
-      _storage.saveChunkConflict(
-          _currentRace!.raceId, currentChunk.id, currentChunk.conflictRecord!);
+      _saveCurrentChunkInDatabase();
     } else {
+      // Note: an open extra-time conflict is NOT cancelled by this press.
+      // They are two separate things that happened (a stray time, and then a
+      // missed runner), and cancelling them out lost both: the stray stayed
+      // in the results as a finisher and the missed runner vanished. The
+      // extra-time chunk is closed and the missing time starts a new one.
+      // To take back a press, use undo.
+
       final int chunkId = currentChunk.id;
       cacheCurrentChunk();
       currentChunk =
@@ -180,19 +225,21 @@ class TimingData with ChangeNotifier {
     }
     if (!currentChunk.hasConflict) {
       currentChunk.conflictRecord = record;
-      _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id, record);
+      _saveCurrentChunkInDatabase();
     } else {
       final Conflict conflict = currentChunk.conflictRecord!.conflict!;
       if (conflict.type == ConflictType.extraTime) {
         currentChunk.conflictRecord!.time = record.time;
         currentChunk.conflictRecord!.conflict!.offBy++;
-        _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id,
-            currentChunk.conflictRecord!);
+        _saveCurrentChunkInDatabase();
       } else if (currentChunk.conflictRecord!.conflict?.type ==
           ConflictType.missingTime) {
-        reduceCurrentConflictByOne(newTime: record.time);
-        _storage.saveChunkConflict(_currentRace!.raceId, currentChunk.id,
-            currentChunk.conflictRecord!);
+        // An extra time marks one of the times already recorded, and there
+        // are none since the missing time. TimingController refuses this
+        // before it gets here; ignore it rather than record something wrong.
+        Logger.e('Ignoring extra time: nothing recorded since the missing '
+            'time. Undo the missing time instead.');
+        return;
       } else {
         final int chunkId = currentChunk.id;
         cacheCurrentChunk();
@@ -219,6 +266,7 @@ class TimingData with ChangeNotifier {
     if (conflict.offBy <= 0) {
       currentChunk.conflictRecord = null;
     }
+    persistCurrentChunk();
     _cachedUiRecords = null;
     recordsSignal.value++;
     notifyListeners();
@@ -233,15 +281,78 @@ class TimingData with ChangeNotifier {
     _chunkCacher.cacheChunk(chunk);
   }
 
+  /// Saves the whole of [currentChunk], replacing its row. Every change goes
+  /// through here: appending one time by reading the row and writing it back
+  /// lost times when two taps overlapped, and did nothing when the row was
+  /// missing (e.g. after the race's times were cleared).
   void _saveCurrentChunkInDatabase() {
-    if (_currentRace != null) {
-      _storage.saveChunk(_currentRace!.raceId, currentChunk);
-    } else {
+    final race = _currentRace;
+    if (race == null) {
       Logger.e('Skipping save - no race loaded');
+      return;
     }
+    // Save what the chunk holds now: it keeps changing (and may be replaced)
+    // before the queued write runs.
+    final snapshot = _copyChunk(currentChunk);
+    enqueueWrite(() => _storage.saveChunk(race.raceId, snapshot),
+        'save chunk ${snapshot.id}');
   }
 
+  static TimingChunk _copyChunk(TimingChunk chunk) {
+    final conflictRecord = chunk.conflictRecord;
+    return TimingChunk(
+      id: chunk.id,
+      timingData: [
+        for (final datum in chunk.timingData) TimingDatum(time: datum.time)
+      ],
+      conflictRecord: conflictRecord == null
+          ? null
+          : TimingDatum(
+              time: conflictRecord.time,
+              conflict: Conflict(
+                type: conflictRecord.conflict!.type,
+                offBy: conflictRecord.conflict!.offBy,
+              ),
+            ),
+    );
+  }
+
+  /// Saves [currentChunk] (times and conflict) after it was changed in place,
+  /// e.g. by an undo or a deleted record. Without this the change was lost on
+  /// restart and the removed conflict came back.
+  void persistCurrentChunk() => _saveCurrentChunkInDatabase();
+
+  Future<void> _writes = Future.value();
+
+  /// Completes once every write queued so far has finished.
+  Future<void> get pendingWrites => _writes;
+
+  /// Runs storage writes one at a time, in the order they were made, so a
+  /// later write can never land before (and be overwritten by) an earlier
+  /// one. Failures are logged instead of dropped. The returned future
+  /// completes when this write has run.
+  Future<void> enqueueWrite(Future<Result<void>> Function() write, String what) {
+    return _writes = _writes.then((_) async {
+      try {
+        final result = await write();
+        if (result case Failure(:final error)) {
+          Logger.e('[TimingData] Could not $what: ${error.originalException}');
+        }
+      } catch (e) {
+        Logger.e('[TimingData] Could not $what: $e');
+      }
+    });
+  }
+
+  /// Removes [currentChunk] and makes the previous chunk current, deleting the
+  /// removed chunk's row from storage.
   void deleteCurrentChunk() {
+    final removedId = currentChunk.id;
+    if (_currentRace != null) {
+      final raceId = _currentRace!.raceId;
+      enqueueWrite(() => _storage.deleteChunk(raceId, removedId),
+          'delete chunk $removedId');
+    }
     if (_chunkCacher.isEmpty) {
       currentChunk = TimingChunk(id: 0, timingData: []);
     } else {
@@ -312,7 +423,7 @@ class TimingData with ChangeNotifier {
       } else if (raceDuration != null) {
         // Closing checkpoint so the coach can confirm the final runner count.
         records.add(TimingDatum(
-            time: raceDuration!.toString(),
+            time: TimeFormatter.formatDuration(raceDuration!),
             conflict: Conflict(type: ConflictType.confirmRunner)));
       }
     }
@@ -366,6 +477,7 @@ class TimingData with ChangeNotifier {
     _chunkCacher.clear();
     _timingDataConverter.clearCache();
     _startTime = null;
+    _anchorRaceTime = null;
     _raceDuration = null;
     _cachedUiRecords = null;
     raceStateSignal.value++;

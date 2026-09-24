@@ -21,21 +21,25 @@ class RaceResultsService implements IRaceResultsService {
 
     // Ensure runners within each team are sorted by their finish time
     for (final team in teams) {
-      team.runners.sort((a, b) => a.compareTimeTo(b));
+      team.runners.sort(_compareFinish);
     }
 
     return teams;
   }
 
   /// Helper function to group results by team into TeamRecord objects
+  ///
+  /// Runners without a team still count in the individual results but are
+  /// left out of team scoring (a null team used to crash the calculation).
+  /// Grouped by team id rather than [Team] equality, which also compares
+  /// fields like updatedAt.
   List<TeamRecord> _getTeamsFromResults(List<RaceResult> results) {
     final List<TeamRecord> teams = [];
-    for (var team in groupBy(results, (result) => result.team!).entries) {
-      final teamRecord = TeamRecord(
-        team: team.key,
-        runners: team.value,
-      );
-      teams.add(teamRecord);
+    final withTeam = results.where((r) => r.team != null);
+    for (final group
+        in groupBy(withTeam, (result) => result.team!.teamId ?? result.team!.name)
+            .values) {
+      teams.add(TeamRecord(team: group.first.team!, runners: group));
     }
     return teams;
   }
@@ -122,7 +126,18 @@ class RaceResultsService implements IRaceResultsService {
 
   /// Sort runners by their finish time
   void _sortRunners(List<RaceResult> results) {
-    results.sort((a, b) => a.compareTimeTo(b));
+    results.sort(_compareFinish);
+  }
+
+  /// Finish order: by time, then by chute place for equal times, then by
+  /// result id. Sorting by time alone left ties in arbitrary order (Dart's
+  /// sort is not stable), which could swap places and change team scores.
+  static int _compareFinish(RaceResult a, RaceResult b) {
+    final byTime = a.compareTimeTo(b);
+    if (byTime != 0) return byTime;
+    final byPlace = (a.place ?? 1 << 30).compareTo(b.place ?? 1 << 30);
+    if (byPlace != 0) return byPlace;
+    return (a.resultId ?? 0).compareTo(b.resultId ?? 0);
   }
 
   /// Sort teams by score and assign places

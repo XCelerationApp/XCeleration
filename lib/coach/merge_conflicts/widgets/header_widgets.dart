@@ -4,6 +4,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/enums.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/core/utils/time_formatter.dart';
 
 class ConflictHeader extends StatelessWidget {
   const ConflictHeader({
@@ -28,8 +29,11 @@ class ConflictHeader extends StatelessWidget {
         ? 'Extra Time${(offBy != null && offBy! > 1) ? 's' : ''} Detected'
         : 'Missing Time${(offBy != null && offBy! > 1) ? 's' : ''} Detected';
     final String description = type == ConflictType.extraTime
-        ? 'There are more times than runners. Please select the extra time that should be removed from the results by clicking the X button next to it.'
-        : 'There are more runners than times. Please enter a missing time to the correct runner by clicking the + button next to it.';
+        ? 'There are more times than runners. Tap X on a time that was not a '
+            'runner: the times below it move up a place.'
+        : 'There are more runners than times. Tap + on the runner whose time '
+            'is missing: the times below move down a place, leaving a box to '
+            'type the missing time into.';
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -45,7 +49,8 @@ class ConflictHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '$title at $endTime',
+            // A missing time found by counting has no end time.
+            TimeFormatter.isDuration(endTime) ? '$title at $endTime' : title,
             style: AppTypography.bodySemibold.copyWith(
               color: AppColors.primaryColor,
             ),
@@ -103,7 +108,9 @@ class ConfirmHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Confirmed Results at $confirmTime',
+                  TimeFormatter.isDuration(confirmTime)
+                      ? 'Confirmed Results at $confirmTime'
+                      : 'Confirmed Results',
                   style: AppTypography.bodySemibold.copyWith(
                     color: Colors.green,
                   ),

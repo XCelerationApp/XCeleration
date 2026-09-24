@@ -93,19 +93,21 @@ class RunnerTimeRecord extends StatelessWidget {
                   child: (chunk.conflict.type == ConflictType.extraTime
                       ? ExtraTimeCell(
                           time: record.time,
-                          onRemoveExtraTime: () async {
-                            final confirmed = await DialogUtils
-                                .showConfirmationDialog(
-                              context,
-                              title: 'Confirm Deletion',
-                              content:
-                                  'Are you sure you want to delete the time ${record.time}?',
-                            );
-                            if (confirmed) {
-                              controller.removeExtraTimeRecord(
-                                  chunk.chunkId, chunkIndex);
-                            }
-                          },
+                          onRemoveExtraTime: chunk.conflict.offBy <= 0
+                              ? null
+                              : () async {
+                                final confirmed = await DialogUtils
+                                    .showConfirmationDialog(
+                                  context,
+                                  title: 'Confirm Deletion',
+                                  content:
+                                      'Are you sure you want to delete the time ${record.time}?',
+                                );
+                                if (confirmed) {
+                                  controller.removeExtraTimeRecord(
+                                      chunk.chunkId, chunkIndex);
+                                }
+                              },
                         )
                       : Builder(
                           builder: (context) {

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/conflict_resolution_controller.dart';
-import '../mock/conflict_mock_data.dart';
+import '../model/bib_conflict.dart';
+import '../../../shared/models/database/race_runner.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
@@ -11,7 +12,7 @@ import '../../../core/utils/sheet_utils.dart';
 import '../utils/ordinal.dart';
 import './inline_context_panel.dart';
 import './nearby_finishers_sheet.dart';
-import './mock_create_runner_sheet.dart';
+import './create_runner_sheet.dart';
 import './runner_assignment_list.dart';
 
 /// Card for a standalone unknown bib — bib was entered but not found in the database.
@@ -20,7 +21,7 @@ import './runner_assignment_list.dart';
 class UnknownBibCard extends StatefulWidget {
   const UnknownBibCard({super.key, required this.conflict});
 
-  final MockUnknownConflict conflict;
+  final UnknownBibConflict conflict;
 
   @override
   State<UnknownBibCard> createState() => _UnknownBibCardState();
@@ -35,8 +36,10 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
         _HeaderCard(conflict: widget.conflict),
         const SizedBox(height: AppSpacing.md),
         InlineContextPanel(
-          surroundingFinishers: widget.conflict.surroundingFinishers,
-          contextPosition: widget.conflict.position,
+          surroundingFinishers: widget.conflict.occurrence.nearby,
+          contextPosition: widget.conflict.occurrence.place,
+          conflictBib: widget.conflict.bibNumber,
+          conflictTime: widget.conflict.occurrence.time,
         ),
         TextButton(
           onPressed: () => _openContextSheet(context),
@@ -54,10 +57,10 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
   void _openContextSheet(BuildContext context) {
     showNearbySheet(
       context,
-      entries: widget.conflict.surroundingFinishers,
-      conflictPosition: widget.conflict.position,
-      conflictBib: widget.conflict.enteredBib,
-      conflictTime: widget.conflict.formattedTime,
+      entries: widget.conflict.occurrence.nearby,
+      conflictPosition: widget.conflict.occurrence.place,
+      conflictBib: widget.conflict.bibNumber,
+      conflictTime: widget.conflict.occurrence.time,
     );
   }
 
@@ -72,7 +75,7 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
       body: ChangeNotifierProvider.value(
         value: controller,
         child: RunnerAssignmentList(
-          targetBib: widget.conflict.enteredBib,
+          targetBib: widget.conflict.bibNumber,
           onAssign: (runner, label) {
             pendingRunner = runner;
             pendingLabel = label;
@@ -92,17 +95,17 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
     await sheet(
       context: context,
       title: 'Add New Runner',
-      body: MockCreateRunnerSheet(
+      body: CreateRunnerSheet(
         allKnownBibs: controller.allKnownBibs,
         teams: controller.teams,
-        autoBib: widget.conflict.enteredBib,
+        autoBib: widget.conflict.bibNumber,
         onCreated: (name, bib, team, grade) {
           controller.prepareCreate(
             name,
             bib,
             team,
             grade,
-            'Bib #${widget.conflict.enteredBib}',
+            'Bib #${widget.conflict.bibNumber}',
           );
           Navigator.of(context).pop();
         },
@@ -114,7 +117,7 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
 class _HeaderCard extends StatelessWidget {
   const _HeaderCard({required this.conflict});
 
-  final MockUnknownConflict conflict;
+  final UnknownBibConflict conflict;
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +145,7 @@ class _HeaderCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    '#${conflict.enteredBib}',
+                    '#${conflict.bibNumber}',
                     style: AppTypography.titleSemibold.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -161,7 +164,7 @@ class _HeaderCard extends StatelessWidget {
                     ),
                   ),
                   Text(
-                    ordinal(conflict.position),
+                    ordinal(conflict.occurrence.place),
                     style: AppTypography.titleSemibold.copyWith(
                       fontWeight: FontWeight.w800,
                     ),
@@ -180,7 +183,7 @@ class _HeaderCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.xs),
               Text(
-                conflict.formattedTime,
+                conflict.occurrence.time ?? 'Time not settled',
                 style: AppTypography.bodySemibold.copyWith(
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),

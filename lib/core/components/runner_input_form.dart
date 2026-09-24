@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/components/dialog_utils.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'dart:async';
 import '../utils/logger.dart';
 import '../theme/app_animations.dart';
@@ -270,8 +272,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
                   (widget.initialRaceRunner?.runner.runnerId ?? -1)) {
             setState(() {
               bibError = null;
-              bibWarning =
-                  'Warning: A runner with this bib already exists, you will overwrite the existing runner if you save';
+              bibWarning = _replaceWarning(trimmed, existingRunner);
             });
           } else {
             setState(() {
@@ -282,6 +283,15 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         }
       });
     }
+  }
+
+  /// Saving a bib another runner holds replaces that runner with this one,
+  /// so the coach is told whose it is before they do.
+  static String _replaceWarning(String bib, Runner existing) {
+    final name = existing.name?.trim().isNotEmpty == true
+        ? existing.name!.trim()
+        : 'another runner';
+    return 'Bib $bib is $name\'s. Saving replaces $name with this runner.';
   }
 
   Future<bool> _checkBibUnique(String bib) async {
@@ -342,6 +352,15 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       await widget.onSubmit(runner);
     } catch (e) {
       Logger.e('Error in runner input form: $e');
+      // Tell the user instead of failing silently.
+      if (mounted) {
+        DialogUtils.showErrorDialog(
+          context,
+          message: e is DataInUseException
+              ? e.message
+              : 'Could not save the runner. Please try again.',
+        );
+      }
     } finally {
       if (mounted) {
         setState(() {
@@ -391,8 +410,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
               existingRunner.runnerId !=
                   (widget.initialRaceRunner?.runner.runnerId ?? -1)) {
             // Show warning; allow submit (conflict resolved later)
-            nextBibWarning =
-                'Warning: A runner with this bib already exists. You will overwrite the existing runner if you save.';
+            nextBibWarning = _replaceWarning(bib, existingRunner);
           }
         }
       }

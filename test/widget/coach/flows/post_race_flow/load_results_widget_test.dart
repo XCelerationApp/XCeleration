@@ -7,6 +7,7 @@ import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/widget
 import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/widgets/load_results_widget.dart';
 import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/widgets/reload_button.dart';
 import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/widgets/success_message.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/components/connection_components.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/enums.dart';
@@ -44,6 +45,7 @@ void main() {
     when(mockController.addListener(any)).thenReturn(null);
     when(mockController.removeListener(any)).thenReturn(null);
     when(mockController.devices).thenReturn(mockDevices);
+    when(mockController.error).thenReturn(null);
     stubController();
   });
 
@@ -63,6 +65,16 @@ void main() {
       await tester.pump();
 
       expect(find.byType(WirelessConnectionWidget), findsOneWidget);
+    });
+
+    testWidgets('shows why the last load failed', (tester) async {
+      when(mockController.error).thenReturn(
+          const AppError(userMessage: 'No finish times were received.'));
+
+      await tester.pumpWidget(buildWidget());
+      await tester.pump();
+
+      expect(find.text('No finish times were received.'), findsOneWidget);
     });
 
     // -----------------------------------------------------------------------

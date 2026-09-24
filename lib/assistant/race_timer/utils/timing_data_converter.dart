@@ -76,8 +76,11 @@ class RaceTimerDataConverter {
         endingPlace++;
       }
     } else if (chunk.conflictRecord!.conflict!.type == ConflictType.extraTime) {
+      // Never below zero: a chunk claiming more extra times than it holds
+      // (only reachable from older data) used to crash the whole list.
       final int extraTimesIndex =
-          chunk.timingData.length - chunk.conflictRecord!.conflict!.offBy;
+          (chunk.timingData.length - chunk.conflictRecord!.conflict!.offBy)
+              .clamp(0, chunk.timingData.length);
       for (int i = 0; i < extraTimesIndex; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
         uiRecords.add(UIRecord(

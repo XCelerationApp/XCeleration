@@ -423,6 +423,14 @@ class MockIRunnerRepository extends _i1.Mock implements _i8.IRunnerRepository {
           as _i5.Future<void>);
 
   @override
+  _i5.Future<int> countRaceResults(int? runnerId) =>
+      (super.noSuchMethod(
+            Invocation.method(#countRaceResults, [runnerId]),
+            returnValue: _i5.Future<int>.value(0),
+          )
+          as _i5.Future<int>);
+
+  @override
   _i5.Future<List<_i2.Runner>> getRunnersByBibAll(String? bib) =>
       (super.noSuchMethod(
             Invocation.method(#getRunnersByBibAll, [bib]),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/conflict_resolution_controller.dart';
+import '../utils/ordinal.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
@@ -47,7 +48,10 @@ class ConflictCompletionCard extends StatelessWidget {
             const SizedBox(height: AppSpacing.xxl),
             FullWidthButton(
               text: 'Confirm & Submit Results',
-              onPressed: () => Navigator.of(context).pop(),
+              // Who finished at each place the coach settled, to be written
+              // back into the finish order.
+              onPressed: () =>
+                  Navigator.of(context).pop(controller.resolvedByPlace),
             ),
             const SizedBox(height: AppSpacing.md),
             SecondaryButton(
@@ -168,10 +172,27 @@ class _ResolutionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bgColor =
-        entry.wasCreate ? _createIconBg : AppColors.selectedRoleColor;
-    final icon = entry.wasCreate ? Icons.person_add_outlined : Icons.person_outline;
-    final actionLabel = entry.wasCreate ? 'Created' : 'Assigned';
+    final (bgColor, icon, iconColor, actionLabel) = switch (entry.kind) {
+      ResolutionKind.kept => (
+          AppColors.statusFinished.withValues(alpha: AppOpacity.light),
+          Icons.check,
+          AppColors.statusFinished,
+          'Kept',
+        ),
+      ResolutionKind.assigned => (
+          AppColors.selectedRoleColor,
+          Icons.person_outline,
+          AppColors.primaryColor,
+          'Assigned',
+        ),
+      ResolutionKind.created => (
+          _createIconBg,
+          Icons.person_add_outlined,
+          const Color(0xFF1565C0), // blue-800 to contrast on E3F2FD
+          'Created',
+        ),
+    };
+    final runner = entry.raceRunner;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -183,13 +204,7 @@ class _ResolutionRow extends StatelessWidget {
             color: bgColor,
             borderRadius: BorderRadius.circular(AppBorderRadius.sm),
           ),
-          child: Icon(
-            icon,
-            size: 18,
-            color: entry.wasCreate
-                ? const Color(0xFF1565C0) // blue-800 to contrast on E3F2FD
-                : AppColors.primaryColor,
-          ),
+          child: Icon(icon, size: 18, color: iconColor),
         ),
         const SizedBox(width: AppSpacing.md),
         Expanded(
@@ -197,14 +212,19 @@ class _ResolutionRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                entry.conflictLabel,
+                '${ordinal(entry.place)} place · Bib #${entry.bibNumber}',
                 style: AppTypography.captionBold.copyWith(
                   color: AppColors.darkColor,
                 ),
               ),
               const SizedBox(height: 2),
               Text(
-                '$actionLabel: ${entry.runnerName} · #${entry.bib} · ${entry.team}',
+                [
+                  '$actionLabel: ${runner.runner.name ?? ''}',
+                  if (runner.runner.bibNumber != null)
+                    '#${runner.runner.bibNumber}',
+                  ?runner.team.name,
+                ].join(' · '),
                 style: AppTypography.smallCaption.copyWith(
                   color: AppColors.mediumColor,
                 ),

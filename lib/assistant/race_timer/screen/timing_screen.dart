@@ -17,6 +17,8 @@ import '../widgets/records_list_widget.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../shared/widgets/race_header_widget.dart';
 import '../../../core/components/coach_mark.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/typography.dart';
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -126,6 +128,18 @@ class _TimingScreenState extends State<TimingScreen>
                   );
                 },
               ),
+              // Why the race could not be opened, if it failed to load.
+              ListenableBuilder(
+                listenable: _controller,
+                builder: (context, child) {
+                  final error = _controller.loadError;
+                  if (error == null) return const SizedBox.shrink();
+                  return _LoadErrorBanner(
+                    message: error.userMessage,
+                    onRetry: _controller.retryLoad,
+                  );
+                },
+              ),
               const SizedBox(height: 8),
               // Race status: rebuilds when race state or records change
               ListenableBuilder(
@@ -186,5 +200,37 @@ class _TimingScreenState extends State<TimingScreen>
     _controller.dispose();
     tutorialManager.dispose();
     super.dispose();
+  }
+}
+
+class _LoadErrorBanner extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _LoadErrorBanner({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+      decoration: BoxDecoration(
+        color: AppColors.redColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.redColor),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.redColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(message,
+                style: AppTypography.bodySmall
+                    .copyWith(color: AppColors.darkColor)),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Try again')),
+        ],
+      ),
+    );
   }
 }

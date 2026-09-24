@@ -160,7 +160,7 @@ void main() {
           equals(['1.0', 'TBD', '2.0', '4.0', '6.0', 'TBD']));
     });
 
-    test('handles edge case where conflict is confirmRunner', () {
+    test('does nothing when the conflict is confirmRunner', () {
       final timingData = ['1.0', '2.0', '3.0', '4.0']
           .map((time) => TimingDatum(time: time))
           .toList();
@@ -178,8 +178,10 @@ void main() {
 
       controller.insertTbdAt(4, 1);
 
+      // A confirmed chunk has no missing times: a TBD there would add a
+      // finisher the timing data does not have.
       expect(controller.uiChunks.first.times,
-          equals(['1.0', 'TBD', '2.0', '3.0', '4.0']));
+          equals(['1.0', '2.0', '3.0', '4.0']));
     });
   });
 

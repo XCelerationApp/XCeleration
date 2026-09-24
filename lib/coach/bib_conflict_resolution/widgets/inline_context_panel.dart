@@ -1,34 +1,42 @@
 import 'package:flutter/material.dart';
 
-import '../mock/conflict_mock_data.dart';
+import '../model/bib_conflict.dart';
+import '../utils/ordinal.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 
-/// Compact, always-visible panel showing the one runner ahead and one runner
-/// behind a conflict position. Replaces the collapsible [RaceContextPanel]
-/// for the v2 prototype — no tap required.
+/// Compact, always-visible panel: the finisher just ahead, the disputed
+/// finish itself, and the finisher just behind, each with its place.
 class InlineContextPanel extends StatelessWidget {
   const InlineContextPanel({
     super.key,
     required this.surroundingFinishers,
     required this.contextPosition,
+    required this.conflictBib,
+    this.conflictTime,
   });
 
   /// Non-conflict finishers surrounding the conflict, sorted ascending by position.
-  final List<MockFinishEntry> surroundingFinishers;
+  final List<NearbyFinisher> surroundingFinishers;
 
-  /// The earliest finish position involved in the conflict.
+  /// The disputed finish's place.
   final int contextPosition;
 
-  MockFinishEntry? get _ahead => surroundingFinishers
-      .where((e) => e.position < contextPosition)
+  /// The bib recorded at the disputed finish.
+  final String conflictBib;
+
+  /// Null when the Timer has not settled that place.
+  final String? conflictTime;
+
+  NearbyFinisher? get _ahead => surroundingFinishers
+      .where((e) => e.place < contextPosition)
       .lastOrNull;
 
-  MockFinishEntry? get _behind => surroundingFinishers
-      .where((e) => e.position > contextPosition)
+  NearbyFinisher? get _behind => surroundingFinishers
+      .where((e) => e.place > contextPosition)
       .firstOrNull;
 
   @override
@@ -36,7 +44,11 @@ class InlineContextPanel extends StatelessWidget {
     final ahead = _ahead;
     final behind = _behind;
 
-    if (ahead == null && behind == null) return const SizedBox.shrink();
+    final divider = Divider(
+      height: AppSpacing.md * 2,
+      thickness: 1,
+      color: AppColors.lightColor,
+    );
 
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
@@ -56,72 +68,103 @@ class InlineContextPanel extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.sm),
-          if (ahead != null) _RunnerRow(entry: ahead, isAhead: true),
-          if (ahead != null && behind != null)
-            Divider(
-              height: AppSpacing.md * 2,
-              thickness: 1,
-              color: AppColors.lightColor,
+          if (ahead != null) ...[
+            _Row(
+              place: ahead.place,
+              name: ahead.name,
+              team: ahead.team,
+              time: ahead.time,
+              bibNumber: ahead.bibNumber,
             ),
-          if (behind != null) _RunnerRow(entry: behind, isAhead: false),
+            divider,
+          ],
+          _Row(
+            place: contextPosition,
+            name: 'Unknown runner',
+            time: conflictTime,
+            bibNumber: conflictBib,
+            highlighted: true,
+          ),
+          if (behind != null) ...[
+            divider,
+            _Row(
+              place: behind.place,
+              name: behind.name,
+              team: behind.team,
+              time: behind.time,
+              bibNumber: behind.bibNumber,
+            ),
+          ],
         ],
       ),
     );
   }
 }
 
-class _RunnerRow extends StatelessWidget {
-  const _RunnerRow({required this.entry, required this.isAhead});
+class _Row extends StatelessWidget {
+  const _Row({
+    required this.place,
+    required this.name,
+    this.team,
+    this.time,
+    required this.bibNumber,
+    this.highlighted = false,
+  });
 
-  final MockFinishEntry entry;
-  final bool isAhead;
+  final int place;
+  final String name;
+  final String? team;
+  final String? time;
+  final String bibNumber;
 
-  Color get _dotColor =>
-      isAhead ? AppColors.statusPreRace : AppColors.primaryColor;
+  /// The disputed finish, set apart from the runners around it.
+  final bool highlighted;
 
   @override
   Widget build(BuildContext context) {
+    final muted = AppTypography.caption.copyWith(color: AppColors.mediumColor);
     return Row(
       children: [
-        Container(
-          width: 6,
-          height: 6,
-          decoration: BoxDecoration(
-            color: _dotColor,
-            shape: BoxShape.circle,
+        SizedBox(
+          width: 36,
+          child: Text(
+            ordinal(place),
+            style: highlighted
+                ? AppTypography.captionBold
+                    .copyWith(color: AppColors.primaryColor)
+                : muted,
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
         Expanded(
           flex: 3,
           child: Text(
-            entry.runnerName,
-            style: AppTypography.smallBodyRegular,
+            name,
+            style: highlighted
+                ? AppTypography.smallBodySemibold
+                    .copyWith(color: AppColors.primaryColor)
+                : AppTypography.smallBodyRegular,
             overflow: TextOverflow.ellipsis,
           ),
         ),
         Expanded(
           flex: 2,
           child: Text(
-            entry.team,
-            style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+            team ?? '',
+            style: muted,
             overflow: TextOverflow.ellipsis,
             textAlign: TextAlign.end,
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
         Text(
-          entry.formattedTime,
-          style: AppTypography.caption.copyWith(
-            color: AppColors.mediumColor,
+          time ?? '—',
+          style: muted.copyWith(
             fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        Text(
-          '#${entry.bibNumber}',
-          style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
-        ),
+        Text('#$bibNumber', style: muted),
       ],
     );
   }

@@ -122,6 +122,64 @@ class AssistantStorageService implements IAssistantStorageService {
     }
   }
 
+  /// Where numbers for races stored under a number of their own start: far
+  /// above any race number a coach's phone hands out.
+  static const _ownRaceIdStart = 1 << 30;
+
+  /// Stores a race the coach sent, unless it is already here.
+  ///
+  /// The coach's race number only identifies the race on that coach's phone:
+  /// it starts again at 1 for every account, and one volunteer's phone can
+  /// help several coaches. So a race with the same number, name and date is
+  /// the one already here, opened as it is. A different race under a number
+  /// already in use is stored under a new number, and the race that had it
+  /// keeps everything recorded for it. Nothing sent back to the coach carries
+  /// this number, so it can differ from the coach's.
+  @override
+  Future<Result<ReceivedRace>> receiveRace(RaceRecord race) async {
+    try {
+      final db = await database;
+      return await db.transaction((txn) async {
+        final existing = await txn.query(
+          'race_history',
+          where: 'race_id = ? AND type = ?',
+          whereArgs: [race.raceId, race.type],
+          limit: 1,
+        );
+        var toStore = race;
+        if (existing.isNotEmpty) {
+          final stored = RaceRecord.fromMap(existing.first);
+          if (stored.name == race.name &&
+              stored.date.millisecondsSinceEpoch ==
+                  race.date.millisecondsSinceEpoch) {
+            return Success(ReceivedRace(race: stored, isNew: false));
+          }
+          final highest = await txn
+              .rawQuery('SELECT MAX(race_id) AS highest FROM race_history');
+          final next = (highest.first['highest'] as int? ?? 0) + 1;
+          toStore = RaceRecord(
+            raceId: next < _ownRaceIdStart ? _ownRaceIdStart : next,
+            date: race.date,
+            name: race.name,
+            type: race.type,
+            stopped: race.stopped,
+            startedAt: race.startedAt,
+            duration: race.duration,
+          );
+          Logger.d('Race ${race.raceId} is taken by "${stored.name}"; '
+              'storing "${race.name}" as ${toStore.raceId}');
+        }
+        await txn.insert('race_history', toStore.toMap());
+        return Success(ReceivedRace(race: toStore, isNew: true));
+      });
+    } catch (e) {
+      return Failure(AppError(
+        userMessage: 'Could not save the race. Please try again.',
+        originalException: e,
+      ));
+    }
+  }
+
   @override
   Future<Result<void>> updateRace(RaceRecord race) async {
     try {
@@ -388,7 +446,8 @@ class AssistantStorageService implements IAssistantStorageService {
         'timing_chunks',
         where: 'race_id = ?',
         whereArgs: [raceId],
-        orderBy: 'created_at ASC',
+        // Chunk ids only ever increase; creation times can tie.
+        orderBy: 'chunk_id ASC',
       );
 
       final List<TimingChunk> result = [];
