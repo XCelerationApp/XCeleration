@@ -593,11 +593,7 @@ class SyncService implements ISyncService {
           // Remote is newer: clear the dirty flag without pushing so we don't
           // overwrite the more-recent remote data. The next pullAll will bring
           // the remote version down.
-          final skippedUuid = copy['uuid'] as String?;
-          if (skippedUuid != null) {
-            await db.rawUpdate(
-                'UPDATE $table SET is_dirty = 0 WHERE uuid = ?', [skippedUuid]);
-          }
+          await _markSent(db, table, [row]);
           continue;
         }
 
@@ -606,14 +602,7 @@ class SyncService implements ISyncService {
 
       if (payload.isNotEmpty) {
         await _syncClient.upsertRows(table, payload, onConflict: onConflict);
-        final pushedUuids =
-            payload.map((r) => r['uuid']).whereType<String>().toList();
-        if (pushedUuids.isNotEmpty) {
-          final qMarks = List.filled(pushedUuids.length, '?').join(',');
-          await db.rawUpdate(
-              'UPDATE $table SET is_dirty = 0 WHERE uuid IN ($qMarks)',
-              pushedUuids);
-        }
+        await _markSent(db, table, payload);
         Logger.d('Pushed ${payload.length} dirty records for $table');
       }
     }
@@ -684,12 +673,7 @@ class SyncService implements ISyncService {
       if (conflictCheck.hasConflict) {
         Logger.d(
             '⚠️ Push conflict for race_results UUID:${copy['uuid']}: ${conflictCheck.details} — skipping push, clearing dirty flag');
-        final skippedUuid = copy['uuid'] as String?;
-        if (skippedUuid != null) {
-          await db.rawUpdate(
-              'UPDATE race_results SET is_dirty = 0 WHERE uuid = ?',
-              [skippedUuid]);
-        }
+        await _markSent(db, 'race_results', [row]);
         continue;
       }
 
@@ -698,14 +682,7 @@ class SyncService implements ISyncService {
 
     if (payload.isNotEmpty) {
       await _syncClient.upsertRows('race_results', payload, onConflict: 'uuid');
-      final pushedUuids =
-          payload.map((r) => r['uuid']).whereType<String>().toList();
-      if (pushedUuids.isNotEmpty) {
-        final qMarks = List.filled(pushedUuids.length, '?').join(',');
-        await db.rawUpdate(
-            'UPDATE race_results SET is_dirty = 0 WHERE uuid IN ($qMarks)',
-            pushedUuids);
-      }
+      await _markSent(db, 'race_results', payload);
       Logger.d('Pushed ${payload.length} dirty records for race_results');
     }
   }
@@ -729,7 +706,8 @@ class SyncService implements ISyncService {
     if (rows.isEmpty) return;
 
     final payload = <Map<String, dynamic>>[];
-    // The local key of each row in payload, in the same order.
+    // The local key of each row in payload, and the updated_at it was read
+    // with, in the same order.
     final pushedKeys = <List<Object?>>[];
 
     for (final row in rows) {
@@ -749,7 +727,7 @@ class SyncService implements ISyncService {
       copy['created_at'] ??=
           copy['updated_at'] ?? DateTime.now().toUtc().toIso8601String();
       payload.add(copy);
-      pushedKeys.add(key);
+      pushedKeys.add([...key, row['updated_at']]);
     }
 
     if (payload.isEmpty) return;
@@ -758,14 +736,38 @@ class SyncService implements ISyncService {
         onConflict: spec.conflictTarget);
 
     // Clear the dirty flag by local primary key: a bridge table has no uuid
-    // column locally, so there is nothing else to match these rows on.
-    final clause = List.filled(pushedKeys.length, spec.keyWhereClause)
-        .join(' OR ');
-    await db.rawUpdate(
-      'UPDATE ${spec.table} SET is_dirty = 0 WHERE $clause',
-      [for (final key in pushedKeys) ...key],
-    );
+    // column locally, so there is nothing else to match these rows on. A row
+    // changed since it was read is left dirty: what went up is out of date.
+    await db.transaction((txn) async {
+      for (final key in pushedKeys) {
+        await txn.rawUpdate(
+          'UPDATE ${spec.table} SET is_dirty = 0 '
+          'WHERE ${spec.keyWhereClause} AND updated_at IS ?',
+          key,
+        );
+      }
+    });
     Logger.d('Pushed ${payload.length} dirty records for ${spec.table}');
+  }
+
+  /// Marks [rows] as sent, matched by uuid, unless they have changed since
+  /// they were read.
+  ///
+  /// The upload takes a moment, and the coach can edit a row meanwhile. That
+  /// edit bumps updated_at and is not in what was sent, so the row has to stay
+  /// dirty for the next sync to carry it.
+  Future<void> _markSent(
+      Database db, String table, List<Map<String, dynamic>> rows) async {
+    await db.transaction((txn) async {
+      for (final row in rows) {
+        final uuid = row['uuid'];
+        if (uuid == null) continue;
+        await txn.rawUpdate(
+          'UPDATE $table SET is_dirty = 0 WHERE uuid = ? AND updated_at IS ?',
+          [uuid, row['updated_at']],
+        );
+      }
+    });
   }
 
   // Pull changed rows

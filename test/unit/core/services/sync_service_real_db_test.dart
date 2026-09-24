@@ -67,6 +67,10 @@ class _FakeSyncClient implements IRemoteSyncClient {
   /// Tables whose fetch should blow up, to stand in for a server or schema fault.
   final Set<String> failingTables = {};
 
+  /// Runs while an upload is on its way, to stand in for the coach editing
+  /// the same rows in the meantime.
+  Future<void> Function(String table)? whileUploading;
+
   @override
   Future<List<String>> fetchAccessibleOwnerIds(String userId) async => [userId];
 
@@ -107,6 +111,7 @@ class _FakeSyncClient implements IRemoteSyncClient {
   @override
   Future<void> upsertRows(String table, List<Map<String, dynamic>> rows,
       {required String onConflict}) async {
+    await whileUploading?.call(table);
     upserts.add((table: table, rows: rows));
     // Keep what was pushed, so the next pull sees it the way the server would.
     final keyColumns = onConflict.split(',');
@@ -530,6 +535,74 @@ void main() {
 
       expect(remote.upserts.where((u) => u.table == 'race_participants'),
           isEmpty);
+    });
+  });
+
+  group('an edit made while its row is uploading', () {
+    test('is still sent on the next sync', () async {
+      final db = await conn.database;
+      await db.insert('runners', {
+        'uuid': runnerUuid,
+        'name': 'Alice',
+        'grade': 10,
+        'bib_number': '101',
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 1,
+      });
+      remote.whileUploading = (table) async {
+        if (table != 'runners') return;
+        remote.whileUploading = null;
+        await db.update(
+            'runners', {'name': 'Alicia', 'updated_at': '2026-01-01T00:00:05Z', 'is_dirty': 1},
+            where: 'uuid = ?', whereArgs: [runnerUuid]);
+      };
+
+      await service.syncAll();
+
+      final row = (await db.query('runners')).single;
+      expect(row['name'], 'Alicia');
+      expect(row['is_dirty'], 1,
+          reason: 'the upload carried the old name, so the new one is unsent');
+
+      await service.syncAll();
+      expect(remote.tables['runners']!.single['name'], 'Alicia');
+    });
+
+    test('is still sent for a roster row too', () async {
+      final db = await conn.database;
+      final teamId = await db.insert('teams', {
+        'uuid': teamUuid,
+        'name': 'Eagles',
+        'color': 0,
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 0,
+      });
+      final runnerId = await db.insert('runners', {
+        'uuid': runnerUuid,
+        'name': 'Alice',
+        'grade': 10,
+        'bib_number': '101',
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 0,
+      });
+      await db.insert('team_rosters', {
+        'team_id': teamId,
+        'runner_id': runnerId,
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 1,
+      });
+      remote.whileUploading = (table) async {
+        if (table != 'team_rosters') return;
+        remote.whileUploading = null;
+        // The coach takes Alice off the team while the add is uploading.
+        await db.update('team_rosters',
+            {'deleted_at': '2026-01-01T00:00:05Z', 'updated_at': '2026-01-01T00:00:05Z', 'is_dirty': 1});
+      };
+
+      await service.syncAll();
+
+      expect((await db.query('team_rosters')).single['is_dirty'], 1,
+          reason: 'the removal has not been sent');
     });
   });
 

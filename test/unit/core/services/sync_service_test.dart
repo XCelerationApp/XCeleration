@@ -224,6 +224,16 @@ void main() {
                 onConflict: anyNamed('onConflict')))
             .thenAnswer((_) async {});
         when(mockDatabase.rawUpdate(any, any)).thenAnswer((_) async => 1);
+        // Marking rows sent runs in a transaction.
+        final mockTxn = MockTransaction();
+        when(mockTxn.rawUpdate(any, any)).thenAnswer((_) async => 1);
+        when(mockDatabase.transaction<void>(any,
+                exclusive: anyNamed('exclusive')))
+            .thenAnswer((invocation) {
+          final callback = invocation.positionalArguments[0]
+              as Future<void> Function(Transaction);
+          return callback(mockTxn).then<Null>((_) => null);
+        });
 
         await service.pushAll();
 
