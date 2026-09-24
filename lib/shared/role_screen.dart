@@ -539,7 +539,7 @@ class _RoleScreenState extends State<RoleScreen>
       ),
       _RoleData(
         label: 'Spectator',
-        description: 'Follow live results and track your athletes',
+        description: 'See race results your coach shares with you',
         onPressed: _onSpectator,
       ),
     ];

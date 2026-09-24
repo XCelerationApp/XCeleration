@@ -39,7 +39,7 @@ enum Role {
       case Role.coach:
         return 'Manage races';
       case Role.spectator:
-        return 'View coach races (read-only)';
+        return 'See results a coach shares';
     }
   }
 
