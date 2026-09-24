@@ -35,4 +35,16 @@ void main() {
     expect(find.textContaining('not imported'), findsNothing);
     expect(find.text('Ann Lee'), findsOneWidget);
   });
+
+  testWidgets('says which team each runner is going on', (tester) async {
+    await tester.pumpWidget(const MaterialApp(
+      home: Scaffold(
+        body: ImportedRunnersSelectionSheet(importedRunners: [
+          {'name': 'Ann Lee', 'grade': 10, 'bib': '101', 'team': 'Eagles'},
+        ]),
+      ),
+    ));
+
+    expect(find.text('Grade 10  •  Bib 101  •  Eagles'), findsOneWidget);
+  });
 }

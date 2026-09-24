@@ -150,6 +150,13 @@ class _TeamsAndRunnersManagementWidgetState
                   icon: const Icon(Icons.science_outlined),
                   tooltip: 'Add sample roster (debug)',
                 ),
+              if (controller.totalRunnerCount > 0)
+                IconButton(
+                  onPressed: () => _controller.exportRoster(context),
+                  icon: const Icon(Icons.ios_share),
+                  color: AppColors.mediumColor,
+                  tooltip: 'Export runners to a spreadsheet',
+                ),
               if (!controller.isViewMode)
                 _AddTeamButton(
                   onTap: () =>

@@ -35,7 +35,7 @@ class SpreadsheetLoadSheet extends StatelessWidget {
           ),
           const SizedBox(height: 20),
           const Text(
-            'Import Runners from Spreadsheet',
+            'Import from a Spreadsheet',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -45,7 +45,9 @@ class SpreadsheetLoadSheet extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           const Text(
-            'Import your runners from a CSV or Excel spreadsheet. Recommended header: "Athlete #, First, Last, Year, M/F".',
+            'Use a Google Sheet, Excel (.xlsx) or CSV file with a column '
+            'for each runner\'s bib, name and grade (9 to 12). Add a Team '
+            'column to import several teams at once.',
             style: AppTypography.bodyMedium,
             textAlign: TextAlign.center,
           ),

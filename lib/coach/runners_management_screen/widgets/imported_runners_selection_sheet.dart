@@ -148,6 +148,7 @@ class _ImportedRunnersSelectionSheetState
                   final grade = (row['grade'] ?? '').toString();
                   final bib = (row['bib'] ?? '').toString();
                   final gender = (row['gender'] ?? '').toString();
+                  final team = (row['team'] ?? '').toString();
                   return CheckboxListTile(
                     value: _selected[actualIndex],
                     onChanged: (v) => setState(() {
@@ -155,11 +156,12 @@ class _ImportedRunnersSelectionSheetState
                       _selectAll = visible.every((i) => _selected[i]);
                     }),
                     title: Text(name, style: AppTypography.bodyMedium),
-                    subtitle: Text(
-                      gender.isNotEmpty
-                          ? 'Grade $grade  •  Bib $bib  •  $gender'
-                          : 'Grade $grade  •  Bib $bib',
-                    ),
+                    subtitle: Text([
+                      'Grade $grade',
+                      'Bib $bib',
+                      if (gender.isNotEmpty) gender,
+                      if (team.isNotEmpty) team,
+                    ].join('  •  ')),
                     controlAffinity: ListTileControlAffinity.leading,
                   );
                 },
