@@ -19,59 +19,62 @@ class RaceStepsBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final total = RaceStage.steps.length;
+    final current = stage.step.clamp(1, total);
+    // Amber is too pale to read as text on white.
+    final textColor = color.computeLuminance() > 0.5
+        ? Color.lerp(color, Colors.black, 0.45)!
+        : color;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        for (final (i, name) in RaceStage.steps.indexed) ...[
-          if (i > 0) const SizedBox(width: AppSpacing.xs),
-          Expanded(
-            child: _Step(
-              name: name,
-              reached: i + 1 <= stage.step,
-              current: i + 1 == stage.step,
-              color: color,
+        Row(
+          children: [
+            for (var i = 0; i < total; i++) ...[
+              if (i > 0) const SizedBox(width: AppSpacing.xs),
+              Expanded(
+                child: _Step(reached: i + 1 <= stage.step, color: color),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // One line naming where the race is, rather than a label under each
+        // segment that wraps on a narrow phone or at a large text size.
+        Text.rich(
+          TextSpan(children: [
+            TextSpan(
+              text: 'Step $current of $total  ',
+              style: AppTypography.captionBold
+                  .copyWith(color: AppColors.mediumColor),
             ),
-          ),
-        ],
+            TextSpan(
+              text: stage.label,
+              style: AppTypography.bodySemibold.copyWith(color: textColor),
+            ),
+          ]),
+        ),
       ],
     );
   }
 }
 
 class _Step extends StatelessWidget {
-  const _Step({
-    required this.name,
-    required this.reached,
-    required this.current,
-    required this.color,
-  });
+  const _Step({required this.reached, required this.color});
 
-  final String name;
   final bool reached;
-  final bool current;
   final Color color;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        AnimatedContainer(
-          duration: AppAnimations.standard,
-          curve: AppAnimations.spring,
-          height: AppSpacing.xs,
-          decoration: BoxDecoration(
-            color: reached ? color : AppColors.lightColor,
-            borderRadius: BorderRadius.circular(AppBorderRadius.full),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          name,
-          style: (current ? AppTypography.captionBold : AppTypography.caption)
-              .copyWith(color: current ? color : AppColors.mediumColor),
-        ),
-      ],
+    return AnimatedContainer(
+      duration: AppAnimations.standard,
+      curve: AppAnimations.spring,
+      height: AppSpacing.xs + 2,
+      decoration: BoxDecoration(
+        color: reached ? color : AppColors.lightColor,
+        borderRadius: BorderRadius.circular(AppBorderRadius.full),
+      ),
     );
   }
 }

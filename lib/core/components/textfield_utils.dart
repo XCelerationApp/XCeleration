@@ -108,6 +108,8 @@ Widget buildTextField({
   TextAlign textAlign = TextAlign.start,
   int? maxLength,
   bool autofocus = false,
+  bool readOnly = false,
+  VoidCallback? onTap,
 }) {
   // Shared helpers for error/warning state styling — used by border, enabledBorder, and fillColor.
   Color fieldFillColor() => error != null
@@ -137,6 +139,8 @@ Widget buildTextField({
       textAlign: textAlign,
       maxLength: maxLength,
       autofocus: autofocus,
+      readOnly: readOnly,
+      onTap: onTap,
       inputFormatters: inputFormatters,
       style: const TextStyle(
         fontSize: 16,

@@ -426,6 +426,9 @@ class RaceScreenController with ChangeNotifier {
     if (picked != null) {
       form.dateController.text = DateFormat('yyyy-MM-dd').format(picked);
       notifyListeners();
+      // Picking a date is the whole edit: record it, and save it at once
+      // outside setup, as leaving a typed field does.
+      if (context.mounted) await handleFieldFocusLoss(context, RaceField.date);
     }
   }
 
