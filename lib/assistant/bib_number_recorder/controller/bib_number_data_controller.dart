@@ -157,6 +157,15 @@ class BibNumberDataController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Clears every bib recorded for the current race, on screen and saved.
+  ///
+  /// [clearBibRecords] only empties the list on screen, for switching races,
+  /// where saving would wipe the race being left.
+  Future<void> clearRecordedBibs() async {
+    clearBibRecords();
+    await _persistBibOrder();
+  }
+
   /// Sets the current race
   void setCurrentRace(RaceRecord? race) {
     _currentRace = race;
