@@ -5,6 +5,7 @@ import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import '../core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
@@ -248,7 +249,14 @@ class SettingsScreen extends StatelessWidget {
       onTap: () async {
         // A cursor belongs to the account that set it, and the database to the
         // user whose races are in it. Both have to go before the next sign-in.
-        await context.read<ISyncService>().clearSyncCursors();
+        // Settings is reachable from the assistant and spectator screens too,
+        // where the coach database may never have been opened: then there is
+        // no cursor to clear, and signing out must still go ahead.
+        try {
+          await context.read<ISyncService>().clearSyncCursors();
+        } on StateError {
+          Logger.d('Sign out: no database open, so no sync cursors to clear');
+        }
         await ServiceLocator.get<IDatabaseConnectionProvider>().close();
         await AuthService.instance.signOut();
         if (!context.mounted) return;
