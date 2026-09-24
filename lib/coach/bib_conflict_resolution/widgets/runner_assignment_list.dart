@@ -448,19 +448,22 @@ class _BibAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A pill that grows with the bib, rather than a circle four digits
+    // spill out of.
     return AnimatedContainer(
       duration: AppAnimations.fast,
-      width: 36,
-      height: 36,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
         color: isSelected
             ? AppColors.primaryColor
             : AppColors.primaryColor.withValues(alpha: AppOpacity.light),
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(AppBorderRadius.full),
       ),
       alignment: Alignment.center,
       child: Text(
-        '#$bibNumber',
+        bibNumber,
+        maxLines: 1,
         style: AppTypography.caption.copyWith(
           color: isSelected ? Colors.white : AppColors.primaryColor,
           fontWeight: FontWeight.w700,

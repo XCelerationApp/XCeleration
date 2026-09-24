@@ -173,22 +173,13 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   }
 
   Future<void> _deleteRace(int raceId, String raceName) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Race'),
-        content: Text('Are you sure you want to delete "$raceName"?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Delete Race?',
+      content: 'This deletes "$raceName" from this phone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
     );
 
     if (confirmed == true) {
