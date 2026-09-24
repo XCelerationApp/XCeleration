@@ -363,6 +363,10 @@ class RaceScreenController with ChangeNotifier {
   Future<void> beginNextFlow(BuildContext context) =>
       flowController.beginNextFlow(context);
 
+  /// Opens the send page again once the race has gone to the volunteers.
+  Future<void> sendRaceAgain(BuildContext context) =>
+      flowController.preRaceController.showSendAgainSheet(context);
+
   // ---------------------------------------------------------------------------
   // Navigation
 

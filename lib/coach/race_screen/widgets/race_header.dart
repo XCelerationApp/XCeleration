@@ -93,6 +93,20 @@ class _RaceHeaderState extends State<RaceHeader> {
               color: statusColor,
               onPressed: () => widget.controller.continueRaceFlow(context),
             ),
+            // Once sent, a volunteer may still need it: a phone was missed,
+            // swapped for a backup, or the roster changed.
+            if (stage.step == 3 && widget.controller.canEdit)
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => widget.controller.sendRaceAgain(context),
+                  icon: const Icon(Icons.replay, size: 18),
+                  label: const Text('Send race to volunteers again'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.mediumColor,
+                    textStyle: AppTypography.smallBodySemibold,
+                  ),
+                ),
+              ),
           ],
           const SizedBox(height: AppSpacing.md),
           const Divider(height: 1, thickness: 1, color: AppColors.lightColor),
