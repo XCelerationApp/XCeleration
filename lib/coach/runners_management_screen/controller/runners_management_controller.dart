@@ -990,8 +990,7 @@ class RunnersManagementController with ChangeNotifier {
       BuildContext context) async {
     return await sheet(
       context: context,
-      title: 'Import Runners',
-      titleSize: 24,
+      title: 'Import from a Spreadsheet',
       body: const SpreadsheetLoadSheet(),
     );
   }

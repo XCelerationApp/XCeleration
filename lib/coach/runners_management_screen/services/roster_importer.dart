@@ -103,7 +103,9 @@ class RosterImporter {
         final id = await _teams.createTeam(Team(
           name: named.trim(),
           abbreviation: abbreviate(named),
-          color: Team.generateColor(all.length),
+          // Three steps round the colour wheel at a time, so teams made one
+          // after another do not come out nearly the same colour.
+          color: Team.generateColor(all.length * 3),
         ));
         team = await _teams.getTeam(id) ??
             Team(teamId: id, name: named.trim(), abbreviation: abbreviate(named));

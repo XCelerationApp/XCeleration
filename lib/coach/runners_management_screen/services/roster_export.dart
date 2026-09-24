@@ -5,6 +5,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 
 /// A race's runners as a spreadsheet, in the layout the import reads back:
@@ -52,6 +53,7 @@ class RosterExport {
       await file.writeAsString(csv(runners));
       return Success(XFile(file.path, mimeType: 'text/csv'));
     } catch (e) {
+      Logger.e('[RosterExport] Could not write the roster: $e');
       return Failure(AppError(
         userMessage: 'Could not create the runners spreadsheet.',
         originalException: e,
