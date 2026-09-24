@@ -71,6 +71,10 @@ class _FakeSyncClient implements IRemoteSyncClient {
   /// the same rows in the meantime.
   Future<void> Function(String table)? whileUploading;
 
+  /// Rows the server refuses, as it would one breaking a uniqueness rule.
+  /// An upload containing one fails as a whole, as a Postgres upsert does.
+  bool Function(Map<String, dynamic> row)? rejects;
+
   @override
   Future<List<Map<String, dynamic>>> fetchTableRows(
     String table,
@@ -110,6 +114,9 @@ class _FakeSyncClient implements IRemoteSyncClient {
   Future<void> upsertRows(String table, List<Map<String, dynamic>> rows,
       {required String onConflict}) async {
     await whileUploading?.call(table);
+    if (rows.any((row) => rejects?.call(row) ?? false)) {
+      throw StateError('duplicate key value violates unique constraint');
+    }
     upserts.add((table: table, rows: rows));
     // Keep what was pushed, so the next pull sees it the way the server would.
     final keyColumns = onConflict.split(',');
@@ -648,6 +655,75 @@ void main() {
       await service.syncAll();
 
       expect((await db.query('runners')).single['name'], 'Alice');
+    });
+  });
+
+  group('a row the server refuses', () {
+    Future<void> addRunner(String uuid, String bib) async {
+      await (await conn.database).insert('runners', {
+        'uuid': uuid,
+        'name': 'Runner $bib',
+        'grade': 10,
+        'bib_number': bib,
+        'updated_at': '2026-01-01T00:00:00Z',
+        'is_dirty': 1,
+      });
+    }
+
+    test('does not hold back the rows uploaded with it', () async {
+      await addRunner('r1', '101');
+      await addRunner('r2', '102');
+      await addRunner('r3', '103');
+      remote.rejects = (row) => row['bib_number'] == '102';
+
+      await service.syncAll();
+
+      final sent = {for (final r in remote.tables['runners']!) r['bib_number']};
+      expect(sent, {'101', '103'});
+      final dirty = {
+        for (final r in await (await conn.database).query('runners'))
+          r['bib_number']: r['is_dirty']
+      };
+      expect(dirty, {'101': 0, '102': 1, '103': 0},
+          reason: 'the refused row waits to be tried again');
+    });
+
+    test('the other phone\'s runner with that bib does not replace this one',
+        () async {
+      // Both phones added bib 102 offline. The server keeps the first to
+      // arrive; this phone's runner, and the results pointing at it, stay.
+      await addRunner('r2', '102');
+      remote.rejects = (row) => row['uuid'] == 'r2';
+      remote.tables['runners'] = [
+        {
+          'runner_id': 950,
+          'uuid': 'other-phones-runner',
+          'owner_user_id': 'owner-1',
+          'name': 'Blake',
+          'grade': 11,
+          'bib_number': '102',
+          'created_at': '2026-01-01T00:00:00Z',
+          'updated_at': '2026-01-01T00:00:00Z',
+          'deleted_at': null,
+        }
+      ];
+
+      await service.syncAll();
+
+      final runners = await (await conn.database).query('runners');
+      expect([for (final r in runners) r['uuid']], ['r2']);
+    });
+
+    test('does not stop the rest of the sync', () async {
+      await addRunner('r2', '102');
+      remote.rejects = (row) => row['bib_number'] == '102';
+      seedRemoteParents();
+      remote.tables['runners']!.clear();
+
+      await service.syncAll();
+
+      expect(await (await conn.database).query('teams'), hasLength(1),
+          reason: 'pulling still happens after a refused upload');
     });
   });
 
