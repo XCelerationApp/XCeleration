@@ -290,7 +290,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       content: 'Stop once every runner has finished. You can resume if you '
           'stop too early.',
       confirmText: 'Stop',
-      cancelText: 'Keep Recording',
+      cancelText: 'Cancel',
       destructive: true,
     );
     if (confirmed && mounted) _controller.raceStopped = true;

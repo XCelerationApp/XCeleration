@@ -141,7 +141,7 @@ Future<void> confirmStopTimer(
     content: 'Stop the clock once every runner has finished. You can resume '
         'if you stop too early.',
     confirmText: 'Stop',
-    cancelText: 'Keep Running',
+    cancelText: 'Cancel',
     destructive: true,
   );
   if (confirmed && context.mounted) {
