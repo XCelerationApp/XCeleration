@@ -255,6 +255,8 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
         InlineContextPanel(
           surroundingFinishers: leftover.nearby,
           contextPosition: leftover.place,
+          conflictBib: widget.conflict.bibNumber,
+          conflictTime: leftover.time,
         ),
         TextButton(
           onPressed: () => showNearbySheet(

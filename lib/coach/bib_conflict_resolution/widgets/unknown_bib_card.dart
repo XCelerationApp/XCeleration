@@ -38,6 +38,8 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
         InlineContextPanel(
           surroundingFinishers: widget.conflict.occurrence.nearby,
           contextPosition: widget.conflict.occurrence.place,
+          conflictBib: widget.conflict.bibNumber,
+          conflictTime: widget.conflict.occurrence.time,
         ),
         TextButton(
           onPressed: () => _openContextSheet(context),

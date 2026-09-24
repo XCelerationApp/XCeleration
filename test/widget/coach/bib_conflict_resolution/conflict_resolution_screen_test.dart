@@ -123,7 +123,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('UNKNOWN BIB'), findsOneWidget);
-    expect(find.text('17th'), findsOneWidget);
+    // In the header and again in the nearby panel.
+    expect(find.text('17th'), findsNWidgets(2));
   });
 
   testWidgets('shows the race it is resolving', (tester) async {
@@ -175,7 +176,10 @@ void main() {
     expect(find.textContaining('Bib #959 was a typo here'), findsOneWidget);
     // Not "unknown": 959 is Quinn's bib, just not at this finish.
     expect(find.text('UNKNOWN BIB'), findsNothing);
+    // Nearby: the runner ahead, then this finish, each with its place.
+    expect(find.text('20th'), findsOneWidget);
     expect(find.text('Morgan Hawks'), findsOneWidget);
+    expect(find.text('Unknown runner'), findsOneWidget);
     expect(find.text('Assign Existing Runner'), findsOneWidget);
     expect(find.text('Create New Runner'), findsOneWidget);
   });

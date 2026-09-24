@@ -125,7 +125,8 @@ void main() {
                 await assign(tester, truth[o.place - 1]);
               }
             case UnknownBibConflict(:final occurrence):
-              expect(find.text(ordinal(occurrence.place)), findsOneWidget);
+              // In the header and again in the nearby panel.
+              expect(find.text(ordinal(occurrence.place)), findsNWidgets(2));
               await assign(tester, truth[occurrence.place - 1]);
           }
         }
