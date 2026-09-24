@@ -52,14 +52,34 @@ class AppHeader extends StatelessWidget {
         children: [
           // Shrinks to fit beside the buttons at a large text size, rather
           // than cutting the title down to "My ...".
+          // Tapping the title also switches roles, with a small arrow to say
+          // so, as well as the person button.
           Flexible(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                maxLines: 1,
-                style: titleStyle ?? AppTypography.displayMedium,
+            child: Semantics(
+              button: true,
+              label: '$title. Switch roles',
+              excludeSemantics: true,
+              child: GestureDetector(
+                key: const ValueKey('app_header_title'),
+                behavior: HitTestBehavior.opaque,
+                onTap: onRoleTap,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        maxLines: 1,
+                        style: titleStyle ?? AppTypography.displayMedium,
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      const Icon(Icons.keyboard_arrow_down_rounded,
+                          size: 28, color: AppColors.mediumColor),
+                    ],
+                  ),
+                ),
               ),
             ),
           ),

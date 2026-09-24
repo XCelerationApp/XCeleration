@@ -80,6 +80,21 @@ void main() {
     });
 
     group('onSettingsTap callback', () {
+      testWidgets('fires when the title is tapped', (tester) async {
+        var tapped = 0;
+        await tester.pumpWidget(_wrap(
+          title: 'Race Timer',
+          role: Role.timer,
+          tutorialManager: tutorialManager,
+          onRoleTap: () => tapped++,
+          onSettingsTap: () {},
+        ));
+
+        await tester.tap(find.text('Race Timer'));
+
+        expect(tapped, 1);
+      });
+
       testWidgets('fires when settings button is tapped', (tester) async {
         var tapped = false;
 
