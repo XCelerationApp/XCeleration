@@ -67,6 +67,9 @@ jobs:
       - name: Analyze changed files
         run: |
           changed_files="${{ needs.detect-changes.outputs.dart-files }}"
+          # Third-party plugin code in packages/ is excluded in
+          # analysis_options.yaml, but a file named here is analyzed anyway.
+          changed_files=$(echo "$changed_files" | tr ' ' '\n' | { grep -v '^packages/' || true; } | tr '\n' ' ')
           flutter analyze --fatal-infos --fatal-warnings $changed_files
 
       - name: Run unit and widget tests
