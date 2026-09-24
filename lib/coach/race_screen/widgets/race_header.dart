@@ -126,11 +126,15 @@ class _RaceHeaderState extends State<RaceHeader> {
                             ),
                           ),
                           const SizedBox(width: AppSpacing.sm),
-                          Text(
-                            _getStatusText(flowState).toUpperCase(),
-                            style: AppTypography.smallBodySemibold.copyWith(
-                              color: statusColor,
-                              letterSpacing: 0.5,
+                          // Wraps rather than overflowing beside the action
+                          // button on a narrower phone.
+                          Flexible(
+                            child: Text(
+                              _getStatusText(flowState).toUpperCase(),
+                              style: AppTypography.smallBodySemibold.copyWith(
+                                color: statusColor,
+                                letterSpacing: 0.5,
+                              ),
                             ),
                           ),
                         ],
