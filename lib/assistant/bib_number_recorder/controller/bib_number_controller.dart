@@ -585,6 +585,21 @@ class BibNumberController extends BibNumberDataController {
     updateBibRecordSilent(index, _buildValidatedRecord(index, bibNumber));
   }
 
+  /// Whether Add does anything right now: while the race runs, or before it
+  /// has been started at all, when Add starts it.
+  bool get canAddBibOrStart =>
+      currentRace != null &&
+      (raceStopped ? bibRecords.isEmpty : canAddBib);
+
+  /// Adds a bib, starting the race first if it has not been started. A
+  /// volunteer who taps Add as the first runner comes in should not have to
+  /// find Start first.
+  Future<void> addBibStartingRace() async {
+    if (!canAddBibOrStart) return;
+    if (raceStopped) raceStopped = false;
+    await addBib();
+  }
+
   Future<void> addBib() async {
     if (bibRecords.isEmpty || bibRecords.last.bib.isNotEmpty) {
       await handleBibNumber('');

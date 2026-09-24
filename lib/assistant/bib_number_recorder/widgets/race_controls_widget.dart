@@ -72,9 +72,10 @@ class RaceControlsWidget extends StatelessWidget {
   }
 
   Widget _buildLogButton(BuildContext context) {
-    // Adds only while the race runs. Clearing the bibs is in the race menu,
-    // away from Share Bibs, which it used to sit beside.
-    final isEnabled = !controller.raceStopped && controller.canAddBib;
+    // Adds while the race runs, and starts it if it has not been started.
+    // Clearing the bibs is in the race menu, away from Share Bibs, which it
+    // used to sit beside.
+    final isEnabled = controller.canAddBibOrStart;
     return CircularButton(
       text: 'Add',
       color: isEnabled
@@ -82,7 +83,7 @@ class RaceControlsWidget extends StatelessWidget {
           : const Color(0xFF777777).withAlpha((0.5 * 255).round()),
       fontSize: 18,
       fontWeight: FontWeight.w600,
-      onPressed: isEnabled ? controller.addBib : null,
+      onPressed: isEnabled ? controller.addBibStartingRace : null,
     );
   }
 }

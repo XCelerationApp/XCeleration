@@ -641,6 +641,54 @@ void main() {
       });
     });
 
+    group('addBibStartingRace', () {
+      test('starts a race that has not been started, then adds', () async {
+        // The first runner comes in and the volunteer taps Add, not Start.
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        controller.setRaceStopped(true);
+
+        await controller.addBibStartingRace();
+
+        expect(controller.raceStopped, isFalse);
+        expect(controller.bibRecords, hasLength(1));
+        verify(mockStorage.updateRaceStatus(
+                testRace.raceId, testRace.type, false))
+            .called(1);
+
+        controller.dispose();
+      });
+
+      test('does not restart a race that was stopped with bibs in it',
+          () async {
+        // Stopping means done; adding more takes Resume, on purpose.
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        controller.setRaceStopped(true);
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+
+        await controller.addBibStartingRace();
+
+        expect(controller.raceStopped, isTrue);
+        expect(controller.bibRecords, hasLength(1));
+        expect(controller.canAddBibOrStart, isFalse);
+
+        controller.dispose();
+      });
+
+      test('does nothing without a race', () async {
+        final controller = buildController();
+
+        await controller.addBibStartingRace();
+
+        expect(controller.bibRecords, isEmpty);
+        expect(controller.canAddBibOrStart, isFalse);
+
+        controller.dispose();
+      });
+    });
+
     group('loadOtherRace', () {
       test('resets state and loads the provided race', () async {
         final otherRace = RaceRecord(
