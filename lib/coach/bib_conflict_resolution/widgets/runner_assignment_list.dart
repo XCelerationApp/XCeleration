@@ -383,10 +383,19 @@ class _ExpandedDetail extends StatelessWidget {
       padding: const EdgeInsets.only(top: AppSpacing.sm),
       child: Row(
         children: [
-          _chip('Grade ${runner.runner.grade ?? '—'}'),
-          const SizedBox(width: AppSpacing.xs),
-          _chip('Bib #${runner.runner.bibNumber ?? '—'}'),
-          const Spacer(),
+          // Wrap rather than a fixed row, so large text drops the second
+          // chip onto its own line instead of pushing Select off the edge.
+          Expanded(
+            child: Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: [
+                _chip('Grade ${runner.runner.grade ?? '—'}'),
+                _chip('Bib #${runner.runner.bibNumber ?? '—'}'),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
           ElevatedButton(
             onPressed: onSelect,
             style: ElevatedButton.styleFrom(
