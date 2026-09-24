@@ -109,13 +109,22 @@ class MasterFlowController {
 
       if (!canAdvance) {
         final missing = _getMissingSetupItems();
-        DialogUtils.showMessageDialog(
+        if (missing.isEmpty) {
+          DialogUtils.showMessageDialog(
+            context,
+            title: 'A Few Things Left',
+            message: 'Check the race details, then try again.',
+            doneText: 'Got it',
+          );
+          return;
+        }
+        DialogUtils.showChecklistDialog(
           context,
-          title: 'Setup Incomplete',
-          message: missing.isEmpty
-              ? 'Please complete all required fields before continuing.'
-              : 'Please fill in the following before continuing:\n\n${missing.map((item) => '• $item').join('\n')}',
-          doneText: 'Got it',
+          title: 'A Few Things Left',
+          message: 'Finish these before sending the race to volunteers.',
+          items: {
+            for (final item in _setupItems) item: !missing.contains(item),
+          },
         );
         return;
       }
@@ -238,6 +247,15 @@ class MasterFlowController {
   }
 
   /// Returns human-readable missing setup items for the Continue dialog.
+  /// Everything setup needs, in the order the screen shows it.
+  static const _setupItems = [
+    'Race name',
+    'Location',
+    'Race date',
+    'Distance',
+    'Teams and runners',
+  ];
+
   List<String> _getMissingSetupItems() {
     final missing = <String>[];
     if (raceController.form.nameController.text.trim().isEmpty) {
