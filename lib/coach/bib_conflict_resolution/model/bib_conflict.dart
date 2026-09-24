@@ -15,9 +15,10 @@ class ConflictOccurrence {
   /// stretch it falls in and which time belongs to whom is still in dispute.
   final String? time;
 
-  /// The nearest finisher either side of this place, in finish order. Each
-  /// finish carries its own: choosing between two of them means knowing who
-  /// each one sits between.
+  /// Settled finishers around this place, up to [nearbyWindow] either side,
+  /// in finish order. The card shows the nearest one each side and "See more"
+  /// shows the rest. Each finish carries its own: choosing between two of them
+  /// means knowing who each one sits between.
   final List<NearbyFinisher> nearby;
 }
 
@@ -38,6 +39,9 @@ class NearbyFinisher {
   final String bibNumber;
   final String? time;
 }
+
+/// How many settled finishers either side of a disputed place to carry.
+const nearbyWindow = 4;
 
 /// Something wrong with the finish order the Bib Recorder handed over.
 sealed class BibConflict {
@@ -122,10 +126,11 @@ Future<List<BibConflict>> detectBibConflicts({
     if (isDuplicate || isUnknown) disputed.addAll(entry.value);
   }
 
-  /// The nearest settled finisher either side of [place].
+  /// The settled finishers around [place], up to [nearbyWindow] either side,
+  /// in finish order. A finisher whose own bib is in question is skipped: they
+  /// are no help in placing anyone else.
   List<NearbyFinisher> nearbyTo(int place) {
     NearbyFinisher? at(int candidate) {
-      if (candidate < 1 || candidate > entries.length) return null;
       if (disputed.contains(candidate)) return null;
       final entry = entries[candidate - 1];
       if (entry is! RaceRunner) return null;
@@ -138,18 +143,19 @@ Future<List<BibConflict>> detectBibConflicts({
       );
     }
 
-    NearbyFinisher? search(int from, int step) {
-      for (var i = from; i >= 1 && i <= entries.length; i += step) {
-        final found = at(i);
-        if (found != null) return found;
-      }
-      return null;
+    final ahead = <NearbyFinisher>[];
+    for (var i = place - 1; i >= 1 && ahead.length < nearbyWindow; i--) {
+      final found = at(i);
+      if (found != null) ahead.add(found);
     }
-
-    return [
-      ?search(place - 1, -1),
-      ?search(place + 1, 1),
-    ];
+    final behind = <NearbyFinisher>[];
+    for (var i = place + 1;
+        i <= entries.length && behind.length < nearbyWindow;
+        i++) {
+      final found = at(i);
+      if (found != null) behind.add(found);
+    }
+    return [...ahead.reversed, ...behind];
   }
 
   ConflictOccurrence occurrenceAt(int place) => ConflictOccurrence(

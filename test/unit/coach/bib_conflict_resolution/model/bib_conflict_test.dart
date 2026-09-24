@@ -77,10 +77,30 @@ void main() {
       );
 
       final duplicate = conflicts.single as DuplicateBibConflict;
+      // Each finish's own neighbourhood, skipping the other disputed place.
       expect(duplicate.occurrences[0].nearby.map((f) => f.name),
-          ['First', 'Third']);
+          ['First', 'Third', 'Fifth']);
       expect(duplicate.occurrences[1].nearby.map((f) => f.name),
-          ['Third', 'Fifth']);
+          ['First', 'Third', 'Fifth']);
+      expect(duplicate.occurrences[0].nearby.map((f) => f.place), [1, 3, 5]);
+    });
+
+    test('carries up to four finishers either side for "See more"', () async {
+      final alice = _runner(1, '12', name: 'Alice');
+      final field = [
+        for (var i = 0; i < 12; i++) _runner(100 + i, '${200 + i}'),
+      ];
+      // Alice recorded 7th and 8th in a field of 14.
+      final entries = [...field.take(6), alice, alice, ...field.skip(6)];
+      final conflicts = await detectBibConflicts(
+        entries: entries,
+        timesByPlace: const {},
+        lookupBib: _lookup({'12': alice}),
+      );
+
+      final first = (conflicts.single as DuplicateBibConflict).occurrences[0];
+      // Four ahead of 7th (3–6), four behind it (9–12), skipping disputed 8th.
+      expect(first.nearby.map((f) => f.place), [3, 4, 5, 6, 9, 10, 11, 12]);
     });
 
     test('pairs an unresolved entry with the runner that holds the bib',
