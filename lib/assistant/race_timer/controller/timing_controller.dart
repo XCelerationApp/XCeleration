@@ -69,11 +69,15 @@ class TimingController extends TimingData {
     _initializeControllers();
   }
 
+  /// Opening the last race, started when the Timer opens. Loading another
+  /// race waits for it, so the last race cannot open over the new one.
+  late final Future<void> initialLoad;
+
   void _initializeControllers() {
     if (_audioPlayer != null) {
       _initAudioPlayer();
     }
-    _loadLastRace();
+    initialLoad = _loadLastRace();
   }
 
   Future<void> showOtherRaces(BuildContext context) async {
@@ -148,6 +152,7 @@ class TimingController extends TimingData {
       Logger.e('Error parsing race data: $e');
       return;
     }
+    await initialLoad;
     switch (await _storage.receiveRace(sent)) {
       case Failure(:final error):
         Logger.e('[TimingController.loadRaceFromCoach] '
@@ -212,6 +217,7 @@ class TimingController extends TimingData {
 
   /// Loads a previous race and its timing records
   Future<void> loadOtherRace(RaceRecord race) async {
+    await initialLoad;
     clearRecords();
 
     await _loadRace(race);
@@ -437,9 +443,17 @@ class TimingController extends TimingData {
     clearRecords();
     if (currentRace != null) {
       // Queued, so a save still waiting to run can't bring the times back.
-      final raceId = currentRace!.raceId;
+      final race = currentRace!;
       await enqueueWrite(
-          () => _storage.deleteChunks(raceId), 'clear race $raceId');
+          () => _storage.deleteChunks(race.raceId), 'clear race ${race.raceId}');
+      // The saved clock goes too. Otherwise reopening the race brings back the
+      // old start, and the Timer can only resume that clock, not start anew.
+      await enqueueWrite(
+          () => _storage.updateRaceStartTime(race.raceId, race.type, null),
+          'clear the start of race ${race.raceId}');
+      await enqueueWrite(
+          () => _storage.updateRaceDuration(race.raceId, race.type, null),
+          'clear the length of race ${race.raceId}');
     }
   }
 

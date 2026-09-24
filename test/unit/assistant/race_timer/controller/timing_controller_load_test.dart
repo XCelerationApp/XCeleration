@@ -45,6 +45,7 @@ void main() {
     await db.delete('timing_chunks');
     await db.delete('race_history');
     timer = TimingController(storage: storage, hapticFeedback: _NoHaptics());
+    await timer.initialLoad;
     await timer.pendingWrites;
   });
 
@@ -88,5 +89,22 @@ void main() {
     expect(timer.currentRace?.name, 'Conference Finals');
     expect(timer.uiRecords, isEmpty);
     expect(await savedTimes(3), ['5:01.00']);
+  });
+
+  test('clearing the times resets the clock, even after reopening', () async {
+    await timer.loadRaceFromCoach(invitational);
+    timer.startRace();
+    timer.logTime();
+    timer.stopRace();
+    await timer.pendingWrites;
+
+    await timer.doClearRaceTimes();
+    // Reopened, as when the app is restarted.
+    await timer.loadRaceFromCoach(invitational);
+
+    expect(timer.startTime, isNull,
+        reason: 'the Timer offers Start Race, not Resume of the old clock');
+    expect(timer.raceDuration, isNull);
+    expect(await savedTimes(3), isEmpty);
   });
 }
