@@ -57,6 +57,19 @@ class MockIAssistantStorageService extends _i1.Mock
           as _i3.Future<_i4.Result<void>>);
 
   @override
+  _i3.Future<_i4.Result<_i2.ReceivedRace>> receiveRace(_i5.RaceRecord? race) =>
+      (super.noSuchMethod(
+            Invocation.method(#receiveRace, [race]),
+            returnValue: _i3.Future<_i4.Result<_i2.ReceivedRace>>.value(
+              _i6.dummyValue<_i4.Result<_i2.ReceivedRace>>(
+                this,
+                Invocation.method(#receiveRace, [race]),
+              ),
+            ),
+          )
+          as _i3.Future<_i4.Result<_i2.ReceivedRace>>);
+
+  @override
   _i3.Future<_i4.Result<void>> updateRace(_i5.RaceRecord? race) =>
       (super.noSuchMethod(
             Invocation.method(#updateRace, [race]),
