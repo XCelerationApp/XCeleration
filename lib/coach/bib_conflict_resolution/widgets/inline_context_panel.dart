@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../mock/conflict_mock_data.dart';
+import '../model/bib_conflict.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_opacity.dart';
@@ -18,17 +18,17 @@ class InlineContextPanel extends StatelessWidget {
   });
 
   /// Non-conflict finishers surrounding the conflict, sorted ascending by position.
-  final List<MockFinishEntry> surroundingFinishers;
+  final List<NearbyFinisher> surroundingFinishers;
 
   /// The earliest finish position involved in the conflict.
   final int contextPosition;
 
-  MockFinishEntry? get _ahead => surroundingFinishers
-      .where((e) => e.position < contextPosition)
+  NearbyFinisher? get _ahead => surroundingFinishers
+      .where((e) => e.place < contextPosition)
       .lastOrNull;
 
-  MockFinishEntry? get _behind => surroundingFinishers
-      .where((e) => e.position > contextPosition)
+  NearbyFinisher? get _behind => surroundingFinishers
+      .where((e) => e.place > contextPosition)
       .firstOrNull;
 
   @override
@@ -73,7 +73,7 @@ class InlineContextPanel extends StatelessWidget {
 class _RunnerRow extends StatelessWidget {
   const _RunnerRow({required this.entry, required this.isAhead});
 
-  final MockFinishEntry entry;
+  final NearbyFinisher entry;
   final bool isAhead;
 
   Color get _dotColor =>
@@ -95,7 +95,7 @@ class _RunnerRow extends StatelessWidget {
         Expanded(
           flex: 3,
           child: Text(
-            entry.runnerName,
+            entry.name,
             style: AppTypography.smallBodyRegular,
             overflow: TextOverflow.ellipsis,
           ),
@@ -111,7 +111,7 @@ class _RunnerRow extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.sm),
         Text(
-          entry.formattedTime,
+          entry.time ?? '—',
           style: AppTypography.caption.copyWith(
             color: AppColors.mediumColor,
             fontFeatures: const [FontFeature.tabularFigures()],

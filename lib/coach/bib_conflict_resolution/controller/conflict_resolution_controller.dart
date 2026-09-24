@@ -1,392 +1,429 @@
 import 'package:flutter/foundation.dart';
-import 'package:xceleration/shared/models/database/runner.dart';
-import 'package:xceleration/shared/models/database/team.dart';
-import '../mock/conflict_mock_data.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/shared/models/database/race_runner.dart';
+import '../model/bib_conflict.dart';
+import '../services/runner_creator.dart';
 
-enum _FlowStep { summary, duplicateStep1, unknown, completion }
+enum _FlowStep { summary, conflict, completion }
 
+/// How a finish came to have its runner.
+enum ResolutionKind {
+  /// The runner whose bib it is: the finish the coach said was theirs.
+  kept,
+
+  /// A runner already in the race, picked from the list.
+  assigned,
+
+  /// A runner the coach added.
+  created,
+}
+
+/// One finish the coach has settled: who finished at [place], and how.
 typedef ResolutionEntry = ({
-  String conflictLabel,
-  bool wasCreate,
-  String runnerName,
-  int bib,
-  String team,
-  /// The resolved [RaceRunner] for this conflict position — matches the type
-  /// that [BibConflictsOverview.onResolved] expects in the real system.
+  int place,
+  String bibNumber,
+  ResolutionKind kind,
   RaceRunner raceRunner,
 });
 
+/// A resolution waiting out its undo toast.
+class _Pending {
+  const _Pending({
+    required this.place,
+    required this.bibNumber,
+    required this.label,
+    this.runner,
+    this.newRunner,
+  });
+
+  final int place;
+  final String bibNumber;
+  final String label;
+
+  /// Set when assigning a runner already in the race.
+  final RaceRunner? runner;
+
+  /// Set when adding a runner. Saved only when the toast runs out, so an
+  /// undone creation never leaves a stray runner entered in the race.
+  final NewRunner? newRunner;
+}
+
+/// Drives resolving the bib conflicts in a race's finish order.
+///
+/// Every resolution is recorded against the place it settles, and the result
+/// is who finished at each of those places — which is what gets written back
+/// into the finish order. The coach chooses the order: any conflict can be
+/// opened from the summary, and finishing one moves on to the next still open.
 class ConflictResolutionController extends ChangeNotifier {
   ConflictResolutionController({
-    List<MockBibConflict>? conflicts,
-    List<RaceRunner>? unassignedRunners,
-  })  : _initialConflicts =
-            List.unmodifiable(conflicts ?? ConflictMockData.conflicts),
-        _initialUnassignedRunners = List.unmodifiable(
-            unassignedRunners ?? ConflictMockData.allUnassignedRunners),
-        _conflicts = List.from(conflicts ?? ConflictMockData.conflicts),
-        _unassignedRunners = List.from(
-            unassignedRunners ?? ConflictMockData.allUnassignedRunners) {
-    _teams = _computeTeams();
-  }
+    required List<BibConflict> conflicts,
+    required List<RaceRunner> candidates,
+    required Set<String> knownBibs,
+    required List<String> teams,
+    required this.raceName,
+    required Future<Result<RaceRunner>> Function(NewRunner) createRunner,
+  })  : _conflicts = List.unmodifiable(conflicts),
+        _candidates = List.unmodifiable(candidates),
+        _knownBibs = Set.unmodifiable(knownBibs),
+        _teams = List.unmodifiable(teams),
+        _createRunner = createRunner;
 
-  final List<MockBibConflict> _initialConflicts;
-  final List<RaceRunner> _initialUnassignedRunners;
+  final List<BibConflict> _conflicts;
 
-  final List<MockBibConflict> _conflicts;
-  final List<RaceRunner> _unassignedRunners;
-  final List<ResolutionEntry> _resolutionLog = [];
+  /// Runners in the race who are not placed anywhere in the finish order —
+  /// who a mistyped bib might really have been.
+  final List<RaceRunner> _candidates;
 
-  // --- Caches ---
-  late List<String> _teams;
-  final Map<int, List<RaceRunner>> _runnersNearBibCache = {};
+  /// Bibs already taken, so an added runner cannot reuse one.
+  final Set<String> _knownBibs;
+  final List<String> _teams;
+  final Future<Result<RaceRunner>> Function(NewRunner) _createRunner;
 
-  _FlowStep _currentStep = _FlowStep.summary;
-  int _currentConflictIndex = 0;
+  /// Shown in the header, so the coach knows which race this is.
+  final String raceName;
+
+  _FlowStep _step = _FlowStep.summary;
+  int _current = 0;
   bool _isGoingBack = false;
 
-  bool _hasPending = false;
-  String _pendingLabel = '';
-  VoidCallback? _pendingCommitAction;
-  RaceRunner? _pendingAssignedRunner;
+  /// Who finished at each settled place.
+  final Map<int, ResolutionEntry> _settled = {};
 
-  int _duplicatesResolved = 0;
-  int _runnersAssigned = 0;
-  int _newRunnersCreated = 0;
+  /// For each duplicate being worked on, the place the coach said belongs to
+  /// the runner whose bib it is.
+  final Map<int, int> _ownerPlace = {};
 
-  // --- State checks ---
-  bool get isOnSummary => _currentStep == _FlowStep.summary;
-  bool get isOnDuplicateStep1 => _currentStep == _FlowStep.duplicateStep1;
-  bool get isOnUnknown => _currentStep == _FlowStep.unknown;
-  bool get isOnCompletion => _currentStep == _FlowStep.completion;
+  _Pending? _pending;
+  AppError? _error;
+  bool _committing = false;
+
+  // --- Flow state ---------------------------------------------------------
+
+  bool get isOnSummary => _step == _FlowStep.summary;
+  bool get isOnConflict => _step == _FlowStep.conflict;
+  bool get isOnCompletion => _step == _FlowStep.completion;
   bool get isGoingBack => _isGoingBack;
+  bool get canGoBack => !isOnSummary;
 
-  /// True whenever the back button should be active. Every step but the
-  /// summary has somewhere to go back to, and the summary is the way out.
-  bool get canGoBack => _currentStep != _FlowStep.summary;
+  /// Changes whenever the card on screen changes, including between the
+  /// leftover finishes of one repeated bib, so each gets its own transition.
+  String get stepKey =>
+      '${_step.name}_${_current}_${_ownerPlace[_current]}_${currentLeftover?.place}';
 
-  bool get hasPending => _hasPending;
-  String get pendingLabel => _pendingLabel;
+  /// Changes only between the summary, the conflicts and the review.
+  String get outerStateKey => _step.name;
 
-  // --- Data ---
-  MockBibConflict get currentConflict => _conflicts[_currentConflictIndex];
-  int get currentConflictIndex => _currentConflictIndex;
+  bool get hasPending => _pending != null;
+  String get pendingLabel => _pending?.label ?? '';
+
+  /// Why the last action failed, for the screen to show.
+  AppError? get error => _error;
+
+  // --- The conflicts ------------------------------------------------------
+
+  List<BibConflict> get conflicts => _conflicts;
   int get totalConflicts => _conflicts.length;
+  int get duplicateCount => _conflicts.whereType<DuplicateBibConflict>().length;
+  int get unknownCount => _conflicts.whereType<UnknownBibConflict>().length;
 
-  int get resolvedCount {
-    if (_currentStep == _FlowStep.completion) return _conflicts.length;
-    if (_hasPending) return _currentConflictIndex + 1;
-    return _currentConflictIndex;
+  BibConflict get currentConflict => _conflicts[_current];
+  int get currentConflictIndex => _current;
+
+  /// The places a conflict needs a runner for.
+  static List<int> placesOf(BibConflict conflict) => switch (conflict) {
+        DuplicateBibConflict(:final occurrences) =>
+          [for (final o in occurrences) o.place],
+        UnknownBibConflict(:final occurrence) => [occurrence.place],
+      };
+
+  bool isResolved(int index) =>
+      placesOf(_conflicts[index]).every(_settled.containsKey);
+
+  int get resolvedCount =>
+      [for (var i = 0; i < _conflicts.length; i++) i].where(isResolved).length;
+
+  /// The place chosen as the bib owner's, for the duplicate on screen.
+  int? get chosenPlace => _ownerPlace[_current];
+
+  /// The next finish of the duplicate on screen that still needs a runner,
+  /// once the owner's finish has been chosen.
+  ConflictOccurrence? get currentLeftover {
+    final conflict = _conflicts.isEmpty ? null : _conflicts[_current];
+    final owner = _ownerPlace[_current];
+    if (conflict is! DuplicateBibConflict || owner == null) return null;
+    for (final occurrence in conflict.occurrences) {
+      if (occurrence.place == owner) continue;
+      if (_settled.containsKey(occurrence.place)) continue;
+      return occurrence;
+    }
+    return null;
   }
 
-  int get duplicatesResolved => _duplicatesResolved;
-  int get runnersAssigned => _runnersAssigned;
-  int get newRunnersCreated => _newRunnersCreated;
-  List<ResolutionEntry> get resolutionLog => List.unmodifiable(_resolutionLog);
-
-  /// Resolved runners in resolution order — the real output type.
-  ///
-  /// In production this list would be merged back into the full [raceRunners]
-  /// list (replacing the conflict int sentinels) and passed to
-  /// [BibConflictsOverview.onResolved]. Here each entry corresponds to one
-  /// resolved conflict in the order they were completed.
-  List<RaceRunner> get resolvedRunners =>
-      _resolutionLog.map((e) => e.raceRunner).toList();
-
-  /// Key that changes on every step/conflict transition, used by the inner AnimatedSwitcher.
-  String get stepKey => '${_currentStep.name}_$_currentConflictIndex';
-
-  /// Key that changes only on major state transitions (summary/conflicts/completion).
-  String get outerStateKey {
-    if (_currentStep == _FlowStep.summary) return 'summary';
-    if (_currentStep == _FlowStep.completion) return 'completion';
-    return 'conflicts';
+  /// How many of the duplicate's other finishes still need a runner.
+  int get leftoversRemaining {
+    final conflict = _conflicts[_current];
+    final owner = _ownerPlace[_current];
+    if (conflict is! DuplicateBibConflict || owner == null) return 0;
+    return conflict.occurrences
+        .where((o) => o.place != owner && !_settled.containsKey(o.place))
+        .length;
   }
 
-  /// Unique team names derived from the initial runner list, sorted alphabetically.
-  /// Computed once at construction and never changes.
+  // --- Runners ------------------------------------------------------------
+
   List<String> get teams => _teams;
 
-  List<String> _computeTeams() {
-    final names = _initialUnassignedRunners
-        .map((r) => r.team.name ?? '')
-        .where((n) => n.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
-    return List.unmodifiable(names);
-  }
+  /// Runners already given a finish here, staged or settled.
+  Set<String> get _usedBibs => {
+        for (final entry in _settled.values) ?entry.raceRunner.runner.bibNumber,
+        ?_pending?.runner?.runner.bibNumber,
+      };
 
-  /// All unassigned runners sorted by proximity to [targetBib].
-  /// Result is cached per [targetBib] and invalidated when [_unassignedRunners] changes.
-  List<RaceRunner> runnersNearBib(int targetBib) {
-    return _runnersNearBibCache.putIfAbsent(targetBib, () {
-      final sorted = List<RaceRunner>.from(_unassignedRunners);
-      sorted.sort((a, b) {
-        final aBib = int.parse(a.runner.bibNumber ?? '0');
-        final bBib = int.parse(b.runner.bibNumber ?? '0');
-        return (aBib - targetBib).abs().compareTo((bBib - targetBib).abs());
-      });
-      return sorted;
-    });
-  }
-
-  void _invalidateRunnerCache() => _runnersNearBibCache.clear();
-
-  /// All bib numbers currently known (assigned + unassigned), for new-runner validation.
-  Set<int> get allKnownBibs {
-    final bibs = <int>{};
-    for (final conflict in _conflicts) {
-      switch (conflict) {
-        case MockDuplicateConflict(:final raceRunner):
-          bibs.add(int.parse(raceRunner.runner.bibNumber ?? '0'));
-        case MockUnknownConflict(:final enteredBib):
-          bibs.add(enteredBib);
-      }
-      for (final entry in conflict.surroundingFinishers) {
-        bibs.add(entry.bibNumber);
-      }
+  /// The runners still free to be given a finish, nearest bib number first:
+  /// a mistyped bib is usually a digit or two from the real one.
+  List<RaceRunner> runnersNearBib(String bib) {
+    final target = int.tryParse(bib);
+    final used = _usedBibs;
+    final free = _candidates
+        .where((r) => !used.contains(r.runner.bibNumber))
+        .toList();
+    if (target == null) return free;
+    int distance(RaceRunner r) {
+      final value = int.tryParse(r.runner.bibNumber ?? '');
+      return value == null ? 1 << 30 : (value - target).abs();
     }
-    for (final runner in _unassignedRunners) {
-      bibs.add(int.parse(runner.runner.bibNumber ?? '0'));
-    }
-    return bibs;
+
+    return free..sort((a, b) => distance(a).compareTo(distance(b)));
   }
 
-  // --- Actions ---
+  /// Every bib already taken, so an added runner gets one of their own.
+  Set<String> get allKnownBibs => {
+        ..._knownBibs,
+        for (final entry in _settled.values)
+          if (entry.kind == ResolutionKind.created)
+            ?entry.raceRunner.runner.bibNumber,
+        ?_pending?.newRunner?.bibNumber,
+      };
 
+  // --- Results ------------------------------------------------------------
+
+  /// Every settled finish, in finish order, for the review screen.
+  List<ResolutionEntry> get resolutionLog =>
+      _settled.values.toList()..sort((a, b) => a.place.compareTo(b.place));
+
+  /// Who finished at each settled place — what goes back into the results.
+  Map<int, RaceRunner> get resolvedByPlace => {
+        for (final entry in _settled.entries) entry.key: entry.value.raceRunner,
+      };
+
+  // --- Navigation ---------------------------------------------------------
+
+  /// Opens the first conflict still open, or the review if there is none.
   void startResolving() {
     _isGoingBack = false;
-    _unassignedRunners
-      ..clear()
-      ..addAll(_initialUnassignedRunners);
-    _invalidateRunnerCache();
-    _conflicts
-      ..clear()
-      ..addAll(_initialConflicts);
-    _currentConflictIndex = 0;
-    _hasPending = false;
-    _pendingLabel = '';
-    _pendingCommitAction = null;
-    _pendingAssignedRunner = null;
-    _resolutionLog.clear();
-    _duplicatesResolved = 0;
-    _runnersAssigned = 0;
-    _newRunnersCreated = 0;
-    _currentStep = _stepForConflict(_conflicts[0]);
+    _error = null;
+    _openNextOpen(from: 0);
     notifyListeners();
   }
 
-  /// Splices [unknowns] into the conflict queue immediately after the current
-  /// conflict index, then notifies. Used to inject leftover duplicate entries.
-  void injectConflicts(List<MockUnknownConflict> unknowns) {
-    _conflicts.insertAll(_currentConflictIndex + 1, unknowns);
-    notifyListeners();
-  }
-
-  /// Records the correct occurrence position for a duplicate conflict, injects
-  /// every other occurrence as an unknown into the queue, then advances directly
-  /// to the first injected unknown. The known runner is implicitly confirmed at
-  /// the correct position — no step-2 card is shown.
-  void chooseDuplicateOccurrence(int correctPosition) {
+  /// Opens [index] from the summary. A conflict already settled is reopened
+  /// to be done again: that is how the coach changes an answer.
+  void openConflict(int index) {
+    if (index < 0 || index >= _conflicts.length) return;
     _isGoingBack = false;
-    final conflict = _conflicts[_currentConflictIndex] as MockDuplicateConflict;
-    final leftovers = conflict.occurrences
-        .where((o) => o.position != correctPosition)
-        .map((o) => MockUnknownConflict(
-              enteredBib: conflict.bibNumber,
-              position: o.position,
-              formattedTime: o.formattedTime,
-              surroundingFinishers: conflict.surroundingFinishers,
-            ))
-        .toList();
-
-    injectConflicts(leftovers);
-    _duplicatesResolved++;
-    _advance();
-  }
-
-  /// Resolves a 2-occurrence duplicate inline: stages the runner assigned to the
-  /// leftover occurrence, and also records the duplicate as resolved on commit.
-  /// Use this instead of [prepareAssign] when the leftover is handled within
-  /// the duplicate card itself (no separate UnknownBibCard is shown).
-  void prepareAssignForDuplicate(RaceRunner runner, String label) {
-    _isGoingBack = false;
-    _unassignedRunners.remove(runner);
-    _invalidateRunnerCache();
-    _pendingAssignedRunner = runner;
-    _pendingLabel = label;
-    _pendingCommitAction = () {
-      _duplicatesResolved++;
-      _runnersAssigned++;
-      _resolutionLog.add((
-        conflictLabel: label,
-        wasCreate: false,
-        runnerName: runner.runner.name ?? '',
-        bib: int.parse(runner.runner.bibNumber ?? '0'),
-        team: runner.team.name ?? '',
-        raceRunner: runner,
-      ));
-    };
-    _hasPending = true;
+    _error = null;
+    _clear(index);
+    _current = index;
+    _step = _FlowStep.conflict;
     notifyListeners();
   }
 
-  /// Like [prepareAssignForDuplicate] but for a newly created runner.
-  void prepareCreateForDuplicate(
-      String name, int bib, String team, int? grade, String label) {
-    _isGoingBack = false;
-    _pendingAssignedRunner = null;
-    _pendingLabel = label;
-    final raceRunner = _buildRaceRunner(name, bib, team, grade);
-    _pendingCommitAction = () {
-      _duplicatesResolved++;
-      _newRunnersCreated++;
-      _resolutionLog.add((
-        conflictLabel: label,
-        wasCreate: true,
-        runnerName: name,
-        bib: bib,
-        team: team,
-        raceRunner: raceRunner,
-      ));
-    };
-    _hasPending = true;
-    notifyListeners();
-  }
-
-  /// Stages an existing runner as the resolution. Removes from unassigned list
-  /// immediately; call [commitPending] to finalise or [undoPending] to revert.
-  void prepareAssign(RaceRunner runner, String label) {
-    _isGoingBack = false;
-    _unassignedRunners.remove(runner);
-    _invalidateRunnerCache();
-    _pendingAssignedRunner = runner;
-    _pendingLabel = label;
-    _pendingCommitAction = () {
-      _runnersAssigned++;
-      _resolutionLog.add((
-        conflictLabel: label,
-        wasCreate: false,
-        runnerName: runner.runner.name ?? '',
-        bib: int.parse(runner.runner.bibNumber ?? '0'),
-        team: runner.team.name ?? '',
-        raceRunner: runner,
-      ));
-    };
-    _hasPending = true;
-    notifyListeners();
-  }
-
-  /// Stages a newly created runner as the resolution. Call [commitPending] to
-  /// finalise or [undoPending] to revert.
-  void prepareCreate(
-      String name, int bib, String team, int? grade, String label) {
-    _isGoingBack = false;
-    _pendingAssignedRunner = null;
-    _pendingLabel = label;
-    final raceRunner = _buildRaceRunner(name, bib, team, grade);
-    _pendingCommitAction = () {
-      _newRunnersCreated++;
-      _resolutionLog.add((
-        conflictLabel: label,
-        wasCreate: true,
-        runnerName: name,
-        bib: bib,
-        team: team,
-        raceRunner: raceRunner,
-      ));
-    };
-    _hasPending = true;
-    notifyListeners();
-  }
-
-  /// Commits the pending resolution, appends to the log, and advances to the
-  /// next conflict.
-  void commitPending() {
-    if (!_hasPending) return;
-    _pendingCommitAction?.call();
-    _clearPending();
-    _advance();
-  }
-
-  /// Reverts the pending resolution. If an assign was staged, the runner is
-  /// restored to the unassigned list.
-  void undoPending() {
-    if (!_hasPending) return;
-    _isGoingBack = true;
-    if (_pendingAssignedRunner != null) {
-      _unassignedRunners.add(_pendingAssignedRunner!);
-      _invalidateRunnerCache();
-    }
-    _clearPending();
-    notifyListeners();
-  }
-
-  /// Navigates backward:
-  /// 1. If a resolution is pending, undoes it (undo-toast path).
-  /// 2. If on the completion screen, unresolves the last conflict and returns to it.
-  /// 3. Otherwise, steps back one conflict and removes its log entry.
+  /// Steps back: an undo waiting on its toast first, then the owner's finish
+  /// chosen for a repeated bib, then out to the summary.
   void goBack() {
-    if (_hasPending) {
+    if (_pending != null) {
       undoPending();
       return;
     }
     _isGoingBack = true;
-    if (_currentStep == _FlowStep.completion) {
-      if (_resolutionLog.isNotEmpty) _resolutionLog.removeLast();
-      _currentStep = _stepForConflict(_conflicts[_currentConflictIndex]);
-      notifyListeners();
-      return;
-    }
-    if (_currentConflictIndex > 0) {
-      if (_resolutionLog.isNotEmpty) _resolutionLog.removeLast();
-      _currentConflictIndex--;
-      _currentStep = _stepForConflict(_conflicts[_currentConflictIndex]);
-      notifyListeners();
-      return;
-    }
-    // Nothing resolved yet, so back goes where the recorder came from. Without
-    // this the first conflict is a dead end: the button does nothing and the
-    // screen cannot be left.
-    _currentStep = _FlowStep.summary;
-    notifyListeners();
-  }
-
-  void _clearPending() {
-    _hasPending = false;
-    _pendingLabel = '';
-    _pendingCommitAction = null;
-    _pendingAssignedRunner = null;
-  }
-
-  void _advance() {
-    final nextIndex = _currentConflictIndex + 1;
-    if (nextIndex >= _conflicts.length) {
-      _currentStep = _FlowStep.completion;
-    } else {
-      _currentConflictIndex = nextIndex;
-      _currentStep = _stepForConflict(_conflicts[nextIndex]);
+    _error = null;
+    if (isOnConflict && _ownerPlace.containsKey(_current)) {
+      _clear(_current);
+    } else if (!isOnSummary) {
+      _step = _FlowStep.summary;
     }
     notifyListeners();
   }
 
-  _FlowStep _stepForConflict(MockBibConflict conflict) => switch (conflict) {
-        MockDuplicateConflict() => _FlowStep.duplicateStep1,
-        MockUnknownConflict() => _FlowStep.unknown,
-      };
+  // --- Resolving ----------------------------------------------------------
 
-  /// Builds a minimal [RaceRunner] from create-form primitives so that
-  /// [resolvedRunners] always returns the real type regardless of create vs assign.
-  RaceRunner _buildRaceRunner(String name, int bib, String team, int? grade) {
-    // Reuse the Team object from the existing runners list when possible.
-    final teamObj = _initialUnassignedRunners
-        .map((r) => r.team)
-        .firstWhere((t) => t.name == team, orElse: () => Team(name: team));
-    return RaceRunner(
-      raceId: ConflictMockData.raceId,
-      runner: Runner(bibNumber: bib.toString(), name: name, grade: grade),
-      team: teamObj,
+  /// The coach says [place] is the finish of the runner whose bib this is.
+  /// Their other finishes each need a runner of their own next.
+  void chooseDuplicateOccurrence(int place) {
+    final conflict = _conflicts[_current];
+    if (conflict is! DuplicateBibConflict) return;
+    if (!placesOf(conflict).contains(place)) return;
+    _isGoingBack = false;
+    _ownerPlace[_current] = place;
+    _settled[place] = (
+      place: place,
+      bibNumber: conflict.bibNumber,
+      kind: ResolutionKind.kept,
+      raceRunner: conflict.runner,
     );
+    _afterSettling();
+  }
+
+  /// Gives an unrecognised bib's finish to [runner], pending the undo toast.
+  void prepareAssign(RaceRunner runner, String label) {
+    final conflict = _conflicts[_current];
+    if (conflict is! UnknownBibConflict) return;
+    _stage(_Pending(
+      place: conflict.occurrence.place,
+      bibNumber: conflict.bibNumber,
+      label: label,
+      runner: runner,
+    ));
+  }
+
+  /// Gives a repeated bib's leftover finish to [runner], pending the toast.
+  void prepareAssignForDuplicate(RaceRunner runner, String label) {
+    final leftover = currentLeftover;
+    if (leftover == null) return;
+    _stage(_Pending(
+      place: leftover.place,
+      bibNumber: currentConflict.bibNumber,
+      label: label,
+      runner: runner,
+    ));
+  }
+
+  /// Gives an unrecognised bib's finish to a runner the coach is adding.
+  void prepareCreate(
+      String name, String bib, String team, int grade, String label) {
+    final conflict = _conflicts[_current];
+    if (conflict is! UnknownBibConflict) return;
+    _stage(_Pending(
+      place: conflict.occurrence.place,
+      bibNumber: conflict.bibNumber,
+      label: label,
+      newRunner:
+          NewRunner(name: name, bibNumber: bib, teamName: team, grade: grade),
+    ));
+  }
+
+  /// Gives a repeated bib's leftover finish to a runner the coach is adding.
+  void prepareCreateForDuplicate(
+      String name, String bib, String team, int grade, String label) {
+    final leftover = currentLeftover;
+    if (leftover == null) return;
+    _stage(_Pending(
+      place: leftover.place,
+      bibNumber: currentConflict.bibNumber,
+      label: label,
+      newRunner:
+          NewRunner(name: name, bibNumber: bib, teamName: team, grade: grade),
+    ));
+  }
+
+  /// Settles the pending resolution once its toast runs out. An added runner
+  /// is saved now; if that fails, nothing is settled and the coach is told.
+  Future<void> commitPending() async {
+    final pending = _pending;
+    if (pending == null || _committing) return;
+    _committing = true;
+    try {
+      RaceRunner runner;
+      ResolutionKind kind;
+      if (pending.newRunner != null) {
+        final result = await _createRunner(pending.newRunner!);
+        switch (result) {
+          case Success(:final value):
+            runner = value;
+            kind = ResolutionKind.created;
+          case Failure(:final error):
+            _pending = null;
+            _error = error;
+            notifyListeners();
+            return;
+        }
+      } else {
+        runner = pending.runner!;
+        kind = ResolutionKind.assigned;
+      }
+      _pending = null;
+      _settled[pending.place] = (
+        place: pending.place,
+        bibNumber: pending.bibNumber,
+        kind: kind,
+        raceRunner: runner,
+      );
+      _afterSettling();
+    } finally {
+      _committing = false;
+    }
+  }
+
+  /// Takes back the resolution waiting on its toast.
+  void undoPending() {
+    if (_pending == null) return;
+    _pending = null;
+    _isGoingBack = true;
+    notifyListeners();
+  }
+
+  void dismissError() {
+    _error = null;
+    notifyListeners();
+  }
+
+  // --- Internals ----------------------------------------------------------
+
+  void _stage(_Pending pending) {
+    _isGoingBack = false;
+    _error = null;
+    _pending = pending;
+    notifyListeners();
+  }
+
+  /// Stays on the conflict while it still has a finish to settle, otherwise
+  /// moves on to the next one still open.
+  void _afterSettling() {
+    if (!isResolved(_current)) {
+      notifyListeners();
+      return;
+    }
+    _openNextOpen(from: _current + 1);
+    notifyListeners();
+  }
+
+  /// Opens the first open conflict at or after [from], then any before it,
+  /// or the review when none is left.
+  void _openNextOpen({required int from}) {
+    final order = [
+      for (var i = from; i < _conflicts.length; i++) i,
+      for (var i = 0; i < from && i < _conflicts.length; i++) i,
+    ];
+    for (final index in order) {
+      if (!isResolved(index)) {
+        _current = index;
+        _step = _FlowStep.conflict;
+        return;
+      }
+    }
+    _step = _FlowStep.completion;
+  }
+
+  /// Forgets everything settled for conflict [index], so it can be redone.
+  void _clear(int index) {
+    for (final place in placesOf(_conflicts[index])) {
+      _settled.remove(place);
+    }
+    _ownerPlace.remove(index);
+    if (_pending != null &&
+        placesOf(_conflicts[index]).contains(_pending!.place)) {
+      _pending = null;
+    }
   }
 }

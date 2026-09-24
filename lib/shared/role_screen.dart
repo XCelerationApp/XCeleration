@@ -1,6 +1,4 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import '../coach/bib_conflict_resolution/screen/conflict_resolution_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
 import '../spectator/races_screen/screen/spectator_races_screen.dart';
 import '../assistant/race_timer/screen/timing_screen.dart';
@@ -416,29 +414,6 @@ class _AssistantScreenState extends State<_AssistantScreen>
                   Expanded(child: _buildRoleList()),
                 ],
               ),
-              // Prototype entry point: debug builds only.
-              if (kDebugMode) ...[
-                SizedBox(height: 40),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.of(context).push(
-                      InitialPageRouteAnimation(
-                        child: const ConflictResolutionScreen(),
-                      ),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Colors.white54),
-                      padding: const EdgeInsets.all(14),
-                      minimumSize: const Size(300, 50),
-                    ),
-                    child: const Text(
-                      '[DEV] Conflict Resolution Prototype',
-                      style: TextStyle(color: Colors.white70, fontSize: 13),
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -639,34 +614,6 @@ class _RoleScreenState extends State<RoleScreen>
                   Expanded(child: _buildRoleList()),
                 ],
               ),
-              // Prototype entry point: debug builds only.
-              if (kDebugMode)
-                Positioned(
-                  bottom: AppSpacing.sm,
-                  left: AppSpacing.lg,
-                  right: AppSpacing.lg,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      OutlinedButton(
-                        onPressed: () => Navigator.of(context).push(
-                          InitialPageRouteAnimation(
-                            child: const ConflictResolutionScreen(),
-                          ),
-                        ),
-                        style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Colors.white54),
-                          padding: const EdgeInsets.all(14),
-                          minimumSize: const Size(300, 50),
-                        ),
-                        child: const Text(
-                          '[DEV] Conflict Resolution Prototype',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
             ],
           ),
         ),

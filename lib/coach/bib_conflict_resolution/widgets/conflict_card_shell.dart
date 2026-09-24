@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/conflict_resolution_controller.dart';
-import '../mock/conflict_mock_data.dart';
+import '../model/bib_conflict.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import './duplicate_conflict_card.dart';
@@ -52,6 +53,7 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
                     ),
                     child: Column(
                       children: [
+                        const _ErrorBanner(),
                         AnimatedSwitcher(
                           duration: AppAnimations.standard,
                           switchInCurve: AppAnimations.enter,
@@ -87,8 +89,8 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
     final conflict =
         context.read<ConflictResolutionController>().currentConflict;
     return switch (conflict) {
-      MockDuplicateConflict() => DuplicateStep1Card(conflict: conflict),
-      MockUnknownConflict() => UnknownBibCard(conflict: conflict),
+      DuplicateBibConflict() => DuplicateStep1Card(conflict: conflict),
+      UnknownBibConflict() => UnknownBibCard(conflict: conflict),
     };
   }
 }
@@ -135,15 +137,16 @@ class _NavBar extends StatelessWidget {
             child: Column(
               children: [
                 Text(
-                  'Merge Conflicts',
+                  'Bib Conflicts',
                   style: AppTypography.smallBodySemibold,
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  'Varsity Boys · Meet #4',
+                  controller.raceName,
                   style: AppTypography.smallCaption.copyWith(
                     color: AppColors.mediumColor,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -253,6 +256,58 @@ class _UndoToastWrapper extends StatelessWidget {
       label: controller.pendingLabel,
       onUndo: controller.undoPending,
       onDone: controller.commitPending,
+    );
+  }
+}
+
+/// Says why the last action failed — saving a new runner, typically — and
+/// lets the coach dismiss it and try again.
+class _ErrorBanner extends StatelessWidget {
+  const _ErrorBanner();
+
+  @override
+  Widget build(BuildContext context) {
+    final message = context.select<ConflictResolutionController, String?>(
+      (c) => c.error?.userMessage,
+    );
+    return AnimatedSize(
+      duration: AppAnimations.fast,
+      child: message == null
+          ? const SizedBox(width: double.infinity)
+          : Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Container(
+                padding: const EdgeInsets.only(left: AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: AppColors.redColor.withValues(alpha: AppOpacity.faint),
+                  border: Border.all(
+                    color: AppColors.redColor
+                        .withValues(alpha: AppOpacity.strong),
+                  ),
+                  borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        message,
+                        style: AppTypography.caption
+                            .copyWith(color: AppColors.redColor),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, size: 16),
+                      color: AppColors.redColor,
+                      visualDensity: VisualDensity.compact,
+                      tooltip: 'Dismiss',
+                      onPressed: context
+                          .read<ConflictResolutionController>()
+                          .dismissError,
+                    ),
+                  ],
+                ),
+              ),
+            ),
     );
   }
 }

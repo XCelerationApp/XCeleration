@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/components/runner_form_validator.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
@@ -8,8 +9,8 @@ import '../../../core/theme/typography.dart';
 
 /// Simplified create-runner form for the prototype.
 /// Collects name, bib, team, and grade; validates uniqueness against known bibs.
-class MockCreateRunnerSheet extends StatefulWidget {
-  const MockCreateRunnerSheet({
+class CreateRunnerSheet extends StatefulWidget {
+  const CreateRunnerSheet({
     super.key,
     required this.allKnownBibs,
     required this.teams,
@@ -19,25 +20,25 @@ class MockCreateRunnerSheet extends StatefulWidget {
   });
 
   /// All bib numbers already in use — new bib must not be in this set.
-  final Set<int> allKnownBibs;
+  final Set<String> allKnownBibs;
 
   /// Team names available for selection.
   final List<String> teams;
 
   /// Called with confirmed data when the form is submitted.
-  final void Function(String name, int bibNumber, String team, int grade) onCreated;
+  final void Function(String name, String bibNumber, String team, int grade) onCreated;
 
   /// Bib that cannot be reused (set for duplicate step2).
-  final int? forbiddenBib;
+  final String? forbiddenBib;
 
   /// When set, locks the bib field to this value and skips bib validation.
-  final int? autoBib;
+  final String? autoBib;
 
   @override
-  State<MockCreateRunnerSheet> createState() => _MockCreateRunnerSheetState();
+  State<CreateRunnerSheet> createState() => _CreateRunnerSheetState();
 }
 
-class _MockCreateRunnerSheetState extends State<MockCreateRunnerSheet> {
+class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
   final _nameController = TextEditingController();
   final _bibController = TextEditingController();
 
@@ -63,22 +64,19 @@ class _MockCreateRunnerSheetState extends State<MockCreateRunnerSheet> {
 
   void _validateBib(String value) {
     final trimmed = value.trim();
-    final parsed = int.tryParse(trimmed);
-    if (trimmed.isEmpty) {
-      setState(() => _bibError = 'Bib number is required');
+    // The same format rule as everywhere else a bib is typed.
+    final formatError = RunnerFormValidator.validateBibFormat(trimmed);
+    if (formatError != null) {
+      setState(() => _bibError = formatError);
       return;
     }
-    if (parsed == null || parsed <= 0) {
-      setState(() => _bibError = 'Enter a valid bib number');
-      return;
-    }
-    if (widget.forbiddenBib != null && parsed == widget.forbiddenBib) {
+    if (widget.forbiddenBib != null && trimmed == widget.forbiddenBib) {
       setState(() =>
           _bibError = 'Bib #${widget.forbiddenBib} is the duplicate — choose a new number');
       return;
     }
-    if (widget.allKnownBibs.contains(parsed)) {
-      setState(() => _bibError = 'Bib #$parsed is already in use');
+    if (widget.allKnownBibs.contains(trimmed)) {
+      setState(() => _bibError = 'Bib #$trimmed is already in use');
       return;
     }
     setState(() => _bibError = null);
@@ -98,7 +96,7 @@ class _MockCreateRunnerSheetState extends State<MockCreateRunnerSheet> {
     if (!_canSubmit) return;
     widget.onCreated(
       _nameController.text.trim(),
-      widget.autoBib ?? int.parse(_bibController.text.trim()),
+      widget.autoBib ?? _bibController.text.trim(),
       _selectedTeam!,
       _selectedGrade!,
     );
@@ -234,7 +232,7 @@ class _FormField extends StatelessWidget {
 class _AutoBibDisplay extends StatelessWidget {
   const _AutoBibDisplay({required this.bibNumber});
 
-  final int bibNumber;
+  final String bibNumber;
 
   @override
   Widget build(BuildContext context) {

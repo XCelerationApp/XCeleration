@@ -20,8 +20,10 @@ class RunnerAssignmentList extends StatefulWidget {
     this.onAssign,
   });
 
-  final int targetBib;
-  final int? forbiddenBib;
+  /// The bib being resolved: the list starts with the nearest bib numbers,
+  /// since a mistyped bib is usually a digit or two out.
+  final String targetBib;
+  final String? forbiddenBib;
 
   /// Optional override for the assign action. When set, called instead of
   /// [ConflictResolutionController.prepareAssign] so callers can use a
@@ -294,7 +296,6 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow>
 
   @override
   Widget build(BuildContext context) {
-    final bibInt = int.parse(widget.runner.runner.bibNumber ?? '0');
     return FadeTransition(
       opacity: _opacity,
       child: GestureDetector(
@@ -324,7 +325,7 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow>
               Row(
                 children: [
                   _BibAvatar(
-                    bibNumber: bibInt,
+                    bibNumber: widget.runner.runner.bibNumber ?? '',
                     isSelected: widget.isSelected,
                   ),
                   const SizedBox(width: AppSpacing.md),
@@ -433,7 +434,7 @@ class _ExpandedDetail extends StatelessWidget {
 class _BibAvatar extends StatelessWidget {
   const _BibAvatar({required this.bibNumber, required this.isSelected});
 
-  final int bibNumber;
+  final String bibNumber;
   final bool isSelected;
 
   @override

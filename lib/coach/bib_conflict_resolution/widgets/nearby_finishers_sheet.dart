@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../mock/conflict_mock_data.dart';
+import '../model/bib_conflict.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_animations.dart';
@@ -15,10 +15,10 @@ import '../utils/ordinal.dart';
 /// conflict row fill edge-to-edge without any layout tricks.
 void showNearbySheet(
   BuildContext context, {
-  required List<MockFinishEntry> entries,
+  required List<NearbyFinisher> entries,
   required int conflictPosition,
-  required int conflictBib,
-  required String conflictTime,
+  required String conflictBib,
+  String? conflictTime,
 }) {
   FocusManager.instance.primaryFocus?.unfocus();
   showModalBottomSheet<void>(
@@ -72,32 +72,34 @@ class NearbyFinishersSheet extends StatelessWidget {
     required this.entries,
     required this.conflictPosition,
     required this.conflictBib,
-    required this.conflictTime,
+    this.conflictTime,
   });
 
-  final List<MockFinishEntry> entries;
+  final List<NearbyFinisher> entries;
   final int conflictPosition;
-  final int conflictBib;
-  final String conflictTime;
+  final String conflictBib;
+
+  /// Null when the Timer has not settled that place.
+  final String? conflictTime;
 
   static const _windowSize = 4;
 
   @override
   Widget build(BuildContext context) {
     // Take the 4 closest entries above and 4 closest below the conflict position.
-    final above = (entries.where((e) => e.position < conflictPosition).toList()
-          ..sort((a, b) => b.position.compareTo(a.position)))
+    final above = (entries.where((e) => e.place < conflictPosition).toList()
+          ..sort((a, b) => b.place.compareTo(a.place)))
         .take(_windowSize)
         .toList()
         .reversed
         .toList();
-    final below = (entries.where((e) => e.position > conflictPosition).toList()
-          ..sort((a, b) => a.position.compareTo(b.position)))
+    final below = (entries.where((e) => e.place > conflictPosition).toList()
+          ..sort((a, b) => a.place.compareTo(b.place)))
         .take(_windowSize)
         .toList();
 
     final allRows = <(int, Widget)>[
-      for (final e in [...above, ...below]) (e.position, _FinisherRow(entry: e)),
+      for (final e in [...above, ...below]) (e.place, _FinisherRow(entry: e)),
       (
         conflictPosition,
         _ConflictFinisherRow(
@@ -199,7 +201,7 @@ class _AnimatedListItemState extends State<_AnimatedListItem>
 class _FinisherRow extends StatelessWidget {
   const _FinisherRow({required this.entry});
 
-  final MockFinishEntry entry;
+  final NearbyFinisher entry;
 
   @override
   Widget build(BuildContext context) {
@@ -213,7 +215,7 @@ class _FinisherRow extends StatelessWidget {
           SizedBox(
             width: 36,
             child: Text(
-              ordinal(entry.position),
+              ordinal(entry.place),
               style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
             ),
           ),
@@ -222,7 +224,7 @@ class _FinisherRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(entry.runnerName, style: AppTypography.smallBodySemibold),
+                Text(entry.name, style: AppTypography.smallBodySemibold),
                 Text(
                   entry.team,
                   style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
@@ -234,7 +236,7 @@ class _FinisherRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                entry.formattedTime,
+                entry.time ?? '—',
                 style: AppTypography.smallBodySemibold.copyWith(
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
@@ -255,12 +257,12 @@ class _ConflictFinisherRow extends StatelessWidget {
   const _ConflictFinisherRow({
     required this.position,
     required this.bib,
-    required this.time,
+    this.time,
   });
 
   final int position;
-  final int bib;
-  final String time;
+  final String bib;
+  final String? time;
 
   @override
   Widget build(BuildContext context) {
@@ -294,7 +296,7 @@ class _ConflictFinisherRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                time,
+                time ?? '—',
                 style: AppTypography.smallBodySemibold.copyWith(
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),

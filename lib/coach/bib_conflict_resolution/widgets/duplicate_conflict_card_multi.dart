@@ -3,7 +3,7 @@ part of 'duplicate_conflict_card.dart';
 class _KnownRunnerCard extends StatelessWidget {
   const _KnownRunnerCard({required this.conflict});
 
-  final MockDuplicateConflict conflict;
+  final DuplicateBibConflict conflict;
 
   @override
   Widget build(BuildContext context) {
@@ -60,9 +60,14 @@ class _KnownRunnerCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(conflict.runnerName, style: AppTypography.smallBodySemibold),
+                  Text(conflict.runner.runner.name ?? '',
+                      style: AppTypography.smallBodySemibold),
                   Text(
-                    '${conflict.team} · Grade ${conflict.grade}',
+                    [
+                      conflict.runner.team.name,
+                      if (conflict.runner.runner.grade != null)
+                        'Grade ${conflict.runner.runner.grade}',
+                    ].whereType<String>().join(' · '),
                     style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
                   ),
                 ],
@@ -82,7 +87,7 @@ class _KnownRunnerCard extends StatelessWidget {
 class _MultiOccurrenceStep1 extends StatefulWidget {
   const _MultiOccurrenceStep1({required this.conflict});
 
-  final MockDuplicateConflict conflict;
+  final DuplicateBibConflict conflict;
 
   @override
   State<_MultiOccurrenceStep1> createState() => _MultiOccurrenceStep1State();
@@ -117,9 +122,9 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
                         child: _SelectableOccurrenceTile(
                           occurrence: o,
                           conflict: widget.conflict,
-                          isSelected: _selectedPosition == o.position,
+                          isSelected: _selectedPosition == o.place,
                           onSelect: () =>
-                              setState(() => _selectedPosition = o.position),
+                              setState(() => _selectedPosition = o.place),
                         ),
                       ))
                   .toList(),
@@ -143,8 +148,7 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
               borderRadius: BorderRadius.circular(AppBorderRadius.sm),
             ),
             child: Text(
-              'This will add $leftoverCount unknown conflict'
-              '${leftoverCount == 1 ? '' : 's'} to resolve next.',
+              "Next you'll say who finished the other $leftoverCount.",
               style: AppTypography.caption.copyWith(color: AppColors.primaryColor),
             ),
           ),
@@ -168,8 +172,8 @@ class _SelectableOccurrenceTile extends StatefulWidget {
     required this.onSelect,
   });
 
-  final ({int position, String formattedTime}) occurrence;
-  final MockDuplicateConflict conflict;
+  final ConflictOccurrence occurrence;
+  final DuplicateBibConflict conflict;
   final bool isSelected;
   final VoidCallback onSelect;
 
@@ -220,15 +224,18 @@ class _SelectableOccurrenceTileState
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    '${ordinal(widget.occurrence.position)} place',
+                    '${ordinal(widget.occurrence.place)} place',
                     style: AppTypography.smallBodyRegular.copyWith(
                       color: AppColors.mediumColor,
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    widget.occurrence.formattedTime,
-                    style: AppTypography.displaySmall,
+                    widget.occurrence.time ?? 'Time not settled',
+                    style: widget.occurrence.time != null
+                        ? AppTypography.displaySmall
+                        : AppTypography.bodyRegular
+                            .copyWith(color: AppColors.mediumColor),
                   ),
                   const SizedBox(height: AppSpacing.sm),
                   TextButton(
@@ -239,10 +246,10 @@ class _SelectableOccurrenceTileState
                     ),
                     onPressed: () => showNearbySheet(
                       context,
-                      entries: widget.conflict.surroundingFinishers,
-                      conflictPosition: widget.occurrence.position,
+                      entries: widget.occurrence.nearby,
+                      conflictPosition: widget.occurrence.place,
                       conflictBib: widget.conflict.bibNumber,
-                      conflictTime: widget.occurrence.formattedTime,
+                      conflictTime: widget.occurrence.time,
                     ),
                     child: Text(
                       'See more ↓',

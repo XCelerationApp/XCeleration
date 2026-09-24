@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../controller/conflict_resolution_controller.dart';
-import '../mock/conflict_mock_data.dart';
+import '../model/bib_conflict.dart';
+import '../utils/ordinal.dart';
+import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_border_radius.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/components/race_components.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 
@@ -14,14 +18,10 @@ class ConflictSummaryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final controller = context.read<ConflictResolutionController>();
-
-    final duplicateCount = ConflictMockData.conflicts
-        .whereType<MockDuplicateConflict>()
-        .length;
-    final unknownCount = ConflictMockData.conflicts
-        .whereType<MockUnknownConflict>()
-        .length;
+    final controller = context.watch<ConflictResolutionController>();
+    final duplicateCount = controller.duplicateCount;
+    final unknownCount = controller.unknownCount;
+    final allResolved = controller.resolvedCount == controller.totalConflicts;
 
     return SizedBox.expand(
       child: SingleChildScrollView(
@@ -40,9 +40,17 @@ class ConflictSummaryCard extends StatelessWidget {
               duplicateCount: duplicateCount,
               unknownCount: unknownCount,
             ),
+            const SizedBox(height: AppSpacing.xl),
+            // Any conflict can be done first: a bib often needs asking about,
+            // and the rest should not wait on it.
+            _ConflictList(controller: controller),
             const SizedBox(height: AppSpacing.xxl),
             FullWidthButton(
-              text: 'Start Resolving',
+              text: allResolved
+                  ? 'Review Results'
+                  : controller.resolvedCount == 0
+                      ? 'Start Resolving'
+                      : 'Continue Resolving',
               onPressed: controller.startResolving,
             ),
           ],
@@ -129,7 +137,7 @@ class _ConflictTypeCards extends StatelessWidget {
       children: [
         ConflictButton(
           title: 'Duplicate Bibs',
-          subtitle: '$duplicateCount bib${duplicateCount == 1 ? '' : 's'} recorded at two finish places. '
+          subtitle: '$duplicateCount bib${duplicateCount == 1 ? '' : 's'} recorded at more than one finish place. '
               'You\'ll pick which is correct, then fix the other.',
           icon: Icons.copy_outlined,
           color: Colors.orange,
@@ -146,6 +154,116 @@ class _ConflictTypeCards extends StatelessWidget {
           isEnabled: false,
         ),
       ],
+    );
+  }
+}
+
+/// Every conflict in finish order. Tapping one opens it; tapping one already
+/// settled opens it again to change the answer.
+class _ConflictList extends StatelessWidget {
+  const _ConflictList({required this.controller});
+
+  final ConflictResolutionController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final conflicts = controller.conflicts;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          'TAP ONE TO START THERE',
+          style: AppTypography.extraSmall.copyWith(
+            letterSpacing: 0.5,
+            color: AppColors.mediumColor,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        for (var i = 0; i < conflicts.length; i++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: _ConflictRow(
+              conflict: conflicts[i],
+              resolved: controller.isResolved(i),
+              onTap: () => controller.openConflict(i),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _ConflictRow extends StatelessWidget {
+  const _ConflictRow({
+    required this.conflict,
+    required this.resolved,
+    required this.onTap,
+  });
+
+  final BibConflict conflict;
+  final bool resolved;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final places = ConflictResolutionController.placesOf(conflict);
+    final (kind, detail) = switch (conflict) {
+      DuplicateBibConflict() => (
+          'Duplicate bib',
+          'Recorded ${places.map(ordinal).join(', ')}',
+        ),
+      UnknownBibConflict(:final occurrence) => (
+          'Unknown bib',
+          [ordinal(occurrence.place), ?occurrence.time].join(' · '),
+        ),
+    };
+
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: AppAnimations.fast,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: resolved
+              ? AppColors.statusFinished.withValues(alpha: AppOpacity.faint)
+              : Colors.white,
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          border: Border.all(
+            color: resolved
+                ? AppColors.statusFinished.withValues(alpha: AppOpacity.strong)
+                : AppColors.lightColor,
+          ),
+        ),
+        child: Row(
+          children: [
+            Text(
+              '#${conflict.bibNumber}',
+              style: AppTypography.bodySemibold.copyWith(
+                color: resolved ? AppColors.mediumColor : AppColors.primaryColor,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(kind, style: AppTypography.smallBodySemibold),
+                  Text(
+                    resolved ? 'Resolved · tap to change' : detail,
+                    style: AppTypography.caption
+                        .copyWith(color: AppColors.mediumColor),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              resolved ? Icons.check_circle : Icons.chevron_right,
+              color: resolved ? AppColors.statusFinished : AppColors.primaryColor,
+              size: 20,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

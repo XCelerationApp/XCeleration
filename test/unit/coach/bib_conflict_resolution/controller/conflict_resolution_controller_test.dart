@@ -1,517 +1,333 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/controller/conflict_resolution_controller.dart';
-import 'package:xceleration/coach/bib_conflict_resolution/mock/conflict_mock_data.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/model/bib_conflict.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/services/runner_creator.dart';
+import 'package:xceleration/core/app_error.dart';
+import 'package:xceleration/core/result.dart';
+import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
 import 'package:xceleration/shared/models/database/team.dart';
 
-// ---------------------------------------------------------------------------
-// Minimal test fixtures — independent of ConflictMockData
-// ---------------------------------------------------------------------------
+// Resolving a race's bib conflicts. What matters in the end is who finished
+// at each place, so every test checks the places, not just the screens.
 
-final _teamA = Team(name: 'Team A');
-final _teamB = Team(name: 'Team B');
+const _eagles = Team(teamId: 1, name: 'Eagles', abbreviation: 'EAG');
 
-final _runnerA = RaceRunner(
-  raceId: 1,
-  runner: Runner(bibNumber: '10', name: 'Alice', grade: 11),
-  team: _teamA,
-);
-final _runnerB = RaceRunner(
-  raceId: 1,
-  runner: Runner(bibNumber: '20', name: 'Bob', grade: 12),
-  team: _teamB,
-);
+RaceRunner _runner(int id, String bib, String name) => RaceRunner(
+      raceId: 1,
+      runner: Runner(runnerId: id, name: name, bibNumber: bib, grade: 10),
+      team: _eagles,
+    );
 
-final _duplicateConflict = MockDuplicateConflict(
-  raceRunner: RaceRunner(
-    raceId: 1,
-    runner: Runner(bibNumber: '10', name: 'Alice', grade: 11),
-    team: _teamA,
-  ),
+final _quinn = _runner(1, '959', 'Quinn');
+final _gray = _runner(2, '949', 'Gray');
+final _nico = _runner(3, '956', 'Nico');
+final _sage = _runner(4, '961', 'Sage');
+
+/// Bib 959 recorded at 16th and 21st.
+final _duplicate = DuplicateBibConflict(
+  bibNumber: '959',
+  runner: _quinn,
   occurrences: const [
-    (position: 1, formattedTime: '15:00'),
-    (position: 3, formattedTime: '15:30'),
+    ConflictOccurrence(place: 16, time: '15:50.00'),
+    ConflictOccurrence(place: 21, time: '16:03.78'),
   ],
-  surroundingFinishers: const [],
 );
 
-final _tripleConflict = MockDuplicateConflict(
-  raceRunner: RaceRunner(
-    raceId: 1,
-    runner: Runner(bibNumber: '20', name: 'Bob', grade: 12),
-    team: _teamB,
-  ),
+/// Bib 959 recorded at 5th, 16th and 21st.
+final _triplicate = DuplicateBibConflict(
+  bibNumber: '959',
+  runner: _quinn,
   occurrences: const [
-    (position: 2, formattedTime: '15:10'),
-    (position: 4, formattedTime: '15:40'),
-    (position: 6, formattedTime: '16:00'),
+    ConflictOccurrence(place: 5),
+    ConflictOccurrence(place: 16),
+    ConflictOccurrence(place: 21),
   ],
-  surroundingFinishers: const [],
 );
 
-const _unknownConflict = MockUnknownConflict(
-  enteredBib: 99,
-  position: 5,
-  formattedTime: '15:50',
-  surroundingFinishers: [],
+/// Bib 9567 at 17th, which nobody has.
+const _unknown = UnknownBibConflict(
+  bibNumber: '9567',
+  occurrence: ConflictOccurrence(place: 17, time: '15:52.10'),
 );
-
-ConflictResolutionController _makeController({
-  List<MockBibConflict>? conflicts,
-  List<RaceRunner>? runners,
-}) {
-  final controller = ConflictResolutionController(
-    conflicts: conflicts ?? [_duplicateConflict],
-    unassignedRunners: runners ?? [_runnerA, _runnerB],
-  );
-  controller.startResolving();
-  return controller;
-}
-
-// ---------------------------------------------------------------------------
 
 void main() {
-  group('ConflictResolutionController', () {
-    // --- startResolving ---
+  late List<NewRunner> saved;
+  Result<RaceRunner> Function(NewRunner)? saveResult;
 
-    group('startResolving', () {
-      test('sets step to duplicateStep1 when first conflict is duplicate', () {
-        final controller = _makeController(conflicts: [_duplicateConflict]);
-        expect(controller.isOnDuplicateStep1, isTrue);
-      });
+  setUp(() {
+    saved = [];
+    saveResult = null;
+  });
 
-      test('sets step to unknown when first conflict is unknown', () {
-        final controller = _makeController(conflicts: [_unknownConflict]);
-        expect(controller.isOnUnknown, isTrue);
-      });
+  ConflictResolutionController make({
+    List<BibConflict>? conflicts,
+    List<RaceRunner>? candidates,
+  }) =>
+      ConflictResolutionController(
+        conflicts: conflicts ?? [_duplicate, _unknown],
+        candidates: candidates ?? [_gray, _nico, _sage],
+        knownBibs: {'959', '949', '956', '961'},
+        teams: const ['Eagles', 'Owls'],
+        raceName: 'Invitational',
+        createRunner: (newRunner) async {
+          saved.add(newRunner);
+          return saveResult?.call(newRunner) ??
+              Success(RaceRunner(
+                raceId: 1,
+                runner: Runner(
+                  runnerId: 99,
+                  name: newRunner.name,
+                  bibNumber: newRunner.bibNumber,
+                  grade: newRunner.grade,
+                ),
+                team: _eagles,
+              ));
+        },
+      );
 
-      test('resets resolvedCount to 0', () {
-        final controller = _makeController();
-        expect(controller.resolvedCount, 0);
-      });
-
-      test('resets conflict index to 0', () {
-        final controller = _makeController();
-        expect(controller.currentConflictIndex, 0);
-      });
-
-      test('clears any pending state', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.startResolving();
-        expect(controller.hasPending, isFalse);
-      });
-
-      test('resets unassigned runners to initial list', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.commitPending();
-        controller.startResolving();
-        expect(controller.runnersNearBib(10).length, 2);
-      });
+  group('choosing the order', () {
+    test('starts on the summary', () {
+      final c = make();
+      expect(c.isOnSummary, isTrue);
+      expect(c.resolvedCount, 0);
+      expect(c.totalConflicts, 2);
     });
 
-    // --- teams getter ---
-
-    group('teams', () {
-      test('returns sorted unique team names from initial runners', () {
-        final controller = _makeController(runners: [_runnerA, _runnerB]);
-        expect(controller.teams, ['Team A', 'Team B']);
-      });
-
-      test('deduplicates team names', () {
-        final dup = RaceRunner(
-          raceId: 1,
-          runner: Runner(bibNumber: '30', name: 'Carol', grade: 10),
-          team: _teamA,
-        );
-        final controller = _makeController(runners: [_runnerA, dup]);
-        expect(controller.teams, ['Team A']);
-      });
+    test('starting opens the first conflict', () {
+      final c = make()..startResolving();
+      expect(c.isOnConflict, isTrue);
+      expect(c.currentConflict, same(_duplicate));
     });
 
-    // --- runnersNearBib ---
-
-    group('runnersNearBib', () {
-      test('returns runners sorted by proximity to target bib', () {
-        final controller = _makeController();
-        final runners = controller.runnersNearBib(12);
-        expect(int.parse(runners.first.runner.bibNumber ?? '0'), 10); // |10-12|=2, |20-12|=8
-      });
-
-      test('returns empty list when no unassigned runners remain', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'label');
-        controller.prepareAssign(_runnerB, 'label');
-        expect(controller.runnersNearBib(10), isEmpty);
-      });
+    test('any conflict can be opened first', () {
+      final c = make()..openConflict(1);
+      expect(c.currentConflict, same(_unknown));
     });
 
-    // --- allKnownBibs ---
+    test('finishing the last conflict goes back for one left open earlier',
+        () async {
+      final c = make()..openConflict(1);
+      c.prepareAssign(_nico, 'Bib #9567');
+      await c.commitPending();
 
-    group('allKnownBibs', () {
-      test('includes conflict bib numbers', () {
-        final controller = _makeController(conflicts: [_duplicateConflict]);
-        expect(controller.allKnownBibs, contains(10));
-      });
+      expect(c.isOnConflict, isTrue);
+      expect(c.currentConflict, same(_duplicate),
+          reason: 'the duplicate was skipped, not resolved');
+    });
+  });
 
-      test('includes unassigned runner bib numbers', () {
-        final controller = _makeController();
-        expect(controller.allKnownBibs, containsAll([10, 20]));
-      });
+  group('an unrecognised bib', () {
+    test('gives its finish to the runner picked', () async {
+      final c = make()..openConflict(1);
 
-      test('includes unknown conflict entered bib', () {
-        final controller = _makeController(conflicts: [_unknownConflict]);
-        expect(controller.allKnownBibs, contains(99));
-      });
+      c.prepareAssign(_nico, 'Bib #9567');
+      expect(c.hasPending, isTrue);
+      expect(c.resolvedByPlace, isEmpty, reason: 'nothing settles until the toast runs out');
+      await c.commitPending();
+
+      expect(c.resolvedByPlace, {17: _nico});
+      expect(c.isResolved(1), isTrue);
     });
 
-    // --- prepareAssign ---
+    test('undo puts the runner back in the list', () {
+      final c = make()..openConflict(1);
+      c.prepareAssign(_nico, 'Bib #9567');
+      expect(c.runnersNearBib('9567'), isNot(contains(_nico)));
 
-    group('prepareAssign', () {
-      test('sets hasPending to true', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        expect(controller.hasPending, isTrue);
-      });
+      c.undoPending();
 
-      test('sets pendingLabel', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        expect(controller.pendingLabel, 'Bib #10');
-      });
+      expect(c.resolvedByPlace, isEmpty);
+      expect(c.runnersNearBib('9567'), contains(_nico));
+    });
+  });
 
-      test('removes the runner from the unassigned list immediately', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        expect(
-          controller.runnersNearBib(10).any(
-            (r) => int.parse(r.runner.bibNumber ?? '0') == 10,
-          ),
-          isFalse,
-        );
-      });
+  group('a repeated bib', () {
+    test('keeps the runner at the finish the coach chose', () {
+      final c = make()..startResolving();
+
+      c.chooseDuplicateOccurrence(16);
+
+      expect(c.resolvedByPlace[16], _quinn);
+      expect(c.currentLeftover?.place, 21);
+      expect(c.isResolved(0), isFalse, reason: '21st still has nobody');
     });
 
-    // --- prepareCreate ---
+    test('the other finish is whoever the coach assigns', () async {
+      final c = make()..startResolving();
+      c.chooseDuplicateOccurrence(16);
 
-    group('prepareCreate', () {
-      test('sets hasPending to true', () {
-        final controller = _makeController();
-        controller.prepareCreate('New Guy', 99, 'Team A', 11, 'Bib #99');
-        expect(controller.hasPending, isTrue);
-      });
+      c.prepareAssignForDuplicate(_gray, '21st place (Bib #959)');
+      await c.commitPending();
 
-      test('does not modify unassigned runners list', () {
-        final controller = _makeController();
-        final before = controller.runnersNearBib(10).length;
-        controller.prepareCreate('New Guy', 99, 'Team A', 11, 'Bib #99');
-        expect(controller.runnersNearBib(10).length, before);
-      });
+      expect(c.resolvedByPlace, {16: _quinn, 21: _gray});
+      expect(c.isResolved(0), isTrue);
+      expect(c.currentConflict, same(_unknown), reason: 'on to the next open one');
     });
 
-    // --- commitPending ---
+    test('the choice can go either way', () async {
+      final c = make()..startResolving();
+      c.chooseDuplicateOccurrence(21);
+      c.prepareAssignForDuplicate(_gray, '16th place (Bib #959)');
+      await c.commitPending();
 
-    group('commitPending', () {
-      test('clears hasPending', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.commitPending();
-        expect(controller.hasPending, isFalse);
-      });
-
-      test('advances to next conflict after commit', () {
-        final controller = _makeController(
-          conflicts: [_duplicateConflict, _unknownConflict],
-        );
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.commitPending();
-        expect(controller.currentConflictIndex, 1);
-      });
-
-      test('appends assign entry to resolutionLog', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.commitPending();
-        expect(controller.resolutionLog.length, 1);
-        expect(controller.resolutionLog.first.wasCreate, isFalse);
-        expect(controller.resolutionLog.first.runnerName, 'Alice');
-      });
-
-      test('appends create entry to resolutionLog', () {
-        final controller = _makeController();
-        controller.prepareCreate('New Guy', 99, 'Team A', 11, 'Bib #99');
-        controller.commitPending();
-        expect(controller.resolutionLog.first.wasCreate, isTrue);
-        expect(controller.resolutionLog.first.runnerName, 'New Guy');
-      });
-
-      test('resolvedRunners contains a RaceRunner for each committed resolution', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.commitPending();
-        expect(controller.resolvedRunners.length, 1);
-        expect(controller.resolvedRunners.first.runner.name, 'Alice');
-      });
-
-      test('resolvedRunners includes RaceRunner for created runner', () {
-        final controller = _makeController();
-        controller.prepareCreate('New Guy', 99, 'Team A', 11, 'Bib #99');
-        controller.commitPending();
-        expect(controller.resolvedRunners.length, 1);
-        expect(controller.resolvedRunners.first.runner.bibNumber, '99');
-        expect(controller.resolvedRunners.first.runner.name, 'New Guy');
-      });
-
-      test('transitions to completion after last conflict', () {
-        final controller = _makeController(conflicts: [_duplicateConflict]);
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.commitPending();
-        expect(controller.isOnCompletion, isTrue);
-      });
-
-      test('does nothing when no pending resolution', () {
-        final controller = _makeController();
-        controller.commitPending(); // no-op
-        expect(controller.resolvedCount, 0);
-      });
-
-      test('increments runnersAssigned on assign commit', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.commitPending();
-        expect(controller.runnersAssigned, 1);
-      });
-
-      test('increments newRunnersCreated on create commit', () {
-        final controller = _makeController();
-        controller.prepareCreate('New Guy', 99, 'Team A', 11, 'Bib #99');
-        controller.commitPending();
-        expect(controller.newRunnersCreated, 1);
-      });
+      expect(c.resolvedByPlace, {21: _quinn, 16: _gray});
     });
 
-    // --- undoPending ---
+    test('three finishes are worked through one at a time', () async {
+      final c = make(conflicts: [_triplicate])..startResolving();
+      c.chooseDuplicateOccurrence(16);
+      expect(c.leftoversRemaining, 2);
+      expect(c.currentLeftover?.place, 5);
 
-    group('undoPending', () {
-      test('clears hasPending', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.undoPending();
-        expect(controller.hasPending, isFalse);
-      });
+      c.prepareAssignForDuplicate(_gray, '5th');
+      await c.commitPending();
+      expect(c.isOnConflict, isTrue, reason: 'still one finish to go');
+      expect(c.currentLeftover?.place, 21);
 
-      test('restores runner to unassigned list after assign undo', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.undoPending();
-        expect(
-          controller.runnersNearBib(10).any(
-            (r) => int.parse(r.runner.bibNumber ?? '0') == 10,
-          ),
-          isTrue,
-        );
-      });
+      c.prepareAssignForDuplicate(_nico, '21st');
+      await c.commitPending();
 
-      test('does not change conflict index', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.undoPending();
-        expect(controller.currentConflictIndex, 0);
-      });
-
-      test('does nothing when no pending resolution', () {
-        final controller = _makeController();
-        controller.undoPending(); // no-op
-        expect(controller.hasPending, isFalse);
-      });
+      expect(c.resolvedByPlace, {5: _gray, 16: _quinn, 21: _nico});
+      expect(c.isOnCompletion, isTrue);
     });
 
-    // --- goBack ---
+    test('back after choosing asks again rather than leaving', () {
+      final c = make()..startResolving();
+      c.chooseDuplicateOccurrence(16);
 
-    group('goBack', () {
-      test('undoes pending resolution when pending is set', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-        controller.goBack();
-        expect(controller.hasPending, isFalse);
-      });
+      c.goBack();
 
-      test('returns to the summary from the first conflict', () {
-        // Otherwise the first conflict is a dead end: back does nothing and
-        // the screen cannot be left.
-        final controller = _makeController();
-        expect(controller.isOnSummary, isFalse);
-
-        controller.goBack();
-
-        expect(controller.isOnSummary, isTrue);
-      });
-
-      test('undoes a pending resolution before leaving the first conflict',
-          () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'Bib #10');
-
-        controller.goBack();
-        expect(controller.hasPending, isFalse);
-        expect(controller.isOnSummary, isFalse,
-            reason: 'the first back press takes back the pending choice');
-
-        controller.goBack();
-        expect(controller.isOnSummary, isTrue);
-      });
-
-      test('steps back one conflict and removes log entry', () {
-        final controller = _makeController(
-          conflicts: [_duplicateConflict, _unknownConflict],
-        );
-        controller.prepareAssign(_runnerA, 'label');
-        controller.commitPending();
-        expect(controller.currentConflictIndex, 1);
-
-        controller.goBack();
-        expect(controller.currentConflictIndex, 0);
-        expect(controller.resolutionLog, isEmpty);
-      });
-
-      test('returns from completion to last conflict', () {
-        final controller = _makeController(conflicts: [_duplicateConflict]);
-        controller.prepareAssign(_runnerA, 'label');
-        controller.commitPending();
-        expect(controller.isOnCompletion, isTrue);
-
-        controller.goBack();
-        expect(controller.isOnCompletion, isFalse);
-        expect(controller.isOnDuplicateStep1, isTrue);
-      });
-
-      test('does nothing when at first conflict with no pending', () {
-        final controller = _makeController();
-        controller.goBack();
-        expect(controller.currentConflictIndex, 0);
-      });
+      expect(c.isOnConflict, isTrue);
+      expect(c.chosenPlace, isNull);
+      expect(c.resolvedByPlace, isEmpty,
+          reason: 'the kept finish goes with the choice');
     });
 
-    // --- chooseDuplicateOccurrence ---
+    test('ignores a place the bib was not recorded at', () {
+      final c = make()..startResolving();
+      c.chooseDuplicateOccurrence(3);
+      expect(c.chosenPlace, isNull);
+    });
+  });
 
-    group('chooseDuplicateOccurrence', () {
-      test('injects leftover occurrences as unknown conflicts', () {
-        final controller = _makeController(
-          conflicts: [_duplicateConflict, _unknownConflict],
-        );
-        // _duplicateConflict has positions 1 and 3 — confirm position 1
-        controller.chooseDuplicateOccurrence(1);
-        // leftover (position 3) should be injected at index 1
-        expect(controller.totalConflicts, 3); // original 2 + 1 injected
-      });
+  group('adding a runner', () {
+    test('saves them only once the toast runs out', () async {
+      final c = make()..openConflict(1);
 
-      test('increments duplicatesResolved', () {
-        final controller = _makeController(conflicts: [_duplicateConflict]);
-        controller.chooseDuplicateOccurrence(1);
-        expect(controller.duplicatesResolved, 1);
-      });
+      c.prepareCreate('Avery Stone', '9567', 'Eagles', 11, 'Bib #9567');
+      expect(saved, isEmpty,
+          reason: 'an undone creation must not leave a runner in the race');
+      await c.commitPending();
 
-      test('advances to the injected unknown conflict', () {
-        final controller = _makeController(conflicts: [_duplicateConflict]);
-        controller.chooseDuplicateOccurrence(1);
-        expect(controller.isOnUnknown, isTrue);
-      });
-
-      test('injects N-1 unknowns for N-occurrence duplicate', () {
-        final controller = _makeController(
-          conflicts: [_tripleConflict],
-        );
-        // _tripleConflict has 3 occurrences — confirm one, expect 2 injected
-        controller.chooseDuplicateOccurrence(2);
-        expect(controller.totalConflicts, 3); // original 1 + 2 injected
-      });
+      expect(saved.single.name, 'Avery Stone');
+      expect(c.resolvedByPlace[17]!.runner.runnerId, 99);
+      expect(c.resolutionLog.single.kind, ResolutionKind.created);
     });
 
-    // --- prepareAssignForDuplicate / prepareCreateForDuplicate ---
+    test('undo never saves them', () {
+      final c = make()..openConflict(1);
+      c.prepareCreate('Avery Stone', '9567', 'Eagles', 11, 'Bib #9567');
 
-    group('prepareAssignForDuplicate', () {
-      test('increments both duplicatesResolved and runnersAssigned on commit', () {
-        final controller = _makeController();
-        controller.prepareAssignForDuplicate(_runnerA, 'label');
-        controller.commitPending();
-        expect(controller.duplicatesResolved, 1);
-        expect(controller.runnersAssigned, 1);
-      });
+      c.undoPending();
+
+      expect(saved, isEmpty);
     });
 
-    group('prepareCreateForDuplicate', () {
-      test('increments both duplicatesResolved and newRunnersCreated on commit', () {
-        final controller = _makeController();
-        controller.prepareCreateForDuplicate('New', 99, 'Team A', 11, 'label');
-        controller.commitPending();
-        expect(controller.duplicatesResolved, 1);
-        expect(controller.newRunnersCreated, 1);
-      });
+    test('a failed save leaves the finish open and says why', () async {
+      saveResult = (_) => const Failure(AppError(userMessage: 'Could not save.'));
+      final c = make()..openConflict(1);
+      c.prepareCreate('Avery Stone', '9567', 'Eagles', 11, 'Bib #9567');
+
+      await c.commitPending();
+
+      expect(c.resolvedByPlace, isEmpty);
+      expect(c.error?.userMessage, 'Could not save.');
+      expect(c.hasPending, isFalse, reason: 'so the coach can try again');
     });
 
-    // --- resolvedCount ---
-
-    group('resolvedCount', () {
-      test('returns 0 at start', () {
-        final controller = _makeController(conflicts: [_duplicateConflict]);
-        expect(controller.resolvedCount, 0);
-      });
-
-      test('returns index+1 while a resolution is pending', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'label');
-        expect(controller.resolvedCount, 1);
-      });
-
-      test('returns total on completion', () {
-        final controller = _makeController(conflicts: [_duplicateConflict]);
-        controller.prepareAssign(_runnerA, 'label');
-        controller.commitPending();
-        expect(controller.resolvedCount, 1);
-        expect(controller.totalConflicts, 1);
-      });
+    test('their bib counts as taken from then on', () async {
+      final c = make()..openConflict(1);
+      c.prepareCreate('Avery Stone', '977', 'Eagles', 11, 'Bib #9567');
+      expect(c.allKnownBibs, contains('977'));
+      await c.commitPending();
+      expect(c.allKnownBibs, contains('977'));
     });
 
-    // --- canGoBack ---
+    test('a leftover finish can go to someone new', () async {
+      final c = make()..startResolving();
+      c.chooseDuplicateOccurrence(16);
 
-    group('canGoBack', () {
-      test('false on the summary, which is where the flow starts', () {
-        final controller = ConflictResolutionController(
-          conflicts: [_duplicateConflict],
-          unassignedRunners: [_runnerA, _runnerB],
-        );
-        expect(controller.isOnSummary, isTrue);
-        expect(controller.canGoBack, isFalse);
-      });
+      c.prepareCreateForDuplicate('Avery Stone', '977', 'Eagles', 11, '21st');
+      await c.commitPending();
 
-      test('true on the first conflict, which goes back to the summary', () {
-        final controller = _makeController();
-        expect(controller.canGoBack, isTrue);
-      });
+      expect(c.resolvedByPlace[21]!.runner.name, 'Avery Stone');
+      expect(c.resolvedByPlace[16], _quinn);
+    });
+  });
 
-      test('true when a resolution is pending', () {
-        final controller = _makeController();
-        controller.prepareAssign(_runnerA, 'label');
-        expect(controller.canGoBack, isTrue);
-      });
+  group('the runner list', () {
+    test('puts the nearest bib numbers first', () {
+      final c = make()..openConflict(1);
+      // 957 is nearest to 956 (Nico), then 961, then 949.
+      expect(c.runnersNearBib('957').map((r) => r.runner.bibNumber),
+          ['956', '961', '949']);
+    });
 
-      test('true when past the first conflict', () {
-        final controller = _makeController(
-          conflicts: [_duplicateConflict, _unknownConflict],
-        );
-        controller.prepareAssign(_runnerA, 'label');
-        controller.commitPending();
-        expect(controller.canGoBack, isTrue);
-      });
+    test('leaves out runners already given a finish', () async {
+      final c = make()..startResolving();
+      c.chooseDuplicateOccurrence(16);
+      c.prepareAssignForDuplicate(_gray, '21st');
+      await c.commitPending();
 
-      test('true when on completion screen', () {
-        final controller = _makeController(conflicts: [_duplicateConflict]);
-        controller.prepareAssign(_runnerA, 'label');
-        controller.commitPending();
-        expect(controller.isOnCompletion, isTrue);
-        expect(controller.canGoBack, isTrue);
-      });
+      expect(c.runnersNearBib('9567'), isNot(contains(_gray)));
+    });
+  });
+
+  group('the review', () {
+    Future<ConflictResolutionController> finished() async {
+      final c = make()..startResolving();
+      c.chooseDuplicateOccurrence(16);
+      c.prepareAssignForDuplicate(_gray, '21st');
+      await c.commitPending();
+      c.prepareAssign(_nico, 'Bib #9567');
+      await c.commitPending();
+      return c;
+    }
+
+    test('comes once every conflict is settled', () async {
+      final c = await finished();
+      expect(c.isOnCompletion, isTrue);
+      expect(c.resolvedCount, 2);
+    });
+
+    test('lists every finish in finish order, the kept one included',
+        () async {
+      final c = await finished();
+      expect(c.resolutionLog.map((e) => e.place), [16, 17, 21]);
+      expect(c.resolutionLog.map((e) => e.kind), [
+        ResolutionKind.kept,
+        ResolutionKind.assigned,
+        ResolutionKind.assigned,
+      ]);
+    });
+
+    test('back goes to the summary with everything still settled', () async {
+      final c = await finished();
+      c.goBack();
+      expect(c.isOnSummary, isTrue);
+      expect(c.resolvedByPlace, hasLength(3));
+    });
+
+    test('reopening a conflict clears it to be done again', () async {
+      final c = await finished();
+      c.goBack();
+
+      c.openConflict(0);
+
+      expect(c.resolvedByPlace.keys, [17], reason: 'only the other conflict stays');
+      expect(c.runnersNearBib('9567'), contains(_gray),
+          reason: 'Gray is free again');
     });
   });
 }
