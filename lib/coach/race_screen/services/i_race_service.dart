@@ -16,6 +16,9 @@ abstract interface class IRaceService {
 
   Future<bool> checkMinimumRunnersLoaded(IMasterRaceResolver masterRace);
 
+  /// Why the race cannot be sent to the volunteers yet, or null if it can.
+  Future<String?> whyRunnersNotReady(IMasterRaceResolver masterRace);
+
   Future<bool> checkSetupComplete({
     required Race race,
     required List<Team> teams,

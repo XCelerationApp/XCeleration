@@ -80,7 +80,8 @@ void main() {
       return ReviewRunnersStep(
         masterRace: masterRace,
         onNext: () async {},
-        checkMinimumRunners: checkMinimumRunners,
+        whyNotReady: (race) async =>
+            await checkMinimumRunners(race) ? null : 'Hawks has no runners.',
       );
     }
 
@@ -98,6 +99,14 @@ void main() {
         await step.seedInitialProceed();
 
         expect(step.canProceed(), isFalse);
+        step.dispose();
+      });
+
+      test('says why Next is greyed out', () async {
+        final step = buildStep(checkMinimumRunners: (_) async => false);
+        await step.seedInitialProceed();
+
+        expect(step.blockedReason(), 'Hawks has no runners.');
         step.dispose();
       });
     });
