@@ -1,3 +1,7 @@
+import '../../../core/theme/app_border_radius.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/components/button_components.dart';
+import '../services/demo_race_generator.dart';
 import '../../../core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/result.dart';
@@ -52,6 +56,19 @@ class RaceHeaderWidget extends StatelessWidget {
             if (currentRace == null) {
               return _buildNoRaceBanner(context);
             }
+            // The practice race opens by default, and nothing said it was
+            // not the real one.
+            if (onLoadRace != null &&
+                DemoRaceGenerator.isDemoRace(currentRace!)) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildRaceHeader(context),
+                  const SizedBox(height: AppSpacing.sm),
+                  _PracticeRaceBanner(onGetRace: onLoadRace!),
+                ],
+              );
+            }
             return _buildRaceHeader(context);
           },
         ));
@@ -78,7 +95,7 @@ class RaceHeaderWidget extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'No Race Loaded',
+              'No race yet',
               style: AppTypography.bodySmall.copyWith(
                 color: AppColors.mediumColor,
               ),
@@ -97,7 +114,7 @@ class RaceHeaderWidget extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               ),
               child: Text(
-                'Load',
+                'Get Race from Coach',
                 style: AppTypography.smallBodySemibold.copyWith(
                   color: Colors.white,
                 ),
@@ -194,7 +211,7 @@ class RaceHeaderWidget extends StatelessWidget {
                     );
                   }
 
-                  // Always show "Load New Race"
+                  // Always offer to get a race from the coach
                   if (onLoadRace != null) {
                     items.add(
                       const PopupMenuItem<String>(
@@ -203,7 +220,9 @@ class RaceHeaderWidget extends StatelessWidget {
                           children: [
                             Icon(Icons.add, size: 18),
                             SizedBox(width: 8),
-                            Text('Load New Race'),
+                            // Wraps rather than overflowing the menu at
+                            // larger text sizes.
+                            Flexible(child: Text('Get Race from Coach')),
                           ],
                         ),
                       ),
@@ -329,6 +348,46 @@ class RaceHeaderWidget extends StatelessWidget {
       Success(:final value) => value,
       Failure() => [],
     };
+  }
+}
+
+/// Says the open race is only for practice, and how to get the real one.
+class _PracticeRaceBanner extends StatelessWidget {
+  const _PracticeRaceBanner({required this.onGetRace});
+
+  final VoidCallback onGetRace;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        border: Border.all(
+          color: AppColors.primaryColor.withValues(alpha: AppOpacity.strong),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'This is a practice race. Before the race starts, get the real '
+            'one from your coach.',
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.darkColor,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          PrimaryButton(
+            text: 'Get Race from Coach',
+            icon: Icons.download,
+            size: ButtonSize.fullWidth,
+            onPressed: onGetRace,
+          ),
+        ],
+      ),
+    );
   }
 }
 

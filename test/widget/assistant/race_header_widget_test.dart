@@ -56,6 +56,45 @@ void main() {
     await openMenu(tester, canClear: false);
 
     expect(find.text('Clear Times'), findsNothing);
-    expect(find.text('Load New Race'), findsOneWidget);
+    expect(find.text('Get Race from Coach'), findsOneWidget);
+  });
+
+  group('the practice race', () {
+    final practice = RaceRecord(
+        raceId: -1, date: DateTime(2026, 9, 26), name: 'Demo Race', type: 'x');
+
+    Future<void> show(WidgetTester tester, RaceRecord shown,
+        {required VoidCallback onLoad}) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: RaceHeaderWidget(
+            currentRace: shown,
+            role: DeviceName.raceTimer,
+            onLoadRace: onLoad,
+          ),
+        ),
+      ));
+      await tester.runAsync(() => Future<void>.delayed(
+          const Duration(milliseconds: 200)));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('says it is practice and offers the real race',
+        (tester) async {
+      var asked = false;
+      await show(tester, practice, onLoad: () => asked = true);
+
+      expect(find.textContaining('This is a practice race'), findsOneWidget);
+      await tester.tap(find.text('Get Race from Coach'));
+
+      expect(asked, isTrue);
+    });
+
+    testWidgets('says nothing of the sort for the coach\'s race',
+        (tester) async {
+      await show(tester, race, onLoad: () {});
+
+      expect(find.textContaining('practice'), findsNothing);
+    });
   });
 }
