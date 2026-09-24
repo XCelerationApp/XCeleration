@@ -86,7 +86,11 @@ class _EditResultsBody extends StatelessWidget {
         backgroundColor: AppColors.backgroundColor,
         appBar: AppBar(
           backgroundColor: AppColors.backgroundColor,
-          title: const Text('Edit Results'),
+          // The app's AppBar theme is white-on-orange; this one is light.
+          foregroundColor: AppColors.darkColor,
+          title: Text('Edit Results',
+              style: AppTypography.titleSemibold
+                  .copyWith(color: AppColors.darkColor)),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => _leave(context),

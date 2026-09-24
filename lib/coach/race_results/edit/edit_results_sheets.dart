@@ -44,12 +44,20 @@ class _RunnerPickerState extends State<RunnerPicker> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        // Styled like the runners screen's search box.
         TextField(
           decoration: InputDecoration(
             hintText: 'Search by name or bib',
-            prefixIcon: const Icon(Icons.search),
+            prefixIcon: const Icon(Icons.search, color: AppColors.mediumColor),
+            filled: true,
+            fillColor: AppColors.surfaceColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
+              borderSide: const BorderSide(color: AppColors.borderColor),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+              borderSide: const BorderSide(color: AppColors.borderColor),
             ),
           ),
           onChanged: (value) => setState(() => _query = value),
