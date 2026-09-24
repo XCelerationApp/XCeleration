@@ -111,10 +111,12 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       if (widget.mode == OtpMode.signup) {
         await widget._authService.verifyEmailOtp(widget.email, code);
         if (!mounted) return;
+        // Not swallowed with the sync below: without their database open the
+        // races screen has nothing to show, so a failure here is reported.
+        await ServiceLocator.get<IDatabaseConnectionProvider>()
+            .openForUser(widget._authService.currentUserId!);
+        if (!mounted) return;
         try {
-          final userId = widget._authService.currentUserId!;
-          await ServiceLocator.get<IDatabaseConnectionProvider>()
-              .openForUser(userId);
           await widget._profileService?.ensureProfileUpsert();
           await syncService.syncAll();
         } catch (_) {}

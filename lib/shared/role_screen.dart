@@ -17,6 +17,8 @@ import '../core/theme/app_border_radius.dart';
 import '../core/theme/app_opacity.dart';
 import '../core/theme/app_animations.dart';
 import '../core/theme/typography.dart';
+import '../core/utils/logger.dart';
+import '../core/components/dialog_utils.dart';
 import '../core/components/page_route_animations.dart';
 import '../core/services/auth_service.dart';
 import '../core/services/i_remote_api_client.dart';
@@ -575,8 +577,17 @@ class _RoleScreenState extends State<RoleScreen>
     }
     // Already signed in from a previous run, so this is where their database
     // gets opened.
-    await ServiceLocator.get<IDatabaseConnectionProvider>()
-        .openForUser(auth.currentUserId!);
+    try {
+      await ServiceLocator.get<IDatabaseConnectionProvider>()
+          .openForUser(auth.currentUserId!);
+    } catch (e) {
+      Logger.e('Could not open the coach database: $e');
+      if (!mounted) return;
+      DialogUtils.showErrorDialog(context,
+          message: 'Could not open your races. Please restart the app and '
+              'try again.');
+      return;
+    }
     if (!mounted) return;
     Navigator.of(context).push(
       InitialPageRouteAnimation(child: const RacesScreen()),
