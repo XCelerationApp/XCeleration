@@ -56,7 +56,6 @@ class RaceControlsWidget extends StatelessWidget {
         if (controller.countNonEmptyBibNumbers() > 0) ...[
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            flex: 2,
             child: RaceDayButton(
               label: 'Share Bibs',
               icon: Icons.ios_share,

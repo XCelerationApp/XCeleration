@@ -157,7 +157,14 @@ class RaceDayButton extends StatelessWidget {
           Icon(icon, size: 22),
           const SizedBox(width: AppSpacing.sm),
         ],
-        Flexible(child: Text(label, textAlign: TextAlign.center)),
+        // Shrinks rather than wrapping mid-word ("Resum-e") on a narrow
+        // phone or at a large text size.
+        Flexible(
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(label, maxLines: 1, textAlign: TextAlign.center),
+          ),
+        ),
       ],
     );
     return filled

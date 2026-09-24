@@ -80,7 +80,6 @@ class RaceControlsWidget extends StatelessWidget {
         if (controller.hasTimingData) ...[
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            flex: 2,
             child: RaceDayButton(
               label: 'Share Times',
               icon: Icons.ios_share,

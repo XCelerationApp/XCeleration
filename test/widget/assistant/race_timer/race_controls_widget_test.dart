@@ -151,4 +151,21 @@ void main() {
 
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('keeps Resume on one line on a small phone', (tester) async {
+    // It wrapped as "Resum-e" beside a wider Share Times.
+    tester.view.physicalSize = const Size(320, 568);
+    tester.view.devicePixelRatio = 1.0;
+    addTearDown(tester.view.reset);
+    timing.startRace();
+    timing.logTime();
+    timing.stopRace();
+
+    await pump(tester);
+
+    final resume = tester.getSize(find.text('Resume'));
+    final line = tester.getSize(find.text('Share Times'));
+    expect(resume.height, line.height);
+    expect(tester.takeException(), isNull);
+  });
 }
