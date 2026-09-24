@@ -175,7 +175,7 @@ create table if not exists public.race_results (
   finish_time integer,              -- milliseconds
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now(),
-  deleted_at  timestamptz,
+  deleted_at  timestamptz
   -- One LIVE result per runner per race; see the partial unique index below.
 );
 
