@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:uuid/uuid.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/utils/sync_timestamp.dart';
 import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_remote_api_client.dart';
@@ -350,14 +351,27 @@ class SyncService implements ISyncService {
     // Name each bridge row's parents by uuid, so it can be pushed.
     for (final bridge in _bridgeTables) {
       for (final parent in bridge.allParents) {
-        await db.rawUpdate('''
-          UPDATE ${bridge.table}
-          SET ${parent.uuidColumn} = (
+        final parentUuid = '''(
             SELECT uuid FROM ${parent.parentTable}
             WHERE ${parent.parentTable}.${parent.parentIdColumn} = ${bridge.table}.${parent.idColumn}
-          )
+          )''';
+        await db.rawUpdate('''
+          UPDATE ${bridge.table}
+          SET ${parent.uuidColumn} = $parentUuid
           WHERE ${parent.uuidColumn} IS NULL
         ''');
+        // A row can be pointed at a different parent after its uuid was
+        // filled in, like a runner moved to another team in a race. The uuid
+        // is what goes to the server, so it has to follow, and the row has to
+        // be sent again if it already went up naming the old parent.
+        await db.rawUpdate('''
+          UPDATE ${bridge.table}
+          SET ${parent.uuidColumn} = $parentUuid,
+              is_dirty = 1,
+              updated_at = ?
+          WHERE $parentUuid IS NOT NULL
+            AND ${parent.uuidColumn} != $parentUuid
+        ''', [SyncTimestamp.now()]);
       }
     }
   }
@@ -601,9 +615,9 @@ class SyncService implements ISyncService {
       }
 
       if (payload.isNotEmpty) {
-        await _syncClient.upsertRows(table, payload, onConflict: onConflict);
-        await _markSent(db, table, payload);
-        Logger.d('Pushed ${payload.length} dirty records for $table');
+        final accepted = await _upload(table, payload, onConflict);
+        await _markSent(db, table, [for (final i in accepted) payload[i]]);
+        Logger.d('Pushed ${accepted.length} dirty records for $table');
       }
     }
 
@@ -681,8 +695,8 @@ class SyncService implements ISyncService {
     }
 
     if (payload.isNotEmpty) {
-      await _syncClient.upsertRows('race_results', payload, onConflict: 'uuid');
-      await _markSent(db, 'race_results', payload);
+      final accepted = await _upload('race_results', payload, 'uuid');
+      await _markSent(db, 'race_results', [for (final i in accepted) payload[i]]);
       Logger.d('Pushed ${payload.length} dirty records for race_results');
     }
   }
@@ -732,14 +746,13 @@ class SyncService implements ISyncService {
 
     if (payload.isEmpty) return;
 
-    await _syncClient.upsertRows(spec.table, payload,
-        onConflict: spec.conflictTarget);
+    final accepted = await _upload(spec.table, payload, spec.conflictTarget);
 
     // Clear the dirty flag by local primary key: a bridge table has no uuid
     // column locally, so there is nothing else to match these rows on. A row
     // changed since it was read is left dirty: what went up is out of date.
     await db.transaction((txn) async {
-      for (final key in pushedKeys) {
+      for (final key in [for (final i in accepted) pushedKeys[i]]) {
         await txn.rawUpdate(
           'UPDATE ${spec.table} SET is_dirty = 0 '
           'WHERE ${spec.keyWhereClause} AND updated_at IS ?',
@@ -747,7 +760,40 @@ class SyncService implements ISyncService {
         );
       }
     });
-    Logger.d('Pushed ${payload.length} dirty records for ${spec.table}');
+    Logger.d('Pushed ${accepted.length} dirty records for ${spec.table}');
+  }
+
+  /// Uploads [payload] and returns the indexes of the rows the server took.
+  ///
+  /// An upsert fails as a whole when one row breaks a rule on the server, such
+  /// as the same bib added to one account on two phones while offline. Sent
+  /// as one batch, that row would hold back every other row, and stopping the
+  /// sync on it would hold back every pull too, every sync from then on. So a
+  /// refused batch is sent again a row at a time, and refused rows stay dirty
+  /// for a later sync. A failure here never stops the sync: when the phone is
+  /// offline, the pull that follows fails and reports it.
+  Future<List<int>> _upload(
+      String table, List<Map<String, dynamic>> payload, String onConflict) async {
+    try {
+      await _syncClient.upsertRows(table, payload, onConflict: onConflict);
+      return [for (var i = 0; i < payload.length; i++) i];
+    } catch (e) {
+      if (payload.length == 1) {
+        Logger.e('Server refused a $table row (${payload.single['uuid']}): $e');
+        return const [];
+      }
+      Logger.d('Upload of $table refused ($e); sending its rows one at a time');
+    }
+    final accepted = <int>[];
+    for (var i = 0; i < payload.length; i++) {
+      try {
+        await _syncClient.upsertRows(table, [payload[i]], onConflict: onConflict);
+        accepted.add(i);
+      } catch (e) {
+        Logger.e('Server refused a $table row (${payload[i]['uuid']}): $e');
+      }
+    }
+    return accepted;
   }
 
   /// Marks [rows] as sent, matched by uuid, unless they have changed since
@@ -861,9 +907,18 @@ class SyncService implements ISyncService {
         if (locals.isEmpty) {
           final insert = Map<String, dynamic>.from(remote);
           insert['is_dirty'] = 0;
-          await db.insert(table, insert,
-              conflictAlgorithm: ConflictAlgorithm.replace);
-          hadWrites = true;
+          // Replacing on a clash would delete whichever local row holds the
+          // same bib or team name, along with what points at it. That happens
+          // when one account adds the same bib on two phones offline; the
+          // local row stays and the clash is left for the coach to see.
+          try {
+            await db.insert(table, insert);
+            hadWrites = true;
+          } on DatabaseException catch (e) {
+            if (!e.isUniqueConstraintError()) rethrow;
+            Logger.e('Kept the local $table row: the server has another '
+                'with the same ${table == 'runners' ? 'bib' : 'name'} ($uuid)');
+          }
         } else {
           final local = locals.first;
           final localUpdated =

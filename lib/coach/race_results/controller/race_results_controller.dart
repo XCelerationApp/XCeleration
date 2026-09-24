@@ -27,7 +27,12 @@ class RaceResultsController extends ChangeNotifier {
             event.changedRaceIds.isEmpty ||
             event.changedRaceIds.contains(_lastMasterRace?.raceId))
         .listen((_) {
-      if (_lastMasterRace != null) loadRaceResults(_lastMasterRace!);
+      final race = _lastMasterRace;
+      if (race == null) return;
+      // The race holds its results in memory; drop them so the ones the sync
+      // just wrote are read instead.
+      race.invalidateCache();
+      loadRaceResults(race);
     });
   }
 

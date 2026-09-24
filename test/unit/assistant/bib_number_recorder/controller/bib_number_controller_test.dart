@@ -64,6 +64,8 @@ void main() {
     provideDummy<Result<db_models.BibRecord?>>(const Success(null));
     provideDummy<Result<List<db_models.BibRecord>>>(const Success([]));
     provideDummy<Result<List<runner_models.Runner>>>(const Success([]));
+    provideDummy<Result<ReceivedRace>>(
+        const Failure(AppError(userMessage: '')));
   });
 
   BibNumberController buildController() {
@@ -103,6 +105,9 @@ void main() {
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.saveNewRace(any))
         .thenAnswer((_) async => const Success(null));
+    when(mockStorage.receiveRace(any)).thenAnswer((i) async => Success(
+        ReceivedRace(
+            race: i.positionalArguments.first as RaceRecord, isNew: true)));
     when(mockStorage.saveRunners(any, any))
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.getBibRecord(any, any))
@@ -689,8 +694,8 @@ void main() {
         controller.dispose();
       });
 
-      test('returns Failure when saveNewRace fails', () async {
-        when(mockStorage.saveNewRace(any)).thenAnswer(
+      test('returns Failure when the race cannot be stored', () async {
+        when(mockStorage.receiveRace(any)).thenAnswer(
           (_) async => const Failure(AppError(userMessage: 'Save failed')),
         );
         final controller = buildController();
@@ -712,7 +717,7 @@ void main() {
         final result = await controller.processLoadedRaceData(data);
 
         expect(result, isA<Success<void>>());
-        verify(mockStorage.saveNewRace(any)).called(1);
+        verify(mockStorage.receiveRace(any)).called(1);
         verify(mockStorage.saveRunners(any, argThat(isNotEmpty))).called(1);
 
         controller.dispose();
@@ -726,8 +731,52 @@ void main() {
             await controller.processLoadedRaceData(testRace.encode());
 
         expect(result, isA<Success<void>>());
-        verify(mockStorage.saveNewRace(any)).called(1);
+        verify(mockStorage.receiveRace(any)).called(1);
         verifyNever(mockStorage.saveRunners(any, any));
+
+        controller.dispose();
+      });
+
+      test('keeps the runners under the number this phone gave the race',
+          () async {
+        // Another race here already had the coach's number.
+        final renumbered = RaceRecord(
+          raceId: 1 << 30,
+          date: testRace.date,
+          name: testRace.name,
+          type: testRace.type,
+        );
+        when(mockStorage.receiveRace(any)).thenAnswer(
+            (_) async => Success(ReceivedRace(race: renumbered, isNew: true)));
+        final controller = buildController();
+
+        await controller
+            .processLoadedRaceData('${testRace.encode()}---$validRunnerJson');
+
+        verify(mockStorage.saveRunners(1 << 30, argThat(isNotEmpty))).called(1);
+        expect(controller.currentRace?.raceId, 1 << 30);
+
+        controller.dispose();
+      });
+
+      test('a race already here opens with the bibs recorded for it',
+          () async {
+        when(mockStorage.receiveRace(any)).thenAnswer(
+            (_) async => Success(ReceivedRace(race: testRace, isNew: false)));
+        when(mockStorage.getBibRecords(testRace.raceId)).thenAnswer(
+            (_) async => Success([
+                  db_models.BibRecord(
+                      raceId: testRace.raceId,
+                      bibId: 0,
+                      bibNumber: '42',
+                      createdAt: DateTime(2026)),
+                ]));
+        final controller = buildController();
+
+        await controller.processLoadedRaceData(testRace.encode());
+
+        expect(controller.bibRecords.map((r) => r.bib), ['42']);
+        verifyNever(mockStorage.saveBibRecords(any, any));
 
         controller.dispose();
       });

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 import 'package:csv/csv.dart';
 import 'package:flutter/services.dart';
@@ -135,13 +136,7 @@ class AssistantExportService {
         ['Date', _formattedDate(race.date)],
         [],
         ['Place', 'Bib', 'Name', 'Team', 'Grade'],
-        ...records.asMap().entries.map((e) => [
-              e.key + 1,
-              e.value.bib,
-              e.value.name ?? '',
-              e.value.teamAbbreviation ?? '',
-              e.value.grade ?? '',
-            ]),
+        ...bibRows(records),
       ];
 
       final csv = const ListToCsvConverter().convert(rows);
@@ -163,17 +158,7 @@ class AssistantExportService {
       final (regular, bold) = await _loadFonts();
       final theme = pw.ThemeData.withFont(base: regular, bold: bold);
 
-      final rows = records
-          .asMap()
-          .entries
-          .map((e) => [
-                '${e.key + 1}',
-                e.value.bib,
-                e.value.name ?? '',
-                e.value.teamAbbreviation ?? '',
-                e.value.grade ?? '',
-              ])
-          .toList();
+      final rows = bibRows(records);
 
       pdf.addPage(pw.MultiPage(
         theme: theme,
@@ -200,6 +185,25 @@ class AssistantExportService {
         originalException: e,
       ));
     }
+  }
+
+  /// One row per bib in finish order: place, bib, name, team, grade.
+  ///
+  /// A row the recorder left blank is not a finisher, so it takes no place;
+  /// numbering it shifted everyone after it down one.
+  @visibleForTesting
+  static List<List<String>> bibRows(List<BibDatumRecord> records) {
+    final entered = records.where((r) => r.bib.isNotEmpty).toList();
+    return [
+      for (final (i, r) in entered.indexed)
+        [
+          '${i + 1}',
+          r.bib,
+          r.name ?? '',
+          r.teamAbbreviation ?? '',
+          r.grade ?? '',
+        ],
+    ];
   }
 
   // ---------------------------------------------------------------------------
