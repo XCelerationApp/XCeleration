@@ -283,16 +283,14 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
     return 0;
   }
 
+  /// The bib as printed. Leading zeros stay: a runner typed in by hand
+  /// keeps "007", and the Bib Recorder's "007" has to match an imported
+  /// runner the same way. A number cell's "12.0" is read as "12".
   String normalizeBib(String raw) {
-    var b = raw.trim();
-    if (b.isEmpty) return '';
-    b = b.replaceAll(RegExp(r'[^0-9\.]'), '');
-    if (b.contains('.') && double.tryParse(b) != null) {
-      b = double.parse(b).toInt().toString();
-    }
-    // Convert to int and back to strip leading zeros
-    final asInt = int.tryParse(b);
-    return asInt?.toString() ?? '';
+    var b = raw.trim().replaceAll(RegExp(r'[^0-9\.]'), '');
+    final wholeNumber = RegExp(r'^(\d+)\.0*$').firstMatch(b);
+    if (wholeNumber != null) b = wholeNumber.group(1)!;
+    return RegExp(r'^\d+$').hasMatch(b) ? b : '';
   }
 
   for (int i = startIdx; i < data.length; i++) {
