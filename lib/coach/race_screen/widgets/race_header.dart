@@ -1,3 +1,5 @@
+import '../../../shared/models/race_stage.dart';
+import 'race_steps_bar.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -24,31 +26,6 @@ Color _getStatusColor(String flowState) {
     default:
       return AppColors.lightColor;
   }
-}
-
-String _getStatusText(String flowState) {
-  switch (flowState) {
-    case Race.FLOW_SETUP:
-      return 'Race Setup';
-    case Race.FLOW_SETUP_COMPLETED:
-      return 'Ready to Share';
-    case Race.FLOW_PRE_RACE:
-      return 'Sharing Race';
-    case Race.FLOW_PRE_RACE_COMPLETED:
-      return 'Ready for Results';
-    case Race.FLOW_POST_RACE:
-      return 'Processing Results';
-    case Race.FLOW_FINISHED:
-      return 'Race Complete';
-    default:
-      return flowState;
-  }
-}
-
-String _getActionButtonText(String flowState) {
-  if (flowState == Race.FLOW_SETUP_COMPLETED) return 'Share Race';
-  if (flowState == Race.FLOW_PRE_RACE_COMPLETED) return 'Process Results';
-  return 'Continue';
 }
 
 class RaceHeader extends StatefulWidget {
@@ -97,7 +74,8 @@ class _RaceHeaderState extends State<RaceHeader> {
     final canEdit = widget.controller.canEdit;
     final flowState = race.flowState ?? Race.FLOW_SETUP;
     final statusColor = _getStatusColor(flowState);
-    final isFinished = flowState == Race.FLOW_FINISHED;
+    final stage = RaceStage.of(flowState);
+    final isFinished = stage.isFinished;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -130,7 +108,7 @@ class _RaceHeaderState extends State<RaceHeader> {
                           // button on a narrower phone.
                           Flexible(
                             child: Text(
-                              _getStatusText(flowState).toUpperCase(),
+                              stage.label.toUpperCase(),
                               style: AppTypography.smallBodySemibold.copyWith(
                                 color: statusColor,
                                 letterSpacing: 0.5,
@@ -143,15 +121,9 @@ class _RaceHeaderState extends State<RaceHeader> {
                     ],
                     // Race title (editable)
                     _buildTitle(race, canEdit),
-                    // Subtitle — setup stage only
-                    if (flowState == Race.FLOW_SETUP) ...[
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Fill in the details to get started',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.mediumColor,
-                        ),
-                      ),
+                    if (!isFinished) ...[
+                      const SizedBox(height: AppSpacing.md),
+                      RaceStepsBar(stage: stage, color: statusColor),
                     ],
                   ],
                 ),
@@ -160,7 +132,7 @@ class _RaceHeaderState extends State<RaceHeader> {
               if (!isFinished) ...[
                 const SizedBox(width: AppSpacing.md),
                 _ActionButton(
-                  text: _getActionButtonText(flowState),
+                  text: stage.action!,
                   color: statusColor,
                   onPressed: () => widget.controller.continueRaceFlow(context),
                 ),

@@ -12,10 +12,10 @@ void main() {
     group('labels', () {
       final cases = {
         Race.FLOW_SETUP: 'Setting Up',
-        Race.FLOW_SETUP_COMPLETED: 'Ready to Share',
-        Race.FLOW_PRE_RACE: 'Sharing Race',
-        Race.FLOW_PRE_RACE_COMPLETED: 'Ready for Results',
-        Race.FLOW_POST_RACE: 'Processing Results',
+        Race.FLOW_SETUP_COMPLETED: 'Ready to Send',
+        Race.FLOW_PRE_RACE: 'Sending',
+        Race.FLOW_PRE_RACE_COMPLETED: 'Race Ready',
+        Race.FLOW_POST_RACE: 'Collecting Results',
         Race.FLOW_FINISHED: 'Race Complete',
       };
 
@@ -27,9 +27,10 @@ void main() {
         });
       }
 
-      testWidgets('shows "Unknown" for unrecognised flow state', (tester) async {
+      testWidgets('treats an unrecognised flow state as setup',
+          (tester) async {
         await tester.pumpWidget(_wrap(const StatusBadge(flowState: 'bogus')));
-        expect(find.text('Unknown'), findsOneWidget);
+        expect(find.text('Setting Up'), findsOneWidget);
       });
     });
 

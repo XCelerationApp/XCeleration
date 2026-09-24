@@ -332,7 +332,10 @@ class RaceScreenController with ChangeNotifier {
           DialogUtils.showMessageDialog(context,
               title: 'Setup Complete',
               message:
-                  'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Race step once you are at the race with your assistants.',
+                  'Your race is set up.\n\nOn race day you need two volunteers '
+                  'with XCeleration on their phones: a Timer and a Bib '
+                  'Recorder. Once you are at the race together, tap Send to '
+                  'Volunteers.',
               doneText: 'Got it');
         }
       });
