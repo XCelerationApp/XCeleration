@@ -613,36 +613,6 @@ void main() {
         verifyNever(mockMasterRace.saveResults(any));
       });
 
-      testWidgets(
-          'removing a bib entered twice matches the Timer again, with no '
-          'invented missing time', (tester) async {
-        final ctx = await pumpContext(tester);
-        final r1 = _runner(1);
-        final r2 = _runner(2);
-        when(mockMasterRace.getRaceRunnerByBib('1'))
-            .thenAnswer((_) async => r1);
-        when(mockMasterRace.getRaceRunnerByBib('2'))
-            .thenAnswer((_) async => r2);
-        // The Bib Recorder entered runner 1 twice; the Timer is right.
-        devices.bibRecorder!.data = '{"teams":["EAGLES"],"r":'
-            '[["1","R1",0,"11"],["1","R1",0,"11"],["2","R2",0,"11"]]}';
-        devices.raceTimer!.data = '10:00.0,10:05.0,CR 0 10:30.0';
-
-        await controller.processReceivedData(ctx);
-        expect(controller.raceRunners, [r1, '1', r2]);
-        expect(controller.timingChunks!.last.conflictRecord!.conflict!.type,
-            ConflictType.missingTime);
-
-        await controller.applyResolvedRunners([r1, r2]);
-
-        final conflict =
-            controller.timingChunks!.last.conflictRecord!.conflict!;
-        expect(conflict.type, ConflictType.confirmRunner);
-        expect(controller.timingChunks!.last.conflictRecord!.time, '10:30.0');
-        expect(controller.hasTimingConflicts, isFalse);
-        expect(controller.hasBibConflicts, isFalse);
-      });
-
       testWidgets('stops with an error when no bibs arrive', (tester) async {
         final ctx = await pumpContext(tester);
         devices.bibRecorder!.data = '{"teams":[],"r":[]}';

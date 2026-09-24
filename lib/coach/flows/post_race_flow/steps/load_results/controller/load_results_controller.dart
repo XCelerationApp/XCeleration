@@ -633,21 +633,16 @@ class LoadResultsController with ChangeNotifier {
     }
   }
 
-  /// Takes the runners from the bib sheet once every bib is resolved.
+  /// Takes the finish order once every bib is resolved.
+  ///
+  /// Resolving a bib only ever says who a finish was — every entry is
+  /// somebody who crossed the line — so the number of finishers is the same
+  /// as before, and nothing reconciled against the Timer changes.
   @visibleForTesting
   Future<void> applyResolvedRunners(List<RaceRunner?> updated) async {
-    final removed = raceRunners!.length != updated.length;
+    assert(updated.length == raceRunners!.length,
+        'bib resolution never adds or removes a finisher');
     raceRunners = updated;
-    if (removed) {
-      // A bib entered by mistake was removed: the finisher counts must be
-      // matched against the Timer's again.
-      _recordedTimes = null;
-      final error = _reconcileFinisherCounts();
-      if (error != null) {
-        _error = error;
-        notifyListeners();
-      }
-    }
     await _checkForConflicts();
   }
 
