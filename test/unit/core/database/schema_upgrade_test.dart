@@ -174,6 +174,49 @@ void main() {
       expect(File(p.join(dir.path, 'races_$_userId.db')).existsSync(), isTrue);
     });
 
+    test('keeps changes still in the log when the old app was killed',
+        () async {
+      // The old app writes in WAL mode and is killed before its log is merged
+      // into the main file: the newest rows exist only in races.db-wal.
+      final staging = await Directory.systemTemp.createTemp('xceleration_wal');
+      addTearDown(() => staging.deleteSync(recursive: true));
+      final old = await databaseFactory.openDatabase(
+          p.join(staging.path, 'races.db'),
+          options: OpenDatabaseOptions(version: 17));
+      await old.rawQuery('PRAGMA journal_mode=WAL');
+      await old.rawQuery('PRAGMA wal_autocheckpoint=0');
+      for (final stmt in _v17Tables) {
+        await old.execute(stmt);
+      }
+      await old.insert('runners',
+          {'runner_id': 1, 'name': 'Alice', 'grade': 10, 'bib_number': '101'});
+      for (final suffix in ['', '-wal', '-shm']) {
+        final file = File(p.join(staging.path, 'races.db$suffix'));
+        if (file.existsSync()) file.copySync(p.join(dir.path, 'races.db$suffix'));
+      }
+      await old.close();
+
+      await provider.openForUser(_userId);
+
+      expect((await (await provider.database).query('runners')).single['name'],
+          'Alice');
+      for (final suffix in ['', '-wal', '-shm']) {
+        expect(File(p.join(dir.path, 'races.db$suffix')).existsSync(), isFalse);
+      }
+    });
+
+    test('opening twice at once still hands the old database over', () async {
+      // Startup and the Coach button both open the signed-in user's database,
+      // and on the first launch after the update they can overlap.
+      await seedOldDatabase();
+
+      await Future.wait(
+          [provider.openForUser(_userId), provider.openForUser(_userId)]);
+
+      expect((await (await provider.database).query('runners')).single['name'],
+          'Alice');
+    });
+
     test('a second account starts empty rather than seeing the first one\'s races',
         () async {
       await seedOldDatabase();

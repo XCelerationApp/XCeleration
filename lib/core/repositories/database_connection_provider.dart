@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
 import '../utils/local_schema.dart';
@@ -17,6 +19,9 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
   static String fileNameFor(String userId) => 'races_$userId.db';
 
+  /// Files SQLite keeps next to a database, named after it.
+  static const _sidecarSuffixes = ['-wal', '-shm', '-journal'];
+
   @override
   Future<Database> get database async {
     final db = _db;
@@ -28,10 +33,24 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
     return db;
   }
 
+  /// The open or close in progress. Startup and the Coach button can both
+  /// open the database at once, and two overlapping opens would both try to
+  /// move the old shared file; each waits for the one before it instead.
+  Future<void> _pending = Future.value();
+
+  Future<void> _inTurn(Future<void> Function() action) {
+    final run = _pending.then((_) => action());
+    _pending = run.catchError((_) {});
+    return run;
+  }
+
   @override
-  Future<void> openForUser(String userId) async {
+  Future<void> openForUser(String userId) =>
+      _inTurn(() => _openForUser(userId));
+
+  Future<void> _openForUser(String userId) async {
     if (_openUserId == userId && _db != null) return;
-    await close();
+    await _close();
     await _claimLegacyDatabase(userId);
     _db = await _initDB(fileNameFor(userId));
     _openUserId = userId;
@@ -51,9 +70,14 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
     final mine = join(directory, fileNameFor(userId));
     if (!await databaseFactory.databaseExists(legacy)) return;
     if (await databaseFactory.databaseExists(mine)) return;
-    await databaseFactory.writeDatabaseBytes(
-        mine, await databaseFactory.readDatabaseBytes(legacy));
-    await databaseFactory.deleteDatabase(legacy);
+    // Moved rather than copied, and with the files SQLite keeps beside it: if
+    // the old app was killed mid-session, its newest changes are still in the
+    // -wal or -journal file, and a copy of the main file alone loses them.
+    for (final suffix in _sidecarSuffixes) {
+      final file = File('$legacy$suffix');
+      if (await file.exists()) await file.rename('$mine$suffix');
+    }
+    await File(legacy).rename(mine);
     Logger.d('Moved the shared database to $userId');
   }
 
@@ -196,27 +220,29 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
   }
 
   @override
-  Future<void> close() async {
+  Future<void> close() => _inTurn(_close);
+
+  Future<void> _close() async {
     await _db?.close();
     _db = null;
     _openUserId = null;
   }
 
   @override
-  Future<void> deleteDatabase() async {
-    final userId = _openUserId;
-    await close();
-    if (userId == null) return;
-    Logger.d('Deleting database');
-    await databaseFactory
-        .deleteDatabase(join(await getDatabasesPath(), fileNameFor(userId)));
-  }
+  Future<void> deleteDatabase() => _inTurn(() async {
+        final userId = _openUserId;
+        await _close();
+        if (userId == null) return;
+        Logger.d('Deleting database');
+        await databaseFactory.deleteDatabase(
+            join(await getDatabasesPath(), fileNameFor(userId)));
+      });
 
   @override
-  Future<void> deleteUserData(String userId) async {
-    if (_openUserId == userId) await close();
-    Logger.d('Deleting local data for a user');
-    await databaseFactory
-        .deleteDatabase(join(await getDatabasesPath(), fileNameFor(userId)));
-  }
+  Future<void> deleteUserData(String userId) => _inTurn(() async {
+        if (_openUserId == userId) await _close();
+        Logger.d('Deleting local data for a user');
+        await databaseFactory.deleteDatabase(
+            join(await getDatabasesPath(), fileNameFor(userId)));
+      });
 }
