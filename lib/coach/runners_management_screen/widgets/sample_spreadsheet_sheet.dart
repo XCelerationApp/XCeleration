@@ -13,7 +13,11 @@ class SampleSpreadsheetSheet extends StatelessWidget {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
-        final lines = snapshot.data!.split('\n');
+        final lines = snapshot.data!
+            .split('\n')
+            .map((l) => l.trim())
+            .where((l) => l.isNotEmpty)
+            .toList();
         final table = Table(
           border: TableBorder.all(color: Colors.grey),
           children: lines.map((line) {

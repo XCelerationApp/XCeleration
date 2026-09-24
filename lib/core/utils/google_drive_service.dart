@@ -18,8 +18,6 @@ class GoogleDriveService {
   final ConnectivityService _connectivity;
   GooglePickerService? _pickerService;
 
-  drive.DriveApi? _driveApi;
-  sheets.SheetsApi? _sheetsApi;
 
   // Note: We don't specify scopes here as GoogleAuthService now handles this centrally
 
@@ -40,26 +38,20 @@ class GoogleDriveService {
     return _instance!;
   }
 
-  /// Initialize Drive API client if needed
+  /// A Drive client with the current access token. Made fresh each time:
+  /// a kept client held the first token, which expires within the hour, and
+  /// every later pick then failed to read the file it had just picked.
   Future<drive.DriveApi?> _getDriveApi() async {
-    if (_driveApi != null) return _driveApi;
-
     final client = await _authService.getAuthClient();
     if (client == null) return null;
-
-    _driveApi = drive.DriveApi(client);
-    return _driveApi;
+    return drive.DriveApi(client);
   }
 
-  /// Initialize Sheets API client if needed
+  /// A Sheets client with the current access token; see [_getDriveApi].
   Future<sheets.SheetsApi?> _getSheetsApi() async {
-    if (_sheetsApi != null) return _sheetsApi;
-
     final client = await _authService.getAuthClient();
     if (client == null) return null;
-
-    _sheetsApi = sheets.SheetsApi(client);
-    return _sheetsApi;
+    return sheets.SheetsApi(client);
   }
 
   /// Signs in to Google if not already signed in and sets up Drive API client
@@ -80,8 +72,6 @@ class GoogleDriveService {
   /// Sign out current user and clear API instances
   Future<void> signOut() async {
     await _authService.signOut();
-    _driveApi = null;
-    _sheetsApi = null;
   }
 
   /// Get file metadata by ID

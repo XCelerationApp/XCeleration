@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:googleapis/sheets/v4.dart' as sheets;
@@ -228,7 +229,10 @@ class GoogleSheetsService implements IGoogleSheetsService {
       final directory = await getTemporaryDirectory();
       final safeFileName = fileName.replaceAll(RegExp(r'[/\\:*?"<>|]'), '-');
       final file = File('${directory.path}/$safeFileName.csv');
-      await file.writeAsString(response.body);
+      // The body as UTF-8: without a charset Google's CSV was read as
+      // Latin-1, turning "José" into "JosÃ©".
+      await file.writeAsString(utf8.decode(response.bodyBytes,
+          allowMalformed: true));
 
       Logger.d('Google Sheet successfully exported to CSV: ${file.path}');
       return file;

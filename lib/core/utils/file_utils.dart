@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:excel/excel.dart';
 import 'package:csv/csv.dart';
 import 'package:path/path.dart' as path;
+import 'package:flutter/foundation.dart' show visibleForTesting;
 import 'package:xceleration/core/utils/logger.dart';
 
 /// Utility class for file operations related to spreadsheets
@@ -84,44 +86,51 @@ class FileUtils {
     }
   }
 
-  /// Enhanced CSV parsing with options for different delimiters, quote chars, etc.
   static Future<List<List<dynamic>>> _parseCSVFile(File file) async {
-    final contents = await file.readAsString();
-    Logger.d('Parsing CSV file: $contents');
+    return parseCsvText(decodeText(await file.readAsBytes()));
+  }
 
+  /// A text file's contents: UTF-8, or Windows' Latin-1 when it is not,
+  /// as Excel saves CSV files on some computers.
+  @visibleForTesting
+  static String decodeText(List<int> bytes) {
     try {
-      // Try to detect the delimiter (common ones are comma, tab, semicolon)
-      String delimiter = ','; // Default
-      if (contents.contains('\t')) {
-        // Check if tab-delimited
-        final tabCount = '\t'.allMatches(contents).length;
-        final commaCount = ','.allMatches(contents).length;
-        if (tabCount > commaCount) delimiter = '\t';
-      } else if (!contents.contains(',') && contents.contains(';')) {
-        // European format often uses semicolons
-        delimiter = ';';
-      }
-
-      // Parse with detected delimiter
-      final converter = CsvToListConverter(
-        fieldDelimiter: delimiter,
-        eol: '\n',
-        shouldParseNumbers: true, // Convert strings to numbers when possible
-      );
-
-      final rows = converter.convert(contents);
-      Logger.d('Parsed CSV file: $rows');
-      // Remove empty rows
-      return rows
-          .where((row) =>
-              row.isNotEmpty &&
-              row.any((cell) => cell != null && cell.toString().isNotEmpty))
-          .toList();
-    } catch (e) {
-      // If custom parsing fails, fall back to default parsing
-      Logger.d(
-          'Advanced CSV parsing failed: $e. Falling back to default parser.');
-      return const CsvToListConverter().convert(contents);
+      return utf8.decode(bytes);
+    } on FormatException {
+      return latin1.decode(bytes);
     }
+  }
+
+  /// Rows of a CSV file's text, every cell as written.
+  ///
+  /// Cells stay text: read as numbers, bib "007" became 7. A byte-order
+  /// mark (Excel adds one) is dropped so the first heading is still found,
+  /// Windows line endings are read as line endings, and tab- or
+  /// semicolon-separated files are recognised.
+  @visibleForTesting
+  static List<List<dynamic>> parseCsvText(String text) {
+    var contents = text.startsWith('\uFEFF') ? text.substring(1) : text;
+    contents = contents.replaceAll('\r\n', '\n').replaceAll('\r', '\n');
+
+    var delimiter = ',';
+    final firstLine = contents.split('\n').first;
+    final counts = {
+      ',': ','.allMatches(firstLine).length,
+      '\t': '\t'.allMatches(firstLine).length,
+      ';': ';'.allMatches(firstLine).length,
+    };
+    final most = counts.entries.reduce((a, b) => b.value > a.value ? b : a);
+    if (most.value > 0) delimiter = most.key;
+
+    final rows = CsvToListConverter(
+      fieldDelimiter: delimiter,
+      eol: '\n',
+      shouldParseNumbers: false,
+    ).convert(contents);
+    return rows
+        .where((row) =>
+            row.isNotEmpty &&
+            row.any((cell) => cell != null && cell.toString().trim().isNotEmpty))
+        .toList();
   }
 }
