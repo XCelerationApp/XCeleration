@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
 import 'package:path/path.dart' as p;
@@ -26,11 +27,27 @@ class BibAudioRecorder implements IBibAudioRecorder {
   bool _isOpen = false;
   String? _recordingPath;
 
+  static const _audioSession = MethodChannel('xceleration/audio_session');
+
+  /// iOS mutes haptics while recording, so the tap as the mic button goes
+  /// down was never felt. Asked again before each recording, in case the
+  /// recorder set the audio session up afresh.
+  Future<void> _allowHapticsWhileRecording() async {
+    try {
+      await _audioSession.invokeMethod<void>('allowHapticsWhileRecording');
+    } on MissingPluginException {
+      // Android and tests: haptics are not muted there.
+    } catch (_) {
+      // Best effort: recording matters more than the tap.
+    }
+  }
+
   @override
   Future<Result<void>> open() async {
     try {
       await _recorder.openRecorder();
       _isOpen = true;
+      await _allowHapticsWhileRecording();
       await _warmUpAudioSession();
       return const Success(null);
     } catch (e) {
@@ -77,6 +94,7 @@ class BibAudioRecorder implements IBibAudioRecorder {
     final existing = File(_recordingPath!);
     if (existing.existsSync()) existing.deleteSync();
 
+    await _allowHapticsWhileRecording();
     await _recorder.startRecorder(
       toFile: _recordingPath,
       codec: Codec.pcm16WAV,
