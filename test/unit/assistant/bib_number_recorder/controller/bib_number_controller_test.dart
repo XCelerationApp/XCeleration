@@ -604,6 +604,71 @@ void main() {
       });
     });
 
+    group('bibs heard by voice', () {
+      BibNumberController running() {
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        controller.setRaceStopped(false);
+        controller.runners.add(BibDatum(
+          bib: '42',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+        ));
+        return controller;
+      }
+
+      test('go in as the next runner, checked and saved at once', () async {
+        final controller = running();
+
+        await controller.addHeardBib('42');
+        await controller.addHeardBib('901');
+
+        expect(controller.bibRecords.map((r) => r.bib), ['42', '901']);
+        expect(controller.bibRecords[0].name, 'Alice');
+        expect(controller.bibRecords[1].flags.notInDatabase, isTrue,
+            reason: 'flagged without waiting for a typing pause');
+        verify(mockStorage.saveBibRecords(testRace.raceId, any)).called(2);
+        controller.dispose();
+      });
+
+      test('fill an empty row left from the keypad', () async {
+        final controller = running();
+        await controller.addBib();
+
+        await controller.addHeardBib('42');
+
+        expect(controller.bibRecords.map((r) => r.bib), ['42']);
+        controller.dispose();
+      });
+
+      test('flag a bib heard twice, and take the copy back', () async {
+        final controller = running();
+        await controller.addHeardBib('42');
+        await controller.addHeardBib('42');
+
+        // The later copy is the one flagged, as for typed bibs.
+        expect(controller.bibRecords.map((r) => r.flags.duplicateBibNumber),
+            [false, true]);
+
+        await controller.removeLastBib();
+
+        expect(controller.bibRecords, hasLength(1));
+        expect(controller.bibRecords.single.flags.duplicateBibNumber, isFalse);
+        controller.dispose();
+      });
+
+      test('are not added once the race is stopped', () async {
+        final controller = running();
+        controller.setRaceStopped(true);
+
+        await controller.addHeardBib('42');
+
+        expect(controller.bibRecords, isEmpty);
+        controller.dispose();
+      });
+    });
+
     group('moving on quickly', () {
       // A volunteer types a bib and taps Next Bib at once, well inside the
       // half second the check waits for typing to stop. Starting the next

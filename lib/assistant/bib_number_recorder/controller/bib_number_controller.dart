@@ -603,6 +603,41 @@ class BibNumberController extends BibNumberDataController {
     await addBib();
   }
 
+  /// Adds a bib heard by voice as the next runner. The keypad stays down,
+  /// the bib is checked at once rather than after a typing pause, and the
+  /// list is saved, since no row gains and loses focus to save it.
+  Future<void> addHeardBib(String bib) async {
+    if (currentRace == null || raceStopped || bib.isEmpty) return;
+    final last = bibRecords.length - 1;
+    final int index;
+    if (last >= 0 && bibRecords[last].bib.isEmpty) {
+      // An empty row left from the keypad takes the bib.
+      index = last;
+    } else {
+      index = await addBibRecord(BibDatumRecord.blank());
+    }
+    // In the list before it is checked, so a second copy is seen as one.
+    updateBibRecord(index, bibRecords[index].copyWith(bib: bib));
+    await validateBibNumber(index, bib);
+    // A second runner with the same bib flags both.
+    for (var i = 0; i < index; i++) {
+      if (bibRecords[i].bib == bib) await validateBibNumber(i, bib);
+    }
+    _scheduler.schedulePostFrame(_scrollToLastItemIfNeeded);
+    await saveBibOrder();
+  }
+
+  /// Takes back the last bib, for a voice entry heard wrong.
+  Future<void> removeLastBib() async {
+    if (bibRecords.isEmpty) return;
+    final removed = bibRecords.last.bib;
+    await removeBibRecord(bibRecords.length - 1);
+    // The bib it duplicated may no longer be a duplicate.
+    for (var i = 0; i < bibRecords.length; i++) {
+      if (bibRecords[i].bib == removed) await validateBibNumber(i, removed);
+    }
+  }
+
   Future<void> addBib() async {
     if (bibRecords.isEmpty || bibRecords.last.bib.isNotEmpty) {
       await handleBibNumber('');

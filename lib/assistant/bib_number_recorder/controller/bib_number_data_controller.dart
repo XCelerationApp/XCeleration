@@ -95,6 +95,12 @@ class BibNumberDataController extends ChangeNotifier {
     return index;
   }
 
+  /// Saves the bib list now. Typed bibs are saved when their row loses
+  /// focus; a bib added without a row gaining focus, as voice does, calls
+  /// this instead.
+  @protected
+  Future<void> saveBibOrder() => _persistBibOrder();
+
   /// Saves the current bib list to the database in on-screen order.
   ///
   /// bib_records are keyed by finish position, so the whole list is rewritten

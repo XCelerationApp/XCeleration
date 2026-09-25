@@ -16,6 +16,8 @@ import '../../shared/models/race_record.dart';
 import '../widgets/bib_list_widget.dart';
 import '../widgets/race_controls_widget.dart';
 import '../widgets/keyboard_accessory_bar.dart';
+import '../widgets/voice_entry_panel.dart';
+import '../controller/voice_entry_controller.dart';
 import '../widgets/runners_loaded_sheet.dart';
 import '../../shared/widgets/race_header_widget.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -33,12 +35,15 @@ class BibNumberScreen extends StatefulWidget {
 
 class _BibNumberScreenState extends State<BibNumberScreen> {
   late BibNumberController _controller;
+  late final VoiceEntryController _voice;
 
   @override
   void initState() {
     super.initState();
     _controller = widget.controller;
     _controller.addListener(_onControllerChanged);
+    _voice = VoiceEntryController(onBibHeard: _controller.addHeardBib);
+    _voice.restore();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       InstructionsBanner.showInstructionsSheet(context, Role.bibRecorder).then((_) {
@@ -132,6 +137,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   void dispose() {
     _controller.removeListener(_onControllerChanged);
+    _voice.dispose();
     ScreenAwake.set(false);
     _controller.dispose();
     super.dispose();
@@ -217,9 +223,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
                         child: Padding(
                           padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
                               AppSpacing.sm, AppSpacing.lg, 0),
-                          child: RaceControlsWidget(
-                            controller: _controller,
-                            onShare: _onShareBibNumbers,
+                          child: ListenableBuilder(
+                            listenable: _voice,
+                            builder: (context, _) => _buildEntryArea(),
                           ),
                         ),
                       );
@@ -279,6 +285,52 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           },
         ),
       ),
+    );
+  }
+
+  /// The thumb area: the Keypad/Voice switch, then the big button for the
+  /// mode chosen.
+  Widget _buildEntryArea() {
+    if (_controller.currentRace == null) return const SizedBox.shrink();
+    final bool voiceOn = _voice.enabled;
+    final Widget main;
+    if (!voiceOn || (_controller.raceStopped && _controller.bibRecords.isNotEmpty)) {
+      main = RaceControlsWidget(
+        controller: _controller,
+        onShare: _onShareBibNumbers,
+      );
+    } else if (_controller.raceStopped) {
+      // Voice mode, not started: starting must not open the keypad.
+      main = BigActionButton(
+        key: const ValueKey('start_recording_button'),
+        label: 'Start Recording',
+        sublabel: 'Then hold the mic for each runner',
+        icon: Icons.play_arrow_rounded,
+        color: Colors.green.shade600,
+        onPressed: () => _controller.raceStopped = false,
+      );
+    } else {
+      main = VoiceEntryPanel(
+        voice: _voice,
+        describe: (bib) {
+          final runner = _controller.getRunnerByBib(bib);
+          if (runner == null) return null;
+          return '${runner.name}, ${runner.teamAbbreviation}';
+        },
+        onUndo: () async {
+          await _controller.removeLastBib();
+          _voice.clearLastHeard();
+        },
+      );
+    }
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Center(child: EntryModeToggle(voice: _voice)),
+        const SizedBox(height: AppSpacing.sm),
+        main,
+      ],
     );
   }
 

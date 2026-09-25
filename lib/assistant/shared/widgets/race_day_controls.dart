@@ -22,6 +22,7 @@ class BigActionButton extends StatefulWidget {
     this.icon,
     this.onPressed,
     this.onTapDown,
+    this.onRelease,
     this.height = 88,
   });
 
@@ -31,6 +32,9 @@ class BigActionButton extends StatefulWidget {
   final Color color;
   final VoidCallback? onPressed;
   final VoidCallback? onTapDown;
+
+  /// Called when the finger lifts or slides off, for hold-to-talk.
+  final VoidCallback? onRelease;
   final double height;
 
   @override
@@ -62,8 +66,16 @@ class _BigActionButtonState extends State<BigActionButton> {
                 widget.onTapDown?.call();
               }
             : null,
-        onTapUp: _enabled ? (_) => _setPressed(false) : null,
-        onTapCancel: () => _setPressed(false),
+        onTapUp: _enabled
+            ? (_) {
+                _setPressed(false);
+                widget.onRelease?.call();
+              }
+            : null,
+        onTapCancel: () {
+          _setPressed(false);
+          widget.onRelease?.call();
+        },
         onTap: widget.onPressed,
         child: AnimatedContainer(
           duration: AppAnimations.fast,
