@@ -15,8 +15,9 @@ class LoadResultsStep extends FlowStep {
     required this.controller,
   }) : super(
           title: 'Load Results',
-          description: 'The times and bibs load as each volunteer\'s phone '
-              'connects. Then tap Next.',
+          description: 'On each volunteer\'s phone, tap Share Times or '
+              'Share Bibs. Their results load here as each phone connects, '
+              'then tap Next.',
           nextLabel: 'Next',
           // Initialize with a placeholder
           content: SizedBox.shrink(),

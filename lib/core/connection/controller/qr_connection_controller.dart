@@ -69,6 +69,14 @@ class QRConnectionController extends ChangeNotifier {
       body: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Text(
+              _scanHint,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 15, color: Color(0xFF606060)),
+            ),
+          ),
           QrImageView(
             data: qrData,
             version: QrVersions.auto,
@@ -77,6 +85,19 @@ class QRConnectionController extends ChangeNotifier {
         ],
       ),
     );
+  }
+
+  /// What to tap on the other phone to scan this code.
+  String get _scanHint {
+    if (_devices.currentDeviceName == DeviceName.coach) {
+      return _devices.toSpectator
+          ? 'On each spectator\'s phone, tap Receive Race, then Coach, '
+              'then Scan QR Code.'
+          : 'On each volunteer\'s phone, tap Get Race from Coach, then '
+              'Scan QR Code.';
+    }
+    return 'On the coach\'s phone, tap Scan QR Code on the Load Results '
+        'page.';
   }
 
   Future<void> _scanQRCodes() async {

@@ -133,8 +133,21 @@ class TimingController extends TimingData {
     );
     sheet(
       context: context,
-      title: 'Load Race',
-      body: DeviceConnectionWidget(
+      title: 'Get Race from Coach',
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 16),
+            child: Text(
+              'On the coach\'s phone, open the race and tap Send to '
+              'Volunteers.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, color: Color(0xFF606060)),
+            ),
+          ),
+          DeviceConnectionWidget(
         devices: devices,
         callback: () async {
           final data = devices.coach?.data;
@@ -143,6 +156,8 @@ class TimingController extends TimingData {
           }
           await loadRaceFromCoach(data);
         },
+      ),
+        ],
       ),
     );
   }
