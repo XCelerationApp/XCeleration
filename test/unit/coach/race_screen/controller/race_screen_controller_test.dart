@@ -377,6 +377,51 @@ void main() {
       });
 
       testWidgets(
+          'in setup flow: filling in a blank detail saves it at once',
+          (tester) async {
+        final setupRace = Race(
+          raceId: 1,
+          raceName: 'Test',
+          location: '',
+          flowState: Race.FLOW_SETUP,
+        );
+        when(mockMasterRace.race).thenAnswer((_) async => setupRace);
+
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        controller.form.locationController.text = 'Crystal Springs';
+
+        await controller.handleFieldFocusLoss(ctx, RaceField.location);
+
+        verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
+        expect(controller.form.hasUnsavedChanges, isFalse);
+      });
+
+      testWidgets(
+          'in setup flow: a blank filled in beside a changed detail waits',
+          (tester) async {
+        final setupRace = Race(
+          raceId: 1,
+          raceName: 'Test',
+          location: '',
+          flowState: Race.FLOW_SETUP,
+        );
+        when(mockMasterRace.race).thenAnswer((_) async => setupRace);
+
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        controller.form.nameController.text = 'Renamed';
+        await controller.handleFieldFocusLoss(ctx, RaceField.name);
+        controller.form.locationController.text = 'Crystal Springs';
+        await controller.handleFieldFocusLoss(ctx, RaceField.location);
+
+        verifyNever(mockMasterRace.updateRace(any));
+        expect(controller.form.hasUnsavedChanges, isTrue);
+      });
+
+      testWidgets(
           'outside setup flow with unsaved changes: triggers autosave',
           (tester) async {
         final ctx = await _buildContext(tester);

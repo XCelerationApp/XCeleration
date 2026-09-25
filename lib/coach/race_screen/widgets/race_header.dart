@@ -30,18 +30,11 @@ class _RaceHeaderState extends State<RaceHeader> {
     super.initState();
     _titleFocusNode = FocusNode();
     _titleFocusNode.addListener(() {
-      if (!_titleFocusNode.hasFocus &&
-          widget.controller.form.isEditing(RaceField.name)) {
-        if (!mounted) return;
-        if (!_isSetupFlow(widget.controller.flowState)) {
-          widget.controller.saveAllChanges(context);
-        }
+      // Also fires when Return closes the field, since it then loses focus.
+      if (!_titleFocusNode.hasFocus && mounted) {
+        widget.controller.handleFieldFocusLoss(context, RaceField.name);
       }
     });
-  }
-
-  bool _isSetupFlow(String? flowState) {
-    return flowState == Race.FLOW_SETUP || flowState == Race.FLOW_SETUP_COMPLETED;
   }
 
   @override
@@ -52,6 +45,16 @@ class _RaceHeaderState extends State<RaceHeader> {
 
   @override
   Widget build(BuildContext context) {
+    // The race screen above rebuilds only when the step changes, so without
+    // this the rename pencil marked the title for editing but never drew
+    // the text field.
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) => _buildHeader(context),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
     final race = widget.controller.race;
     final canEdit = widget.controller.canEdit;
     final flowState = race.flowState ?? Race.FLOW_SETUP;

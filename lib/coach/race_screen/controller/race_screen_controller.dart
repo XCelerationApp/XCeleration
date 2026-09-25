@@ -261,10 +261,15 @@ class RaceScreenController with ChangeNotifier {
   Future<void> handleFieldFocusLoss(
       BuildContext context, RaceField field) async {
     trackFieldChange(field);
-    if (!_isSetupFlow() && form.hasUnsavedChanges && context.mounted) {
+    if (form.hasUnsavedChanges && shouldAutosave && context.mounted) {
       await saveAllChanges(context);
     }
   }
+
+  /// Changes save as soon as a field is left, except, during setup, a change
+  /// to a detail already set, which waits for Save Changes (or Revert).
+  /// Filling in a new race's details the first time saves as it goes.
+  bool get shouldAutosave => !_isSetupFlow() || form.onlyFillsBlanks;
 
   bool _isSetupFlow() {
     final flowState = _race?.flowState;

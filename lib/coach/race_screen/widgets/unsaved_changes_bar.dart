@@ -26,7 +26,10 @@ class UnsavedChangesBar extends StatelessWidget {
 
     // Adding teams is a row in the race details now, beside the other
     // things setup needs, rather than a button floating over them.
-    final bool showSaveRow = controller.form.hasUnsavedChanges;
+    // Details being filled in for the first time save when the field is
+    // left, so there is nothing to save or revert by hand.
+    final bool showSaveRow =
+        controller.form.hasUnsavedChanges && !controller.form.onlyFillsBlanks;
 
     if (!showSaveRow) return const SizedBox.shrink();
 
