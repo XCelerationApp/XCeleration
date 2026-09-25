@@ -1,9 +1,18 @@
 import 'dart:isolate';
 
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
 import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
 import 'package:xceleration/assistant/bib_number_recorder/services/i_speech_recognition_service.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/model_assets.dart';
+
+/// Whether a recording is too short to transcribe. A tap of the mic button
+/// records a few hundredths of a second, and the model aborts the whole app
+/// (an uncaught ONNX exception) on clips under about 0.08 s; nobody can say
+/// a bib in under a quarter of one.
+@visibleForTesting
+bool tooShortToTranscribe(int samples, int sampleRate) =>
+    sampleRate <= 0 || samples < sampleRate * 0.25;
 
 // ---------------------------------------------------------------------------
 // Isolate entry point — must be top-level to be spawnable
@@ -67,10 +76,10 @@ void _inferenceIsolateEntry(({
         return true;
       }());
 
-      if (wave.samples.isEmpty) {
+      if (tooShortToTranscribe(wave.samples.length, wave.sampleRate)) {
         assert(() {
           // ignore: avoid_print
-          print('[SherpaOnnx] Empty WAV — returning blank transcript');
+          print('[SherpaOnnx] Too short to hold a bib — returning blank');
           return true;
         }());
         replyPort.send('');
