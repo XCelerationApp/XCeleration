@@ -27,6 +27,8 @@ import '../widgets/imported_runners_selection_sheet.dart';
 import '../widgets/recent_spreadsheets_sheet.dart';
 import '../widgets/spreadsheet_load_sheet.dart';
 import '../services/roster_importer.dart';
+import '../services/roster_update.dart';
+import '../widgets/roster_update_preview.dart';
 
 class RunnersManagementController with ChangeNotifier {
   final VoidCallback? onBack;
@@ -848,8 +850,21 @@ class RunnersManagementController with ChangeNotifier {
       return;
     }
     await forceRefresh();
+    if (!context.mounted) return;
+    await _settleConflicts(context, importer, result.conflicts);
 
-    for (final conflict in result.conflicts) {
+    if (!context.mounted) return;
+    DialogUtils.showSuccessDialog(context, message: _describe(result));
+  }
+
+  /// Asks, for each bib already saved with other details, whose details to
+  /// keep.
+  Future<void> _settleConflicts(
+    BuildContext context,
+    RosterImporter importer,
+    List<RunnerDetailsConflict> conflicts,
+  ) async {
+    for (final conflict in conflicts) {
       if (!context.mounted) break;
       final existing = conflict.existing;
       final useSheet = await DialogUtils.showConfirmationDialog(
@@ -864,10 +879,98 @@ class RunnersManagementController with ChangeNotifier {
       );
       if (useSheet) await importer.useSpreadsheetDetails(conflict);
     }
-    if (result.conflicts.isNotEmpty) await forceRefresh();
+    if (conflicts.isNotEmpty) await forceRefresh();
+  }
 
-    if (!context.mounted) return;
-    DialogUtils.showSuccessDialog(context, message: _describe(result));
+  /// Brings [team] in line with a newer copy of its roster spreadsheet,
+  /// after showing the coach what will change.
+  Future<void> updateTeamFromSpreadsheet(
+      BuildContext context, Team team) async {
+    final rows = await pickSpreadsheetRows(context);
+    if (rows == null || !context.mounted) return;
+
+    final forTeam = rowsForTeam(rows.runners, team);
+    if (forTeam.isEmpty) {
+      await DialogUtils.showMessageDialog(
+        context,
+        title: 'No Runners for ${team.name}',
+        message: 'The spreadsheet\'s Team column does not list '
+            '${team.name}. Check the team name matches, or pick the sheet '
+            'with just this team on it.',
+      );
+      return;
+    }
+
+    try {
+      final plan = planRosterUpdate(
+        current: await _runners.getTeamRunners(team.teamId!),
+        rows: forTeam,
+      );
+      if (!context.mounted) return;
+      if (plan.isEmpty) {
+        DialogUtils.showSuccessDialog(context,
+            message: '${team.name} already matches the spreadsheet.');
+        return;
+      }
+
+      final confirmed = await sheet(
+        context: context,
+        title: 'Update ${team.name}',
+        body: RosterUpdatePreview(plan: plan),
+      );
+      if (confirmed != true || !context.mounted) return;
+
+      final updater = RosterUpdater(
+        raceId: masterRace.raceId,
+        runners: _runners,
+        teams: _teams,
+        races: _races,
+      );
+      final result = await updater.apply(plan, team);
+      await forceRefresh();
+      if (!context.mounted) return;
+
+      final importer = RosterImporter(
+        raceId: masterRace.raceId,
+        runners: _runners,
+        teams: _teams,
+        races: _races,
+      );
+      await _settleConflicts(context, importer, result.imported.conflicts);
+      if (!context.mounted) return;
+
+      if (result.bibTaken.isNotEmpty) {
+        await DialogUtils.showMessageDialog(
+          context,
+          title: 'Some Bibs Are Taken',
+          message: 'These bibs already belong to other runners, so these '
+              'runners kept their old ones:\n\n'
+              '${result.bibTaken.map((c) => '${c.after.name}: bib ${c.after.bibNumber}').join('\n')}',
+        );
+        if (!context.mounted) return;
+      }
+      DialogUtils.showSuccessDialog(context,
+          message: _describeUpdate(team, result));
+    } catch (e) {
+      Logger.e('Error updating team from spreadsheet: $e');
+      await forceRefresh();
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context,
+            message: 'Could not update ${team.name}. Please try again.');
+      }
+    }
+  }
+
+  static String _describeUpdate(Team team, RosterUpdateResult r) {
+    String n(int count, String what) => '$count $what';
+    final parts = [
+      if (r.imported.total > 0) n(r.imported.total, 'added'),
+      if (r.changed > 0) n(r.changed, 'changed'),
+      if (r.removed > 0) n(r.removed, 'removed'),
+    ];
+    return parts.isEmpty
+        ? '${team.name} is up to date.'
+        : 'Updated ${team.name}: ${parts.join(', ')}.';
   }
 
   static String _describe(RosterImportResult r) {
