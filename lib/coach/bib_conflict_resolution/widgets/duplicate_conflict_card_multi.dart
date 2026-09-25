@@ -230,13 +230,15 @@ class _SelectableOccurrenceTileState
                     ),
                   ),
                   const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    widget.occurrence.time ?? 'Time comes next',
-                    style: widget.occurrence.time != null
-                        ? AppTypography.displaySmall
-                        : AppTypography.bodyRegular
-                            .copyWith(color: AppColors.mediumColor),
-                  ),
+                  // A range while the time itself is still in question.
+                  if (widget.occurrence.timeLabel != null)
+                    Text(
+                      widget.occurrence.timeLabel!,
+                      style: widget.occurrence.time != null
+                          ? AppTypography.displaySmall
+                          : AppTypography.bodyRegular
+                              .copyWith(color: AppColors.mediumColor),
+                    ),
                   const SizedBox(height: AppSpacing.sm),
                   TextButton(
                     style: TextButton.styleFrom(

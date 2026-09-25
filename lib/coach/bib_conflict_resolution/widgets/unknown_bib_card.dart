@@ -186,23 +186,29 @@ class _HeaderCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              const Icon(
-                Icons.timer_outlined,
-                size: 14,
-                color: AppColors.mediumColor,
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              Text(
-                conflict.occurrence.time ?? 'Time comes next',
-                style: AppTypography.bodySemibold.copyWith(
-                  fontFeatures: const [FontFeature.tabularFigures()],
+          // A range while the time itself is still in question; nothing
+          // when no time near it is known either.
+          if (conflict.occurrence.timeLabel != null) ...[
+            const SizedBox(height: AppSpacing.md),
+            Row(
+              children: [
+                const Icon(
+                  Icons.timer_outlined,
+                  size: 14,
+                  color: AppColors.mediumColor,
                 ),
-              ),
-            ],
-          ),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    conflict.occurrence.timeLabel!,
+                    style: AppTypography.bodySemibold.copyWith(
+                      fontFeatures: const [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );

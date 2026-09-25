@@ -129,14 +129,16 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
-            Text(
-              widget.occurrence.time ?? 'Time comes next',
-              style: widget.occurrence.time != null
-                  ? AppTypography.displaySmall
-                  : AppTypography.bodyRegular
-                      .copyWith(color: AppColors.mediumColor),
-              textAlign: TextAlign.center,
-            ),
+            // A range while the time itself is still in question.
+            if (widget.occurrence.timeLabel != null)
+              Text(
+                widget.occurrence.timeLabel!,
+                style: widget.occurrence.time != null
+                    ? AppTypography.displaySmall
+                    : AppTypography.bodyRegular
+                        .copyWith(color: AppColors.mediumColor),
+                textAlign: TextAlign.center,
+              ),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               style: TextButton.styleFrom(

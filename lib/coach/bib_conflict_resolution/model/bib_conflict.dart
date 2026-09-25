@@ -5,6 +5,8 @@ class ConflictOccurrence {
   const ConflictOccurrence({
     required this.place,
     this.time,
+    this.after,
+    this.before,
     this.nearby = const [],
     this.allFinishers = const [],
   });
@@ -15,6 +17,21 @@ class ConflictOccurrence {
   /// The Timer's time for that place, or null where the Timer flagged the
   /// stretch it falls in and which time belongs to whom is still in dispute.
   final String? time;
+
+  /// While [time] is unknown, the nearest known times either side: the
+  /// finish came after [after] and before [before]. Either may be null.
+  final String? after;
+  final String? before;
+
+  /// [time], or where it must fall while it is still unknown, such as
+  /// "Between 15:28.46 and 15:33.00". Null when nothing is known.
+  String? get timeLabel {
+    if (time != null) return time;
+    if (after != null && before != null) return 'Between $after and $before';
+    if (after != null) return 'After $after';
+    if (before != null) return 'Before $before';
+    return null;
+  }
 
   /// Settled finishers around this place, up to [nearbyWindow] either side,
   /// in finish order. The card shows the nearest one each side and "See more"
@@ -177,9 +194,23 @@ Future<List<BibConflict>> detectBibConflicts({
         ),
   ];
 
+  // The nearest known time before and after a place whose own time is not.
+  final knownPlaces = timesByPlace.keys.toList()..sort();
+  String? knownBefore(int place) {
+    final earlier = knownPlaces.where((p) => p < place);
+    return earlier.isEmpty ? null : timesByPlace[earlier.last];
+  }
+
+  String? knownAfter(int place) {
+    final later = knownPlaces.where((p) => p > place);
+    return later.isEmpty ? null : timesByPlace[later.first];
+  }
+
   ConflictOccurrence occurrenceAt(int place) => ConflictOccurrence(
         place: place,
         time: timesByPlace[place],
+        after: timesByPlace[place] == null ? knownBefore(place) : null,
+        before: timesByPlace[place] == null ? knownAfter(place) : null,
         nearby: nearbyTo(place),
         allFinishers: allFinishers,
       );

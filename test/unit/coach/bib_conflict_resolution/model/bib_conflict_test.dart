@@ -135,6 +135,37 @@ void main() {
     });
   });
 
+  group('a finish whose time is not settled yet', () {
+    // Not "time unknown": the coach sees where it must fall, between the
+    // known times on either side.
+    test('shows the range between the known times either side', () async {
+      final alice = _runner(1, '12', name: 'Alice');
+      final conflicts = await detectBibConflicts(
+        entries: [_runner(2, '10'), alice, _runner(3, '11'), alice, _runner(4, '13')],
+        timesByPlace: const {1: '15:00.00', 3: '15:05.00', 5: '15:09.00'},
+        lookupBib: _lookup({'12': alice}),
+      );
+
+      final places = (conflicts.single as DuplicateBibConflict).occurrences;
+      expect(places.map((o) => o.timeLabel), [
+        'Between 15:00.00 and 15:05.00',
+        'Between 15:05.00 and 15:09.00',
+      ]);
+    });
+
+    test('says only after or before at either end, or nothing', () {
+      expect(const ConflictOccurrence(place: 9, after: '15:00.00').timeLabel,
+          'After 15:00.00');
+      expect(const ConflictOccurrence(place: 1, before: '15:00.00').timeLabel,
+          'Before 15:00.00');
+      expect(const ConflictOccurrence(place: 1).timeLabel, isNull);
+      expect(
+          const ConflictOccurrence(place: 1, time: '15:01.00', after: 'x')
+              .timeLabel,
+          '15:01.00');
+    });
+  });
+
   group('a bib nobody has', () {
     test('is reported with the place it was recorded at', () async {
       final conflicts = await detectBibConflicts(

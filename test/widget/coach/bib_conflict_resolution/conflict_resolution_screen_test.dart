@@ -27,7 +27,7 @@ final _duplicate = DuplicateBibConflict(
   bibNumber: '959',
   runner: _quinn,
   occurrences: const [
-    ConflictOccurrence(place: 16, nearby: [
+    ConflictOccurrence(place: 16, after: '15:40.10', before: '15:44.00', nearby: [
       NearbyFinisher(place: 15, name: 'Finley Eagles', team: 'Eagles', bibNumber: '944'),
       NearbyFinisher(place: 18, name: 'Emery Eagles', team: 'Eagles', bibNumber: '945'),
     ]),
@@ -166,8 +166,8 @@ void main() {
     expect(find.text('Quinn Owls'), findsOneWidget);
     expect(find.text('16th place'), findsOneWidget);
     expect(find.text('21st place'), findsOneWidget);
-    // 16th has no settled time; it says so rather than guessing.
-    expect(find.text('Time comes next'), findsOneWidget);
+    // 16th has no settled time: it shows where the time must fall.
+    expect(find.text('Between 15:40.10 and 15:44.00'), findsOneWidget);
     expect(find.text('16:03.78'), findsOneWidget);
 
     await tester.tap(find.text('16th place'));
