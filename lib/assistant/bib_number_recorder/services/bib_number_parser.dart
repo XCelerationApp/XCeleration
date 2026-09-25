@@ -113,13 +113,12 @@ class BibNumberParser {
   const BibNumberParser();
 
   /// Words the model often hears in place of another, each with what else it
-  /// may have been; null means it may have been nothing (a filler).
+  /// may have been; null means it may have been nothing (a filler). "Oh" is
+  /// not here: it is a zero said on purpose, as in "oh nine" for bib 09.
   static const Map<String, List<String?>> _soundsLike = {
     'to': ['two', null],
     'too': ['two', null],
     'for': ['four', null],
-    'oh': ['zero', null],
-    'o': ['zero', null],
     'won': ['one', null],
     // Teens and tens are the model's most common mix-up.
     'thirteen': ['thirty'], 'thirty': ['thirteen'],
@@ -315,8 +314,10 @@ class BibNumberParser {
         }
         pendingTens = word;
         // Logger.d('[BibParser:chunked] "$word" → value=$v (tens, held as pending)');
-      } else if (pendingTens != null && v < 10) {
-        // Only combine single digits (0–9) with a pending tens word.
+      } else if (pendingTens != null && v >= 1 && v < 10) {
+        // Only combine single digits (1–9) with a pending tens word. Nobody
+        // says "seventy zero" for 70: "seventy zero four" is 70, 0, 4, so a
+        // zero after tens falls to the branch below and stands on its own.
         // Values ≥ 10 (ten, eleven, twelve, etc.) start a new chunk.
         final combined = _wordValues[pendingTens]! + v;
         chunks.add(combined);
@@ -399,14 +400,32 @@ class BibNumberParser {
     return result;
   }
 
-  /// Strips possessive suffixes the model sometimes adds (e.g. "eleven's" → "eleven").
+  /// Ordinals the model hears for a number said quickly ("seven" as
+  /// "seventh"), as the number.
+  static const Map<String, String> _ordinals = {
+    'first': 'one', 'third': 'three', 'fourth': 'four', 'fifth': 'five',
+    'sixth': 'six', 'seventh': 'seven', 'eighth': 'eight', 'ninth': 'nine',
+    'tenth': 'ten', 'eleventh': 'eleven', 'twelfth': 'twelve',
+    'thirteenth': 'thirteen', 'fourteenth': 'fourteen',
+    'fifteenth': 'fifteen', 'sixteenth': 'sixteen',
+    'seventeenth': 'seventeen', 'eighteenth': 'eighteen',
+    'nineteenth': 'nineteen',
+  };
+
+  /// Strips possessive suffixes the model sometimes adds (e.g. "eleven's" →
+  /// "eleven"), and reads ordinals as numbers ("seventh" → "seven").
   static String _stripPossessives(String text) {
     final words = text.split(RegExp(r'\s+'));
     var changed = false;
     final result = words.map((w) {
       if (w.endsWith("'s")) {
         changed = true;
-        return w.substring(0, w.length - 2);
+        w = w.substring(0, w.length - 2);
+      }
+      final number = _ordinals[w];
+      if (number != null) {
+        changed = true;
+        return number;
       }
       return w;
     }).toList();

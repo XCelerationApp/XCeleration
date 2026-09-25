@@ -367,8 +367,9 @@ void main() {
         expect(await heardWith({'1860'}, 'eighteen sixteen'), ['1860']);
       });
 
-      test('a spoken leading zero still finds runner 127', () async {
-        expect(await heardWith({'127'}, 'zero one two seven'), ['127']);
+      test('a spoken leading zero is kept, as printed on the bib', () async {
+        expect(await heardWith({'9'}, 'o nine'), ['09']);
+        expect(await heardWith({'127'}, 'zero one two seven'), ['0127']);
       });
 
       test('noise is still nothing, whoever is running', () async {

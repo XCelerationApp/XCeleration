@@ -123,10 +123,9 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
     final known = _isKnownBib;
     if (known != null) {
       for (final bib in readings) {
+        // A spoken leading zero is kept: "oh nine" is bib 09, as printed,
+        // not runner 9.
         if (known(bib)) return bib;
-        // "Zero one two seven" for runner 127.
-        final unpadded = bib.replaceFirst(RegExp(r'^0+(?=\d)'), '');
-        if (unpadded != bib && known(unpadded)) return unpadded;
       }
     }
     return _parser.parse(transcript);

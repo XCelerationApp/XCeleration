@@ -132,7 +132,11 @@ void main() {
       test('eighty eight zero zero → 8800',
           () => expect(parser.parse('eighty eight zero zero'), equals('8800')));
       test('twenty zero one → 2001',
-          () => expect(parser.parse('twenty zero one'), isNotNull));
+          () => expect(parser.parse('twenty zero one'), equals('2001')));
+      test('seventy zero four → 7004, not 704 (heard on a phone)',
+          () => expect(parser.parse('seventy zero four'), equals('7004')));
+      test('twenty oh five → 2005',
+          () => expect(parser.parse('twenty oh five'), equals('2005')));
       test('ninety nine zero one → 9901',
           () => expect(parser.parse('ninety nine zero one'), equals('9901')));
     });
@@ -190,6 +194,8 @@ void main() {
     // ── Leading zeros preserved ─────────────────────────────────────────────
 
     group('parse — leading zeros preserved', () {
+      test('o nine → 09 (heard on a phone)',
+          () => expect(parser.parse('o nine'), equals('09')));
       test('zero one → 01',
           () => expect(parser.parse('zero one'), equals('01')));
       test('zero zero zero one → 0001',
@@ -269,6 +275,10 @@ void main() {
     group('parse — possessive stripping', () {
       test("eleven's → eleven (11)",
           () => expect(parser.parse("eleven's"), equals('11')));
+      test('ordinals read as numbers: "cyro seventh" → 07 (heard on a phone)',
+          () => expect(parser.parse('cyro seventh'), equals('07')));
+      test('"four fifth six" → 456',
+          () => expect(parser.parse('four fifth six'), equals('456')));
       test("zero's one → 01",
           () => expect(parser.parse("zero's one"), equals('01')));
       test("one's two's three → 123",
