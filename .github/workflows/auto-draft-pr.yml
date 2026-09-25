@@ -5,6 +5,8 @@ on:
     branches-ignore:
       - main
       - dev
+      # Release branches go to main by hand; a draft PR to dev is noise.
+      - 'release/**'
   pull_request:
     types: [closed]
     branches: [dev]
