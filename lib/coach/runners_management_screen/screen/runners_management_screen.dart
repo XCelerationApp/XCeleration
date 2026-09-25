@@ -125,10 +125,16 @@ class _TeamsAndRunnersManagementWidgetState
             children: [
               if (widget.onBack != null)
                 createBackArrow(context, onBack: widget.onBack),
-              Text(
-                'Runners',
-                style: AppTypography.titleMedium.copyWith(
-                  color: AppColors.darkColor,
+              // Gives way to the buttons in a narrow sheet, which overflowed
+              // by a few pixels.
+              Flexible(
+                child: Text(
+                  'Runners',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.titleMedium.copyWith(
+                    color: AppColors.darkColor,
+                  ),
                 ),
               ),
               if (controller.totalRunnerCount > 0) ...[
@@ -154,6 +160,8 @@ class _TeamsAndRunnersManagementWidgetState
                 IconButton(
                   onPressed: () => _controller.exportRoster(context),
                   icon: const Icon(Icons.ios_share),
+                  // Compact, so "Runners" fits beside it in a sheet.
+                  visualDensity: VisualDensity.compact,
                   color: AppColors.mediumColor,
                   tooltip: 'Export runners to a spreadsheet',
                 ),
