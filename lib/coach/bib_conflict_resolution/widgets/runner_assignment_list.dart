@@ -117,6 +117,11 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
           controller: _search,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
+          // Names are searched loosely already; iOS "correcting" a typed
+          // name ("avry" to "Avery") changed the search under the coach,
+          // and its suggestion bubble covered the first result.
+          autocorrect: false,
+          enableSuggestions: false,
           textInputAction: TextInputAction.search,
           onChanged: (_) => setState(() => _selectedRunner = null),
           decoration: InputDecoration(

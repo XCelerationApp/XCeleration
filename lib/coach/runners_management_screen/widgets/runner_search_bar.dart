@@ -80,6 +80,9 @@ class _SearchField extends StatelessWidget {
             child: TextField(
               controller: state.widget.controller,
               onChanged: (_) => state.widget.onSearchChanged(),
+              // Names and bibs, not words to correct.
+              autocorrect: false,
+              enableSuggestions: false,
               style: AppTypography.smallBodyRegular.copyWith(
                 color: AppColors.darkColor,
               ),
