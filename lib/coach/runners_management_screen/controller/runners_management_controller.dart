@@ -552,7 +552,7 @@ class RunnersManagementController with ChangeNotifier {
       BuildContext context, Team team) async {
     await sheet(
       context: context,
-      title: 'Add Runner to ${team.abbreviation ?? team.name ?? "Team"}',
+      title: 'Add Runner to ${team.name ?? team.abbreviation ?? "Team"}',
       body: AddRunnersToTeamSheet(
         team: team,
         raceId: masterRace.raceId,

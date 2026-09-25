@@ -38,6 +38,8 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
   int? _selectedGrade;
   String? _bibError;
   bool _isSubmitting = false;
+  bool _triedSubmit = false;
+  bool _gradeMissing = false;
 
   Timer? _bibDebounce;
 
@@ -68,19 +70,14 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedGrade == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please select a grade',
-            style: AppTypography.smallBodyRegular,
-          ),
-          backgroundColor: AppColors.redColor,
-        ),
-      );
-      return;
-    }
+    // Every problem at once. The grade used to be checked in a snackbar
+    // that appeared behind this sheet, so Add Runner seemed to do nothing.
+    final fieldsOk = _formKey.currentState!.validate();
+    setState(() {
+      _triedSubmit = true;
+      _gradeMissing = _selectedGrade == null;
+    });
+    if (!fieldsOk || _gradeMissing) return;
     if (_bibError != null) return;
 
     setState(() => _isSubmitting = true);
@@ -104,6 +101,11 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
+      // After a failed Add, errors clear as each field is fixed rather than
+      // staying until the next tap.
+      autovalidateMode: _triedSubmit
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -124,8 +126,21 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
           const SizedBox(height: AppSpacing.xs),
           _GradeSelector(
             selected: _selectedGrade,
-            onSelected: (grade) => setState(() => _selectedGrade = grade),
+            onSelected: (grade) => setState(() {
+              _selectedGrade = grade;
+              _gradeMissing = false;
+            }),
           ),
+          if (_gradeMissing)
+            Padding(
+              padding: const EdgeInsets.only(
+                  top: AppSpacing.xs, left: AppSpacing.md),
+              child: Text(
+                'Please pick a grade',
+                style: AppTypography.caption
+                    .copyWith(color: AppColors.redColor),
+              ),
+            ),
           const SizedBox(height: AppSpacing.xl),
           _SubmitButton(
             isSubmitting: _isSubmitting,
