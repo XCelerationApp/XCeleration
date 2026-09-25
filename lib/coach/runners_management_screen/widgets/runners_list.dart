@@ -312,19 +312,24 @@ class _EmptyState extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.lg),
           Text(
-            hasSearch
-                ? 'No teams or runners found'
-                : 'No Teams or Runners Added',
+            hasSearch ? 'No runners found' : 'No teams yet',
             style: AppTypography.titleSemibold.copyWith(
               color: AppColors.mediumColor,
             ),
           ),
-          if (hasSearch) ...[
+          if (hasSearch || !controller.isViewMode) ...[
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              'Try adjusting your search',
-              style: AppTypography.bodyRegular.copyWith(
-                color: AppColors.mediumColor,
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+              child: Text(
+                hasSearch
+                    ? 'Try a name, bib or team'
+                    : 'Tap Add Team to import a spreadsheet, bring a team '
+                        'from an earlier race, or make one.',
+                textAlign: TextAlign.center,
+                style: AppTypography.bodyRegular.copyWith(
+                  color: AppColors.mediumColor,
+                ),
               ),
             ),
           ],

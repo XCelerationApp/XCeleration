@@ -119,43 +119,11 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('filterRaceRunners', () {
-      test('calls searchRaceRunners with all for default searchAttribute', () async {
+      test('searches every attribute at once', () async {
         controller.filterRaceRunners('alice');
         await Future.delayed(Duration.zero);
 
         verify(mockMasterRace.searchRaceRunners('alice', 'all')).called(greaterThanOrEqualTo(1));
-      });
-
-      test('maps Bib Number searchAttribute to bib', () async {
-        controller.searchAttribute = 'Bib Number';
-        controller.filterRaceRunners('101');
-        await Future.delayed(Duration.zero);
-
-        verify(mockMasterRace.searchRaceRunners('101', 'bib')).called(greaterThanOrEqualTo(1));
-      });
-
-      test('maps Name searchAttribute to name', () async {
-        controller.searchAttribute = 'Name';
-        controller.filterRaceRunners('alice');
-        await Future.delayed(Duration.zero);
-
-        verify(mockMasterRace.searchRaceRunners('alice', 'name')).called(greaterThanOrEqualTo(1));
-      });
-
-      test('maps Grade searchAttribute to grade', () async {
-        controller.searchAttribute = 'Grade';
-        controller.filterRaceRunners('10');
-        await Future.delayed(Duration.zero);
-
-        verify(mockMasterRace.searchRaceRunners('10', 'grade')).called(greaterThanOrEqualTo(1));
-      });
-
-      test('maps Team searchAttribute to team', () async {
-        controller.searchAttribute = 'Team';
-        controller.filterRaceRunners('Team A');
-        await Future.delayed(Duration.zero);
-
-        verify(mockMasterRace.searchRaceRunners('Team A', 'team')).called(greaterThanOrEqualTo(1));
       });
     });
 

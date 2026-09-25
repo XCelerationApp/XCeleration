@@ -52,7 +52,6 @@ class RunnersManagementController with ChangeNotifier {
   // UI state
   bool isLoading = true;
   int totalRunnerCount = 0;
-  String searchAttribute = 'All';
   final TextEditingController searchController = TextEditingController();
 
   // Store initial state to compare with final state
@@ -130,31 +129,9 @@ class RunnersManagementController with ChangeNotifier {
   Future<Map<Team, List<RaceRunner>>> get filteredSearchResults =>
       masterRace.filteredSearchResults;
 
-  void setSearchAttribute(String value) {
-    searchAttribute = value;
-    notifyListeners();
-    filterRaceRunners(searchController.text.trim());
-  }
-
+  /// Searches names, bibs, grades and teams together.
   Future<void> filterRaceRunners(String query) async {
-    final searchAttr = (() {
-      switch (searchAttribute) {
-        case 'All':
-          return 'all';
-        case 'Bib Number':
-          return 'bib';
-        case 'Name':
-          return 'name';
-        case 'Grade':
-          return 'grade';
-        case 'Team':
-          return 'team';
-        default:
-          return 'all';
-      }
-    })();
-
-    await masterRace.searchRaceRunners(query, searchAttr);
+    await masterRace.searchRaceRunners(query, 'all');
     notifyListeners();
   }
 
