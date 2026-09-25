@@ -14,7 +14,6 @@ class RaceFormState extends ChangeNotifier {
   final TextEditingController dateController = TextEditingController();
   final TextEditingController distanceController = TextEditingController();
   final TextEditingController unitController = TextEditingController();
-  final TextEditingController userLocationController = TextEditingController();
 
   // Validation errors per field
   final Map<RaceField, String?> _errors = {};
@@ -238,7 +237,6 @@ class RaceFormState extends ChangeNotifier {
     dateController.dispose();
     distanceController.dispose();
     unitController.dispose();
-    userLocationController.dispose();
     super.dispose();
   }
 }

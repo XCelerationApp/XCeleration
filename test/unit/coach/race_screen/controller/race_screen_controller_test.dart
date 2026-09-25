@@ -4,7 +4,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/flows/controller/flow_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
-import 'package:xceleration/coach/race_screen/controller/race_geo_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
 import 'package:xceleration/coach/race_screen/services/race_service.dart';
 import 'package:xceleration/coach/races_screen/controller/i_parent_race_controller.dart';
@@ -23,7 +22,6 @@ import 'package:xceleration/shared/models/database/race.dart';
   IDatePickerService,
   IEventBus,
   IDeviceConnectionFactory,
-  RaceGeoController,
 ])
 import 'race_screen_controller_test.mocks.dart';
 
@@ -54,7 +52,6 @@ void main() {
   late MockIDatePickerService mockDatePickerService;
   late MockIEventBus mockEventBus;
   late MockIDeviceConnectionFactory mockDevicesFactory;
-  late MockRaceGeoController mockGeoController;
   late RaceScreenController controller;
 
   // A fully-populated test race (flowState != FLOW_SETUP avoids the
@@ -76,7 +73,6 @@ void main() {
     mockDatePickerService = MockIDatePickerService();
     mockEventBus = MockIEventBus();
     mockDevicesFactory = MockIDeviceConnectionFactory();
-    mockGeoController = MockRaceGeoController();
 
     // Common stubs required on almost every code path
     when(mockMasterRace.raceId).thenReturn(1);
@@ -92,7 +88,6 @@ void main() {
     when(mockFlowController.markCurrentFlowCompleted(any))
         .thenAnswer((_) async {});
     when(mockFlowController.beginNextFlow(any)).thenAnswer((_) async {});
-    when(mockGeoController.isLocationButtonVisible).thenReturn(true);
 
     controller = RaceScreenController(
       masterRace: mockMasterRace,
@@ -101,7 +96,6 @@ void main() {
       flowController: mockFlowController,
       eventBus: mockEventBus,
       devicesFactory: mockDevicesFactory,
-      geoController: mockGeoController,
       raceService: RaceService(),
     );
   });
@@ -762,28 +756,8 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    group('getCurrentLocation', () {
-      testWidgets('delegates to RaceGeoController.getCurrentLocation',
-          (tester) async {
-        final ctx = await _buildContext(tester);
-        when(mockGeoController.getCurrentLocation(any))
-            .thenAnswer((_) async {});
-
-        await controller.getCurrentLocation(ctx);
-
-        verify(mockGeoController.getCurrentLocation(ctx)).called(1);
-      });
-    });
 
     // -------------------------------------------------------------------------
-    group('isLocationButtonVisible', () {
-      test('delegates to RaceGeoController.isLocationButtonVisible', () {
-        when(mockGeoController.isLocationButtonVisible).thenReturn(false);
-
-        expect(controller.isLocationButtonVisible, isFalse);
-        verify(mockGeoController.isLocationButtonVisible).called(1);
-      });
-    });
 
     // -------------------------------------------------------------------------
     group('_masterRaceListener', () {
@@ -803,8 +777,7 @@ void main() {
           flowController: mockFlowController,
           eventBus: mockEventBus,
           devicesFactory: mockDevicesFactory,
-          geoController: mockGeoController,
-          raceService: RaceService(),
+              raceService: RaceService(),
         );
       });
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'race_form_state.dart';
-import 'race_geo_controller.dart';
 import '../../../shared/models/database/race_runner.dart';
 import '../../../shared/models/database/team.dart';
 import '../../../core/utils/enums.dart' hide EventTypes;
@@ -15,7 +14,6 @@ import 'package:intl/intl.dart';
 import '../../races_screen/controller/i_parent_race_controller.dart';
 import '../services/i_race_service.dart';
 import '../../../core/services/service_locator.dart';
-import '../../../core/services/geo_location_service.dart';
 import '../../../core/services/date_picker_service.dart';
 import '../../../core/components/dialog_utils.dart';
 
@@ -112,17 +110,13 @@ class RaceScreenController with ChangeNotifier {
   final IDeviceConnectionFactory _devicesFactory;
   late final IRaceService _raceService;
 
-  late final RaceGeoController _geoController;
-
   RaceScreenController({
     required this.masterRace,
     required this.parentController,
-    IGeoLocationService? geoLocationService,
     IDatePickerService? datePickerService,
     MasterFlowController? flowController,
     IEventBus? eventBus,
     IDeviceConnectionFactory? devicesFactory,
-    RaceGeoController? geoController,
     IRaceService? raceService,
   })  : _datePickerService = datePickerService ?? DatePickerService(),
         _eventBus = eventBus ?? EventBus.instance,
@@ -130,12 +124,6 @@ class RaceScreenController with ChangeNotifier {
     _raceService = raceService ?? ServiceLocator.get<IRaceService>();
     this.flowController =
         flowController ?? MasterFlowController(raceController: this);
-    _geoController = geoController ??
-        RaceGeoController(
-          geoLocationService: geoLocationService ?? GeoLocationService(),
-          form: form,
-        );
-    _geoController.addListener(notifyListeners);
     form.addListener(notifyListeners);
     _masterRaceListener = () {
       if (_isRefreshing || _isInitialLoading) return;
@@ -147,8 +135,6 @@ class RaceScreenController with ChangeNotifier {
   @override
   void dispose() {
     masterRace.removeListener(_masterRaceListener);
-    _geoController.removeListener(notifyListeners);
-    _geoController.dispose();
     form.removeListener(notifyListeners);
     form.dispose();
     super.dispose();
@@ -440,15 +426,4 @@ class RaceScreenController with ChangeNotifier {
       data: data,
     );
   }
-
-  // ---------------------------------------------------------------------------
-  // Geolocation — delegates to RaceGeoController
-
-  bool get isLocationButtonVisible => _geoController.isLocationButtonVisible;
-
-  Future<void> getCurrentLocation(BuildContext context) =>
-      _geoController.getCurrentLocation(context);
-
-  void updateLocationButtonVisibility() =>
-      _geoController.updateLocationButtonVisibility();
 }

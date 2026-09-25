@@ -242,9 +242,9 @@ class MockRaceScreenController extends _i1.Mock
           as _i7.IParentRaceController);
 
   @override
-  bool get isLocationButtonVisible =>
+  bool get shouldAutosave =>
       (super.noSuchMethod(
-            Invocation.getter(#isLocationButtonVisible),
+            Invocation.getter(#shouldAutosave),
             returnValue: false,
           )
           as bool);
@@ -471,21 +471,6 @@ class MockRaceScreenController extends _i1.Mock
             ),
           )
           as _i8.DevicesManager);
-
-  @override
-  _i14.Future<void> getCurrentLocation(_i2.BuildContext? context) =>
-      (super.noSuchMethod(
-            Invocation.method(#getCurrentLocation, [context]),
-            returnValue: _i14.Future<void>.value(),
-            returnValueForMissingStub: _i14.Future<void>.value(),
-          )
-          as _i14.Future<void>);
-
-  @override
-  void updateLocationButtonVisibility() => super.noSuchMethod(
-    Invocation.method(#updateLocationButtonVisibility, []),
-    returnValueForMissingStub: null,
-  );
 
   @override
   void addListener(_i16.VoidCallback? listener) => super.noSuchMethod(

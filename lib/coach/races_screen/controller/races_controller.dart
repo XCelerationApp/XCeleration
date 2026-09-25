@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/auth_service.dart';
-import 'package:xceleration/core/utils/logger.dart';
-import 'package:geolocator/geolocator.dart' show LocationPermission;
 import 'package:xceleration/coach/races_screen/widgets/race_creation_sheet.dart';
 import 'package:xceleration/core/services/color_picker_dialog_service.dart';
 import 'package:xceleration/core/services/date_picker_service.dart';
-import 'package:xceleration/core/services/geo_location_service.dart';
 import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart' show sheet;
@@ -35,7 +32,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   final IRacesService _racesService;
   final IAuthService _authService;
   final IEventBus _eventBus;
-  final IGeoLocationService _geoLocationService;
   final IPostFrameCallbackScheduler _postFrameCallbackScheduler;
   final IDatePickerService _datePickerService;
   final IColorPickerDialogService _colorPickerDialogService;
@@ -54,8 +50,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   TextEditingController get dateController => form.dateController;
   TextEditingController get distanceController => form.distanceController;
   TextEditingController get unitController => form.unitController;
-  TextEditingController get userLocationController =>
-      form.userLocationController;
   List<TextEditingController> get teamControllers => form.teamControllers;
   List<Color> get teamColors => form.teamColors;
 
@@ -65,8 +59,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   ValueNotifier<String?> get dateErrorNotifier => form.dateErrorNotifier;
   ValueNotifier<String?> get distanceErrorNotifier =>
       form.distanceErrorNotifier;
-  ValueNotifier<bool> get locationButtonVisibleNotifier =>
-      form.locationButtonVisibleNotifier;
 
   String? get nameError => form.nameError;
   set nameError(String? v) => form.nameError = v;
@@ -76,8 +68,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   set dateError(String? v) => form.dateError = v;
   String? get distanceError => form.distanceError;
   set distanceError(String? v) => form.distanceError = v;
-  bool get isLocationButtonVisible => form.isLocationButtonVisible;
-  set isLocationButtonVisible(bool v) => form.isLocationButtonVisible = v;
 
   // teamsError intentionally remains a plain String? field (not ValueNotifier)
   // because it is consumed via setSheetState in competing_teams_field.dart,
@@ -91,7 +81,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     required IRacesService racesService,
     required IAuthService authService,
     required IEventBus eventBus,
-    required IGeoLocationService geoLocationService,
     required IPostFrameCallbackScheduler postFrameCallbackScheduler,
     required this.tutorialManager,
     IDatePickerService? datePickerService,
@@ -101,7 +90,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   })  : _racesService = racesService,
         _authService = authService,
         _eventBus = eventBus,
-        _geoLocationService = geoLocationService,
         _postFrameCallbackScheduler = postFrameCallbackScheduler,
         _syncStream = syncStream,
         _datePickerService = datePickerService ?? DatePickerService(),
@@ -138,9 +126,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
       'create_race_button_tutorial'
     ]);
   }
-
-  void updateLocationButtonVisibility() =>
-      form.updateLocationButtonVisibility();
 
   // Method to add a new TextEditingController
   void addTeamField() {
@@ -221,62 +206,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   // For simplified creation, we only validate the race name
   bool validateRaceCreation() => form.validateRaceCreation();
 
-  Future<void> getCurrentLocation(BuildContext context) async {
-    try {
-      LocationPermission permission =
-          await _geoLocationService.checkPermission();
-
-      // Check if context is still mounted after async operation
-      if (!context.mounted) return;
-
-      if (permission == LocationPermission.denied) {
-        permission = await _geoLocationService.requestPermission();
-      }
-
-      // Check if context is still mounted after async operation
-      if (!context.mounted) return;
-
-      if (permission == LocationPermission.deniedForever) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Location permissions are permanently denied');
-        return;
-      }
-
-      if (permission == LocationPermission.denied) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Location permissions are denied');
-        return;
-      }
-
-      bool locationEnabled =
-          await _geoLocationService.isLocationServiceEnabled();
-      if (!context.mounted) return; // Check if context is still valid
-
-      if (!locationEnabled) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Location services are disabled');
-        return;
-      }
-
-      final position = await _geoLocationService.getCurrentPosition();
-      if (!context.mounted) return; // Check if context is still valid
-      final placemarks = await _geoLocationService.placemarkFromCoordinates(
-          position.latitude, position.longitude);
-      if (!context.mounted) return; // Check if context is still valid
-
-      final placemark = placemarks.first;
-      form.locationController.text =
-          '${placemark.subThoroughfare} ${placemark.thoroughfare}, ${placemark.locality}, ${placemark.administrativeArea} ${placemark.postalCode}';
-      form.userLocationController.text = form.locationController.text;
-      form.locationErrorNotifier.value = null;
-      updateLocationButtonVisibility();
-    } catch (e) {
-      Logger.d('Error getting location: $e');
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Could not get location');
-      }
-    }
-  }
 
   Future<void> selectDate(BuildContext context) async {
     final DateTime? picked = await _datePickerService.pickDate(context);
