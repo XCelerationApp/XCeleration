@@ -37,6 +37,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   late BibNumberController _controller;
   late final VoiceEntryController _voice;
 
+  /// Saves the bib being typed when the app goes to the background. Typed
+  /// bibs are saved as their row loses focus, so a bib half entered when the
+  /// phone was locked or the app swiped away was lost.
+  late final AppLifecycleListener _lifecycle;
+
   @override
   void initState() {
     super.initState();
@@ -48,6 +53,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
       isKnownBib: (bib) => _controller.getRunnerByBib(bib) != null,
     );
     _voice.restore();
+    _lifecycle = AppLifecycleListener(onInactive: _controller.saveNow);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       InstructionsBanner.showInstructionsSheet(context, Role.bibRecorder).then((_) {
@@ -141,6 +147,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   @override
   void dispose() {
     _controller.removeListener(_onControllerChanged);
+    _lifecycle.dispose();
     _voice.dispose();
     ScreenAwake.set(false);
     _controller.dispose();

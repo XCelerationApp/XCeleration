@@ -709,6 +709,22 @@ void main() {
         controller.dispose();
       });
 
+      test('a bib still being typed is saved by saveNow', () async {
+        // The screen calls this as the app goes to the background.
+        final controller = running();
+        await controller.addBib();
+        controller.handleBibNumber('77', index: 0);
+
+        await controller.saveNow();
+
+        final saved = verify(mockStorage.saveBibRecords(testRace.raceId,
+                captureAny))
+            .captured
+            .last as List;
+        expect(saved.map((r) => r.bibNumber), ['77']);
+        controller.dispose();
+      });
+
       test('are not added once the race is stopped', () async {
         final controller = running();
         controller.setRaceStopped(true);

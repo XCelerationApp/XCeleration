@@ -611,6 +611,9 @@ class BibNumberController extends BibNumberDataController {
     await saveBibOrder();
   }
 
+  /// Saves the bib list as it stands, including a bib still being typed.
+  Future<void> saveNow() => saveBibOrder();
+
   /// Takes back the last bib, for a voice entry heard wrong.
   Future<void> removeLastBib() async {
     if (bibRecords.isEmpty) return;
