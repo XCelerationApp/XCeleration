@@ -215,6 +215,9 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                       ),
                       errorText:
                           hasError ? widget.record.validationError : null,
+                      // The reason, such as "Must be after 15:28.46",
+                      // needs two lines in the narrow time column.
+                      errorMaxLines: 2,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 8, // Reduced horizontal padding
                         vertical: 0, // Increased vertical padding

@@ -399,7 +399,7 @@ class MergeConflictsController with ChangeNotifier {
     if (newValue.isNotEmpty &&
         newValue != 'TBD' &&
         TimeFormatter.loadDurationFromString(newValue) == null) {
-      return 'Invalid Time';
+      return 'Type it like 15:20.26';
     }
     final contextTimes =
         uiChunk.records.map((r) => r.timeController.text).toList();
@@ -412,7 +412,7 @@ class MergeConflictsController with ChangeNotifier {
     final entered = TimeFormatter.loadDurationFromString(newValue);
     final previous = _previousFinishTime(uiChunk.chunkId);
     if (entered != null && previous != null && entered <= previous) {
-      return 'Invalid Time';
+      return 'Must be after ${TimeFormatter.formatDuration(previous)}';
     }
     return null;
   }
