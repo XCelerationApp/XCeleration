@@ -20,6 +20,11 @@ void main() {
         expect(parser.parse('   '), isNull);
       });
 
+      test('returns null for "a" alone, which is noise, not bib 1', () {
+        // Heard from a held button with nothing said.
+        expect(parser.parse('a'), isNull);
+      });
+
       test('returns null for "and" alone', () {
         expect(parser.parse('and'), isNull);
       });
@@ -286,6 +291,13 @@ void main() {
     // ── Fuzzy zero normalisation (safe substitutions) ───────────────────────
 
     group('parse — fuzzy zero normalisation', () {
+      // "-ro" words a letter or two off zero
+      test('cyro → zero (heard on a phone)',
+          () => expect(parser.parse('cyro one two seven'), equals('0127')));
+      test('hero → zero',
+          () => expect(parser.parse('five hero six'), equals('506')));
+      test('not a longer "-ro" word such as "metro"',
+          () => expect(parser.parse('metro one'), isNull));
       // z-heuristic (short = single zero)
       test('zer → zero',
           () => expect(parser.parse('eighteen zer zero'), equals('1800')));

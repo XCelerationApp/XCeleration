@@ -94,6 +94,11 @@ class VoiceEntryController extends ChangeNotifier {
   bool _missed = false;
   bool get missed => _missed;
 
+  /// How long the mic was held. A tap too short to say a bib in that hears
+  /// nothing was a slip of the thumb, so it is let go without a buzz.
+  final Stopwatch _held = Stopwatch();
+  static const _slip = Duration(milliseconds: 400);
+
   /// Turns voice on if the volunteer chose it last time, and otherwise
   /// fetches the speech model in the background so it is ready if they do.
   Future<void> restore() async {
@@ -182,6 +187,9 @@ class VoiceEntryController extends ChangeNotifier {
     // A firm tap as the mic opens and a lighter one as it closes, so the
     // volunteer feels both without looking.
     _haptics.mediumImpact();
+    _held
+      ..reset()
+      ..start();
     _set(VoiceEntryState.listening);
     await _service?.start();
   }
@@ -190,6 +198,7 @@ class VoiceEntryController extends ChangeNotifier {
   Future<void> stopListening() async {
     if (_state != VoiceEntryState.listening) return;
     _haptics.selectionClick();
+    _held.stop();
     _set(VoiceEntryState.processing);
     await _service?.stop();
   }
@@ -197,8 +206,9 @@ class VoiceEntryController extends ChangeNotifier {
   Future<void> _onBib(String? bib) async {
     if (_disposed) return;
     if (bib == null) {
-      _missed = true;
-      _haptics.vibrate();
+      final slip = _held.elapsed < _slip;
+      _missed = !slip;
+      if (!slip) _haptics.vibrate();
     } else {
       _missed = false;
       _lastHeard = bib;

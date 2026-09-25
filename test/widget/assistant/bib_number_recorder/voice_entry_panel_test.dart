@@ -133,6 +133,9 @@ void main() {
     final finger =
         await tester.startGesture(tester.getCenter(find.text('Hold and Say Bib')));
     await tester.pump();
+    // Held long enough to have said something (a quick slip is let go).
+    await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 450)));
     await finger.up();
     await tester.pumpAndSettle();
 

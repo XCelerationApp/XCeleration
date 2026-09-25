@@ -49,6 +49,15 @@ String? _garbledZeroReplacement(String word) {
   if (_wordValues.containsKey(word)) return null;
   if (word.length < 2) return null;
 
+  // Heard as a short word ending "-ro" and a letter or two off "zero":
+  // "cyro", "hero", "cero". Longer words ("metro") are left alone.
+  if (word.length >= 3 &&
+      word.length <= 4 &&
+      word.endsWith('ro') &&
+      _editDistance(word, 'zero') <= 2) {
+    return 'zero';
+  }
+
   final hasZ = word.contains('z');
   final hasG = word.contains('g');
   final sCount = 's'.allMatches(word).length;
@@ -155,6 +164,10 @@ class BibNumberParser {
       // Logger.d('[BibParser] No words remain → null');
       return null;
     }
+
+    // "a" alone is what the model makes of a breath or background noise,
+    // not a bib 1; it counts as one only in "a hundred" or "a thousand".
+    if (words.length == 1 && words.single == 'a') return null;
 
     // Check for unrecognised words before choosing strategy
     final unrecognised = words

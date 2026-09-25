@@ -168,12 +168,29 @@ void main() {
     c.dispose();
   });
 
+  test('lets a quick slip of the thumb go without a buzz', () async {
+    final c = build();
+    await c.setEnabled(true);
+
+    voice.nextHeard = null;
+    await c.startListening();
+    await c.stopListening();
+    await Future<void>.delayed(Duration.zero);
+
+    expect(added, isEmpty);
+    expect(c.missed, isFalse, reason: 'no "Didn\'t catch that"');
+    expect(haptics.buzzes, 0);
+    c.dispose();
+  });
+
   test('buzzes and adds nothing when no bib can be made out', () async {
     final c = build();
     await c.setEnabled(true);
 
     voice.nextHeard = null;
     await c.startListening();
+    // Held long enough to have said something.
+    await Future<void>.delayed(const Duration(milliseconds: 450));
     await c.stopListening();
     await Future<void>.delayed(Duration.zero);
 
