@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Selector, ChangeNotifierProvider
 import 'package:xceleration/core/services/i_sync_service.dart';
@@ -125,46 +124,35 @@ class _TeamsAndRunnersManagementWidgetState
             children: [
               if (widget.onBack != null)
                 createBackArrow(context, onBack: widget.onBack),
-              // Gives way to the buttons in a narrow sheet, which overflowed
-              // by a few pixels.
-              Flexible(
-                child: Text(
-                  'Runners',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.titleMedium.copyWith(
-                    color: AppColors.darkColor,
-                  ),
+              // The title and count take all the room Add Team leaves. As a
+              // Flexible beside a Spacer the title only got half of it, and
+              // "Runners" was cut to "Runn..." once there was a count.
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Runners',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.titleMedium.copyWith(
+                          color: AppColors.darkColor,
+                        ),
+                      ),
+                    ),
+                    if (controller.totalRunnerCount > 0) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        '${controller.totalRunnerCount}',
+                        style: AppTypography.captionBold.copyWith(
+                          color: AppColors.mediumColor,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              if (controller.totalRunnerCount > 0) ...[
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  '${controller.totalRunnerCount}',
-                  style: AppTypography.captionBold.copyWith(
-                    color: AppColors.mediumColor,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              // Test tools: in debug and profile builds, never in the store build.
-              if (!kReleaseMode &&
-                  !controller.isViewMode &&
-                  controller.totalRunnerCount == 0)
-                IconButton(
-                  onPressed: _controller.addSampleRoster,
-                  icon: const Icon(Icons.science_outlined),
-                  tooltip: 'Add sample roster (debug)',
-                ),
-              if (controller.totalRunnerCount > 0)
-                IconButton(
-                  onPressed: () => _controller.exportRoster(context),
-                  icon: const Icon(Icons.ios_share),
-                  // Compact, so "Runners" fits beside it in a sheet.
-                  visualDensity: VisualDensity.compact,
-                  color: AppColors.mediumColor,
-                  tooltip: 'Export runners to a spreadsheet',
-                ),
+              const SizedBox(width: AppSpacing.sm),
               if (!controller.isViewMode)
                 _AddTeamButton(
                   onTap: () =>

@@ -56,21 +56,21 @@ class TeamHeaderTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            // Team name + runner count
+            // Team name over its runner count, so a name like "Archie
+            // Williams - Girls" is not cut short beside the + Runner chip.
             Expanded(
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Flexible(
-                    child: Text(
-                      team.name ?? '',
-                      style: AppTypography.smallBodySemibold.copyWith(
-                        color: teamColor,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+                  Text(
+                    team.name ?? '',
+                    style: AppTypography.smallBodySemibold.copyWith(
+                      color: teamColor,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     '$runnerCount ${runnerCount == 1 ? 'runner' : 'runners'}',
                     style: AppTypography.smallCaption.copyWith(

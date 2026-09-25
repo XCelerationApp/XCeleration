@@ -26,10 +26,7 @@ import '../widgets/add_team_choice_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
 import '../widgets/recent_spreadsheets_sheet.dart';
 import '../widgets/spreadsheet_load_sheet.dart';
-import '../services/roster_export.dart';
 import '../services/roster_importer.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:xceleration/core/result.dart';
 
 class RunnersManagementController with ChangeNotifier {
   final VoidCallback? onBack;
@@ -458,53 +455,6 @@ class RunnersManagementController with ChangeNotifier {
     }
   }
 
-  /// Debug builds only: adds three teams of seven runners, so the race flow
-  /// can be tried without typing a roster. Bibs start at 901 and skip any
-  /// already taken.
-  Future<void> addSampleRoster() async {
-    const teams = [
-      ('Sample Eagles', 'EAG', 0xFF1565C0),
-      ('Sample Hawks', 'HAW', 0xFFC62828),
-      ('Sample Owls', 'OWL', 0xFF2E7D32),
-    ];
-    const names = [
-      'Avery', 'Blake', 'Casey', 'Devon', 'Emery', 'Finley', 'Gray', //
-      'Harper', 'Indigo', 'Jordan', 'Kai', 'Logan', 'Morgan', 'Nico',
-      'Oakley', 'Parker', 'Quinn', 'Riley', 'Sage', 'Taylor', 'Umi',
-    ];
-    var bib = 900;
-    var n = 0;
-    for (var (name, abbreviation, color) in teams) {
-      // Team names are unique across the app, not just this race, so find a
-      // name no team anywhere has.
-      final base = name;
-      for (var k = 2; await _teams.getTeamByName(name) != null; k++) {
-        name = '$base $k';
-      }
-      await createTeam(
-          Team(name: name, abbreviation: abbreviation, color: Color(color)));
-      final team = await masterRace.getTeamByName(name);
-      if (team?.teamId == null) continue;
-      for (var i = 0; i < 7; i++) {
-        do {
-          bib++;
-        } while (await _runners.getRunnerByBib('$bib') != null);
-        final runnerId = await masterRace.createRunner(Runner(
-          name: '${names[n++ % names.length]} ${base.split(' ').last}',
-          bibNumber: '$bib',
-          grade: 9 + i % 4,
-        ));
-        await masterRace.addRunnerToTeam(team!.teamId!, runnerId);
-        await masterRace.addRaceParticipant(RaceParticipant(
-          raceId: masterRace.raceId,
-          runnerId: runnerId,
-          teamId: team.teamId!,
-        ));
-      }
-    }
-    await forceRefresh();
-  }
-
   Future<void> showAddRunnerToTeam(BuildContext context, Team team) async {
     await showRaceRunnerSheet(context: context, team: team);
   }
@@ -576,30 +526,6 @@ class RunnersManagementController with ChangeNotifier {
     );
     if (createdTeam is! Team) return null;
     return await _teams.getTeamByName(createdTeam.name ?? '');
-  }
-
-  /// Shares this race's runners as a spreadsheet the import can read back.
-  Future<void> exportRoster(BuildContext context) async {
-    final runners = await masterRace.raceRunners;
-    if (!context.mounted) return;
-    if (runners.isEmpty) {
-      DialogUtils.showErrorDialog(context,
-          message: 'There are no runners to export yet.');
-      return;
-    }
-    final raceName = (await _races.getRace(masterRace.raceId))?.raceName;
-    final result = await RosterExport.writeCsv(raceName ?? 'Runners', runners);
-    switch (result) {
-      case Success(:final value):
-        await SharePlus.instance.share(ShareParams(
-          files: [value],
-          subject: '${raceName ?? 'Race'} runners',
-        ));
-      case Failure(:final error):
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context, message: error.userMessage);
-        }
-    }
   }
 
   Future<void> showCreateTeamSheet(BuildContext context) async {
