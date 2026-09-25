@@ -243,7 +243,13 @@ platform :ios do
       
       # Step 5.5: Configure manual signing for Runner target only
       UI.message("Configuring manual signing for Runner target...")
-      profile_name = "match AppStore #{ENV['BUNDLE_ID']}"
+      # The name match actually installed. It is usually "match AppStore
+      # <bundle id>", but when Apple still holds an old profile under that
+      # name (as after the certificate expired in 2026) match adds a number
+      # to the new one, and asking Xcode for the plain name failed the build.
+      profile_name = ENV["sigh_#{ENV['BUNDLE_ID']}_appstore_profile-name"] ||
+                     "match AppStore #{ENV['BUNDLE_ID']}"
+      UI.message("Using provisioning profile: #{profile_name}")
       
       # Configure ONLY the Runner target with manual signing
       # This avoids affecting Pod targets which should stay automatic
@@ -296,7 +302,7 @@ platform :ios do
           manageAppVersionAndBuildNumber: false,
           signingStyle: "manual",
           provisioningProfiles: {
-            ENV["BUNDLE_ID"] => "match AppStore #{ENV['BUNDLE_ID']}"
+            ENV["BUNDLE_ID"] => profile_name
           }
         }
         UI.message("Using manual signing for both archive and export with Match certificates")
