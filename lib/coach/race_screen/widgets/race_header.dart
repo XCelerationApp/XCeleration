@@ -95,7 +95,7 @@ class _RaceHeaderState extends State<RaceHeader> {
             ),
             // Once sent, a volunteer may still need it: a phone was missed,
             // swapped for a backup, or the roster changed.
-            if (stage.step == 3 && widget.controller.canEdit)
+            if (stage.step == 3 && widget.controller.canEditResults)
               Center(
                 child: TextButton.icon(
                   onPressed: () => widget.controller.sendRaceAgain(context),
