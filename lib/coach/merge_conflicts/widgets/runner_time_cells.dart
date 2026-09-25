@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../models/ui_record.dart';
@@ -135,8 +136,17 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode();
+    _focusNode = FocusNode()..addListener(_clearPlaceholder);
     _shouldAutofocus = widget.autofocus;
+  }
+
+  /// An empty slot holds the text "TBD". Clear it whenever the box gets
+  /// focus: after tapping +, the box is focused without a tap, and typing
+  /// used to add to it ("TBD15:20.26"), which could never be a valid time.
+  void _clearPlaceholder() {
+    if (_focusNode.hasFocus && widget.controller.text == 'TBD') {
+      widget.controller.clear();
+    }
   }
 
   @override
@@ -177,10 +187,25 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                     focusNode: _focusNode,
                     autofocus: _shouldAutofocus,
                     textAlign: TextAlign.center,
+                    // Digits, colons and points only: a time like 15:20.26.
+                    keyboardType: TextInputType.datetime,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9:.]')),
+                    ],
+                    autocorrect: false,
+                    enableSuggestions: false,
                     decoration: InputDecoration(
-                      hintText: 'Enter missing time',
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
+                      // Short enough to fit the time column.
+                      hintText: 'mm:ss.00',
+                      // Outlined even when not focused, so a time the coach
+                      // typed reads as editable, not as one the Timer
+                      // recorded.
+                      border: const OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: AppColors.mediumColor
+                                .withValues(alpha: 0.4)),
+                      ),
                       focusedBorder: const OutlineInputBorder(),
                       errorBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.red, width: 1),
@@ -236,14 +261,12 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                               ),
                             ),
                           ),
-                          Expanded(
-                            child: Center(
-                              child: CellActionIcon(
-                                icon: Icons.add_circle_outline,
-                                tooltip: 'Insert new time slot',
-                                onPressed: widget.onAddTime,
-                              ),
-                            ),
+                          // Only as wide as the icon: sharing the cell half
+                          // and half wrapped times onto two lines.
+                          CellActionIcon(
+                            icon: Icons.add_circle_outline,
+                            tooltip: 'The missing runner finished here',
+                            onPressed: widget.onAddTime,
                           ),
                         ],
                       ),

@@ -326,22 +326,22 @@ class MergeConflictsController with ChangeNotifier {
     final records = uiChunk.records;
     if (recordIndex < 0 || recordIndex >= records.length) return;
 
-    int? from;
-    for (int i = recordIndex + 1; i < records.length; i++) {
-      if (records[i].isUnfilled) {
-        from = i;
-        break;
+    // An empty slot first; failing that, one the coach has typed into: the
+    // time typed there belonged to the wrong runner.
+    int? nearest(bool Function(UIRecord) usable) {
+      for (int i = recordIndex + 1; i < records.length; i++) {
+        if (usable(records[i])) return i;
       }
-    }
-    if (from == null) {
       for (int i = recordIndex - 1; i >= 0; i--) {
-        if (records[i].isUnfilled) {
-          from = i;
-          break;
-        }
+        if (usable(records[i])) return i;
       }
+      return null;
     }
+
+    final from = nearest((r) => r.isUnfilled) ??
+        nearest((r) => r.isOriginallyTBD);
     if (from == null) return;
+    final clearsTypedTime = !records[from].isUnfilled;
     // Removing a slot before the target shifts the target left by one.
     final to = from < recordIndex ? recordIndex - 1 : recordIndex;
     _recordEdit(chunkId, 'moving the missing time');
@@ -355,7 +355,12 @@ class MergeConflictsController with ChangeNotifier {
               validationError: r.validationError,
             ))
         .toList();
-    contents.insert(to, contents.removeAt(from));
+    final moved = contents.removeAt(from);
+    contents.insert(
+        to,
+        clearsTypedTime
+            ? ConflictTime(time: 'TBD', isOriginallyTBD: moved.isOriginallyTBD)
+            : moved);
     for (int i = 0; i < records.length; i++) {
       final old = records[i];
       records[i] = UIRecord(
