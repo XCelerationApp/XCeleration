@@ -114,19 +114,34 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<void> removeTeamParticipantFromRace(
       TeamParticipant teamParticipant) async {
-    if (await getRaceTeamParticipant(teamParticipant) == null) {
-      throw Exception(
-          'Team ${teamParticipant.teamId} not in race ${teamParticipant.raceId}');
-    }
+    // No check that the team is still linked to the race: an earlier
+    // removal could unlink the team but leave its runners, and then this
+    // threw before reaching them, so the team could never be removed.
     final db = await _db;
     // Tombstone rather than delete: a removed row cannot be pushed, so the
     // server would keep the team in the race and put it back on the next pull.
-    await db.update(
-      'race_team_participation',
-      {'deleted_at': SyncTimestamp.now(), 'updated_at': SyncTimestamp.now(), 'is_dirty': 1},
-      where: 'race_id = ? AND team_id = ?',
-      whereArgs: [teamParticipant.raceId!, teamParticipant.teamId!],
-    );
+    // The team's runners leave the race with it: left in race_participants,
+    // they kept showing the team, so Delete team seemed to do nothing. They
+    // stay on the team itself, and in every other race.
+    await db.transaction((txn) async {
+      final removed = {
+        'deleted_at': SyncTimestamp.now(),
+        'updated_at': SyncTimestamp.now(),
+        'is_dirty': 1,
+      };
+      await txn.update(
+        'race_team_participation',
+        removed,
+        where: 'race_id = ? AND team_id = ?',
+        whereArgs: [teamParticipant.raceId!, teamParticipant.teamId!],
+      );
+      await txn.update(
+        'race_participants',
+        removed,
+        where: 'race_id = ? AND team_id = ? AND deleted_at IS NULL',
+        whereArgs: [teamParticipant.raceId!, teamParticipant.teamId!],
+      );
+    });
     _writeBus?.notify();
   }
 
