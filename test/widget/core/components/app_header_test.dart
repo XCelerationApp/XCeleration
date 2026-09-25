@@ -63,7 +63,7 @@ void main() {
     });
 
     group('onRoleTap callback', () {
-      testWidgets('fires when role button is tapped', (tester) async {
+      testWidgets('fires when the title is tapped', (tester) async {
         var tapped = false;
 
         await tester.pumpWidget(_wrap(
@@ -74,7 +74,7 @@ void main() {
           onSettingsTap: () {},
         ));
 
-        await tester.tap(find.byIcon(Icons.person_outline));
+        await tester.tap(find.text('Races'));
         expect(tapped, isTrue);
       });
     });
@@ -112,7 +112,7 @@ void main() {
     });
 
     group('icon buttons', () {
-      testWidgets('renders info, role, and settings icon buttons',
+      testWidgets('renders info and settings buttons, and no person button',
           (tester) async {
         await tester.pumpWidget(_wrap(
           title: 'Races',
@@ -123,7 +123,8 @@ void main() {
         ));
 
         expect(find.byIcon(Icons.info_outline), findsOneWidget);
-        expect(find.byIcon(Icons.person_outline), findsOneWidget);
+        // Roles switch from the title; a person icon read as an account page.
+        expect(find.byIcon(Icons.person_outline), findsNothing);
         expect(find.byIcon(Icons.settings_outlined), findsOneWidget);
       });
     });
