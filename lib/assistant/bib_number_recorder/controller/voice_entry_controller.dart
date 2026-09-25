@@ -135,6 +135,9 @@ class VoiceEntryController extends ChangeNotifier {
   Future<void> startListening() async {
     if (_state != VoiceEntryState.ready) return;
     _missed = false;
+    // A firm tap as the mic opens and a lighter one as it closes, so the
+    // volunteer feels both without looking.
+    _haptics.mediumImpact();
     _set(VoiceEntryState.listening);
     await _service?.start();
   }
@@ -142,6 +145,7 @@ class VoiceEntryController extends ChangeNotifier {
   /// The mic is let go: stop and make out the bib.
   Future<void> stopListening() async {
     if (_state != VoiceEntryState.listening) return;
+    _haptics.selectionClick();
     _set(VoiceEntryState.processing);
     await _service?.stop();
   }

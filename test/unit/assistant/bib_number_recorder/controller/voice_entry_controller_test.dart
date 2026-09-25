@@ -50,12 +50,20 @@ class _FakeVoice implements IVoiceRecognitionService {
 class _Haptics implements IHapticFeedback {
   int buzzes = 0;
   int taps = 0;
+  int presses = 0;
+  int releases = 0;
 
   @override
   Future<void> vibrate() async => buzzes++;
 
   @override
   Future<void> lightImpact() async => taps++;
+
+  @override
+  Future<void> mediumImpact() async => presses++;
+
+  @override
+  Future<void> selectionClick() async => releases++;
 }
 
 void main() {
@@ -107,6 +115,19 @@ void main() {
     expect(c.lastHeard, '0412');
     expect(c.state, VoiceEntryState.ready);
     expect(haptics.taps, 1);
+    c.dispose();
+  });
+
+  test('taps when the mic is pressed and again when it is let go', () async {
+    final c = build();
+    await c.setEnabled(true);
+
+    voice.nextHeard = '12';
+    await c.startListening();
+    expect(haptics.presses, 1);
+    expect(haptics.releases, 0);
+    await c.stopListening();
+    expect(haptics.releases, 1);
     c.dispose();
   });
 

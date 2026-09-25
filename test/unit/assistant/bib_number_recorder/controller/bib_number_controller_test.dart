@@ -658,6 +658,47 @@ void main() {
         controller.dispose();
       });
 
+      testWidgets('scroll into view as they are added', (tester) async {
+        // Run the scheduled scroll after the frame, as the app does.
+        when(mockScheduler.schedulePostFrame(any)).thenAnswer((i) {
+          final cb = i.positionalArguments.first as VoidCallback;
+          WidgetsBinding.instance.addPostFrameCallback((_) => cb());
+        });
+        final controller = running();
+        await tester.pumpWidget(MaterialApp(
+          home: ListenableBuilder(
+            listenable: controller,
+            builder: (_, _) => Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                height: 300,
+                child: ListView(
+                  controller: controller.scrollController,
+                  children: [
+                    for (final r in controller.bibRecords)
+                      SizedBox(height: 60, child: Text(r.bib)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ));
+
+        // A list already longer than the screen, looking at its end.
+        for (var i = 1; i <= 6; i++) {
+          await tester.runAsync(() => controller.addHeardBib('$i'));
+          await tester.pumpAndSettle();
+        }
+        // One more: just a row past the end, which used to stay hidden.
+        await tester.runAsync(() => controller.addHeardBib('7'));
+        await tester.pumpAndSettle();
+
+        final position = controller.scrollController.position;
+        expect(position.pixels, position.maxScrollExtent);
+        expect(tester.getRect(find.text('7')).bottom, lessThanOrEqualTo(300));
+        controller.dispose();
+      });
+
       test('are not added once the race is stopped', () async {
         final controller = running();
         controller.setRaceStopped(true);

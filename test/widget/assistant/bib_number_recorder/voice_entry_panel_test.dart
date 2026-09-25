@@ -37,6 +37,10 @@ class _NoHaptics implements IHapticFeedback {
   Future<void> vibrate() async {}
   @override
   Future<void> lightImpact() async {}
+  @override
+  Future<void> mediumImpact() async {}
+  @override
+  Future<void> selectionClick() async {}
 }
 
 void main() {

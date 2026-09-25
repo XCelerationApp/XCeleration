@@ -618,12 +618,12 @@ class BibNumberController extends BibNumberDataController {
     }
     // In the list before it is checked, so a second copy is seen as one.
     updateBibRecord(index, bibRecords[index].copyWith(bib: bib));
+    _scheduler.schedulePostFrame(_scrollToLastItemIfNeeded);
     await validateBibNumber(index, bib);
     // A second runner with the same bib flags both.
     for (var i = 0; i < index; i++) {
       if (bibRecords[i].bib == bib) await validateBibNumber(i, bib);
     }
-    _scheduler.schedulePostFrame(_scrollToLastItemIfNeeded);
     await saveBibOrder();
   }
 
@@ -727,26 +727,26 @@ class BibNumberController extends BibNumberDataController {
     }
   }
 
-  /// Only scrolls when the last item isn't already visible
+  /// Brings the newest bib into view. It used to wait until the list was
+  /// half a screen from the end, so a bib added by voice sat just below the
+  /// fold where the volunteer could not see it.
   void _scrollToLastItemIfNeeded() {
-    // Only attempt to scroll if we have a non-empty list and a valid scroll controller
     if (bibRecords.isEmpty || !scrollController.hasClients) return;
-
-    // Check if we're already near the bottom
     final position = scrollController.position;
-    final viewportDimension = position.viewportDimension;
-    final maxScrollExtent = position.maxScrollExtent;
-    final currentOffset = position.pixels;
-
-    // If we're not already seeing the bottom part of the list, scroll to make new item visible
-    if (maxScrollExtent > 0 &&
-        (maxScrollExtent - currentOffset) > (viewportDimension / 2)) {
-      scrollController.animateTo(
-        maxScrollExtent,
-        duration: const Duration(milliseconds: 200),
-        curve: Curves.fastOutSlowIn,
-      );
-    }
+    if (position.maxScrollExtent - position.pixels < 1) return;
+    scrollController
+        .animateTo(
+          position.maxScrollExtent,
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.fastOutSlowIn,
+        )
+        .then((_) {
+          // The row can grow as it is checked (a name appears), past the end
+          // the animation aimed for.
+          if (!scrollController.hasClients) return;
+          final p = scrollController.position;
+          if (p.maxScrollExtent - p.pixels >= 1) p.jumpTo(p.maxScrollExtent);
+        });
   }
 
   /// Validates bib records and encodes share data, returning a typed result.
