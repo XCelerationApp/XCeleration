@@ -62,11 +62,7 @@ class BasicAlertDialog extends StatelessWidget {
               ),
               if (content.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.sm),
-                Text(
-                  content,
-                  style: AppTypography.bodyRegular
-                      .copyWith(color: AppColors.mediumColor),
-                ),
+                _DialogContent(content),
               ],
               if (extra != null) ...[
                 const SizedBox(height: AppSpacing.lg),
@@ -568,6 +564,43 @@ class LoadingDialog extends StatelessWidget {
         cancelButtonText: cancelButtonText,
         onCancel: onCancel,
       ),
+    );
+  }
+}
+
+/// A dialog's message. Lines starting "• " are laid out as bullets, so a
+/// point that wraps lines up under its own first word, not under the bullet.
+class _DialogContent extends StatelessWidget {
+  const _DialogContent(this.content);
+
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
+    final style =
+        AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor);
+    final lines = content.split('\n');
+    if (!lines.any((l) => l.startsWith('• '))) {
+      return Text(content, style: style);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final line in lines)
+          if (line.startsWith('• '))
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('•  ', style: style),
+                  Expanded(child: Text(line.substring(2), style: style)),
+                ],
+              ),
+            )
+          else
+            Text(line, style: style),
+      ],
     );
   }
 }

@@ -654,11 +654,9 @@ class RunnersManagementController with ChangeNotifier {
         }
 
         if (context.mounted) {
-          DialogUtils.showMessageDialog(
-            context,
-            title: 'Teams Added',
-            message: 'Added ${selectedTeams.length} team(s) to race',
-          );
+          final n = selectedTeams.length;
+          DialogUtils.showSuccessDialog(context,
+              message: 'Added $n team${n == 1 ? '' : 's'} to the race.');
         }
       }
     } catch (e) {
