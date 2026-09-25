@@ -35,6 +35,20 @@ void main() {
       expect(result.skipped, isEmpty);
     });
 
+    test('rows with a bib handed out but no runner yet are not reported', () {
+      // A league roster had bibs 1033–1199 listed ahead, names to come.
+      final result = processSpreadsheetData([
+        ['Bib', 'Name', 'Grade'],
+        ['1032', 'Ann Lee', '10'],
+        ['1033', '', ''],
+        ['1034', '', ''],
+        ['1122', 'Mathias Gomez', ''], // a runner, missing a grade
+      ]);
+
+      expect(result.runners.map((r) => r['name']), ['Ann Lee']);
+      expect(result.skipped, ['Row 5 (Mathias Gomez): grade is not 9–12']);
+    });
+
     test('keeps a bib\'s leading zeros, as typed bibs do', () {
       // A runner typed in by hand keeps "007", so an imported one must too,
       // or the Bib Recorder's "007" matches only one of them.

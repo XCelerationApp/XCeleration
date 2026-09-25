@@ -364,6 +364,10 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
           name = fullName.trim();
         }
       }
+      // A roster with bibs handed out ahead leaves rows with a bib and no
+      // runner yet. Those are empty, not mistakes, so they are passed over
+      // without a word; a league sheet listed over a hundred of them.
+      if (name.isEmpty && yearStr.isEmpty) continue;
       grade = parseYearToGrade(yearStr);
       bibNumber = normalizeBib(bibStr);
 
