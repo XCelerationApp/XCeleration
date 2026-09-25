@@ -18,6 +18,9 @@ class ChunkList extends StatelessWidget {
     return Consumer<MergeConflictsController>(
       builder: (context, controller, _) {
         final chunks = controller.uiChunks;
+        final firstOpen = chunks.indexWhere((c) =>
+            c.conflict.type == ConflictType.extraTime ||
+            c.conflict.type == ConflictType.missingTime);
         return ListView.builder(
           shrinkWrap: true,
           // Nested in the screen's scroll view: no safe-area inset of its own.
@@ -29,6 +32,7 @@ class ChunkList extends StatelessWidget {
             index: index,
             chunk: chunks[index],
             controller: controller,
+            isFirstOpen: index == firstOpen,
           ),
         );
       },
@@ -42,16 +46,47 @@ class ChunkItem extends StatefulWidget {
     required this.index,
     required this.chunk,
     required this.controller,
+    this.isFirstOpen = false,
   });
   final int index;
   final UIChunk chunk;
   final MergeConflictsController controller;
+
+  /// Whether this is the first conflict still to resolve. It is scrolled
+  /// into view, on opening and after the one before it is resolved: the
+  /// page used to open on the first group of confirmed times, with the
+  /// conflict somewhere below.
+  final bool isFirstOpen;
 
   @override
   State<ChunkItem> createState() => _ChunkItemState();
 }
 
 class _ChunkItemState extends State<ChunkItem> {
+  @override
+  void initState() {
+    super.initState();
+    if (widget.isFirstOpen) _scrollIntoView();
+  }
+
+  @override
+  void didUpdateWidget(ChunkItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isFirstOpen && !oldWidget.isFirstOpen) _scrollIntoView();
+  }
+
+  void _scrollIntoView() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Scrollable.ensureVisible(
+        context,
+        duration: AppAnimations.standard,
+        curve: Curves.easeOut,
+        alignment: 0.02,
+      );
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final chunkType = widget.chunk.conflict.type;
