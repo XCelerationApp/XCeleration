@@ -1,5 +1,6 @@
 import 'dart:io';
 
+
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/i_model_download_service.dart';
@@ -19,17 +20,13 @@ const List<String> _requiredModelFiles = [
   'tokens.txt',
 ];
 
-const List<String> _hotwords = [
-  'zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven',
-  'eight', 'nine', 'ten', 'eleven', 'twelve', 'thirteen', 'fourteen',
-  'fifteen', 'sixteen', 'seventeen', 'eighteen', 'nineteen', 'twenty',
-  'thirty', 'forty', 'fifty', 'sixty', 'seventy', 'eighty', 'ninety',
-  'hundred', 'thousand', 'and',
-];
-
 /// [IModelDownloadService] implementation that downloads the
-/// sherpa-onnx-zipformer-small-en-2023-06-26 model on first use and writes a
-/// hotwords file alongside it.
+/// sherpa-onnx-zipformer-small-en-2023-06-26 model on first use.
+///
+/// There are no hotwords. Written pre-split they never loaded, and as plain
+/// words with a vocabulary for sherpa to split them, sherpa's iOS build
+/// crashed building that vocabulary (std::bad_alloc) though the Mac build
+/// was fine, taking the app down every time the Bib Recorder opened.
 class ModelDownloadService implements IModelDownloadService {
   ModelDownloadService({
     Future<Directory> Function()? supportDirProvider,
@@ -41,13 +38,24 @@ class ModelDownloadService implements IModelDownloadService {
   final Future<Directory> Function() _supportDirProvider;
   final HttpClient Function() _httpClientFactory;
 
+  /// A download already under way, shared so that fetching the model early
+  /// and turning voice on at the same moment do not write the same files
+  /// twice over.
+  static Future<Result<ModelAssets>>? _inFlight;
+
   @override
-  Future<Result<ModelAssets>> ensureModelReady() async {
+  Future<Result<ModelAssets>> ensureModelReady() {
+    return _inFlight ??= _ensureModelReady().whenComplete(() {
+      _inFlight = null;
+    });
+  }
+
+  Future<Result<ModelAssets>> _ensureModelReady() async {
     try {
       final modelDir = await _resolveModelDir();
       await _downloadMissingFiles(modelDir);
-      final hotwordsPath = await _writeHotwordsFile(modelDir);
-      return Success(ModelAssets(modelDir: modelDir, hotwordsPath: hotwordsPath));
+      await _removeHotwordFiles(modelDir);
+      return Success(ModelAssets(modelDir: modelDir));
     } catch (e) {
       return Failure(AppError(
         userMessage: 'Could not load speech recognition model.',
@@ -84,21 +92,23 @@ class ModelDownloadService implements IModelDownloadService {
           throw Exception(
               'Failed to download $filename (HTTP ${response.statusCode})');
         }
-        await response.pipe(dest.openWrite());
+        // Written under a temporary name and renamed once whole: a download
+        // cut off part way left a short file that looked finished, and voice
+        // never worked again on that phone.
+        final partial = File('${dest.path}.part');
+        await response.pipe(partial.openWrite());
+        await partial.rename(dest.path);
       }
     } finally {
       client.close();
     }
   }
 
-  Future<String> _writeHotwordsFile(String modelDir) async {
-    final path = p.join(modelDir, 'hotwords.txt');
-    final file = File(path);
-    final expected = _hotwords.join('\n');
-    if (file.existsSync() && await file.readAsString() == expected) {
-      return path;
+  /// Clears out hotword files from earlier versions, which nothing reads now.
+  Future<void> _removeHotwordFiles(String modelDir) async {
+    for (final name in const ['hotwords.txt', 'bpe.vocab']) {
+      final file = File(p.join(modelDir, name));
+      if (file.existsSync()) await file.delete();
     }
-    await file.writeAsString(expected);
-    return path;
   }
 }

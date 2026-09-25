@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:provider/provider.dart';
+import 'core/theme/app_border_radius.dart';
 import 'core/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -178,6 +179,21 @@ class MyApp extends StatelessWidget {
         ),
       ),
       iconTheme: IconThemeData(color: AppColors.mediumColor),
+      // Every pop-up menu (race menus, Counts differ?) white and rounded in
+      // the app's style, rather than Material's tinted default.
+      popupMenuTheme: PopupMenuThemeData(
+        color: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 6,
+        shadowColor: Colors.black26,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+          side: const BorderSide(color: AppColors.lightColor),
+        ),
+        textStyle: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor),
+        labelTextStyle: WidgetStatePropertyAll(
+            AppTypography.bodyRegular.copyWith(color: AppColors.darkColor)),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           textStyle: TextStyle(color: AppColors.darkColor),

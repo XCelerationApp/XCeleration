@@ -107,6 +107,18 @@ void main() {
     expect(await saved(), ['101', '102']);
   });
 
+  test('clearing the race\'s bibs clears what is saved too', () async {
+    // Otherwise they come back the next time the app opens.
+    await bibs.addBibRecord(bib('101'));
+    await bibs.addBibRecord(bib('102'));
+    await bibs.saveBibRecordsToDatabase(race.raceId);
+
+    await bibs.clearRecordedBibs();
+
+    expect(bibs.bibRecords, isEmpty);
+    expect(await saved(), isEmpty);
+  });
+
   test('finds each bib entered more than once', () async {
     for (final n in ['101', '102', '101', '103', '102', '101']) {
       await bibs.addBibRecord(bib(n));

@@ -69,6 +69,9 @@ class RaceScreenController with ChangeNotifier {
     return _teams!;
   }
 
+  /// Whether this coach may correct the results once the race is finished.
+  bool get canEditResults => parentController.canEdit;
+
   bool get canEdit {
     if (_isInitialLoading) {
       throw StateError('CanEdit not loaded yet - check isLoading first');
@@ -332,7 +335,10 @@ class RaceScreenController with ChangeNotifier {
           DialogUtils.showMessageDialog(context,
               title: 'Setup Complete',
               message:
-                  'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Race step once you are at the race with your assistants.',
+                  'Your race is set up.\n\nOn race day you need two volunteers '
+                  'with XCeleration on their phones: a Timer and a Bib '
+                  'Recorder. Once you are at the race together, tap Send to '
+                  'Volunteers.',
               doneText: 'Got it');
         }
       });
@@ -356,6 +362,10 @@ class RaceScreenController with ChangeNotifier {
 
   Future<void> beginNextFlow(BuildContext context) =>
       flowController.beginNextFlow(context);
+
+  /// Opens the send page again once the race has gone to the volunteers.
+  Future<void> sendRaceAgain(BuildContext context) =>
+      flowController.preRaceController.showSendAgainSheet(context);
 
   // ---------------------------------------------------------------------------
   // Navigation
@@ -420,6 +430,9 @@ class RaceScreenController with ChangeNotifier {
     if (picked != null) {
       form.dateController.text = DateFormat('yyyy-MM-dd').format(picked);
       notifyListeners();
+      // Picking a date is the whole edit: record it, and save it at once
+      // outside setup, as leaving a typed field does.
+      if (context.mounted) await handleFieldFocusLoss(context, RaceField.date);
     }
   }
 

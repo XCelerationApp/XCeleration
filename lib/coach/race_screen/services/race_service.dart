@@ -32,18 +32,34 @@ class RaceService implements IRaceService {
   /// Returns true if every team in the race has at least one runner.
   @override
   Future<bool> checkMinimumRunnersLoaded(
-      IMasterRaceResolver masterRace) async {
-    final teamsList = await masterRace.teams;
-    if (teamsList.isEmpty) return false;
+          IMasterRaceResolver masterRace) async =>
+      await whyRunnersNotReady(masterRace) == null;
 
+  @override
+  Future<String?> whyRunnersNotReady(IMasterRaceResolver masterRace) async {
     final raceRunnersList = await masterRace.raceRunners;
+    if (raceRunnersList.isEmpty) {
+      return 'This race has no runners yet. Add a team and its runners to '
+          'continue.';
+    }
+
+    // A runner's team is in the race even if the race was never linked to
+    // it: races that came from another phone before those links synced lack
+    // them. Only a team linked to the race with nobody on it holds it up.
+    final teamsList = await masterRace.teams;
     final teamsWithRunners =
         raceRunnersList.map((rr) => rr.team.teamId).toSet();
-
-    for (final team in teamsList) {
-      if (!teamsWithRunners.contains(team.teamId)) return false;
-    }
-    return true;
+    final empty = [
+      for (final team in teamsList)
+        if (!teamsWithRunners.contains(team.teamId)) team.name ?? 'A team',
+    ];
+    if (empty.isEmpty) return null;
+    final names = empty.length == 1
+        ? empty.single
+        : '${empty.sublist(0, empty.length - 1).join(', ')} and ${empty.last}';
+    return '$names ${empty.length == 1 ? 'has' : 'have'} no runners. Add '
+        'runners, or take ${empty.length == 1 ? 'the team' : 'those teams'} '
+        'out of this race.';
   }
 
   /// Checks if all requirements are met to advance to setup_complete.

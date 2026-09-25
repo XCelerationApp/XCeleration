@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
+import 'package:xceleration/core/theme/app_spacing.dart';
 
 class ShareRaceWidget extends StatelessWidget {
   final DevicesManager devices;
@@ -8,7 +9,10 @@ class ShareRaceWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-        child: DeviceConnectionWidget(devices: devices, inSheet: false));
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      child: Center(
+          child: DeviceConnectionWidget(devices: devices, inSheet: false)),
+    );
   }
 }

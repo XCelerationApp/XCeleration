@@ -80,7 +80,8 @@ void main() {
       return ReviewRunnersStep(
         masterRace: masterRace,
         onNext: () async {},
-        checkMinimumRunners: checkMinimumRunners,
+        whyNotReady: (race) async =>
+            await checkMinimumRunners(race) ? null : 'Hawks has no runners.',
       );
     }
 
@@ -98,6 +99,14 @@ void main() {
         await step.seedInitialProceed();
 
         expect(step.canProceed(), isFalse);
+        step.dispose();
+      });
+
+      test('says why Next is greyed out', () async {
+        final step = buildStep(checkMinimumRunners: (_) async => false);
+        await step.seedInitialProceed();
+
+        expect(step.blockedReason(), 'Hawks has no runners.');
         step.dispose();
       });
     });
@@ -379,13 +388,25 @@ void main() {
     });
 
     group('dispose', () {
-      test('disposes all steps, closing their stream controllers', () {
-        final step1 = _step();
-        final step2 = _step();
-        final controller = FlowController([step1, step2]);
-        controller.dispose();
-        expect(step1.notifyContentChanged, throwsStateError);
-        expect(step2.notifyContentChanged, throwsStateError);
+      test('leaves the steps working for the next time the flow opens',
+          () async {
+        // The race keeps its steps. Closing the flow and opening it again
+        // must still hear a step say it can now go on.
+        var ready = false;
+        final step = _step(canProceed: () => ready);
+        FlowController([step]).dispose();
+
+        final reopened = FlowController([step]);
+        var notified = 0;
+        reopened.addListener(() => notified++);
+        ready = true;
+        step.notifyContentChanged();
+        await Future<void>.delayed(Duration.zero);
+
+        expect(notified, greaterThan(0));
+        expect(reopened.canProceed, isTrue);
+        reopened.dispose();
+        step.dispose();
       });
     });
   });

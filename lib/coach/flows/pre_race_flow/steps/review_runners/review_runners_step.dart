@@ -6,18 +6,19 @@ import '../../../../../core/services/service_locator.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 
 class ReviewRunnersStep extends FlowStep {
-  bool _canProceed = false;
+  /// Why the race cannot be sent yet, or null once it can. Starts as a
+  /// placeholder until the first check has run.
+  String? _notReady = 'Checking the runners…';
   final MasterRace masterRace;
-  final Future<bool> Function(MasterRace) _checkMinimumRunners;
+  final Future<String?> Function(MasterRace) _whyNotReady;
   late final Widget _cachedContent;
 
   ReviewRunnersStep({
     required this.masterRace,
     required Future<void> Function() onNext,
-    Future<bool> Function(MasterRace)? checkMinimumRunners,
-  })  : _checkMinimumRunners =
-            checkMinimumRunners ??
-                ServiceLocator.get<IRaceService>().checkMinimumRunnersLoaded,
+    Future<String?> Function(MasterRace)? whyNotReady,
+  })  : _whyNotReady = whyNotReady ??
+            ServiceLocator.get<IRaceService>().whyRunnersNotReady,
         super(
           title: 'Review Runners',
           description:
@@ -40,14 +41,13 @@ class ReviewRunnersStep extends FlowStep {
 
   /// Precompute initial canProceed value before the sheet renders
   Future<void> seedInitialProceed() async {
-    final hasEnoughRunners = await _checkMinimumRunners(masterRace);
-    _canProceed = hasEnoughRunners;
+    _notReady = await _whyNotReady(masterRace);
   }
 
   Future<void> checkRunners() async {
-    final hasEnoughRunners = await _checkMinimumRunners(masterRace);
-    if (_canProceed != hasEnoughRunners) {
-      _canProceed = hasEnoughRunners;
+    final notReady = await _whyNotReady(masterRace);
+    if (_notReady != notReady) {
+      _notReady = notReady;
       notifyContentChanged();
     }
   }
@@ -57,6 +57,9 @@ class ReviewRunnersStep extends FlowStep {
 
   @override
   bool Function() get canProceed {
-    return () => _canProceed;
+    return () => _notReady == null;
   }
+
+  @override
+  String? Function() get blockedReason => () => _notReady;
 }

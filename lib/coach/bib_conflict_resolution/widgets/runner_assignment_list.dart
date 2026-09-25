@@ -358,7 +358,11 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow>
                 duration: AppAnimations.standard,
                 curve: AppAnimations.spring,
                 child: _expanded
-                    ? _ExpandedDetail(runner: widget.runner, onSelect: widget.onSelect)
+                    ? _ExpandedDetail(
+                        runner: widget.runner,
+                        onSelect: widget.onSelect,
+                        isSelected: widget.isSelected,
+                      )
                     : const SizedBox.shrink(),
               ),
             ],
@@ -372,10 +376,15 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow>
 // ---------------------------------------------------------------------------
 
 class _ExpandedDetail extends StatelessWidget {
-  const _ExpandedDetail({required this.runner, required this.onSelect});
+  const _ExpandedDetail({
+    required this.runner,
+    required this.onSelect,
+    required this.isSelected,
+  });
 
   final RaceRunner runner;
   final VoidCallback onSelect;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -396,11 +405,17 @@ class _ExpandedDetail extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
+          // Says it has been chosen once it has, rather than still "Select".
           ElevatedButton(
-            onPressed: onSelect,
+            onPressed: isSelected ? null : onSelect,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryColor,
               foregroundColor: Colors.white,
+              disabledBackgroundColor: Colors.white,
+              disabledForegroundColor: AppColors.primaryColor,
+              side: isSelected
+                  ? const BorderSide(color: AppColors.primaryColor)
+                  : null,
               elevation: 0,
               padding: const EdgeInsets.symmetric(
                 horizontal: AppSpacing.lg,
@@ -410,9 +425,21 @@ class _ExpandedDetail extends StatelessWidget {
                 borderRadius: BorderRadius.circular(AppBorderRadius.sm),
               ),
             ),
-            child: Text(
-              'Select',
-              style: AppTypography.smallBodySemibold.copyWith(color: Colors.white),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSelected) ...[
+                  const Icon(Icons.check,
+                      size: 18, color: AppColors.primaryColor),
+                  const SizedBox(width: AppSpacing.xs),
+                ],
+                Text(
+                  isSelected ? 'Selected' : 'Select',
+                  style: AppTypography.smallBodySemibold.copyWith(
+                      color:
+                          isSelected ? AppColors.primaryColor : Colors.white),
+                ),
+              ],
             ),
           ),
         ],
@@ -448,19 +475,22 @@ class _BibAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A pill that grows with the bib, rather than a circle four digits
+    // spill out of.
     return AnimatedContainer(
       duration: AppAnimations.fast,
-      width: 36,
-      height: 36,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       decoration: BoxDecoration(
         color: isSelected
             ? AppColors.primaryColor
             : AppColors.primaryColor.withValues(alpha: AppOpacity.light),
-        shape: BoxShape.circle,
+        borderRadius: BorderRadius.circular(AppBorderRadius.full),
       ),
       alignment: Alignment.center,
       child: Text(
-        '#$bibNumber',
+        bibNumber,
+        maxLines: 1,
         style: AppTypography.caption.copyWith(
           color: isSelected ? Colors.white : AppColors.primaryColor,
           fontWeight: FontWeight.w700,

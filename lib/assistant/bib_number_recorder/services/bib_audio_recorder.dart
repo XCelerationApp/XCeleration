@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_sound/flutter_sound.dart';
 import 'package:logger/logger.dart' show Level;
 import 'package:path/path.dart' as p;
@@ -26,11 +27,49 @@ class BibAudioRecorder implements IBibAudioRecorder {
   bool _isOpen = false;
   String? _recordingPath;
 
+  static const _audioSession = MethodChannel('xceleration/audio_session');
+
+  /// iOS mutes haptics while recording, so the tap as the mic button goes
+  /// down was never felt. Asked again before each recording, in case the
+  /// recorder set the audio session up afresh.
+  Future<void> _allowHapticsWhileRecording() async {
+    try {
+      await _audioSession.invokeMethod<void>('allowHapticsWhileRecording');
+    } on MissingPluginException {
+      // Android and tests: haptics are not muted there.
+    } catch (_) {
+      // Best effort: recording matters more than the tap.
+    }
+  }
+
+  /// Asks for the microphone, if not asked before. False only when the
+  /// volunteer has said no; elsewhere (Android, tests) it is left to the
+  /// recorder.
+  Future<bool> _micAllowed() async {
+    try {
+      return await _audioSession.invokeMethod<bool>('requestMicPermission') ??
+          true;
+    } on MissingPluginException {
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
   @override
   Future<Result<void>> open() async {
+    // Without the microphone every recording is silence, which read as
+    // "Didn't catch that" for each bib with no hint why.
+    if (!await _micAllowed()) {
+      return const Failure(AppError(
+        userMessage: 'Voice needs the microphone. Turn on Microphone for '
+            'Xceleration in the Settings app.',
+      ));
+    }
     try {
       await _recorder.openRecorder();
       _isOpen = true;
+      await _allowHapticsWhileRecording();
       await _warmUpAudioSession();
       return const Success(null);
     } catch (e) {
@@ -77,6 +116,7 @@ class BibAudioRecorder implements IBibAudioRecorder {
     final existing = File(_recordingPath!);
     if (existing.existsSync()) existing.deleteSync();
 
+    await _allowHapticsWhileRecording();
     await _recorder.startRecorder(
       toFile: _recordingPath,
       codec: Codec.pcm16WAV,

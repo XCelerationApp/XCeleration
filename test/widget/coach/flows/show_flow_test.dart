@@ -92,10 +92,11 @@ void main() {
 
       await _openFlow(tester);
 
+      // A single step is also the last, so its button says Done.
       final nextButton = tester.widget<ElevatedButton>(
         find
             .ancestor(
-              of: find.text('Next'),
+              of: find.text('Done'),
               matching: find.byType(ElevatedButton),
             )
             .first,
@@ -138,10 +139,26 @@ void main() {
 
       await _openFlow(tester);
 
-      await tester.tap(find.text('Next'));
+      await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
 
       expect(await resultFuture!, isTrue);
+    });
+
+    testWidgets('the button says what a step asks for', (tester) async {
+      await tester.pumpWidget(_buildApp([
+        FlowStep(
+          title: 'Load Results',
+          description: '',
+          content: const SizedBox(),
+          nextLabel: 'Save Results',
+        ),
+      ]));
+
+      await _openFlow(tester);
+
+      expect(find.text('Save Results'), findsOneWidget);
+      expect(find.text('Done'), findsNothing);
     });
 
     testWidgets('dismissing the sheet without completing returns false',

@@ -6,9 +6,10 @@ import '../../../core/theme/app_shadows.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 
-/// Floating dark toast shown after a conflict is resolved.
+/// Toast at the top of the screen after a conflict is resolved, in the
+/// app's white and orange.
 ///
-/// Slides up on appearance, shows a draining green bar over 1800 ms,
+/// Slides down on appearance, shows a draining orange bar over 1800 ms,
 /// and calls [onDone] when the bar reaches zero. Tapping "Undo" calls
 /// [onUndo] and stops the timer immediately.
 class UndoToast extends StatefulWidget {
@@ -58,7 +59,7 @@ class _UndoToastState extends State<UndoToast>
     );
 
     _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.3),
+      begin: const Offset(0, -0.3),
       end: Offset.zero,
     ).animate(entryCurve);
 
@@ -107,8 +108,10 @@ class _ToastBody extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.darkColor,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+        border: Border.all(
+            color: AppColors.primaryColor.withValues(alpha: AppOpacity.strong)),
         boxShadow: AppShadows.high,
       ),
       child: ClipRRect(
@@ -129,7 +132,7 @@ class _ToastBody extends StatelessWidget {
                     width: 32,
                     height: 32,
                     decoration: const BoxDecoration(
-                      color: Color(0xFF4CAF50),
+                      color: AppColors.primaryColor,
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(
@@ -147,13 +150,13 @@ class _ToastBody extends StatelessWidget {
                         Text(
                           'Conflict resolved',
                           style: AppTypography.smallBodySemibold.copyWith(
-                            color: Colors.white,
+                            color: AppColors.darkColor,
                           ),
                         ),
                         Text(
                           label,
                           style: AppTypography.caption.copyWith(
-                            color: Colors.white.withValues(alpha: AppOpacity.solid),
+                            color: AppColors.mediumColor,
                           ),
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -193,13 +196,13 @@ class _DrainingBar extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             ColoredBox(
-              color: Colors.white.withValues(alpha: AppOpacity.faint),
+              color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
             ),
             Align(
               alignment: Alignment.centerLeft,
               child: FractionallySizedBox(
                 widthFactor: 1 - controller.value,
-                child: const ColoredBox(color: Colors.green),
+                child: const ColoredBox(color: AppColors.primaryColor),
               ),
             ),
           ],
@@ -224,12 +227,13 @@ class _UndoButton extends StatelessWidget {
           vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: AppOpacity.medium),
+          color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
         ),
         child: Text(
           'Undo',
-          style: AppTypography.smallBodySemibold.copyWith(color: Colors.white),
+          style: AppTypography.smallBodySemibold
+              .copyWith(color: AppColors.primaryColor),
         ),
       ),
     );

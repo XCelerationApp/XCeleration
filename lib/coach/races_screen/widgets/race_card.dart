@@ -15,6 +15,7 @@ import '../../../core/theme/app_animations.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/components/status_badge.dart';
+import '../../../core/utils/enums.dart' show RaceScreenPage;
 
 class RaceCard extends StatefulWidget {
   const RaceCard({
@@ -78,6 +79,10 @@ class _RaceCardState extends State<RaceCard> {
                   child: RaceScreen(
                     masterRace: masterRace,
                     parentController: widget.controller,
+                    // A finished race is opened for its results.
+                    page: widget.flowState == Race.FLOW_FINISHED
+                        ? RaceScreenPage.results
+                        : RaceScreenPage.main,
                   ),
                 ),
                 takeUpScreen: false,
@@ -94,7 +99,7 @@ class _RaceCardState extends State<RaceCard> {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
                     AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.lg),
-                child: _buildCardContent(),
+                child: _buildCardContent(context),
               ),
             ),
           ),
@@ -151,20 +156,36 @@ class _RaceCardState extends State<RaceCard> {
     );
   }
 
-  Widget _buildCardContent() {
+  Widget _buildCardContent(BuildContext context) {
     final race = widget.race;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: Text(race.raceName ?? 'Unnamed Race',
+        // At a large text size the badge goes below the name, rather than
+        // squeezing the name until it breaks mid-word.
+        if (MediaQuery.textScalerOf(context).scale(1) > 1.3)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(race.raceName ?? 'Unnamed Race',
                   style: AppTypography.headerSemibold),
-            ),
-            StatusBadge(flowState: widget.flowState),
-          ],
-        ),
+              const SizedBox(height: AppSpacing.xs),
+              StatusBadge(flowState: widget.flowState),
+            ],
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: Text(race.raceName ?? 'Unnamed Race',
+                    style: AppTypography.headerSemibold,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              StatusBadge(flowState: widget.flowState),
+            ],
+          ),
         if (race.location != null && race.location!.isNotEmpty) ...[
           const SizedBox(height: AppSpacing.sm),
           _RaceCardLocation(location: race.location!),

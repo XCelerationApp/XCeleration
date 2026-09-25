@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../core/components/dialog_utils.dart';
 import '../../../core/utils/enums.dart';
 import '../controller/merge_conflicts_controller.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
@@ -93,21 +92,11 @@ class RunnerTimeRecord extends StatelessWidget {
                   child: (chunk.conflict.type == ConflictType.extraTime
                       ? ExtraTimeCell(
                           time: record.time,
+                          // No confirmation: Undo takes it back.
                           onRemoveExtraTime: chunk.conflict.offBy <= 0
                               ? null
-                              : () async {
-                                final confirmed = await DialogUtils
-                                    .showConfirmationDialog(
-                                  context,
-                                  title: 'Confirm Deletion',
-                                  content:
-                                      'Are you sure you want to delete the time ${record.time}?',
-                                );
-                                if (confirmed) {
-                                  controller.removeExtraTimeRecord(
-                                      chunk.chunkId, chunkIndex);
-                                }
-                              },
+                              : () => controller.removeExtraTimeRecord(
+                                  chunk.chunkId, chunkIndex),
                         )
                       : Builder(
                           builder: (context) {

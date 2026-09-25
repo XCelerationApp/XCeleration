@@ -15,15 +15,13 @@ import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
-import '../../shared/widgets/download_race_sheet.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
 import '../../shared/utils/race_to_reopen.dart';
 import '../../shared/services/assistant_export_service.dart';
+import '../../shared/services/race_copy.dart';
 import '../../shared/services/demo_race_generator.dart';
 import '../../../core/app_error.dart';
 import '../../../core/result.dart';
-import '../../../core/components/dialog_utils.dart';
-import 'package:share_plus/share_plus.dart';
 
 sealed class RemoveExtraTimeResult {
   const RemoveExtraTimeResult();
@@ -69,11 +67,15 @@ class TimingController extends TimingData {
     _initializeControllers();
   }
 
+  /// Opening the last race, started when the Timer opens. Loading another
+  /// race waits for it, so the last race cannot open over the new one.
+  late final Future<void> initialLoad;
+
   void _initializeControllers() {
     if (_audioPlayer != null) {
       _initAudioPlayer();
     }
-    _loadLastRace();
+    initialLoad = _loadLastRace();
   }
 
   Future<void> showOtherRaces(BuildContext context) async {
@@ -96,19 +98,30 @@ class TimingController extends TimingData {
     );
   }
 
-  Future<void> _loadLastRace() async {
-    // Ensure demo race exists if no races are present
-    await DemoRaceGenerator.ensureDemoRaceExists(
-        DeviceName.raceTimer.toString());
+  /// True until the race to reopen has loaded, so the screen does not say
+  /// "No race yet" while it is on its way.
+  bool get loadingRace => _loadingRace;
+  bool _loadingRace = true;
 
-    final result = await _storage.getRaces(DeviceName.raceTimer.toString());
-    final races = switch (result) {
-      Success(:final value) => value,
-      Failure() => <RaceRecord>[],
-    };
-    final race = raceToReopen(races);
-    if (race != null) {
-      await _loadRace(race);
+  Future<void> _loadLastRace() async {
+    try {
+      // Ensure demo race exists if no races are present
+      await DemoRaceGenerator.ensureDemoRaceExists(
+          DeviceName.raceTimer.toString());
+
+      final result = await _storage.getRaces(DeviceName.raceTimer.toString());
+      final races = switch (result) {
+        Success(:final value) => value,
+        Failure() => <RaceRecord>[],
+      };
+      final race = raceToReopen(races);
+      if (race != null) {
+        await _loadRace(race);
+      }
+    } finally {
+      _loadingRace = false;
+      // The screen may have closed while the race loaded.
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -148,6 +161,7 @@ class TimingController extends TimingData {
       Logger.e('Error parsing race data: $e');
       return;
     }
+    await initialLoad;
     switch (await _storage.receiveRace(sent)) {
       case Failure(:final error):
         Logger.e('[TimingController.loadRaceFromCoach] '
@@ -212,6 +226,7 @@ class TimingController extends TimingData {
 
   /// Loads a previous race and its timing records
   Future<void> loadOtherRace(RaceRecord race) async {
+    await initialLoad;
     clearRecords();
 
     await _loadRace(race);
@@ -437,9 +452,17 @@ class TimingController extends TimingData {
     clearRecords();
     if (currentRace != null) {
       // Queued, so a save still waiting to run can't bring the times back.
-      final raceId = currentRace!.raceId;
+      final race = currentRace!;
       await enqueueWrite(
-          () => _storage.deleteChunks(raceId), 'clear race $raceId');
+          () => _storage.deleteChunks(race.raceId), 'clear race ${race.raceId}');
+      // The saved clock goes too. Otherwise reopening the race brings back the
+      // old start, and the Timer can only resume that clock, not start anew.
+      await enqueueWrite(
+          () => _storage.updateRaceStartTime(race.raceId, race.type, null),
+          'clear the start of race ${race.raceId}');
+      await enqueueWrite(
+          () => _storage.updateRaceDuration(race.raceId, race.type, null),
+          'clear the length of race ${race.raceId}');
     }
   }
 
@@ -543,42 +566,16 @@ class TimingController extends TimingData {
 
   Future<void> downloadRace(BuildContext context) async {
     if (currentRace == null) return;
-
-    final dynamic rawFormat = await sheet(
-      context: context,
-      title: 'Download Race',
-      body: const DownloadRaceSheet(),
-    );
-    final format = rawFormat is DownloadFormat ? rawFormat : null;
-
-    if (format == null || !context.mounted) return;
-
     final race = currentRace!;
     final records = uiRecords;
-
-    final xFile = await DialogUtils.executeWithLoadingDialog<XFile>(
+    await saveRaceCopy(
       context,
-      loadingMessage: 'Preparing download...',
-      operation: () async {
-        final result =
-            await AssistantExportService.exportTimerData(race, records, format);
-        return switch (result) {
-          Success(:final value) => value,
-          Failure(:final error) => throw Exception(error.userMessage),
-        };
-      },
+      race: race,
+      what: 'Finish Times',
+      table: AssistantExportService.timerTable(records),
+      exportFile: (format) =>
+          AssistantExportService.exportTimerData(race, records, format),
     );
-
-    if (xFile == null || !context.mounted) return;
-
-    try {
-      await AssistantExportService.shareFile(xFile, race.name);
-    } catch (e) {
-      Logger.e('Error sharing race download: $e');
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Failed to share file.');
-      }
-    }
   }
 
   /// Deletes the current race and all its associated data.
@@ -616,8 +613,11 @@ class TimingController extends TimingData {
     }
   }
 
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     scrollController.dispose();
     _audioPlayer?.dispose();
     super.dispose();

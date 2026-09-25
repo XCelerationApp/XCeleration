@@ -63,6 +63,7 @@ class ConflictResolutionController extends ChangeNotifier {
     required List<String> teams,
     required this.raceName,
     required Future<Result<RaceRunner>> Function(NewRunner) createRunner,
+    this.timingConflictsNext = 0,
   })  : _conflicts = List.unmodifiable(conflicts),
         _candidates = List.unmodifiable(candidates),
         _knownBibs = Set.unmodifiable(knownBibs),
@@ -70,6 +71,10 @@ class ConflictResolutionController extends ChangeNotifier {
         _createRunner = createRunner;
 
   final List<BibConflict> _conflicts;
+
+  /// How many timing conflicts are still to sort out once the bibs are, so
+  /// the last page can say what comes next instead of "all resolved".
+  final int timingConflictsNext;
 
   /// Runners in the race who are not placed anywhere in the finish order —
   /// who a mistyped bib might really have been.

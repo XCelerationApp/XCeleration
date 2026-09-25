@@ -1,7 +1,9 @@
+import 'adjust_times.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/app_spacing.dart';
 import 'package:xceleration/core/theme/typography.dart';
 import 'conflict_button.dart';
 import 'success_message.dart';
@@ -29,8 +31,11 @@ class LoadResultsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // The flow sheet leaves the sides to each page; these line up with the
+    // page title.
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
       child: AnimatedBuilder(
         animation: controller,
         builder: (context, _) {
@@ -58,7 +63,7 @@ class LoadResultsWidget extends StatelessWidget {
               // looked like nothing happened.
               if (controller.error case final error?) ...[
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: EdgeInsets.zero,
                   child: Text(
                     error.userMessage,
                     textAlign: TextAlign.center,
@@ -77,10 +82,11 @@ class LoadResultsWidget extends StatelessWidget {
                     if (controller.hasBibConflicts ||
                         controller.hasTimingConflicts)
                       ConflictButton(
-                        title: 'Race Conflicts',
-                        description:
-                            'Your race contains conflicts. Please resolve them before proceeding.',
-                        buttonText: 'Resolve',
+                        title: 'Some Results Need Checking',
+                        description: 'Tap Next and the app walks you '
+                            'through each one: bib numbers first, then '
+                            'times.',
+                        buttonText: 'Start',
                         onPressed: () {
                           debugPrint(
                               'Conflict button pressed - Bib conflicts: ${controller.hasBibConflicts}, Timing conflicts: ${controller.hasTimingConflicts}');
@@ -94,6 +100,11 @@ class LoadResultsWidget extends StatelessWidget {
                     else
                       const SuccessMessage(),
                     const SizedBox(height: 16),
+                    AdjustTimesTile(
+                      shift: controller.timeShift,
+                      onShift: controller.shiftAllTimes,
+                    ),
+                    const SizedBox(height: 8),
                   ],
 
                   // Reload button

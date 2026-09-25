@@ -17,12 +17,12 @@ class SuccessMessage extends StatelessWidget {
     return Column(
       children: [
         Text(
-          'Results Loaded Successfully',
+          'Results Loaded',
           style: _titleStyle,
         ),
         const SizedBox(height: 8),
         Text(
-          'Click next to save your results and view them in the race results.',
+          'Tap Next to check them before saving.',
           style: _bodyStyle,
           textAlign: TextAlign.center,
         ),

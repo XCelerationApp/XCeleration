@@ -130,7 +130,8 @@ class _RunnersListState extends State<RunnersList> {
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
       itemCount: teams.length,
       itemBuilder: (context, index) {
           final team = teams[index];
@@ -182,6 +183,9 @@ class _RunnersListState extends State<RunnersList> {
                                     else
                                       ListView.builder(
                                         shrinkWrap: true,
+                                        // Not the phone's safe-area inset,
+                                        // which left a gap under each team.
+                                        padding: EdgeInsets.zero,
                                         physics: const NeverScrollableScrollPhysics(),
                                         itemCount: raceRunners.length,
                                         itemBuilder: (context, i) {

@@ -1,9 +1,10 @@
+import '../../../shared/models/race_stage.dart';
+import 'race_steps_bar.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_animations.dart';
-import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/race.dart';
 import '../controller/race_screen_controller.dart';
@@ -24,31 +25,6 @@ Color _getStatusColor(String flowState) {
     default:
       return AppColors.lightColor;
   }
-}
-
-String _getStatusText(String flowState) {
-  switch (flowState) {
-    case Race.FLOW_SETUP:
-      return 'Race Setup';
-    case Race.FLOW_SETUP_COMPLETED:
-      return 'Ready to Share';
-    case Race.FLOW_PRE_RACE:
-      return 'Sharing Race';
-    case Race.FLOW_PRE_RACE_COMPLETED:
-      return 'Ready for Results';
-    case Race.FLOW_POST_RACE:
-      return 'Processing Results';
-    case Race.FLOW_FINISHED:
-      return 'Race Complete';
-    default:
-      return flowState;
-  }
-}
-
-String _getActionButtonText(String flowState) {
-  if (flowState == Race.FLOW_SETUP_COMPLETED) return 'Share Race';
-  if (flowState == Race.FLOW_PRE_RACE_COMPLETED) return 'Process Results';
-  return 'Continue';
 }
 
 class RaceHeader extends StatefulWidget {
@@ -97,79 +73,45 @@ class _RaceHeaderState extends State<RaceHeader> {
     final canEdit = widget.controller.canEdit;
     final flowState = race.flowState ?? Race.FLOW_SETUP;
     final statusColor = _getStatusColor(flowState);
-    final isFinished = flowState == Race.FLOW_FINISHED;
+    final stage = RaceStage.of(flowState);
+    final isFinished = stage.isFinished;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Eyebrow: status dot + label
-                    if (!isFinished) ...[
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: AppSpacing.sm,
-                            height: AppSpacing.sm,
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: AppSpacing.sm),
-                          // Wraps rather than overflowing beside the action
-                          // button on a narrower phone.
-                          Flexible(
-                            child: Text(
-                              _getStatusText(flowState).toUpperCase(),
-                              style: AppTypography.smallBodySemibold.copyWith(
-                                color: statusColor,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: AppSpacing.sm),
-                    ],
-                    // Race title (editable)
-                    _buildTitle(race, canEdit),
-                    // Subtitle — setup stage only
-                    if (flowState == Race.FLOW_SETUP) ...[
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        'Fill in the details to get started',
-                        style: AppTypography.caption.copyWith(
-                          color: AppColors.mediumColor,
-                        ),
-                      ),
-                    ],
-                  ],
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Race title (editable), with the whole width to itself.
+          _buildTitle(race, canEdit),
+          if (!isFinished) ...[
+            const SizedBox(height: AppSpacing.md),
+            RaceStepsBar(stage: stage, color: statusColor),
+            const SizedBox(height: AppSpacing.md),
+            _ActionButton(
+              text: stage.action!,
+              color: statusColor,
+              onPressed: () => widget.controller.continueRaceFlow(context),
+            ),
+            // Once sent, a volunteer may still need it: a phone was missed,
+            // swapped for a backup, or the roster changed.
+            if (stage.step == 3 && widget.controller.canEditResults)
+              Center(
+                child: TextButton.icon(
+                  onPressed: () => widget.controller.sendRaceAgain(context),
+                  icon: const Icon(Icons.replay, size: 18),
+                  label: const Text('Send race to volunteers again'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.mediumColor,
+                    textStyle: AppTypography.smallBodySemibold,
+                  ),
                 ),
               ),
-              // Action button — all non-finished states
-              if (!isFinished) ...[
-                const SizedBox(width: AppSpacing.md),
-                _ActionButton(
-                  text: _getActionButtonText(flowState),
-                  color: statusColor,
-                  onPressed: () => widget.controller.continueRaceFlow(context),
-                ),
-              ],
-            ],
-          ),
-        ),
-        const Divider(height: 1, thickness: 1, color: AppColors.lightColor),
-      ],
+          ],
+          const SizedBox(height: AppSpacing.md),
+          const Divider(height: 1, thickness: 1, color: AppColors.lightColor),
+        ],
+      ),
     );
   }
 
@@ -213,7 +155,7 @@ class _RaceHeaderState extends State<RaceHeader> {
               ? AppColors.lightColor
               : AppColors.darkColor,
         ),
-        maxLines: 1,
+        maxLines: 2,
         overflow: TextOverflow.ellipsis,
       ),
     );
@@ -240,41 +182,45 @@ class _ActionButtonState extends State<_ActionButton> {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      onTap: widget.onPressed,
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        curve: AppAnimations.spring,
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: widget.color.withValues(
-              alpha: _pressed ? AppOpacity.medium : AppOpacity.light),
-          borderRadius: BorderRadius.circular(AppBorderRadius.full),
-          border: Border.all(
-            color: widget.color.withValues(alpha: AppOpacity.strong),
-            width: 1,
+    // The race's one next step, as wide as the screen so it cannot be
+    // missed. Amber is too light for white text, so the words go dark on it.
+    final onColor = widget.color.computeLuminance() > 0.5
+        ? AppColors.darkColor
+        : Colors.white;
+    return Semantics(
+      button: true,
+      label: widget.text,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: widget.onPressed,
+        child: AnimatedContainer(
+          duration: AppAnimations.fast,
+          curve: AppAnimations.spring,
+          constraints: const BoxConstraints(minHeight: 52),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+          decoration: BoxDecoration(
+            color: _pressed
+                ? Color.lerp(widget.color, Colors.black, 0.12)
+                : widget.color,
+            borderRadius: BorderRadius.circular(AppBorderRadius.lg),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              widget.text,
-              style: AppTypography.smallBodySemibold.copyWith(
-                color: widget.color,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  widget.text,
+                  textAlign: TextAlign.center,
+                  style: AppTypography.bodySemibold.copyWith(color: onColor),
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            Icon(
-              Icons.chevron_right,
-              color: widget.color,
-              size: AppSpacing.lg,
-            ),
-          ],
+              const SizedBox(width: AppSpacing.xs),
+              Icon(Icons.arrow_forward_rounded, color: onColor, size: 20),
+            ],
+          ),
         ),
       ),
     );

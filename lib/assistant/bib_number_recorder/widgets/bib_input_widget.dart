@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/typography.dart';
 import '../model/bib_datum_record.dart';
 import '../controller/bib_number_controller.dart';
@@ -46,19 +47,19 @@ class BibInputWidget extends StatelessWidget {
             ),
             const SizedBox(width: 18),
             SizedBox(
-              width: 80,
+              width: 96,
               child: _buildBibTextField(context),
             ),
+            const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   if (record.name != null &&
                       record.name!.isNotEmpty &&
                       !record.hasErrors)
-                    _buildRunnerInfo()
+                    Flexible(child: _buildRunnerInfo())
                   else if (record.hasErrors)
-                    _buildErrorText(),
+                    Flexible(child: _buildErrorText()),
                 ],
               ),
             ),
@@ -88,7 +89,7 @@ class BibInputWidget extends StatelessWidget {
         labelStyle: AppTypography.caption.copyWith(
           color: Colors.grey.shade700,
         ),
-        hintText: 'Enter bib',
+        hintText: 'Bib #',
         hintStyle: AppTypography.bodyRegular.copyWith(
           color: Colors.grey.shade700,
         ),
@@ -106,9 +107,7 @@ class BibInputWidget extends StatelessWidget {
   }
 
   Widget _buildRunnerInfo() {
-    final runnerName = record.name != null && record.name!.length > 12
-        ? '${record.name?.substring(0, 12)}..'
-        : record.name;
+    final runnerName = record.name;
     if (record.flags.notInDatabase == false && record.bib.isNotEmpty) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -126,8 +125,8 @@ class BibInputWidget extends StatelessWidget {
           Flexible(
             child: Text(
               '$runnerName, ${record.teamAbbreviation}',
-              textAlign: TextAlign.center,
-              style: AppTypography.smallBodyRegular,
+              style: AppTypography.bodyRegular,
+              maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -148,10 +147,12 @@ class BibInputWidget extends StatelessWidget {
         if (errors.isNotEmpty)
           Icon(Icons.error_outline, color: Colors.red, size: 16),
         if (errors.isNotEmpty) const SizedBox(width: 4),
-        Text(
-          errors.join(' • '),
-          style: AppTypography.caption.copyWith(
-            color: Colors.red,
+        Flexible(
+          child: Text(
+            errors.join(' • '),
+            style: AppTypography.smallBodySemibold.copyWith(
+              color: Colors.red,
+            ),
           ),
         ),
       ],

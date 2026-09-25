@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xceleration/core/utils/file_utils.dart';
 import 'package:xceleration/core/utils/file_processing.dart';
 
 void main() {
@@ -30,6 +33,20 @@ void main() {
 
       expect(result.runners, hasLength(1));
       expect(result.skipped, isEmpty);
+    });
+
+    test('rows with a bib handed out but no runner yet are not reported', () {
+      // A league roster had bibs 1033–1199 listed ahead, names to come.
+      final result = processSpreadsheetData([
+        ['Bib', 'Name', 'Grade'],
+        ['1032', 'Ann Lee', '10'],
+        ['1033', '', ''],
+        ['1034', '', ''],
+        ['1122', 'Mathias Gomez', ''], // a runner, missing a grade
+      ]);
+
+      expect(result.runners.map((r) => r['name']), ['Ann Lee']);
+      expect(result.skipped, ['Row 5 (Mathias Gomez): grade is not 9–12']);
     });
 
     test('keeps a bib\'s leading zeros, as typed bibs do', () {
@@ -64,6 +81,65 @@ void main() {
 
       expect(result.runners, hasLength(1));
       expect(result.skipped, ['Row 2: needs a name, grade and bib number']);
+    });
+
+    group('headings', () {
+      test('reads a Team or School column', () {
+        for (final heading in ['Team', 'School', 'Team Name']) {
+          final result = processSpreadsheetData([
+            ['Bib', 'Name', 'Grade', heading],
+            ['101', 'Ann Lee', '10', 'Eagles'],
+          ]);
+          expect(result.runners.single['team'], 'Eagles', reason: heading);
+        }
+      });
+
+      test('leaves team out when the column is blank', () {
+        final result = processSpreadsheetData([
+          ['Bib', 'Name', 'Grade', 'Team'],
+          ['101', 'Ann Lee', '10', ''],
+        ]);
+        expect(result.runners.single.containsKey('team'), isFalse);
+      });
+
+      test('reads the common ways of writing the bib, name and grade', () {
+        final sheets = [
+          ['Bib #', 'Athlete', 'Yr'],
+          ['Athlete #', 'Name', 'Grade'],
+          ['Runner #', 'Full Name', 'Class'],
+          ['Bib No.', 'Runner Name', 'Grade Level'],
+          ['#', 'Name', 'Year'],
+        ];
+        for (final header in sheets) {
+          final result = processSpreadsheetData([
+            header,
+            ['101', 'Ann Lee', '10'],
+          ]);
+          expect(result.runners.single, {'name': 'Ann Lee', 'grade': 10,
+              'bib': '101'}, reason: header.join(', '));
+        }
+      });
+
+      test('builds the name from First and Last columns in any order', () {
+        final result = processSpreadsheetData([
+          ['Last', 'First', 'Bib', 'Grade', 'M/F'],
+          ['Lee', 'Ann', '101', 'Jr', 'F'],
+        ]);
+        expect(result.runners.single,
+            {'name': 'Ann Lee', 'grade': 11, 'bib': '101', 'gender': 'F'});
+      });
+    });
+
+    test('reads the sample spreadsheet the app offers', () {
+      // The app shows this sheet as the example to copy, so it must import.
+      final text =
+          File('assets/sample_sheets/sample_spreadsheet.csv').readAsStringSync();
+      final result = processSpreadsheetData(FileUtils.parseCsvText(text));
+
+      expect(result.skipped, isEmpty);
+      expect(result.runners.map((r) => '${r['bib']} ${r['name']} ${r['team']}'),
+          ['1001 Alex Smith Eagles', '1002 Jamie Rivera Eagles',
+           '2001 Sam Lee Hawks']);
     });
   });
 }

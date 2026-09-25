@@ -134,6 +134,16 @@ void main() {
         controller.dispose();
       });
 
+      test('is loading until the race to reopen has loaded', () async {
+        final controller = buildController();
+        expect(controller.loadingRace, isTrue);
+
+        await Future.delayed(Duration.zero);
+
+        expect(controller.loadingRace, isFalse);
+        controller.dispose();
+      });
+
       test('loads races from storage on construction', () async {
         final controller = buildController();
         await Future.delayed(Duration.zero);
@@ -604,6 +614,164 @@ void main() {
       });
     });
 
+    group('bibs heard by voice', () {
+      BibNumberController running() {
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        controller.setRaceStopped(false);
+        controller.runners.add(BibDatum(
+          bib: '42',
+          name: 'Alice',
+          teamAbbreviation: 'EAG',
+          grade: '10',
+        ));
+        return controller;
+      }
+
+      test('go in as the next runner, checked and saved at once', () async {
+        final controller = running();
+
+        await controller.addHeardBib('42');
+        await controller.addHeardBib('901');
+
+        expect(controller.bibRecords.map((r) => r.bib), ['42', '901']);
+        expect(controller.bibRecords[0].name, 'Alice');
+        expect(controller.bibRecords[1].flags.notInDatabase, isTrue,
+            reason: 'flagged without waiting for a typing pause');
+        verify(mockStorage.saveBibRecords(testRace.raceId, any)).called(2);
+        controller.dispose();
+      });
+
+      test('fill an empty row left from the keypad', () async {
+        final controller = running();
+        await controller.addBib();
+
+        await controller.addHeardBib('42');
+
+        expect(controller.bibRecords.map((r) => r.bib), ['42']);
+        controller.dispose();
+      });
+
+      test('flag a bib heard twice, and take the copy back', () async {
+        final controller = running();
+        await controller.addHeardBib('42');
+        await controller.addHeardBib('42');
+
+        // The later copy is the one flagged, as for typed bibs.
+        expect(controller.bibRecords.map((r) => r.flags.duplicateBibNumber),
+            [false, true]);
+
+        await controller.removeLastBib();
+
+        expect(controller.bibRecords, hasLength(1));
+        expect(controller.bibRecords.single.flags.duplicateBibNumber, isFalse);
+        controller.dispose();
+      });
+
+      testWidgets('scroll into view as they are added', (tester) async {
+        // Run the scheduled scroll after the frame, as the app does.
+        when(mockScheduler.schedulePostFrame(any)).thenAnswer((i) {
+          final cb = i.positionalArguments.first as VoidCallback;
+          WidgetsBinding.instance.addPostFrameCallback((_) => cb());
+        });
+        final controller = running();
+        await tester.pumpWidget(MaterialApp(
+          home: ListenableBuilder(
+            listenable: controller,
+            builder: (_, _) => Align(
+              alignment: Alignment.topCenter,
+              child: SizedBox(
+                height: 300,
+                child: ListView(
+                  controller: controller.scrollController,
+                  children: [
+                    for (final r in controller.bibRecords)
+                      SizedBox(height: 60, child: Text(r.bib)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ));
+
+        // A list already longer than the screen, looking at its end.
+        for (var i = 1; i <= 6; i++) {
+          await tester.runAsync(() => controller.addHeardBib('$i'));
+          await tester.pumpAndSettle();
+        }
+        // One more: just a row past the end, which used to stay hidden.
+        await tester.runAsync(() => controller.addHeardBib('7'));
+        await tester.pumpAndSettle();
+
+        final position = controller.scrollController.position;
+        expect(position.pixels, position.maxScrollExtent);
+        expect(tester.getRect(find.text('7')).bottom, lessThanOrEqualTo(300));
+        controller.dispose();
+      });
+
+      test('a bib still being typed is saved by saveNow', () async {
+        // The screen calls this as the app goes to the background.
+        final controller = running();
+        await controller.addBib();
+        controller.handleBibNumber('77', index: 0);
+
+        await controller.saveNow();
+
+        final saved = verify(mockStorage.saveBibRecords(testRace.raceId,
+                captureAny))
+            .captured
+            .last as List;
+        expect(saved.map((r) => r.bibNumber), ['77']);
+        controller.dispose();
+      });
+
+      test('are not added once the race is stopped', () async {
+        final controller = running();
+        controller.setRaceStopped(true);
+
+        await controller.addHeardBib('42');
+
+        expect(controller.bibRecords, isEmpty);
+        controller.dispose();
+      });
+    });
+
+    group('moving on quickly', () {
+      // A volunteer types a bib and taps Next Bib at once, well inside the
+      // half second the check waits for typing to stop. Starting the next
+      // bib used to cancel that check, so some unknown bibs never said
+      // "Runner not found".
+      test('still checks every bib left behind', () {
+        fakeAsync((async) {
+          final controller = buildController();
+          controller.runners.add(BibDatum(
+            bib: '42',
+            name: 'Alice',
+            teamAbbreviation: 'EAG',
+            grade: '10',
+          ));
+
+          for (final (i, bib) in ['901', '42', '902', '903'].indexed) {
+            controller.handleBibNumber('');
+            async.flushMicrotasks();
+            controller.handleBibNumber(bib, index: i);
+            async.elapse(const Duration(milliseconds: 100));
+          }
+          // The volunteer moves on again, and nothing waits out the delay.
+          controller.handleBibNumber('');
+          async.flushMicrotasks();
+
+          final flags = [
+            for (final r in controller.bibRecords.take(4)) r.flags.notInDatabase
+          ];
+          expect(flags, [true, false, true, true]);
+          expect(controller.bibRecords[1].name, 'Alice');
+
+          controller.dispose();
+        });
+      });
+    });
+
     group('addBib', () {
       test('adds a new empty record when bib list is empty', () async {
         final controller = buildController();
@@ -636,6 +804,54 @@ void main() {
         await controller.addBib();
 
         expect(controller.bibRecords.length, equals(1));
+
+        controller.dispose();
+      });
+    });
+
+    group('addBibStartingRace', () {
+      test('starts a race that has not been started, then adds', () async {
+        // The first runner comes in and the volunteer taps Add, not Start.
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        controller.setRaceStopped(true);
+
+        await controller.addBibStartingRace();
+
+        expect(controller.raceStopped, isFalse);
+        expect(controller.bibRecords, hasLength(1));
+        verify(mockStorage.updateRaceStatus(
+                testRace.raceId, testRace.type, false))
+            .called(1);
+
+        controller.dispose();
+      });
+
+      test('does not restart a race that was stopped with bibs in it',
+          () async {
+        // Stopping means done; adding more takes Resume, on purpose.
+        final controller = buildController();
+        controller.setCurrentRace(testRace);
+        controller.setRaceStopped(true);
+        await controller.addBibRecord(
+            BibDatumRecord(bib: '5', name: '', teamAbbreviation: '', grade: ''));
+
+        await controller.addBibStartingRace();
+
+        expect(controller.raceStopped, isTrue);
+        expect(controller.bibRecords, hasLength(1));
+        expect(controller.canAddBibOrStart, isFalse);
+
+        controller.dispose();
+      });
+
+      test('does nothing without a race', () async {
+        final controller = buildController();
+
+        await controller.addBibStartingRace();
+
+        expect(controller.bibRecords, isEmpty);
+        expect(controller.canAddBibOrStart, isFalse);
 
         controller.dispose();
       });

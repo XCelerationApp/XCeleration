@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/assistant/shared/utils/live_race_screen.dart';
 import '../coach/races_screen/screen/races_screen.dart';
 import '../spectator/races_screen/screen/spectator_races_screen.dart';
 import '../assistant/race_timer/screen/timing_screen.dart';
@@ -320,7 +321,11 @@ class _SubRoleCardState extends State<_SubRoleCard> {
 // ─── Assistant screen ─────────────────────────────────────────────────────────
 
 class _AssistantScreen extends StatefulWidget {
-  const _AssistantScreen();
+  const _AssistantScreen({this.resume});
+
+  /// A [LiveRaceScreen] to go straight into, for a race that was running
+  /// when the app closed.
+  final String? resume;
 
   @override
   State<_AssistantScreen> createState() => _AssistantScreenState();
@@ -346,7 +351,7 @@ class _AssistantScreenState extends State<_AssistantScreen>
       ),
       _RoleData(
         label: 'Bib Recorder',
-        description: "Enter bib numbers in finishing order. Syncs with the coach's device.",
+        description: "Type each runner's bib number as they finish, in order",
         onPressed: _onRecorder,
       ),
     ];
@@ -354,6 +359,13 @@ class _AssistantScreenState extends State<_AssistantScreen>
         _buildStaggeredAnimations(_roles.length, this);
     _entranceController = controller;
     _rowAnimations = animations;
+    final resume = widget.resume;
+    if (resume != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        resume == LiveRaceScreen.timer ? _onTimer() : _onRecorder();
+      });
+    }
   }
 
   @override
@@ -539,7 +551,7 @@ class _RoleScreenState extends State<RoleScreen>
       ),
       _RoleData(
         label: 'Spectator',
-        description: 'Follow live results and track your athletes',
+        description: 'See race results your coach shares with you',
         onPressed: _onSpectator,
       ),
     ];
@@ -547,6 +559,7 @@ class _RoleScreenState extends State<RoleScreen>
         _buildStaggeredAnimations(_roles.length, this);
     _entranceController = controller;
     _rowAnimations = animations;
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resumeLiveRace());
   }
 
   @override
@@ -594,9 +607,21 @@ class _RoleScreenState extends State<RoleScreen>
     );
   }
 
-  void _onAssistant() => Navigator.of(context).push(
-        InitialPageRouteAnimation(child: const _AssistantScreen()),
+  void _onAssistant({String? resume}) => Navigator.of(context).push(
+        InitialPageRouteAnimation(child: _AssistantScreen(resume: resume)),
       );
+
+  /// Checked once per launch: the app was closed with a race running, so it
+  /// goes straight back to the Timer or Bib Recorder.
+  static bool _checkedForLiveRace = false;
+
+  Future<void> _resumeLiveRace() async {
+    if (_checkedForLiveRace) return;
+    _checkedForLiveRace = true;
+    final screen = await LiveRaceScreen.read();
+    if (screen == null || !mounted) return;
+    _onAssistant(resume: screen);
+  }
 
   void _onSpectator() => Navigator.of(context).push(
         InitialPageRouteAnimation(child: const SpectatorRacesScreen()),

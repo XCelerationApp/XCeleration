@@ -10,6 +10,7 @@ import 'package:xceleration/assistant/bib_number_recorder/services/model_downloa
 import 'package:xceleration/assistant/bib_number_recorder/services/speech_recognition_service.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/logger.dart';
 
 /// [IVoiceRecognitionService] implementation.
 ///
@@ -25,17 +26,22 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
     required IModelDownloadService modelDownload,
     required ISpeechRecognitionService speechRecognition,
     required BibNumberParser parser,
+    bool Function(String bib)? isKnownBib,
   })  : _recorder = recorder,
         _modelDownload = modelDownload,
         _speechRecognition = speechRecognition,
-        _parser = parser;
+        _parser = parser,
+        _isKnownBib = isKnownBib;
 
   /// Wires up all concrete implementations with sensible defaults.
-  factory VoiceRecognitionService.create() => VoiceRecognitionService(
+  factory VoiceRecognitionService.create(
+          {bool Function(String bib)? isKnownBib}) =>
+      VoiceRecognitionService(
         recorder: BibAudioRecorder(),
         modelDownload: ModelDownloadService(),
         speechRecognition: SpeechRecognitionService(),
         parser: const BibNumberParser(),
+        isKnownBib: isKnownBib,
       );
 
   final IBibAudioRecorder _recorder;
@@ -43,13 +49,17 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
   final ISpeechRecognitionService _speechRecognition;
   final BibNumberParser _parser;
 
-  final _bibController = StreamController<int?>.broadcast();
+  /// Whether a bib is on the race's roster, used to settle what was said
+  /// when the words could be read more than one way.
+  final bool Function(String bib)? _isKnownBib;
+
+  final _bibController = StreamController<String?>.broadcast();
   final _partialController = StreamController<String>.broadcast();
 
   bool _ready = false;
 
   @override
-  Stream<int?> get bibNumbers => _bibController.stream;
+  Stream<String?> get bibNumbers => _bibController.stream;
 
   @override
   Stream<String> get partialResults => _partialController.stream;
@@ -87,16 +97,38 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
   @override
   Future<void> stop() async {
     final path = await _recorder.stop();
+    // Logger.d('[VoiceRecognition] stop() — recorder returned path: $path, ready: $_ready');
 
     if (path == null || !_ready) {
+      // Logger.d('[VoiceRecognition] No recording or not ready → emitting null');
       _bibController.add(null);
       _partialController.add('');
       return;
     }
 
     final transcript = await _speechRecognition.transcribe(path);
+    final bib = _choose(transcript);
+    Logger.d('[VoiceRecognition] "$transcript" → $bib');
+
     _partialController.add(transcript);
-    _bibController.add(_parser.parse(transcript));
+    _bibController.add(bib);
+  }
+
+  /// The bib heard: the first reading of [transcript] that is on the roster
+  /// ("one to three four" is 1234 if there is a 1234, else 134 if there is
+  /// a 134), or the plain reading when none is. Another reading is only
+  /// taken when a runner has that bib.
+  String? _choose(String transcript) {
+    final readings = _parser.candidates(transcript);
+    final known = _isKnownBib;
+    if (known != null) {
+      for (final bib in readings) {
+        // A spoken leading zero is kept: "oh nine" is bib 09, as printed,
+        // not runner 9.
+        if (known(bib)) return bib;
+      }
+    }
+    return _parser.parse(transcript);
   }
 
   @override

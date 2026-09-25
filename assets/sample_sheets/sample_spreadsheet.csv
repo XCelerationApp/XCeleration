@@ -1,3 +1,4 @@
-Athele #,First,Last,Year,M/F
-1001,Alex,Smith,10th,M
-1002,Jamie,Rivera,9th,F
+Bib,First,Last,Grade,M/F,Team
+1001,Alex,Smith,10,M,Eagles
+1002,Jamie,Rivera,9,F,Eagles
+2001,Sam,Lee,11,M,Hawks

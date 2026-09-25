@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_border_radius.dart';
+import '../theme/typography.dart';
 import '../theme/app_opacity.dart';
 import '../theme/app_spacing.dart';
 
@@ -53,7 +54,16 @@ class _AppDropdownFieldState extends State<AppDropdownField> {
             child: DropdownButtonHideUnderline(
               child: ButtonTheme(
                 alignedDropdown: true,
+                // Rounded and white, like the app's other menus.
                 child: DropdownButton<String>(
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+                  elevation: 4,
+                  menuMaxHeight: 360,
+                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.mediumColor),
+                  style: AppTypography.bodyRegular
+                      .copyWith(color: AppColors.darkColor),
                   value: widget.controller.text.isEmpty
                       ? null
                       : widget.controller.text,
@@ -108,6 +118,8 @@ Widget buildTextField({
   TextAlign textAlign = TextAlign.start,
   int? maxLength,
   bool autofocus = false,
+  bool readOnly = false,
+  VoidCallback? onTap,
 }) {
   // Shared helpers for error/warning state styling — used by border, enabledBorder, and fillColor.
   Color fieldFillColor() => error != null
@@ -137,6 +149,8 @@ Widget buildTextField({
       textAlign: textAlign,
       maxLength: maxLength,
       autofocus: autofocus,
+      readOnly: readOnly,
+      onTap: onTap,
       inputFormatters: inputFormatters,
       style: const TextStyle(
         fontSize: 16,

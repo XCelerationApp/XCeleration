@@ -8,6 +8,7 @@ import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../controller/flow_controller.dart';
 import '../steps/load_results/controller/load_results_controller.dart';
 import '../steps/reconnect/reconnect_step.dart';
+import '../steps/review_results/review_results_step.dart';
 
 /// Function type that matches the [showFlow] top-level function signature,
 /// used to allow injection in tests.
@@ -31,6 +32,7 @@ class PostRaceController {
   // Flow steps
   late final ReconnectStep _reconnectStep;
   late final LoadResultsStep _loadResultsStep;
+  late final ReviewResultsStep _reviewResultsStep;
 
   // Track flow position
   int? _lastStepIndex;
@@ -71,6 +73,8 @@ class PostRaceController {
     _loadResultsStep = LoadResultsStep(
       controller: _loadResultsController,
     );
+    _reviewResultsStep =
+        ReviewResultsStep(controller: _loadResultsController);
   }
 
   /// Show the post-race flow
@@ -96,6 +100,7 @@ class PostRaceController {
     return [
       _reconnectStep,
       _loadResultsStep,
+      _reviewResultsStep,
     ];
   }
 

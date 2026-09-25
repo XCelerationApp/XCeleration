@@ -9,7 +9,8 @@ import 'recent_local_spreadsheet_service.dart';
 
 /// Runner rows read from a spreadsheet, and the rows that were left out.
 class SpreadsheetRows {
-  /// Valid rows, each with keys name, grade, bib and optionally gender.
+  /// Valid rows, each with keys name, grade, bib, and optionally gender and
+  /// team (the team's name as the spreadsheet gives it).
   final List<Map<String, dynamic>> runners;
 
   /// One description per row that was left out, e.g.
@@ -19,6 +20,21 @@ class SpreadsheetRows {
   const SpreadsheetRows(this.runners, [this.skipped = const []]);
 
   static const empty = SpreadsheetRows([]);
+}
+
+/// Rows a spreadsheet lost before it became a file, such as those left out
+/// when several Google Sheet tabs were combined. Reported with the next
+/// import's own skipped rows, then forgotten.
+List<String> _skippedBeforeFile = const [];
+
+/// Records rows left out while preparing the file about to be imported.
+void noteRowsSkippedBeforeFile(List<String> rows) => _skippedBeforeFile = rows;
+
+SpreadsheetRows _withSkippedBeforeFile(SpreadsheetRows rows) {
+  final earlier = _skippedBeforeFile;
+  _skippedBeforeFile = const [];
+  if (earlier.isEmpty) return rows;
+  return SpreadsheetRows(rows.runners, [...earlier, ...rows.skipped]);
 }
 
 /// Processes an already-downloaded [file] through the spreadsheet pipeline
@@ -50,7 +66,7 @@ Future<SpreadsheetRows> processSpreadsheetFromFile(
       }
       result = processSpreadsheetData(parsedData);
     }
-    return result ?? SpreadsheetRows.empty;
+    return _withSkippedBeforeFile(result ?? SpreadsheetRows.empty);
   } catch (e) {
     Logger.e('Error processing spreadsheet file: $e');
     final ctx =
@@ -137,8 +153,7 @@ Future<SpreadsheetRows> processSpreadsheet(BuildContext context,
       return SpreadsheetRows.empty;
     }
 
-    // Return the result or empty list if null
-    return result;
+    return _withSkippedBeforeFile(result);
   } catch (e) {
     Logger.e('Error processing spreadsheet: $e');
     if (!context.mounted) context = navigatorContext;
@@ -154,14 +169,13 @@ Future<SpreadsheetRows> processSpreadsheet(BuildContext context,
 /// Process the spreadsheet data to get the runner data. Rows that can't be
 /// imported are listed in [SpreadsheetRows.skipped] rather than dropped
 /// silently.
-@visibleForTesting
 SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
   final List<Map<String, dynamic>> runnerData = [];
   final List<String> skipped = [];
 
-  String cellToString(dynamic cell) {
-    return (cell?.toString() ?? '').replaceAll('"', '').trim();
-  }
+  // Cells as the sheet shows them. The CSV reader already takes off the
+  // quotes that wrap a cell; any left are part of the name, like "JJ".
+  String cellToString(dynamic cell) => (cell?.toString() ?? '').trim();
 
   // Only used for heuristic fallback and quick checks
   List<String> sanitizeRow(List<dynamic> row) {
@@ -178,16 +192,19 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
   int idxFullName = -1; // e.g., "First Last" or "Name"
   int idxYear = -1;
   int idxGender = -1;
+  int idxTeam = -1;
 
   bool hasHeader = false;
   if (data.isNotEmpty) {
     final header = data.first.map(cellToString).toList();
     final lower = header.map((h) => h.toLowerCase()).toList();
 
-    idxBib = lower.indexWhere((h) => h.contains('athlete') && h.contains('#'));
+    // "Athlete #", "Runner #" and the like.
+    idxBib = lower.indexWhere((h) => h.length > 1 && h.endsWith('#'));
     if (idxBib == -1) {
-      idxBib =
-          lower.indexWhere((h) => h == '#' || h == 'bib' || h == 'bib number');
+      // "Bib", "Bib #", "Bib No.", "Bib Number", "#".
+      idxBib = lower.indexWhere((h) =>
+          h == '#' || h == 'bib' || h.startsWith('bib ') || h == 'bib#');
     }
     idxFirst = lower.indexWhere((h) => h == 'first' || h == 'first name');
     idxLast = lower.indexWhere((h) => h == 'last' || h == 'last name');
@@ -198,11 +215,22 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
       idxFullName = lower.indexWhere((h) =>
           h.contains('full name') ||
           h.contains('athlete name') ||
-          h.contains('runner name'));
+          h.contains('runner name') ||
+          h == 'athlete' ||
+          h == 'runner');
     }
-    idxYear = lower.indexWhere((h) => h == 'year' || h.contains('grade'));
+    idxYear = lower.indexWhere((h) =>
+        h == 'year' || h == 'yr' || h == 'class' || h.contains('grade'));
     idxGender =
         lower.indexWhere((h) => h == 'm/f' || h == 'gender' || h == 'sex');
+    // Which team a runner is on, so a sheet of several teams can be imported
+    // in one go.
+    idxTeam = lower.indexWhere((h) =>
+        h == 'team' ||
+        h == 'team name' ||
+        h == 'school' ||
+        h == 'school name' ||
+        h == 'club');
 
     // Heuristic: if there are multiple 'first' columns, try to infer which is full name
     // by sampling the first few data rows and counting presence of spaces.
@@ -304,6 +332,7 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
     int grade = 0;
     String bibNumber = '';
     String? gender; // 'M' or 'F'
+    String? team;
 
     if (hasHeader) {
       final fullName = (idxFullName >= 0 && idxFullName < rowRaw.length)
@@ -335,8 +364,17 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
           name = fullName.trim();
         }
       }
+      // A roster with bibs handed out ahead leaves rows with a bib and no
+      // runner yet. Those are empty, not mistakes, so they are passed over
+      // without a word; a league sheet listed over a hundred of them.
+      if (name.isEmpty && yearStr.isEmpty) continue;
       grade = parseYearToGrade(yearStr);
       bibNumber = normalizeBib(bibStr);
+
+      final teamStr = (idxTeam >= 0 && idxTeam < rowRaw.length)
+          ? cellToString(rowRaw[idxTeam])
+          : '';
+      if (teamStr.isNotEmpty) team = teamStr;
 
       if (genderStr.isNotEmpty) {
         final g = genderStr.toUpperCase();
@@ -370,6 +408,7 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
         'grade': grade,
         'bib': bibNumber,
         'gender': ?gender,
+        'team': ?team,
       });
     } else {
       Logger.d(

@@ -7,10 +7,12 @@ class ShareRaceStep extends FlowStep {
   final DevicesManager devices;
   ShareRaceStep({required this.devices})
       : super(
-          title: 'Share Race',
+          title: 'Send to Volunteers',
           description:
-              'Share the race results with your assistants before starting the race.',
+              'On each volunteer\'s phone, open XCeleration, choose Assistant, '
+              'then Timer or Bib Recorder, and tap Get Race from Coach.',
           content: ShareRaceWidget(devices: devices),
           canProceed: () => true,
+          nextLabel: 'Done Sending',
         );
 }

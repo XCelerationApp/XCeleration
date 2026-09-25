@@ -71,9 +71,10 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
             ),
           ],
         ),
+        // At the top, where the eye already is after tapping the answer.
         if (hasPending)
           Positioned(
-            bottom: AppSpacing.sm,
+            top: AppSpacing.sm,
             left: AppSpacing.lg,
             right: AppSpacing.lg,
             child: const _UndoToastWrapper(),

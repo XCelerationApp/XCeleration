@@ -51,28 +51,31 @@ class _RecentSpreadsheetsSheetState extends State<RecentSpreadsheetsSheet> {
   Future<void> _onDriveFileTap(RecentDriveSelection entry) async {
     if (!mounted) return;
 
-    final result = await DialogUtils.executeWithLoadingDialog<File?>(
-      context,
-      loadingMessage: 'Downloading ${entry.name}...',
-      operation: () async {
-        if (entry.mimeType == 'application/vnd.google-apps.spreadsheet') {
-          return GoogleSheetsService.instance.downloadGoogleSheet(
-            fileId: entry.fileId,
-            fileName: entry.name,
-          );
-        }
-        return GoogleDriveService.instance.downloadFile(
-            entry.fileId, entry.name);
-      },
-      allowCancel: true,
-    );
+    final File? result;
+    if (entry.mimeType == 'application/vnd.google-apps.spreadsheet') {
+      // Not under a loading dialog: a sheet with several tabs asks which to
+      // import.
+      result = await GoogleSheetsService.instance.downloadGoogleSheet(
+        fileId: entry.fileId,
+        fileName: entry.name,
+        context: context,
+      );
+    } else {
+      result = await DialogUtils.executeWithLoadingDialog<File?>(
+        context,
+        loadingMessage: 'Downloading ${entry.name}...',
+        operation: () =>
+            GoogleDriveService.instance.downloadFile(entry.fileId, entry.name),
+        allowCancel: true,
+      );
+    }
 
     if (!mounted) return;
     if (result == null) {
       DialogUtils.showErrorDialog(
         context,
         message:
-            'Could not download "${entry.name}". Your session may have expired — try selecting it via "Select from Google Drive" to refresh access.',
+            'Could not download "${entry.name}". Google may need you to sign in again: choose Google Drive and pick it there.',
       );
       return;
     }

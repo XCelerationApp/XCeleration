@@ -66,7 +66,8 @@ class PermissionsUtils {
       Permission.camera,
       title: 'Camera Permission',
       message: message ??
-          'Camera access is needed to scan QR codes and take photos.',
+          'Xceleration uses the camera to scan the QR code on a '
+              'teammate\'s phone, so you can pass race data between phones.',
       buttonText: 'Allow Camera Access',
     );
   }
@@ -79,7 +80,8 @@ class PermissionsUtils {
       Permission.location,
       title: 'Location Permission',
       message: message ??
-          'Location access is needed for race mapping and tracking features.',
+          'Xceleration uses where you are to fill in a race\'s address when '
+              'you tap the location button. It is used only then.',
       buttonText: 'Allow Location Access',
     );
   }
@@ -92,7 +94,8 @@ class PermissionsUtils {
       Permission.nearbyWifiDevices,
       title: 'Connection Permission',
       message: message ??
-          'Nearby Wi-Fi device access is needed for connecting to other devices.',
+          'Lets Xceleration find your coach\'s and teammates\' phones '
+              'nearby, to send races, times and bib numbers between them.',
       buttonText: 'Allow',
     );
   }

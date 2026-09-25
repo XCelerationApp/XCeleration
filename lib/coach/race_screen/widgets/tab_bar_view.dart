@@ -97,6 +97,7 @@ class TabBarViewWidget extends StatelessWidget {
           // notifications do not trigger a rebuild here.
           ResultsScreen(
             masterRace: controller.masterRace,
+            canEdit: controller.canEditResults,
           ),
         ],
       ),

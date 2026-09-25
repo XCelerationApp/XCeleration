@@ -42,7 +42,9 @@ const _unknown = UnknownBibConflict(
   occurrence: ConflictOccurrence(place: 17),
 );
 
-ConflictResolutionController _controller() => ConflictResolutionController(
+ConflictResolutionController _controller({int timingConflictsNext = 0}) =>
+    ConflictResolutionController(
+      timingConflictsNext: timingConflictsNext,
       conflicts: [_duplicate, _unknown],
       candidates: [_gray, _nico],
       knownBibs: {'959', '949', '956'},
@@ -56,8 +58,8 @@ void main() {
   Object? popped;
   var didPop = false;
 
-  Future<void> open(WidgetTester tester) async {
-    controller = _controller();
+  Future<void> open(WidgetTester tester, {int timingConflictsNext = 0}) async {
+    controller = _controller(timingConflictsNext: timingConflictsNext);
     popped = null;
     didPop = false;
     await tester.pumpWidget(MaterialApp(
@@ -195,16 +197,33 @@ void main() {
     await controller.commitPending();
     await tester.pumpAndSettle();
 
-    expect(find.text('All conflicts resolved'), findsOneWidget);
+    expect(find.text('All bib numbers sorted'), findsOneWidget);
     expect(find.text('16th place · Bib #959'), findsOneWidget);
     expect(find.textContaining('Kept: Quinn Owls'), findsOneWidget);
     expect(find.textContaining('Assigned: Gray Eagles'), findsOneWidget);
 
-    await tester.ensureVisible(find.text('Confirm & Submit Results'));
-    await tester.tap(find.text('Confirm & Submit Results'));
+    await tester.ensureVisible(find.text('Done'));
+    await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
 
     expect(popped, {16: _quinn, 17: _nico, 21: _gray});
+  });
+
+  testWidgets('says timing conflicts come next, rather than all resolved',
+      (tester) async {
+    await open(tester, timingConflictsNext: 2);
+    controller.startResolving();
+    controller.chooseDuplicateOccurrence(16);
+    controller.prepareAssignForDuplicate(_gray, '21st');
+    await controller.commitPending();
+    controller.prepareAssign(_nico, '17th');
+    await controller.commitPending();
+    await tester.pumpAndSettle();
+
+    expect(find.textContaining('Next, 2 places need their times'),
+        findsOneWidget);
+    expect(find.text('Next: Timing Conflicts'), findsOneWidget);
+    expect(find.text('Done'), findsNothing);
   });
 
   testWidgets('both cards fit on a phone', (tester) async {
@@ -243,7 +262,7 @@ void main() {
       await tester.pumpAndSettle();
       await controller.commitPending();
       await tester.pumpAndSettle();
-      expect(find.text('All conflicts resolved'), findsOneWidget);
+      expect(find.text('All bib numbers sorted'), findsOneWidget);
     });
   }
 }

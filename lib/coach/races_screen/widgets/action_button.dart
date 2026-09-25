@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import '../../../core/components/button_components.dart';
+import '../../../core/components/dialog_utils.dart';
 import '../../../shared/models/database/race.dart';
 import '../controller/races_controller.dart';
 
@@ -45,19 +46,8 @@ class ActionButton extends StatelessWidget {
 
       // Only show error dialog if context is still mounted
       if (context.mounted) {
-        showDialog(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text('Error'),
-            content: Text('Failed to save race: ${e.toString()}'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('OK'),
-              ),
-            ],
-          ),
-        );
+        DialogUtils.showErrorDialog(context,
+            message: 'Could not save the race. Please try again.');
       }
     }
   }

@@ -294,4 +294,58 @@ void main() {
       });
     });
   });
+
+  // =========================================================================
+  group('showSendAgainSheet', () {
+    Future<BuildContext> host(WidgetTester tester) async {
+      late BuildContext context;
+      await tester.pumpWidget(MaterialApp(
+        home: Builder(builder: (c) {
+          context = c;
+          return const Scaffold();
+        }),
+      ));
+      return context;
+    }
+
+    testWidgets('sends the race and roster as they are now', (tester) async {
+      final again =
+          DevicesManager(DeviceName.coach, DeviceType.advertiserDevice, data: '');
+      final controller = _buildController(
+        mockMasterRace,
+        devices: devices,
+        encodeRaceData: (_) async => 'RACE',
+        encodeBibData: (_) async => 'BIBS',
+      )..createDevices = () => again;
+      final context = await host(tester);
+
+      controller.showSendAgainSheet(context);
+      await tester.pump();
+      await tester.pump();
+
+      expect(again.raceTimer!.data, 'RACE');
+      expect(again.bibRecorder!.data, 'RACE---BIBS');
+      expect(find.text('Send Race Again'), findsOneWidget);
+      // The flow's own connections are left alone.
+      expect(devices.raceTimer!.data, '');
+    });
+
+    testWidgets('says so and opens nothing when the race cannot be prepared',
+        (tester) async {
+      final controller = _buildController(
+        mockMasterRace,
+        devices: devices,
+        encodeRaceData: (_) async => '',
+        encodeBibData: (_) async => 'BIBS',
+      );
+      final context = await host(tester);
+
+      await controller.showSendAgainSheet(context);
+      await tester.pump();
+
+      expect(find.text('Send Race Again'), findsNothing);
+      expect(find.textContaining('Could not prepare the race'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 10));
+    });
+  });
 }

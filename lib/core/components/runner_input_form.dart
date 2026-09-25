@@ -5,6 +5,8 @@ import 'dart:async';
 import '../utils/logger.dart';
 import '../theme/app_animations.dart';
 import '../theme/app_border_radius.dart';
+import '../theme/app_colors.dart';
+import '../theme/typography.dart';
 import '../theme/app_opacity.dart';
 import '../theme/app_spacing.dart';
 import './textfield_utils.dart' as textfield_utils;
@@ -493,7 +495,16 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
             child: DropdownButtonHideUnderline(
               child: ButtonTheme(
                 alignedDropdown: true,
+                // Rounded and white, like the app's other menus.
                 child: DropdownButton<Team?>(
+                    dropdownColor: Colors.white,
+                    borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+                    elevation: 4,
+                    menuMaxHeight: 360,
+                    icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                        color: AppColors.mediumColor),
+                    style: AppTypography.bodyRegular
+                        .copyWith(color: AppColors.darkColor),
                     value: _selectedTeam != null &&
                             _currentTeamOptions.contains(_selectedTeam)
                         ? _selectedTeam

@@ -117,17 +117,37 @@ void main() {
       expect(find.text('See More'), findsOneWidget);
     });
 
-    testWidgets('truncates names longer than 18 characters', (tester) async {
+    testWidgets('fades a long name at the edge instead of widening the table',
+        (tester) async {
       final results = [
-        _result(1, 'Bartholomew McAllister', 'EA',
+        _result(1, 'Bartholomew Maximilian McAllister-Worthington', 'EA',
             const Duration(minutes: 18)),
       ];
 
       await tester.pumpWidget(
           _wrap(CollapsibleIndividualResultsWidget(results: results)));
 
-      expect(find.text('Bartholomew McAlli...'), findsOneWidget);
-      expect(find.text('Bartholomew McAllister'), findsNothing);
+      final name = tester.widget<Text>(
+          find.text('Bartholomew Maximilian McAllister-Worthington'));
+      expect(name.overflow, TextOverflow.ellipsis);
+      expect(name.maxLines, 1);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps the time on screen on a narrow phone', (tester) async {
+      tester.view.physicalSize = const Size(320, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final results = [
+        _result(1, 'Alice Smith', 'EA', const Duration(minutes: 18)),
+      ];
+
+      await tester.pumpWidget(
+          _wrap(CollapsibleIndividualResultsWidget(results: results)));
+
+      expect(find.byType(SingleChildScrollView), findsNothing);
+      final time = tester.getRect(find.text('18:00.00'));
+      expect(time.right, lessThanOrEqualTo(320));
     });
   });
 
@@ -153,8 +173,8 @@ void main() {
           .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
 
       expect(find.text('Team'), findsOneWidget);
-      expect(find.text('Scorers'), findsOneWidget);
       expect(find.text('Score'), findsOneWidget);
+      expect(find.textContaining('Scorers: '), findsOneWidget);
     });
 
     testWidgets('displays team abbreviation in result row', (tester) async {
@@ -164,6 +184,43 @@ void main() {
           .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
 
       expect(find.text('EA'), findsWidgets);
+    });
+
+    testWidgets('names a team in full where it has a name', (tester) async {
+      final runner =
+          RaceResult(raceId: 1, place: 1, finishTime: const Duration(minutes: 18));
+      final results = [
+        TeamRecord(
+          team: const Team(teamId: 1, name: 'Eagles', abbreviation: 'EAG'),
+          runners: List.generate(5, (_) => runner),
+          place: 1,
+        ),
+      ];
+
+      await tester
+          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+
+      expect(find.text('Eagles'), findsOneWidget);
+    });
+
+    testWidgets('says a tie was broken by the sixth runner', (tester) async {
+      // Same places, so the same score.
+      final results = [buildTeamRecord('EA', 1), buildTeamRecord('OW', 1)];
+
+      await tester
+          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+
+      expect(find.text('Tie broken by the 6th runner'), findsNWidgets(2));
+    });
+
+    testWidgets('says nothing of ties when every score differs',
+        (tester) async {
+      final results = [buildTeamRecord('EA', 1), buildTeamRecord('OW', 2)];
+
+      await tester
+          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+
+      expect(find.textContaining('Tie broken'), findsNothing);
     });
   });
 }

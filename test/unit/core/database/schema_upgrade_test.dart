@@ -6,6 +6,8 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:xceleration/core/repositories/database_connection_provider.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 
+import '../../../fixtures/store_v15_schema.dart';
+
 // Upgrading a database that already has races in it. These run the real
 // provider against a real file, because an upgrade that goes wrong does so
 // on a phone that already holds a season of data.
@@ -269,6 +271,52 @@ void main() {
 
       expect(File(p.join(dir.path, 'races_$_userId.db')).existsSync(), isFalse);
     });
+  });
+
+  test('upgrades a database from the store version (1.0.2, v15)', () async {
+    // Built exactly as the app in the store builds it, with a season in it.
+    final old = await databaseFactory.openDatabase(
+      p.join(dir.path, 'races.db'),
+      options: OpenDatabaseOptions(version: 15),
+    );
+    for (final stmt in splitStoreSql(storeV15SchemaSql)) {
+      await old.execute(stmt);
+    }
+    await old.insert('runners', {
+      'runner_id': 1, 'uuid': 'r1', 'name': 'Alice', 'grade': 10,
+      'bib_number': '101',
+    });
+    await old.insert('teams',
+        {'team_id': 1, 'uuid': 't1', 'name': 'Eagles', 'color': 0});
+    await old.insert('races', {
+      'race_id': 1, 'uuid': 'race1', 'name': 'Invitational',
+      'flow_state': 'finished',
+    });
+    await old.insert('race_results', {
+      'race_id': 1, 'runner_id': 1, 'team_id': 1, 'place': 1,
+      'finish_time': 900000,
+    });
+    await old.insert('race_participants',
+        {'race_id': 1, 'runner_id': 1, 'team_id': 1});
+    await old.insert('team_rosters', {'team_id': 1, 'runner_id': 1});
+    await old.insert('race_team_participation', {'race_id': 1, 'team_id': 1});
+    await old.close();
+
+    await provider.openForUser(_userId);
+    final db = await provider.database;
+
+    expect((await db.query('runners')).single['name'], 'Alice');
+    expect((await db.query('races')).single['flow_state'], 'finished');
+    expect((await db.query('race_results')).single['finish_time'], 900000);
+    expect(await db.query('team_rosters'), hasLength(1));
+    // Columns added since 1.0.2 are there to write to.
+    await db.update('team_rosters', {'team_uuid': 't1', 'runner_uuid': 'r1'});
+    await db.update('race_team_participation',
+        {'race_uuid': 'race1', 'team_uuid': 't1'});
+    // And a deleted runner's bib is free again, as on a fresh install.
+    await db.update('runners', {'deleted_at': '2026-01-01T00:00:00Z'});
+    await db.insert(
+        'runners', {'name': 'Bob', 'grade': 11, 'bib_number': '101'});
   });
 
   test('keeps every row when upgrading an existing database', () async {

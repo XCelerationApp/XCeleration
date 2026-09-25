@@ -63,6 +63,9 @@ class _BibListWidgetState extends State<BibListWidget>
           Expanded(
             child: ListView.builder(
               controller: widget.controller.scrollController,
+              // The screen already clears the notch; without this the list adds
+              // the safe-area gap again above the first row.
+              padding: EdgeInsets.zero,
               itemCount: widget.controller.bibRecords.length,
               itemBuilder: (context, index) {
                 return Dismissible(

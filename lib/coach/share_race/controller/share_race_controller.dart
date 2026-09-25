@@ -54,7 +54,7 @@ class ShareRaceController {
     );
     return sheet(
       context: context,
-      title: 'Share Race',
+      title: 'Share Results',
       body: ShareRaceScreen(
         controller: ShareRaceController(
           raceResultsData: raceResultsData,

@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
-import '../../../core/components/button_components.dart';
-import '../../../core/components/dialog_utils.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../shared/widgets/race_day_controls.dart';
 import '../controller/bib_number_controller.dart';
 
+/// The bottom of the Bib Recorder while the number pad is down: Start
+/// Recording before the race, a big Add Bib during it, and Share Bibs after.
 class RaceControlsWidget extends StatelessWidget {
   final BibNumberController controller;
   final VoidCallback onShare;
@@ -16,89 +18,55 @@ class RaceControlsWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (controller.currentRace == null) return const SizedBox.shrink();
+
+    if (!controller.raceStopped) {
+      return BigActionButton(
+        key: const ValueKey('add_bib_button'),
+        label: 'Add Bib',
+        sublabel: 'Runner ${controller.bibRecords.length + 1}',
+        icon: Icons.add_rounded,
+        color: AppColors.primaryColor,
+        onPressed: controller.addBib,
+      );
+    }
+
+    if (controller.bibRecords.isEmpty) {
+      return BigActionButton(
+        key: const ValueKey('start_recording_button'),
+        label: 'Start Recording',
+        sublabel: 'Opens the keypad for the first runner',
+        icon: Icons.play_arrow_rounded,
+        color: Colors.green.shade600,
+        onPressed: controller.addBibStartingRace,
+      );
+    }
+
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        _buildRaceControlButton(context),
-        if (controller.raceStopped && controller.countNonEmptyBibNumbers() > 0)
-          _buildShareButton(context),
-        _buildLogButton(context),
-      ],
-    );
-  }
-
-  Widget _buildRaceControlButton(BuildContext context) {
-    final buttonText = !controller.raceStopped
-        ? 'Stop'
-        : controller.bibRecords.isNotEmpty
-            ? 'Cont.'
-            : 'Start';
-    final buttonColor = controller.currentRace == null
-        ? const Color(0xFF777777).withAlpha((0.5 * 255).round())
-        : !controller.raceStopped
-            ? Colors.red
-            : Colors.green;
-
-    return CircularButton(
-        text: buttonText,
-        color: buttonColor,
-        fontSize: !controller.raceStopped ? 18 : 16,
-        fontWeight: FontWeight.w600,
-        onPressed: () => controller.currentRace == null
-            ? null
-            : controller.raceStopped = !controller.raceStopped);
-  }
-
-  Widget _buildShareButton(BuildContext context) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: ActionButton(
-          height: 70,
-          text: 'Share Bibs',
-          icon: Icons.share,
-          iconSize: 18,
-          fontSize: 18,
-          textColor: AppColors.mediumColor,
-          backgroundColor: AppColors.backgroundColor,
-          borderColor: AppColors.mediumColor,
-          fontWeight: FontWeight.w500,
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          borderRadius: 30,
-          isPrimary: false,
-          onPressed: onShare,
+        Expanded(
+          child: RaceDayButton(
+            label: 'Resume',
+            icon: Icons.play_arrow_rounded,
+            color: Colors.green.shade700,
+            height: 64,
+            onPressed: () => controller.raceStopped = false,
+          ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildLogButton(BuildContext context) {
-    return CircularButton(
-      text: (controller.bibRecords.isEmpty || !controller.raceStopped)
-          ? 'Add'
-          : 'Clear',
-      color: ((!controller.raceStopped && controller.canAddBib) ||
-              (controller.raceStopped && controller.bibRecords.isNotEmpty))
-          ? const Color(0xFF777777)
-          : const Color(0xFF777777).withAlpha((0.5 * 255).round()),
-      fontSize: 18,
-      fontWeight: FontWeight.w600,
-      onPressed: () async {
-        if (controller.bibRecords.isNotEmpty && controller.raceStopped) {
-          final bool confirmation = await DialogUtils.showConfirmationDialog(
-              context,
-              title: 'Confirm Deletion',
-              content: 'Are you sure you want to clear all the recorded bibs?');
-          if (confirmation) {
-            controller.clearBibRecords();
-          }
-        } else if (!controller.raceStopped && controller.canAddBib) {
-          await controller.addBib();
-        } else if (controller.raceStopped && controller.bibRecords.isEmpty) {
-          // do nothing
-          return;
-        }
-      },
+        if (controller.countNonEmptyBibNumbers() > 0) ...[
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: RaceDayButton(
+              label: 'Share Bibs',
+              icon: Icons.ios_share,
+              color: AppColors.primaryColor,
+              filled: true,
+              height: 64,
+              onPressed: onShare,
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

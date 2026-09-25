@@ -165,7 +165,9 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
             final hasError = widget.record.validationError != null &&
                 widget.record.validationError!.isNotEmpty;
 
+            // Centred in the row's height, level with the runner's name.
             return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (widget.isOriginallyTBD) ...[

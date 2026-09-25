@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../model/results_record.dart';
 import '../model/team_record.dart';
@@ -51,34 +53,29 @@ class _CollapsibleResultsWidgetState<T>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Wrap the entire table (header + rows) in a single horizontal scroll
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              widget.headerBuilder(),
-              const SizedBox(height: 8),
-              // Display results rows — inside a horizontal scroll view so a
-              // vertical viewport (ListView) cannot be used here (unbounded
-              // cross-axis width). Use a Column spread instead; the list is
-              // always small (≤ initialVisibleCount visible at once).
-              ...displayResults.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                final backgroundColor = index % 2 == 0
-                    ? Colors.transparent
-                    : ColorUtils.withOpacity(Colors.grey, 0.05);
-
-                return Container(
-                  color: backgroundColor,
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
-                  child: widget.rowBuilder(item),
-                );
-              }),
-            ],
-          ),
+        // The columns share the screen's width rather than scrolling
+        // sideways, so the score and time are never off the edge.
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          child: widget.headerBuilder(),
         ),
+        const Divider(height: 1, color: AppColors.lightColor),
+        ...displayResults.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          final backgroundColor = index % 2 == 0
+              ? Colors.transparent
+              : ColorUtils.withOpacity(Colors.grey, 0.05);
+
+          // A little room at each side, so the times on the right do not
+          // sit against the card's edge or the shaded row's.
+          return Container(
+            color: backgroundColor,
+            padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.sm, horizontal: AppSpacing.sm),
+            child: widget.rowBuilder(item),
+          );
+        }),
 
         // "See more"/"See less" button if needed
         if (widget.results.length > widget.initialVisibleCount)
@@ -103,6 +100,32 @@ class _CollapsibleResultsWidgetState<T>
   }
 }
 
+/// The width of the place column in both results tables.
+const double _placeWidth = 52;
+
+TextStyle get _headerStyle =>
+    AppTypography.captionBold.copyWith(color: AppColors.mediumColor);
+
+const _tabular = [FontFeature.tabularFigures()];
+
+/// "Place" over the narrow place column, shrunk rather than wrapped at a
+/// large text size.
+class _PlaceHeader extends StatelessWidget {
+  const _PlaceHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _placeWidth,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text('Place', style: _headerStyle),
+      ),
+    );
+  }
+}
+
 /// Pre-built [CollapsibleResultsWidget] variant for individual race results.
 class CollapsibleIndividualResultsWidget extends StatelessWidget {
   final List<ResultsRecord> results;
@@ -114,71 +137,55 @@ class CollapsibleIndividualResultsWidget extends StatelessWidget {
     this.initialVisibleCount = 5,
   });
 
-  static const int _nameCharacterLimit = 18;
-
-  static String _truncateName(String name, {int limit = _nameCharacterLimit}) {
-    if (name.length <= limit) return name;
-    return '${name.substring(0, limit)}...';
-  }
-
   static Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          SizedBox(
-              width: 60,
-              child: Text('Place', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 150,
-              child: Text('Name', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 70,
-              child: Text('Team', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 80,
-              child: Text('Time', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 70,
-              child: Text('Pace/mi', style: AppTypography.bodySemibold)),
+          const _PlaceHeader(),
+          Expanded(child: Text('Runner', style: _headerStyle)),
+          Text('Time', style: _headerStyle),
         ],
       ),
     );
   }
 
   static Widget _buildRow(ResultsRecord result) {
-    return Column(
+    final pace = result.formattedPacePerMile;
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        SizedBox(
+          width: _placeWidth,
+          child: Text('${result.place}', style: AppTypography.bodySemibold),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(result.name,
+                  style: AppTypography.bodyRegular,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              Text(result.teamAbbreviation,
+                  style: AppTypography.caption
+                      .copyWith(color: AppColors.mediumColor),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            SizedBox(
-              width: 60,
-              child: Text('${result.place}', style: AppTypography.bodyRegular),
-            ),
-            SizedBox(
-              width: 150,
-              child: Text(_truncateName(result.name),
-                  style: AppTypography.bodyRegular),
-            ),
-            SizedBox(
-              width: 70,
-              child: Text(_truncateName(result.teamAbbreviation, limit: 20),
-                  style: AppTypography.bodyRegular),
-            ),
-            SizedBox(
-              width: 80,
-              child: Text(result.formattedFinishTime,
-                  style: AppTypography.bodyRegular),
-            ),
-            SizedBox(
-              width: 70,
-              child: Text(
-                  result.formattedPacePerMile.isEmpty
-                      ? '-'
-                      : result.formattedPacePerMile,
-                  style: AppTypography.bodyRegular),
-            ),
+            Text(result.formattedFinishTime,
+                style: AppTypography.bodySemibold
+                    .copyWith(fontFeatures: _tabular)),
+            if (pace.isNotEmpty)
+              Text('$pace/mi',
+                  style: AppTypography.caption.copyWith(
+                      color: AppColors.mediumColor, fontFeatures: _tabular)),
           ],
         ),
       ],
@@ -209,59 +216,64 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
 
   static Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          SizedBox(
-              width: 60,
-              child: Text('Place', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 70,
-              child: Text('Team', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 150,
-              child: Text('Scorers', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 50,
-              child: Text('Score', style: AppTypography.bodySemibold)),
+          const _PlaceHeader(),
+          Expanded(child: Text('Team', style: _headerStyle)),
+          Text('Score', style: _headerStyle),
         ],
       ),
     );
   }
 
-  static Widget _buildRow(TeamRecord team) {
+  /// [tied] when another team has the same score: the order then comes from
+  /// the sixth runners, which the row says, since the scores alone look like
+  /// a mistake.
+  static Widget _buildRow(TeamRecord team, {bool tied = false}) {
     final scorerPlaces = team.scorers.isNotEmpty
         ? [
             ...team.scorers.map((scorer) => scorer.place.toString()),
             if (team.topSeven.length > 5)
               '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
           ].join(', ')
-        : 'N/A';
+        : 'No scorers';
 
     final abbrev = team.team.abbreviation ?? 'N/A';
-    final truncatedAbbrev =
-        abbrev.length <= 15 ? abbrev : '${abbrev.substring(0, 15)}...';
+    // The team's name reads more easily than its three letters.
+    final name = team.team.name?.trim();
+    final label = name == null || name.isEmpty ? abbrev : name;
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 60,
+          width: _placeWidth,
           child: Text(team.place != null ? '${team.place}' : '-',
-              style: AppTypography.bodyRegular),
+              style: AppTypography.bodySemibold),
         ),
-        SizedBox(
-          width: 70,
-          child: Text(truncatedAbbrev, style: AppTypography.bodyRegular),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: AppTypography.bodyRegular,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              Text('Scorers: $scorerPlaces',
+                  style: AppTypography.caption
+                      .copyWith(color: AppColors.mediumColor)),
+              if (tied)
+                Text('Tie broken by the 6th runner',
+                    style: AppTypography.caption
+                        .copyWith(color: AppColors.primaryColor)),
+            ],
+          ),
         ),
-        SizedBox(
-          width: 150,
-          child: Text(scorerPlaces, style: AppTypography.bodyRegular),
-        ),
-        SizedBox(
-          width: 50,
-          child: Text('${team.score != 0 ? team.score : 'N/A'}',
-              style: AppTypography.bodyRegular),
-        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text('${team.score != 0 ? team.score : '-'}',
+            style: AppTypography.bodySemibold
+                .copyWith(fontFeatures: _tabular)),
       ],
     );
   }
@@ -272,7 +284,10 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
       results: results,
       initialVisibleCount: initialVisibleCount,
       headerBuilder: _buildHeader,
-      rowBuilder: _buildRow,
+      rowBuilder: (team) => _buildRow(team,
+          tied: team.score != 0 &&
+              results.any((other) =>
+                  !identical(other, team) && other.score == team.score)),
     );
   }
 }

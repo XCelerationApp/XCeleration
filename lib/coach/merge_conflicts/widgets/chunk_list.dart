@@ -20,6 +20,8 @@ class ChunkList extends StatelessWidget {
         final chunks = controller.uiChunks;
         return ListView.builder(
           shrinkWrap: true,
+          // Nested in the screen's scroll view: no safe-area inset of its own.
+          padding: EdgeInsets.zero,
           physics: const NeverScrollableScrollPhysics(),
           itemCount: chunks.length,
           itemBuilder: (context, index) => ChunkItem(
