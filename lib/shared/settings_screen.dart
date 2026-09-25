@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
@@ -23,6 +24,10 @@ class SettingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Timers, Bib Recorders and Spectators never sign in. Syncing, signing
+    // out and deleting an account mean nothing to them, and Delete Account
+    // used to ask to go ahead and then do nothing.
+    final signedIn = AuthService.instance.isSignedIn;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -31,25 +36,44 @@ class SettingsScreen extends StatelessWidget {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Stack(
+      body: ListView(
         children: [
-          ListView(
-            children: [
-                const SizedBox(height: 24),
-              _buildSectionHeader('Sync'),
-              _buildSyncNowButton(context),
-              if (kDebugMode) ...[
-                const SizedBox(height: 24),
-                _buildSectionHeader('Account Settings'),
-                _buildChangePasswordButton(context),
-              ],
-              const SizedBox(height: 24),
-              _buildSectionHeader('Account'),
-              _buildDeleteAccountButton(context),
-              _buildSignOutButton(context),
-            ],
+          const SizedBox(height: 24),
+          _buildSectionHeader('Account'),
+          if (signedIn) ...[
+            _buildNote(
+                'Signed in as ${AuthService.instance.currentEmail ?? 'a coach'}'),
+            _buildSyncNowButton(context),
+            if (kDebugMode) _buildChangePasswordButton(context),
+            _buildSignOutButton(context),
+            _buildDeleteAccountButton(context),
+          ] else
+            _buildNote('Not signed in. Coaches sign in to keep their races '
+                'and runners in the cloud. Timers, Bib Recorders and '
+                'Spectators do not need an account.'),
+          const SizedBox(height: 24),
+          _buildSectionHeader('About'),
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snapshot) {
+              final info = snapshot.data;
+              return _buildNote(info == null
+                  ? 'Xceleration'
+                  : 'Xceleration ${info.version} (${info.buildNumber})');
+            },
           ),
+          const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNote(String text) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Text(
+        text,
+        style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
       ),
     );
   }
@@ -160,7 +184,9 @@ class SettingsScreen extends StatelessWidget {
           );
         } catch (e) {
           if (!context.mounted) return;
-          DialogUtils.showErrorDialog(context, message: 'Sync failed: $e');
+          Logger.e('Sync failed: $e');
+          DialogUtils.showErrorDialog(context,
+              message: 'Could not sync. Check you are online and try again.');
           return;
         }
         if (!context.mounted) return;
@@ -207,6 +233,7 @@ class SettingsScreen extends StatelessWidget {
               'This will permanently delete your account and associated cloud data. Continue?',
           confirmText: 'Delete',
           cancelText: 'Cancel',
+          destructive: true,
         );
         if (!confirmed || !context.mounted) return;
         final userId = AuthService.instance.currentUserId;
@@ -230,9 +257,11 @@ class SettingsScreen extends StatelessWidget {
           );
         } catch (e) {
           if (!context.mounted) return;
+          Logger.e('Account deletion failed: $e');
           DialogUtils.showErrorDialog(
             context,
-            message: 'Failed to delete account: $e',
+            message: 'Could not delete your account. Check you are online '
+                'and try again.',
           );
         }
       },
