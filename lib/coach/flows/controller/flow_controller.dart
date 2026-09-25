@@ -550,10 +550,11 @@ Future<bool> showFlow({
                                 }
                               } on FlowStepBlocked catch (e) {
                                 // Stay on this step and say why.
-                                if (!ctx.mounted) return;
+                                final message = e.message;
+                                if (message == null || !ctx.mounted) return;
                                 DialogUtils.showErrorDialog(
                                   ctx,
-                                  message: e.message,
+                                  message: message,
                                 );
                               }
                             }
