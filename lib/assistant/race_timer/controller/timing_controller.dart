@@ -98,19 +98,30 @@ class TimingController extends TimingData {
     );
   }
 
-  Future<void> _loadLastRace() async {
-    // Ensure demo race exists if no races are present
-    await DemoRaceGenerator.ensureDemoRaceExists(
-        DeviceName.raceTimer.toString());
+  /// True until the race to reopen has loaded, so the screen does not say
+  /// "No race yet" while it is on its way.
+  bool get loadingRace => _loadingRace;
+  bool _loadingRace = true;
 
-    final result = await _storage.getRaces(DeviceName.raceTimer.toString());
-    final races = switch (result) {
-      Success(:final value) => value,
-      Failure() => <RaceRecord>[],
-    };
-    final race = raceToReopen(races);
-    if (race != null) {
-      await _loadRace(race);
+  Future<void> _loadLastRace() async {
+    try {
+      // Ensure demo race exists if no races are present
+      await DemoRaceGenerator.ensureDemoRaceExists(
+          DeviceName.raceTimer.toString());
+
+      final result = await _storage.getRaces(DeviceName.raceTimer.toString());
+      final races = switch (result) {
+        Success(:final value) => value,
+        Failure() => <RaceRecord>[],
+      };
+      final race = raceToReopen(races);
+      if (race != null) {
+        await _loadRace(race);
+      }
+    } finally {
+      _loadingRace = false;
+      // The screen may have closed while the race loaded.
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -602,8 +613,11 @@ class TimingController extends TimingData {
     }
   }
 
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     scrollController.dispose();
     _audioPlayer?.dispose();
     super.dispose();

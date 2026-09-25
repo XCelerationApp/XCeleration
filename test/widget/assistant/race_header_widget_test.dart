@@ -105,4 +105,26 @@ void main() {
       expect(find.textContaining('This is a practice race'), findsNothing);
     });
   });
+
+  testWidgets('says nothing about a race while one is loading',
+      (tester) async {
+    Widget header({required bool loading}) => MaterialApp(
+          home: Scaffold(
+            body: RaceHeaderWidget(
+              currentRace: null,
+              role: DeviceName.bibRecorder,
+              onLoadRace: () {},
+              loading: loading,
+            ),
+          ),
+        );
+
+    await tester.pumpWidget(header(loading: true));
+    // Not "No race yet" for the moment before the race appears.
+    expect(find.text('No race yet'), findsNothing);
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+
+    await tester.pumpWidget(header(loading: false));
+    expect(find.text('No race yet'), findsOneWidget);
+  });
 }

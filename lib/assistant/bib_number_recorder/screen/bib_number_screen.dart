@@ -260,6 +260,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           currentRace: currentRace,
           role: DeviceName.bibRecorder,
           compact: live,
+          loading: _controller.loadingRace,
           onLoadRace: () => _controller.showLoadRaceSheet(context),
           onShowOtherRaces: () => _controller.showOtherRaces(context),
           onDeleteRace: () => _controller.deleteCurrentRace(),

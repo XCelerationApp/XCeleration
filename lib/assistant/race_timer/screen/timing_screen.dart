@@ -182,6 +182,7 @@ class _TimingScreenState extends State<TimingScreen>
             currentRace: _controller.currentRace,
             role: DeviceName.raceTimer,
             compact: live,
+            loading: _controller.loadingRace,
             onLoadRace: () => _controller.showLoadRaceSheet(context),
             onShowOtherRaces: () => _controller.showOtherRaces(context),
             // A copy of the times on the phone itself, in case sharing with

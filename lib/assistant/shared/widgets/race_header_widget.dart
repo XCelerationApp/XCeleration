@@ -35,6 +35,10 @@ class RaceHeaderWidget extends StatelessWidget {
   /// practice banner becomes a small tag, leaving the room for the race.
   final bool compact;
 
+  /// While the race to reopen is still loading, nothing is shown rather
+  /// than "No race yet".
+  final bool loading;
+
   const RaceHeaderWidget({
     super.key,
     required this.currentRace,
@@ -48,6 +52,7 @@ class RaceHeaderWidget extends StatelessWidget {
     this.clearRecordsLabel = 'Clear',
     this.canClearRecords,
     this.compact = false,
+    this.loading = false,
   });
 
   @override
@@ -60,6 +65,17 @@ class RaceHeaderWidget extends StatelessWidget {
           ]),
           builder: (context, child) {
             if (currentRace == null) {
+              if (loading) {
+                return const SizedBox(
+                  height: 56,
+                  child: Center(
+                    child: SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
+              }
               return _buildNoRaceBanner(context);
             }
             // The practice race opens by default, and nothing said it was

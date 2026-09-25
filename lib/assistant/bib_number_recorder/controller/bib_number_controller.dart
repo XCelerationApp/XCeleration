@@ -130,15 +130,26 @@ class BibNumberController extends BibNumberDataController {
         .startTutorial(['race_header_tutorial', 'role_bar_tutorial']);
   }
 
-  Future<void> _loadLastRace() async {
-    // Ensure demo race exists if no races are present
-    await _demoRaceGenerator.ensureDemoRaceExists(
-        DeviceName.bibRecorder.toString());
+  /// True until the race to reopen has loaded. Without it the screen said
+  /// "No race yet" for a few seconds before the race appeared.
+  bool get loadingRace => _loadingRace;
+  bool _loadingRace = true;
 
-    final result = await storage.getRaces(DeviceName.bibRecorder.toString());
-    if (result case Success(:final value)) {
-      final race = raceToReopen(value);
-      if (race != null) await _loadRace(race);
+  Future<void> _loadLastRace() async {
+    try {
+      // Ensure demo race exists if no races are present
+      await _demoRaceGenerator.ensureDemoRaceExists(
+          DeviceName.bibRecorder.toString());
+
+      final result = await storage.getRaces(DeviceName.bibRecorder.toString());
+      if (result case Success(:final value)) {
+        final race = raceToReopen(value);
+        if (race != null) await _loadRace(race);
+      }
+    } finally {
+      _loadingRace = false;
+      // The screen may have closed while the race loaded.
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -751,8 +762,11 @@ class BibNumberController extends BibNumberDataController {
     return ShareDataReady(encodedData: encodedData);
   }
 
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     // Cancel timer first before any other cleanup
     _debounceTimer?.cancel();
 

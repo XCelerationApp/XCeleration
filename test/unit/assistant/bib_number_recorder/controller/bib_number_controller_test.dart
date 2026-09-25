@@ -134,6 +134,16 @@ void main() {
         controller.dispose();
       });
 
+      test('is loading until the race to reopen has loaded', () async {
+        final controller = buildController();
+        expect(controller.loadingRace, isTrue);
+
+        await Future.delayed(Duration.zero);
+
+        expect(controller.loadingRace, isFalse);
+        controller.dispose();
+      });
+
       test('loads races from storage on construction', () async {
         final controller = buildController();
         await Future.delayed(Duration.zero);
