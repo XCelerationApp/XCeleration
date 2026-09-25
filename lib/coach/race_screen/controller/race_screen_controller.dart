@@ -253,21 +253,9 @@ class RaceScreenController with ChangeNotifier {
     );
     notifyListeners();
 
-    // Pass already-loaded race and teams — avoids two extra DB reads.
-    final race = _race;
-    if (race == null) return;
-    final setupComplete = await _raceService.checkSetupComplete(
-      race: race,
-      teams: _teams ?? [],
-      masterRace: masterRace,
-      name: raceName,
-      location: location,
-      date: dateText,
-      distance: distanceText,
-    );
-    if (setupComplete && context.mounted) {
-      await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
-    }
+    // Setup is only marked done by the coach tapping Finish Setup. Doing it
+    // here, as soon as every detail was filled in, moved the race on to
+    // Send to Volunteers the moment the last runner was added.
   }
 
   Future<void> handleFieldFocusLoss(

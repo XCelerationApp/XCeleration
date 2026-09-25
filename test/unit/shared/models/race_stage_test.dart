@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 import 'package:xceleration/shared/models/race_stage.dart';
 
@@ -7,11 +8,26 @@ import 'package:xceleration/shared/models/race_stage.dart';
 
 void main() {
   test('each flow state is one of the three steps, in order', () {
+    // Setup done is still step 1: the race only reaches step 2 once it has
+    // actually been sent to the volunteers.
     expect([
       for (final state in Race.FLOW_SEQUENCE) RaceStage.of(state).step
     ], [
-      1, 2, 2, 3, 3, 4,
+      1, 1, 2, 2, 3, 4,
     ]);
+  });
+
+  test('yellow until sent, blue at the race, purple collecting, green done',
+      () {
+    expect([for (final state in Race.FLOW_SEQUENCE) RaceStage.of(state).color],
+        [
+          AppColors.statusSetup,
+          AppColors.statusSetup,
+          AppColors.statusPreRace,
+          AppColors.statusPreRace,
+          AppColors.statusPostRace,
+          AppColors.statusFinished,
+        ]);
   });
 
   test('every unfinished state says what to do next', () {

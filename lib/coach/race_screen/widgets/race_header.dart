@@ -10,23 +10,6 @@ import '../../../shared/models/database/race.dart';
 import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 
-Color _getStatusColor(String flowState) {
-  switch (flowState) {
-    case Race.FLOW_SETUP:
-      return AppColors.statusSetup;
-    case Race.FLOW_SETUP_COMPLETED:
-    case Race.FLOW_PRE_RACE:
-      return AppColors.statusPreRace;
-    case Race.FLOW_PRE_RACE_COMPLETED:
-    case Race.FLOW_POST_RACE:
-      return AppColors.statusPostRace;
-    case Race.FLOW_FINISHED:
-      return AppColors.statusFinished;
-    default:
-      return AppColors.lightColor;
-  }
-}
-
 class RaceHeader extends StatefulWidget {
   final RaceScreenController controller;
 
@@ -72,8 +55,8 @@ class _RaceHeaderState extends State<RaceHeader> {
     final race = widget.controller.race;
     final canEdit = widget.controller.canEdit;
     final flowState = race.flowState ?? Race.FLOW_SETUP;
-    final statusColor = _getStatusColor(flowState);
     final stage = RaceStage.of(flowState);
+    final statusColor = stage.color;
     final isFinished = stage.isFinished;
 
     return Padding(
@@ -137,27 +120,36 @@ class _RaceHeaderState extends State<RaceHeader> {
         onTapOutside: (_) => _titleFocusNode.unfocus(),
       );
     }
-    return GestureDetector(
-      onTap: canEdit
-          ? () {
+    // Renamed with the pencil, like the other fields. Tapping the title
+    // itself used to start editing, easy to do by accident.
+    final unnamed = race.raceName?.isEmpty ?? true;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            unnamed ? 'Unnamed race' : race.raceName!,
+            style: AppTypography.titleLarge.copyWith(
+              color: unnamed ? AppColors.mediumColor : AppColors.darkColor,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (canEdit)
+          IconButton(
+            key: const ValueKey('edit_race_name'),
+            tooltip: 'Rename race',
+            icon: const Icon(Icons.edit,
+                color: AppColors.primaryColor, size: 20),
+            onPressed: () {
               widget.controller.form.startEditing(RaceField.name);
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _titleFocusNode.requestFocus();
               });
-            }
-          : null,
-      child: Text(
-        race.raceName?.isEmpty == true
-            ? 'Tap to set race name'
-            : race.raceName ?? '',
-        style: AppTypography.titleLarge.copyWith(
-          color: (race.raceName?.isEmpty == true)
-              ? AppColors.lightColor
-              : AppColors.darkColor,
-        ),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+            },
+          ),
+      ],
     );
   }
 }
