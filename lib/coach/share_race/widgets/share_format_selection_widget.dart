@@ -14,11 +14,6 @@ class ShareFormatSelectionWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Wireless Share',
-            style: AppTypography.titleRegular,
-          ),
-          const SizedBox(height: 12),
           Container(
             width: double.infinity,
             decoration: BoxDecoration(
@@ -31,13 +26,15 @@ class ShareFormatSelectionWidget extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Share wirelessly (Nearby)',
+                  'Send to Spectators Nearby',
                   style: AppTypography.titleSemibold,
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Broadcast this finished race to nearby spectator devices.',
-                  style: TextStyle(fontSize: 14, color: Colors.black54),
+                Text(
+                  'Parents and runners open Spectator on their phones and '
+                  'tap Receive Race.',
+                  style: AppTypography.bodyRegular
+                      .copyWith(color: AppColors.mediumColor),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -54,7 +51,7 @@ class ShareFormatSelectionWidget extends StatelessWidget {
                       shape: const StadiumBorder(),
                     ),
                     icon: const Icon(Icons.wifi_tethering),
-                    label: const Text('Share wirelessly'),
+                    label: const Text('Send to Spectators'),
                   ),
                 ),
               ],
@@ -62,7 +59,7 @@ class ShareFormatSelectionWidget extends StatelessWidget {
           ),
           const SizedBox(height: 24),
           Text(
-            'Choose Your Share Method',
+            'Or Save a Copy',
             style: AppTypography.titleRegular,
           ),
           const SizedBox(height: 16),

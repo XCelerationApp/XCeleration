@@ -185,5 +185,42 @@ void main() {
 
       expect(find.text('EA'), findsWidgets);
     });
+
+    testWidgets('names a team in full where it has a name', (tester) async {
+      final runner =
+          RaceResult(raceId: 1, place: 1, finishTime: const Duration(minutes: 18));
+      final results = [
+        TeamRecord(
+          team: const Team(teamId: 1, name: 'Eagles', abbreviation: 'EAG'),
+          runners: List.generate(5, (_) => runner),
+          place: 1,
+        ),
+      ];
+
+      await tester
+          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+
+      expect(find.text('Eagles'), findsOneWidget);
+    });
+
+    testWidgets('says a tie was broken by the sixth runner', (tester) async {
+      // Same places, so the same score.
+      final results = [buildTeamRecord('EA', 1), buildTeamRecord('OW', 1)];
+
+      await tester
+          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+
+      expect(find.text('Tie broken by the 6th runner'), findsNWidgets(2));
+    });
+
+    testWidgets('says nothing of ties when every score differs',
+        (tester) async {
+      final results = [buildTeamRecord('EA', 1), buildTeamRecord('OW', 2)];
+
+      await tester
+          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+
+      expect(find.textContaining('Tie broken'), findsNothing);
+    });
   });
 }

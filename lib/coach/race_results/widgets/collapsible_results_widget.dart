@@ -227,7 +227,10 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
     );
   }
 
-  static Widget _buildRow(TeamRecord team) {
+  /// [tied] when another team has the same score: the order then comes from
+  /// the sixth runners, which the row says, since the scores alone look like
+  /// a mistake.
+  static Widget _buildRow(TeamRecord team, {bool tied = false}) {
     final scorerPlaces = team.scorers.isNotEmpty
         ? [
             ...team.scorers.map((scorer) => scorer.place.toString()),
@@ -237,6 +240,9 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
         : 'No scorers';
 
     final abbrev = team.team.abbreviation ?? 'N/A';
+    // The team's name reads more easily than its three letters.
+    final name = team.team.name?.trim();
+    final label = name == null || name.isEmpty ? abbrev : name;
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -250,13 +256,17 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(abbrev,
+              Text(label,
                   style: AppTypography.bodyRegular,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis),
               Text('Scorers: $scorerPlaces',
                   style: AppTypography.caption
                       .copyWith(color: AppColors.mediumColor)),
+              if (tied)
+                Text('Tie broken by the 6th runner',
+                    style: AppTypography.caption
+                        .copyWith(color: AppColors.primaryColor)),
             ],
           ),
         ),
@@ -274,7 +284,10 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
       results: results,
       initialVisibleCount: initialVisibleCount,
       headerBuilder: _buildHeader,
-      rowBuilder: _buildRow,
+      rowBuilder: (team) => _buildRow(team,
+          tied: team.score != 0 &&
+              results.any((other) =>
+                  !identical(other, team) && other.score == team.score)),
     );
   }
 }
