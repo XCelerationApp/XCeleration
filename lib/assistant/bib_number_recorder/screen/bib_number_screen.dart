@@ -42,7 +42,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     super.initState();
     _controller = widget.controller;
     _controller.addListener(_onControllerChanged);
-    _voice = VoiceEntryController(onBibHeard: _controller.addHeardBib);
+    _voice = VoiceEntryController(
+      onBibHeard: _controller.addHeardBib,
+      // Settles sound-alikes ("to" or "two") by who is running.
+      isKnownBib: (bib) => _controller.getRunnerByBib(bib) != null,
+    );
     _voice.restore();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;

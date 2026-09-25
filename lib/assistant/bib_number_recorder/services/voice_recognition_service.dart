@@ -26,23 +26,32 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
     required IModelDownloadService modelDownload,
     required ISpeechRecognitionService speechRecognition,
     required BibNumberParser parser,
+    bool Function(String bib)? isKnownBib,
   })  : _recorder = recorder,
         _modelDownload = modelDownload,
         _speechRecognition = speechRecognition,
-        _parser = parser;
+        _parser = parser,
+        _isKnownBib = isKnownBib;
 
   /// Wires up all concrete implementations with sensible defaults.
-  factory VoiceRecognitionService.create() => VoiceRecognitionService(
+  factory VoiceRecognitionService.create(
+          {bool Function(String bib)? isKnownBib}) =>
+      VoiceRecognitionService(
         recorder: BibAudioRecorder(),
         modelDownload: ModelDownloadService(),
         speechRecognition: SpeechRecognitionService(),
         parser: const BibNumberParser(),
+        isKnownBib: isKnownBib,
       );
 
   final IBibAudioRecorder _recorder;
   final IModelDownloadService _modelDownload;
   final ISpeechRecognitionService _speechRecognition;
   final BibNumberParser _parser;
+
+  /// Whether a bib is on the race's roster, used to settle what was said
+  /// when the words could be read more than one way.
+  final bool Function(String bib)? _isKnownBib;
 
   final _bibController = StreamController<String?>.broadcast();
   final _partialController = StreamController<String>.broadcast();
@@ -98,11 +107,29 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
     }
 
     final transcript = await _speechRecognition.transcribe(path);
-    final bib = _parser.parse(transcript);
+    final bib = _choose(transcript);
     Logger.d('[VoiceRecognition] "$transcript" → $bib');
 
     _partialController.add(transcript);
     _bibController.add(bib);
+  }
+
+  /// The bib heard: the first reading of [transcript] that is on the roster
+  /// ("one to three four" is 1234 if there is a 1234, else 134 if there is
+  /// a 134), or the plain reading when none is. Another reading is only
+  /// taken when a runner has that bib.
+  String? _choose(String transcript) {
+    final readings = _parser.candidates(transcript);
+    final known = _isKnownBib;
+    if (known != null) {
+      for (final bib in readings) {
+        if (known(bib)) return bib;
+        // "Zero one two seven" for runner 127.
+        final unpadded = bib.replaceFirst(RegExp(r'^0+(?=\d)'), '');
+        if (unpadded != bib && known(unpadded)) return unpadded;
+      }
+    }
+    return _parser.parse(transcript);
   }
 
   @override

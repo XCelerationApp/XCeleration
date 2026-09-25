@@ -46,7 +46,9 @@ class VoiceEntryController extends ChangeNotifier {
     IHapticFeedback? haptics,
     Future<SharedPreferences> Function()? prefs,
     Future<void> Function()? fetchModel,
-  })  : _createService = createService ?? VoiceRecognitionService.create,
+    bool Function(String bib)? isKnownBib,
+  })  : _createService = createService ??
+            (() => VoiceRecognitionService.create(isKnownBib: isKnownBib)),
         _haptics = haptics ?? HapticFeedbackService(),
         _prefs = prefs ?? SharedPreferences.getInstance,
         _fetchModel = fetchModel ?? _downloadModel;
@@ -89,6 +91,10 @@ class VoiceEntryController extends ChangeNotifier {
   /// The last bib heard, shown so the volunteer can check it.
   String? _lastHeard;
   String? get lastHeard => _lastHeard;
+
+  /// Counts the bibs heard, so the same bib heard twice still shows as new.
+  int _heardCount = 0;
+  int get heardCount => _heardCount;
 
   /// True when the last recording held no bib that could be made out.
   bool _missed = false;
@@ -212,6 +218,7 @@ class VoiceEntryController extends ChangeNotifier {
     } else {
       _missed = false;
       _lastHeard = bib;
+      _heardCount++;
       _haptics.lightImpact();
       await onBibHeard(bib);
     }

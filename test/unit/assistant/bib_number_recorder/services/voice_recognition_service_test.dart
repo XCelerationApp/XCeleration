@@ -337,6 +337,50 @@ void main() {
       });
     });
 
+    // ── Settled by the roster ──────────────────────────────────────────────
+
+    group('stop — a reading on the roster wins', () {
+      Future<List<String?>> heardWith(
+          Set<String> roster, String transcript) async {
+        await service.dispose();
+        service = VoiceRecognitionService(
+          recorder: mockRecorder,
+          modelDownload: mockModelDownload,
+          speechRecognition: mockSpeechRecognition,
+          parser: parser,
+          isKnownBib: roster.contains,
+        );
+        await initService();
+        return (await stopAndCollect('/tmp/bib.wav', transcript)).bibs;
+      }
+
+      test('"to" read as a filler when only 134 is running', () async {
+        expect(await heardWith({'134'}, 'one to three four'), ['134']);
+      });
+
+      test('"to" read as two when 1234 is running', () async {
+        expect(await heardWith({'1234', '134'}, 'one to three four'),
+            ['1234']);
+      });
+
+      test('"sixteen" heard for sixty', () async {
+        expect(await heardWith({'1860'}, 'eighteen sixteen'), ['1860']);
+      });
+
+      test('a spoken leading zero still finds runner 127', () async {
+        expect(await heardWith({'127'}, 'zero one two seven'), ['127']);
+      });
+
+      test('noise is still nothing, whoever is running', () async {
+        expect(await heardWith({'8', '1'}, 'a'), [null]);
+      });
+
+      test('keeps the likeliest reading when none is on the roster',
+          () async {
+        expect(await heardWith({'5'}, 'one to three four'), ['1234']);
+      });
+    });
+
     // ── Dispose ─────────────────────────────────────────────────────────────
 
     group('dispose', () {

@@ -422,4 +422,31 @@ void main() {
       });
     });
   });
+
+  group('candidates', () {
+    const parser = BibNumberParser();
+
+    test('the plain reading comes first', () {
+      expect(parser.candidates('one to three four').first, '1234');
+    });
+
+    test('offers "to" as two or as a filler, and teens as tens', () {
+      expect(parser.candidates('one to three four'), contains('134'));
+      expect(parser.candidates('eighteen sixteen'),
+          containsAll(['1816', '1860', '8016', '8060']));
+    });
+
+    test('offers nothing for a lone "a", which is noise', () {
+      expect(parser.candidates('a'), isEmpty);
+    });
+
+    test('swaps fewer words before more', () {
+      final c = parser.candidates('eighteen sixteen');
+      expect(c.indexOf('1860'), lessThan(c.indexOf('8060')));
+    });
+
+    test('nothing to offer for words that are not numbers', () {
+      expect(parser.candidates('quick'), isEmpty);
+    });
+  });
 }

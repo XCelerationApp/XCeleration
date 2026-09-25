@@ -112,6 +112,84 @@ const Set<String> _ambiguousZeroWords = {
 class BibNumberParser {
   const BibNumberParser();
 
+  /// Words the model often hears in place of another, each with what else it
+  /// may have been; null means it may have been nothing (a filler).
+  static const Map<String, List<String?>> _soundsLike = {
+    'to': ['two', null],
+    'too': ['two', null],
+    'for': ['four', null],
+    'oh': ['zero', null],
+    'o': ['zero', null],
+    'won': ['one', null],
+    // Teens and tens are the model's most common mix-up.
+    'thirteen': ['thirty'], 'thirty': ['thirteen'],
+    'fourteen': ['forty'], 'forty': ['fourteen'],
+    'fifteen': ['fifty'], 'fifty': ['fifteen'],
+    'sixteen': ['sixty'], 'sixty': ['sixteen'],
+    'seventeen': ['seventy'], 'seventy': ['seventeen'],
+    'eighteen': ['eighty'], 'eighty': ['eighteen'],
+    'nineteen': ['ninety'], 'ninety': ['nineteen'],
+  };
+
+  /// Every bib [text] could be, most likely first: [parse]'s reading, then
+  /// readings with one sound-alike word swapped ("to" as "two" or as
+  /// nothing, "sixteen" as "sixty"), then two, and so on. The caller picks
+  /// the first that is on the roster.
+  List<String> candidates(String text) {
+    final words =
+        text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final seen = <String>{};
+    final out = <String>[];
+    void add(String? bib) {
+      if (bib != null && seen.add(bib)) out.add(bib);
+    }
+
+    add(parse(text));
+    final spots = [
+      for (var i = 0; i < words.length; i++)
+        if (_soundsLike.containsKey(words[i])) i,
+    ];
+    // Four sound-alikes in one bib is already dozens of readings.
+    if (spots.isEmpty || spots.length > 4) return out;
+
+    // Each reading as the words swapped at each spot, fewest swaps first.
+    var readings = <List<String?>>[
+      [for (final i in spots) words[i]],
+    ];
+    final bySwaps = <int, List<List<String?>>>{};
+    for (var k = 0; k < spots.length; k++) {
+      final next = <List<String?>>[];
+      for (final r in readings) {
+        next.add(r);
+        for (final alt in _soundsLike[words[spots[k]]]!) {
+          next.add([...r]..[k] = alt);
+        }
+      }
+      readings = next;
+    }
+    for (final r in readings) {
+      var swaps = 0;
+      for (var k = 0; k < spots.length; k++) {
+        if (r[k] != words[spots[k]]) swaps++;
+      }
+      (bySwaps[swaps] ??= []).add(r);
+    }
+    for (final swaps in bySwaps.keys.toList()..sort()) {
+      for (final r in bySwaps[swaps]!) {
+        final changed = [...words];
+        for (var k = spots.length - 1; k >= 0; k--) {
+          if (r[k] == null) {
+            changed.removeAt(spots[k]);
+          } else {
+            changed[spots[k]] = r[k]!;
+          }
+        }
+        if (changed.isNotEmpty) add(parse(changed.join(' ')));
+      }
+    }
+    return out;
+  }
+
   /// Returns the parsed bib number as a string (preserving leading zeros),
   /// or null if the text cannot be parsed or falls outside 0–9999.
   String? parse(String text) {
