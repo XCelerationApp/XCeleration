@@ -277,20 +277,11 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
         const SizedBox(height: AppSpacing.sm),
         // Find Runner: search the roster, or create the runner if they are
         // not on it.
-        ElevatedButton.icon(
+        PrimaryButton(
+          text: 'Find Runner',
+          icon: Icons.search,
+          size: ButtonSize.fullWidth,
           onPressed: () => _openFindSheet(context),
-          icon: const Icon(Icons.search, size: 18),
-          label: const Text('Find Runner'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryColor,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-            textStyle: AppTypography.bodySemibold,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-            ),
-          ),
         ),
       ],
     );

@@ -47,4 +47,17 @@ void main() {
     expect(RaceStage.of('something-new').label, 'Set up the race');
     expect(RaceStage.of(null).step, 1);
   });
+
+  test('the race can be sent again only once sent, before collecting', () {
+    expect(RaceStage.canSendAgain(Race.FLOW_PRE_RACE_COMPLETED), isTrue);
+    for (final state in [
+      Race.FLOW_SETUP,
+      Race.FLOW_SETUP_COMPLETED,
+      Race.FLOW_PRE_RACE,
+      Race.FLOW_POST_RACE,
+      Race.FLOW_FINISHED,
+    ]) {
+      expect(RaceStage.canSendAgain(state), isFalse, reason: state);
+    }
+  });
 }
