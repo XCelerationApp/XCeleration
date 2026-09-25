@@ -184,6 +184,11 @@ class _TimingScreenState extends State<TimingScreen>
             compact: live,
             onLoadRace: () => _controller.showLoadRaceSheet(context),
             onShowOtherRaces: () => _controller.showOtherRaces(context),
+            // A copy of the times on the phone itself, in case sharing with
+            // the coach fails.
+            onDownloadRace: _controller.currentRace == null
+                ? null
+                : () => _controller.downloadRace(context),
             onDeleteRace: () async {
               final error = await _controller.deleteCurrentRace();
               if (error != null && context.mounted) {

@@ -55,7 +55,10 @@ class _CollapsibleResultsWidgetState<T>
       children: [
         // The columns share the screen's width rather than scrolling
         // sideways, so the score and time are never off the edge.
-        widget.headerBuilder(),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          child: widget.headerBuilder(),
+        ),
         const Divider(height: 1, color: AppColors.lightColor),
         ...displayResults.asMap().entries.map((entry) {
           final index = entry.key;
@@ -64,9 +67,12 @@ class _CollapsibleResultsWidgetState<T>
               ? Colors.transparent
               : ColorUtils.withOpacity(Colors.grey, 0.05);
 
+          // A little room at each side, so the times on the right do not
+          // sit against the card's edge or the shaded row's.
           return Container(
             color: backgroundColor,
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+            padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.sm, horizontal: AppSpacing.sm),
             child: widget.rowBuilder(item),
           );
         }),

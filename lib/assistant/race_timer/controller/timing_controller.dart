@@ -560,7 +560,7 @@ class TimingController extends TimingData {
 
     final dynamic rawFormat = await sheet(
       context: context,
-      title: 'Download Race',
+      title: 'Download a Copy',
       body: const DownloadRaceSheet(),
     );
     final format = rawFormat is DownloadFormat ? rawFormat : null;

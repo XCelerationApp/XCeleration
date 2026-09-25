@@ -202,7 +202,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
       body: Column(
         children: [
           AppHeader(
-            title: 'My Races',
+            title: 'Spectator',
             currentRole: role_enums.Role.spectator,
             tutorialManager: _tutorialManager,
             onRoleTap: () => RoleSelectorSheet.showRoleSelection(

@@ -251,7 +251,8 @@ class RaceHeaderWidget extends StatelessWidget {
                     );
                   }
 
-                  // Show "Download Race" when a race is loaded
+                  // A copy of what this phone recorded, to save or send, in
+                  // case sharing with the coach fails.
                   if (onDownloadRace != null) {
                     items.add(
                       const PopupMenuItem<String>(
@@ -260,7 +261,7 @@ class RaceHeaderWidget extends StatelessWidget {
                           children: [
                             Icon(Icons.download_outlined, size: 18),
                             SizedBox(width: 8),
-                            Text('Download Race'),
+                            Text('Download a Copy'),
                           ],
                         ),
                       ),
