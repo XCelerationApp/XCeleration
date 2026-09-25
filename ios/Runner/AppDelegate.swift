@@ -23,21 +23,34 @@ import UIKit
         UIApplication.shared.isIdleTimerDisabled = on
         result(nil)
       }
-      // iOS mutes haptics while the microphone records, so holding the voice
-      // button gave no tap. This lets them through.
+      // Voice entry: lets haptics through while the microphone records (iOS
+      // mutes them otherwise), and asks for the microphone up front so a
+      // refusal can be explained rather than heard as silence.
       FlutterMethodChannel(
         name: "xceleration/audio_session",
         binaryMessenger: controller.binaryMessenger
       ).setMethodCallHandler { call, result in
-        guard call.method == "allowHapticsWhileRecording" else {
+        let session = AVAudioSession.sharedInstance()
+        switch call.method {
+        case "allowHapticsWhileRecording":
+          if #available(iOS 13.0, *) {
+            try? session.setAllowHapticsAndSystemSoundsDuringRecording(true)
+          }
+          result(nil)
+        case "requestMicPermission":
+          switch session.recordPermission {
+          case .granted:
+            result(true)
+          case .denied:
+            result(false)
+          default:
+            session.requestRecordPermission { granted in
+              DispatchQueue.main.async { result(granted) }
+            }
+          }
+        default:
           result(FlutterMethodNotImplemented)
-          return
         }
-        if #available(iOS 13.0, *) {
-          try? AVAudioSession.sharedInstance()
-            .setAllowHapticsAndSystemSoundsDuringRecording(true)
-        }
-        result(nil)
       }
     }
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)

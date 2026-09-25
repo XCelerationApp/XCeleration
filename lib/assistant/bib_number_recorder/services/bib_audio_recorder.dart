@@ -42,8 +42,30 @@ class BibAudioRecorder implements IBibAudioRecorder {
     }
   }
 
+  /// Asks for the microphone, if not asked before. False only when the
+  /// volunteer has said no; elsewhere (Android, tests) it is left to the
+  /// recorder.
+  Future<bool> _micAllowed() async {
+    try {
+      return await _audioSession.invokeMethod<bool>('requestMicPermission') ??
+          true;
+    } on MissingPluginException {
+      return true;
+    } catch (_) {
+      return true;
+    }
+  }
+
   @override
   Future<Result<void>> open() async {
+    // Without the microphone every recording is silence, which read as
+    // "Didn't catch that" for each bib with no hint why.
+    if (!await _micAllowed()) {
+      return const Failure(AppError(
+        userMessage: 'Voice needs the microphone. Turn on Microphone for '
+            'Xceleration in the Settings app.',
+      ));
+    }
     try {
       await _recorder.openRecorder();
       _isOpen = true;
