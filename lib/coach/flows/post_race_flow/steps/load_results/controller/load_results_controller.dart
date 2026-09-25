@@ -762,7 +762,7 @@ class LoadResultsController with ChangeNotifier {
       if (!context.mounted) return;
       DialogUtils.showErrorDialog(
         context,
-        message: 'Failed to open conflict resolution sheet: $e',
+        message: 'Could not open the timing conflicts. Please try again.',
       );
       return;
     }
