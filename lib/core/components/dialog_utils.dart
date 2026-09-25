@@ -108,8 +108,15 @@ class DialogButton extends StatelessWidget {
     final shape = WidgetStatePropertyAll(RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppBorderRadius.md)));
     const minSize = WidgetStatePropertyAll(Size(0, 48));
-    final label = Text(text,
-        textAlign: TextAlign.center, style: AppTypography.bodySemibold);
+    // One line, shrunk to fit if need be: "Collect Results" wrapped onto two
+    // lines in a half-width button.
+    final label = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(text,
+          maxLines: 1,
+          textAlign: TextAlign.center,
+          style: AppTypography.bodySemibold),
+    );
     if (primary) {
       return FilledButton(
         onPressed: onPressed,
