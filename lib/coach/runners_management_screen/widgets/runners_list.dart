@@ -183,6 +183,9 @@ class _RunnersListState extends State<RunnersList> {
                                     else
                                       ListView.builder(
                                         shrinkWrap: true,
+                                        // Not the phone's safe-area inset,
+                                        // which left a gap under each team.
+                                        padding: EdgeInsets.zero,
                                         physics: const NeverScrollableScrollPhysics(),
                                         itemCount: raceRunners.length,
                                         itemBuilder: (context, i) {

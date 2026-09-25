@@ -139,6 +139,8 @@ class _ImportedRunnersSelectionSheetState
               constraints: const BoxConstraints(maxHeight: 420),
               child: ListView.separated(
                 shrinkWrap: true,
+                // The buttons below it, not the list, sit by the home bar.
+                padding: EdgeInsets.zero,
                 itemCount: visible.length,
                 separatorBuilder: (_, _) => const Divider(height: 1),
                 itemBuilder: (context, index) {
