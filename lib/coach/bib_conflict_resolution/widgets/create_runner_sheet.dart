@@ -17,6 +17,7 @@ class CreateRunnerSheet extends StatefulWidget {
     required this.onCreated,
     this.forbiddenBib,
     this.autoBib,
+    this.initialName = '',
   });
 
   /// All bib numbers already in use — new bib must not be in this set.
@@ -32,8 +33,12 @@ class CreateRunnerSheet extends StatefulWidget {
   /// Bib that cannot be reused (set for duplicate step2).
   final String? forbiddenBib;
 
-  /// When set, locks the bib field to this value and skips bib validation.
+  /// The bib to give the runner, such as the unknown bib recorded at the
+  /// finish. Shown filled in, with a pencil to change it.
   final String? autoBib;
+
+  /// The name typed into Find Runner, so it need not be typed again.
+  final String initialName;
 
   @override
   State<CreateRunnerSheet> createState() => _CreateRunnerSheetState();
@@ -48,7 +53,19 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
   String? _selectedTeam;
   int? _selectedGrade;
 
+  /// Whether the filled-in bib has been opened for changing with its pencil.
+  bool _editingBib = false;
+
   static const List<int> _grades = [9, 10, 11, 12];
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController.text = widget.initialName;
+    _bibController.text = widget.autoBib ?? '';
+  }
+
+  bool get _bibLocked => widget.autoBib != null && !_editingBib;
 
   @override
   void dispose() {
@@ -87,19 +104,18 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
 
   bool get _canSubmit {
     final nameOk = _nameController.text.trim().isNotEmpty && _nameError == null;
-    final bibOk = widget.autoBib != null
-        ? true
-        : _bibController.text.trim().isNotEmpty && _bibError == null;
+    final bibOk = _bibLocked ||
+        (_bibController.text.trim().isNotEmpty && _bibError == null);
     return nameOk && bibOk && _selectedTeam != null && _selectedGrade != null;
   }
 
   void _submit() {
     _validateName(_nameController.text);
-    if (widget.autoBib == null) _validateBib(_bibController.text);
+    if (!_bibLocked) _validateBib(_bibController.text);
     if (!_canSubmit) return;
     widget.onCreated(
       _nameController.text.trim(),
-      widget.autoBib ?? _bibController.text.trim(),
+      _bibLocked ? widget.autoBib! : _bibController.text.trim(),
       _selectedTeam!,
       _selectedGrade!,
     );
@@ -123,8 +139,14 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
             keyboardType: TextInputType.name,
           ),
           const SizedBox(height: AppSpacing.lg),
-          if (widget.autoBib != null)
-            _AutoBibDisplay(bibNumber: widget.autoBib!)
+          if (_bibLocked)
+            _AutoBibDisplay(
+              bibNumber: widget.autoBib!,
+              onEdit: () => setState(() {
+                _editingBib = true;
+                _validateBib(_bibController.text);
+              }),
+            )
           else
             _FormField(
               label: 'Bib number',
@@ -239,9 +261,10 @@ class _FormField extends StatelessWidget {
 }
 
 class _AutoBibDisplay extends StatelessWidget {
-  const _AutoBibDisplay({required this.bibNumber});
+  const _AutoBibDisplay({required this.bibNumber, required this.onEdit});
 
   final String bibNumber;
+  final VoidCallback onEdit;
 
   @override
   Widget build(BuildContext context) {
@@ -251,23 +274,34 @@ class _AutoBibDisplay extends StatelessWidget {
         Text('Bib number', style: AppTypography.smallBodySemibold),
         const SizedBox(height: AppSpacing.xs),
         Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
-            vertical: AppSpacing.md,
-          ),
+          padding: const EdgeInsets.only(left: AppSpacing.lg),
           decoration: BoxDecoration(
             color: AppColors.lightColor.withValues(alpha: AppOpacity.medium),
             borderRadius: BorderRadius.circular(AppBorderRadius.md),
           ),
           child: Row(
             children: [
-              Text('#$bibNumber', style: AppTypography.bodySemibold),
-              const Spacer(),
-              Text(
-                'auto-assigned',
-                style: AppTypography.caption.copyWith(
-                  color: AppColors.mediumColor,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('#$bibNumber', style: AppTypography.bodySemibold),
+                    Text(
+                      'Tap the pencil to change it',
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.mediumColor,
+                      ),
+                    ),
+                  ],
                 ),
+              ),
+              IconButton(
+                key: const ValueKey('edit_new_runner_bib'),
+                tooltip: 'Change bib',
+                icon: const Icon(Icons.edit,
+                    color: AppColors.primaryColor, size: 20),
+                onPressed: onEdit,
               ),
             ],
           ),

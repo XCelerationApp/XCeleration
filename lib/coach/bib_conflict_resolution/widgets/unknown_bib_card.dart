@@ -16,8 +16,9 @@ import './create_runner_sheet.dart';
 import './runner_assignment_list.dart';
 
 /// Card for a standalone unknown bib — bib was entered but not found in the database.
-/// v2 layout: header with badge + finish position, time pill, inline context panel,
-/// and two action buttons that expand into assign mode or open the create sheet.
+/// Header with badge + finish position, time pill, inline context panel, and
+/// Find Runner: search the roster by name, or create the runner if they are
+/// not on it.
 class UnknownBibCard extends StatefulWidget {
   const UnknownBibCard({super.key, required this.conflict});
 
@@ -46,9 +47,11 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
           child: const Text('See more nearby finishers ↓'),
         ),
         const SizedBox(height: AppSpacing.sm),
-        _ActionButtons(
-          onAssign: () => _openAssignSheet(context),
-          onCreate: () => _openCreateSheet(context),
+        PrimaryButton(
+          text: 'Find Runner',
+          icon: Icons.search,
+          size: ButtonSize.fullWidth,
+          onPressed: () => _openFindSheet(context),
         ),
       ],
     );
@@ -58,20 +61,22 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
     showNearbySheet(
       context,
       entries: widget.conflict.occurrence.nearby,
+      allFinishers: widget.conflict.occurrence.allFinishers,
       conflictPosition: widget.conflict.occurrence.place,
       conflictBib: widget.conflict.bibNumber,
       conflictTime: widget.conflict.occurrence.time,
     );
   }
 
-  Future<void> _openAssignSheet(BuildContext context) async {
+  Future<void> _openFindSheet(BuildContext context) async {
     final controller = context.read<ConflictResolutionController>();
     RaceRunner? pendingRunner;
     String? pendingLabel;
+    String? newRunnerName;
 
     await sheet(
       context: context,
-      title: 'Assign Existing Runner',
+      title: 'Find Runner',
       body: ChangeNotifierProvider.value(
         value: controller,
         child: RunnerAssignmentList(
@@ -81,16 +86,23 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
             pendingLabel = label;
             Navigator.of(context).pop();
           },
+          onCreateNew: (name) {
+            newRunnerName = name;
+            Navigator.of(context).pop();
+          },
         ),
       ),
     );
 
     if (pendingRunner != null) {
       controller.prepareAssign(pendingRunner!, pendingLabel!);
+    } else if (newRunnerName != null && context.mounted) {
+      await _openCreateSheet(context, name: newRunnerName!);
     }
   }
 
-  Future<void> _openCreateSheet(BuildContext context) async {
+  Future<void> _openCreateSheet(BuildContext context,
+      {required String name}) async {
     final controller = context.read<ConflictResolutionController>();
     await sheet(
       context: context,
@@ -99,6 +111,7 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
         allKnownBibs: controller.allKnownBibs,
         teams: controller.teams,
         autoBib: widget.conflict.bibNumber,
+        initialName: name,
         onCreated: (name, bib, team, grade) {
           controller.prepareCreate(
             name,
@@ -195,33 +208,3 @@ class _HeaderCard extends StatelessWidget {
     );
   }
 }
-
-
-class _ActionButtons extends StatelessWidget {
-  const _ActionButtons({required this.onAssign, required this.onCreate});
-
-  final VoidCallback onAssign;
-  final VoidCallback onCreate;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SecondaryButton(
-          text: 'Assign Existing Runner',
-          size: ButtonSize.fullWidth,
-          onPressed: onAssign,
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        PrimaryButton(
-          text: 'Create New Runner',
-          icon: Icons.person_add_outlined,
-          size: ButtonSize.fullWidth,
-          onPressed: onCreate,
-        ),
-      ],
-    );
-  }
-}
-

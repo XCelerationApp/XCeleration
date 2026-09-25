@@ -6,6 +6,7 @@ class ConflictOccurrence {
     required this.place,
     this.time,
     this.nearby = const [],
+    this.allFinishers = const [],
   });
 
   /// Finish place, counting from 1.
@@ -20,6 +21,11 @@ class ConflictOccurrence {
   /// shows the rest. Each finish carries its own: choosing between two of them
   /// means knowing who each one sits between.
   final List<NearbyFinisher> nearby;
+
+  /// Every settled finisher in the race, in finish order, for "Show all
+  /// finishers" when the few either side are not enough to go on. One list
+  /// shared by every occurrence.
+  final List<NearbyFinisher> allFinishers;
 }
 
 /// A finisher near a conflict whose own bib is not in question, shown so the
@@ -158,10 +164,24 @@ Future<List<BibConflict>> detectBibConflicts({
     return [...ahead.reversed, ...behind];
   }
 
+  // Every settled finisher, for the whole finish list.
+  final allFinishers = <NearbyFinisher>[
+    for (var place = 1; place <= entries.length; place++)
+      if (!disputed.contains(place) && entries[place - 1] is RaceRunner)
+        NearbyFinisher(
+          place: place,
+          name: (entries[place - 1] as RaceRunner).runner.name ?? '',
+          team: (entries[place - 1] as RaceRunner).team.name ?? '',
+          bibNumber: (entries[place - 1] as RaceRunner).runner.bibNumber ?? '',
+          time: timesByPlace[place],
+        ),
+  ];
+
   ConflictOccurrence occurrenceAt(int place) => ConflictOccurrence(
         place: place,
         time: timesByPlace[place],
         nearby: nearbyTo(place),
+        allFinishers: allFinishers,
       );
 
   final conflicts = <BibConflict>[];

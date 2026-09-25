@@ -182,8 +182,7 @@ void main() {
     expect(find.text('20th'), findsOneWidget);
     expect(find.text('Morgan Hawks'), findsOneWidget);
     expect(find.text('Unknown runner'), findsOneWidget);
-    expect(find.text('Assign Existing Runner'), findsOneWidget);
-    expect(find.text('Create New Runner'), findsOneWidget);
+    expect(find.text('Find Runner'), findsOneWidget);
   });
 
   testWidgets('submitting hands back who finished at each place',

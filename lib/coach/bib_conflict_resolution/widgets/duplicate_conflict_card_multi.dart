@@ -247,6 +247,7 @@ class _SelectableOccurrenceTileState
                     onPressed: () => showNearbySheet(
                       context,
                       entries: widget.occurrence.nearby,
+                      allFinishers: widget.occurrence.allFinishers,
                       conflictPosition: widget.occurrence.place,
                       conflictBib: widget.conflict.bibNumber,
                       conflictTime: widget.occurrence.time,

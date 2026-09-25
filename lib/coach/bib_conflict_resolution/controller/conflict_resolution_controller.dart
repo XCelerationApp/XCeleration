@@ -211,6 +211,22 @@ class ConflictResolutionController extends ChangeNotifier {
         ?_pending?.newRunner?.bibNumber,
       };
 
+  /// The next bib number nobody has, for a runner added in place of a bib
+  /// that turned out to be someone else's.
+  String get nextFreeBib {
+    final taken = allKnownBibs;
+    var highest = 0;
+    for (final bib in taken) {
+      final value = int.tryParse(bib);
+      if (value != null && value > highest) highest = value;
+    }
+    var next = highest + 1;
+    while (taken.contains('$next')) {
+      next++;
+    }
+    return '$next';
+  }
+
   // --- Results ------------------------------------------------------------
 
   /// Every settled finish, in finish order, for the review screen.

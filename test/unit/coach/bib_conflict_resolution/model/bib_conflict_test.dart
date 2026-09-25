@@ -101,6 +101,9 @@ void main() {
       final first = (conflicts.single as DuplicateBibConflict).occurrences[0];
       // Four ahead of 7th (3–6), four behind it (9–12), skipping disputed 8th.
       expect(first.nearby.map((f) => f.place), [3, 4, 5, 6, 9, 10, 11, 12]);
+      // "Show all finishers": the whole field, less the disputed places.
+      expect(first.allFinishers.map((f) => f.place),
+          [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14]);
     });
 
     test('pairs an unresolved entry with the runner that holds the bib',
