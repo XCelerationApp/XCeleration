@@ -202,6 +202,7 @@
 				3B06AD1E1E4923F5004D2608 /* Thin Binary */,
 				DC2EA3088A43EEB5C9C269BB /* [CP] Embed Pods Frameworks */,
 				681D91B570310B4CF7A17886 /* [CP] Copy Pods Resources */,
+				ACCD56BCB3FC99ACC503F666 /* Generate dSYMs for Prebuilt Frameworks */,
 				C5781BFF2E0A5FB300A1D2C0 /* Revert Env Injection Script */,
 			);
 			buildRules = (
@@ -328,6 +329,21 @@
 			shellPath = /bin/sh;
 			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-Runner/Pods-Runner-resources.sh\"\n";
 			showEnvVarsInLog = 0;
+		};
+		ACCD56BCB3FC99ACC503F666 /* Generate dSYMs for Prebuilt Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputPaths = (
+			);
+			name = "Generate dSYMs for Prebuilt Frameworks";
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# sherpa_onnx and objective_c come prebuilt without debug symbols, so\n# App Store Connect warned on every upload that their dSYMs were missing.\n# Archives only. Other frameworks already get real dSYMs from Xcode.\nif [ \"$ACTION\" != \"install\" ]; then exit 0; fi\nFRAMEWORKS=\"${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}\"\nfor name in sherpa_onnx objective_c; do\n  fw=\"$FRAMEWORKS/$name.framework\"\n  dsym=\"${DWARF_DSYM_FOLDER_PATH}/${name}.framework.dSYM\"\n  if [ -f \"$fw/$name\" ] && [ ! -d \"$dsym\" ]; then\n    xcrun dsymutil \"$fw/$name\" -o \"$dsym\" 2>/dev/null || echo \"warning: no dSYM made for $name\"\n  fi\ndone\n";
 		};
 		9740EEB61CF901F6004384FC /* Run Script */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -514,7 +530,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
@@ -655,7 +671,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -706,7 +722,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 13.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				SDKROOT = iphoneos;
 				SUPPORTED_PLATFORMS = iphoneos;
