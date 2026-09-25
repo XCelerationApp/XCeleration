@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -19,61 +22,43 @@ const List<String> _requiredModelFiles = [
   'tokens.txt',
 ];
 
-/// Hotwords pre-tokenized into BPE subwords matching the model's tokens.txt.
+/// Number words to bias recognition toward, one per line, in the model's
+/// upper case. Sherpa-ONNX splits them into the model's word pieces itself,
+/// using the vocabulary written by [bpeVocabFromTokens].
 ///
-/// The model vocabulary uses UPPERCASE tokens with ▁ (U+2581) as the
-/// word-boundary prefix. Each line in the generated hotwords.txt must contain
-/// space-separated tokens that exist verbatim in tokens.txt; Sherpa ONNX looks
-/// them up directly — it does NOT re-tokenize plain text.
-///
-/// Tokens verified against:
-///   huggingface.co/csukuangfj/sherpa-onnx-zipformer-small-en-2023-06-26/…/tokens.txt
-/// U+2581 LOWER ONE EIGHTH BLOCK — the word-boundary marker in the model's
-/// BPE vocabulary.  Using the explicit escape avoids copy-paste encoding issues.
-const String _ws = '\u2581';
-
-const List<String> _hotwordsBpe = [
-  // Single-token words
-  '${_ws}ONE',                  // 126
-  '${_ws}TWO',                  // 287
-  '${_ws}THREE',                // 405
-  '${_ws}SIX',                  // 481
-  '${_ws}HUNDRED',              // 487
-  '${_ws}AND',                  // 7
-
-  // Two–four token words
-  '$_ws Z ER O :10.0',          // ZERO [34 234 29 24] — extra boost
-  '${_ws}FO UR',                // FOUR  [312 79]
-  '${_ws}FI VE',                // FIVE  [147 75]
-  '${_ws}SE VE N',              // SEVEN [125 75 13]
-  '${_ws}E IGHT',               // EIGHT [54 179]
-  '${_ws}NI NE',                // NINE  [436 88]
-  '${_ws}T EN',                 // TEN   [56 72]
-  '${_ws}E LE VE N',            // ELEVEN  [54 44 75 13]
-  '${_ws}T W EL VE',            // TWELVE  [56 65 131 75]
-
-  // Teens — TE (114) not T+E; EIGHTEEN is the exception (E after IGHT)
-  '${_ws}TH IR TE EN',          // THIRTEEN  [119 97 114 72]
-  '${_ws}FO UR TE EN',          // FOURTEEN  [312 79 114 72]
-  '${_ws}FI F TE EN',           // FIFTEEN   [147 38 114 72]
-  '${_ws}SIX TE EN',            // SIXTEEN   [481 114 72]
-  '${_ws}SE VE N TE EN',        // SEVENTEEN [125 75 13 114 72]
-  '${_ws}E IGHT E EN',          // EIGHTEEN  [54 179 11 72]
-  '${_ws}NI NE TE EN',          // NINETEEN  [436 88 114 72]
-
-  // Tens — TWENTY: ENT(96)+Y(16); FORTY: FOR(42)+TY(240)
-  '${_ws}T W ENT Y',            // TWENTY  [56 65 96 16]
-  '${_ws}TH IR TY',             // THIRTY  [119 97 240]
-  '${_ws}FOR TY',               // FORTY   [42 240]
-  '${_ws}FI F TY',              // FIFTY   [147 38 240]
-  '${_ws}SIX TY',               // SIXTY   [481 240]
-  '${_ws}SE VE N TY',           // SEVENTY [125 75 13 240]
-  '${_ws}E IGHT Y',             // EIGHTY  [54 179 16]
-  '${_ws}NI NE TY',             // NINETY  [436 88 240]
-
-  // THOUSAND — AN(143)+D(12), not A+ND
-  '${_ws}TH OUS AN D',          // THOUSAND [119 281 143 12]
+/// These used to be written out pre-split ("▁FO UR"), but sherpa reads a
+/// hotwords file one character at a time for anything outside ASCII, so the
+/// ▁ was cut off every word and the whole list failed to load.
+@visibleForTesting
+const List<String> hotwords = [
+  'ZERO', 'ONE', 'TWO', 'THREE', 'FOUR', 'FIVE', 'SIX', 'SEVEN', 'EIGHT',
+  'NINE', 'TEN', 'ELEVEN', 'TWELVE', 'THIRTEEN', 'FOURTEEN', 'FIFTEEN', 'SIXTEEN',
+  'SEVENTEEN', 'EIGHTEEN', 'NINETEEN',
+  'TWENTY', 'THIRTY', 'FORTY', 'FIFTY', 'SIXTY', 'SEVENTY', 'EIGHTY',
+  'NINETY',
+  'HUNDRED', 'THOUSAND', 'AND',
 ];
+
+/// A sentencepiece vocabulary for the model, made from its tokens.txt,
+/// which sherpa-onnx needs to split [hotwords] into word pieces. The model
+/// does not ship one.
+///
+/// Lines keep tokens.txt's order, so a piece's line is its id. Every piece
+/// scores the same, so sherpa picks the split with the fewest pieces, longest
+/// first: for every word in [hotwords] that is the split the model itself
+/// uses ("FOUR" is ▁FO UR, "THOUSAND" is ▁TH OUS AN D).
+@visibleForTesting
+String bpeVocabFromTokens(String tokensTxt) {
+  final out = StringBuffer();
+  for (final line in const LineSplitter().convert(tokensTxt)) {
+    if (line.trim().isEmpty) continue;
+    final token = line.substring(0, line.lastIndexOf(' '));
+    // <blk>, <unk> and the like never appear in text.
+    final special = token.startsWith('<') || token.startsWith('#');
+    out.writeln('$token\t${special ? 0 : -1}');
+  }
+  return out.toString();
+}
 
 /// [IModelDownloadService] implementation that downloads the
 /// sherpa-onnx-zipformer-small-en-2023-06-26 model on first use and writes a
@@ -94,8 +79,13 @@ class ModelDownloadService implements IModelDownloadService {
     try {
       final modelDir = await _resolveModelDir();
       await _downloadMissingFiles(modelDir);
+      final bpeVocabPath = await _writeBpeVocab(modelDir);
       final hotwordsPath = await _writeHotwordsFile(modelDir);
-      return Success(ModelAssets(modelDir: modelDir, hotwordsPath: hotwordsPath));
+      return Success(ModelAssets(
+        modelDir: modelDir,
+        hotwordsPath: hotwordsPath,
+        bpeVocabPath: bpeVocabPath,
+      ));
     } catch (e) {
       return Failure(AppError(
         userMessage: 'Could not load speech recognition model.',
@@ -144,14 +134,22 @@ class ModelDownloadService implements IModelDownloadService {
     }
   }
 
-  Future<String> _writeHotwordsFile(String modelDir) async {
-    final path = p.join(modelDir, 'hotwords.txt');
+  Future<String> _writeHotwordsFile(String modelDir) =>
+      _writeIfChanged(p.join(modelDir, 'hotwords.txt'), hotwords.join('\n'));
+
+  Future<String> _writeBpeVocab(String modelDir) async {
+    final tokens =
+        await File(p.join(modelDir, 'tokens.txt')).readAsString();
+    return _writeIfChanged(
+        p.join(modelDir, 'bpe.vocab'), bpeVocabFromTokens(tokens));
+  }
+
+  Future<String> _writeIfChanged(String path, String contents) async {
     final file = File(path);
-    final expected = _hotwordsBpe.join('\n');
-    if (file.existsSync() && await file.readAsString() == expected) {
+    if (file.existsSync() && await file.readAsString() == contents) {
       return path;
     }
-    await file.writeAsString(expected);
+    await file.writeAsString(contents);
     return path;
   }
 }
