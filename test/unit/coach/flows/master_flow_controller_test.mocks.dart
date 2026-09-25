@@ -389,6 +389,15 @@ class MockRaceScreenController extends _i1.Mock
           as _i14.Future<void>);
 
   @override
+  _i14.Future<void> sendRaceAgain(_i2.BuildContext? context) =>
+      (super.noSuchMethod(
+            Invocation.method(#sendRaceAgain, [context]),
+            returnValue: _i14.Future<void>.value(),
+            returnValueForMissingStub: _i14.Future<void>.value(),
+          )
+          as _i14.Future<void>);
+
+  @override
   _i14.Future<void> loadRunnersManagementScreenWithConfirmation(
     _i2.BuildContext? context, {
     bool? isViewMode = false,
@@ -548,6 +557,21 @@ class MockPreRaceController extends _i1.Mock implements _i17.PreRaceController {
           as _i14.Future<String> Function(_i3.MasterRace));
 
   @override
+  _i8.DevicesManager Function() get createDevices =>
+      (super.noSuchMethod(
+            Invocation.getter(#createDevices),
+            returnValue: () =>
+                _FakeDevicesManager_6(this, Invocation.getter(#createDevices)),
+          )
+          as _i8.DevicesManager Function());
+
+  @override
+  set createDevices(_i8.DevicesManager Function()? value) => super.noSuchMethod(
+    Invocation.setter(#createDevices, value),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   _i14.Future<bool> showPreRaceFlow(
     _i2.BuildContext? context,
     bool? showProgressIndicator,
@@ -560,6 +584,15 @@ class MockPreRaceController extends _i1.Mock implements _i17.PreRaceController {
             returnValue: _i14.Future<bool>.value(false),
           )
           as _i14.Future<bool>);
+
+  @override
+  _i14.Future<void> showSendAgainSheet(_i2.BuildContext? context) =>
+      (super.noSuchMethod(
+            Invocation.method(#showSendAgainSheet, [context]),
+            returnValue: _i14.Future<void>.value(),
+            returnValueForMissingStub: _i14.Future<void>.value(),
+          )
+          as _i14.Future<void>);
 
   @override
   List<_i18.FlowStep> buildSteps() =>
