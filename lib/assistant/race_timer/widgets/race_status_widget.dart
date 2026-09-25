@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../controller/timing_controller.dart';
-import '../../../core/components/race_components.dart';
+import '../../shared/widgets/race_day_controls.dart';
+import 'race_controls_widget.dart';
+import 'timer_display_widget.dart';
 
+/// Whether the clock is running, how many finishes are logged, and the
+/// clock itself, with Stop kept up here, away from Log Finish.
 class RaceStatusWidget extends StatelessWidget {
   final TimingController controller;
   const RaceStatusWidget({
@@ -12,36 +16,28 @@ class RaceStatusWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    String status;
-    Color statusColor;
+    final String status;
+    final Color statusColor;
+    final running = controller.startTime != null && !controller.raceStopped;
 
     if (controller.startTime == null) {
       status = 'Ready';
-      statusColor = Colors.black54;
+      statusColor = AppColors.mediumColor;
     } else if (controller.raceStopped) {
-      status = 'Finished';
-      statusColor = Colors.green[700]!;
+      status = 'Stopped';
+      statusColor = Colors.green.shade700;
     } else {
-      status = 'In progress';
+      status = 'Running';
       statusColor = AppColors.primaryColor;
     }
 
-    // Get the last non-null place among uiRecords, or null if none
-    late final int? lastPlace;
-    try {
-      lastPlace = controller.uiRecords
-          .lastWhere((r) => r.place != null,
-              orElse: () => throw Exception('No place found'))
-          .place;
-    } catch (e) {
-      lastPlace = null;
-    }
-
-    return RaceStatusHeaderWidget(
+    final count = controller.runnerCount ?? 0;
+    return RaceDayStatusBar(
       status: status,
-      statusColor: statusColor,
-      runnerCount: lastPlace,
-      recordLabel: 'Runners',
+      color: statusColor,
+      count: '$count ${count == 1 ? 'finish' : 'finishes'}',
+      onStop: running ? () => confirmStopTimer(context, controller) : null,
+      trailing: TimerDisplayWidget(controller: controller),
     );
   }
 }

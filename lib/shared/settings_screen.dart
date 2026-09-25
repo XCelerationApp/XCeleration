@@ -1,16 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import '../core/components/dialog_utils.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
+import 'package:xceleration/core/utils/logger.dart';
+import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import '../core/components/page_route_animations.dart';
 import 'role_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends StatelessWidget {
   final String currentRole;
 
   const SettingsScreen({
@@ -19,12 +23,11 @@ class SettingsScreen extends StatefulWidget {
   });
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
-}
-
-class _SettingsScreenState extends State<SettingsScreen> {
-  @override
   Widget build(BuildContext context) {
+    // Timers, Bib Recorders and Spectators never sign in. Syncing, signing
+    // out and deleting an account mean nothing to them, and Delete Account
+    // used to ask to go ahead and then do nothing.
+    final signedIn = AuthService.instance.isSignedIn;
     return Scaffold(
       appBar: AppBar(
         title: const Text('Settings'),
@@ -33,25 +36,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onPressed: () => Navigator.of(context).pop(),
         ),
       ),
-      body: Stack(
+      body: ListView(
         children: [
-          ListView(
-            children: [
-                const SizedBox(height: 24),
-              _buildSectionHeader('Sync'),
-              _buildSyncNowButton(context),
-              if (kDebugMode) ...[
-                const SizedBox(height: 24),
-                _buildSectionHeader('Account Settings'),
-                _buildChangePasswordButton(context),
-              ],
-              const SizedBox(height: 24),
-              _buildSectionHeader('Account'),
-              _buildDeleteAccountButton(context),
-              _buildSignOutButton(context),
-            ],
+          const SizedBox(height: 24),
+          _buildSectionHeader('Account'),
+          if (signedIn) ...[
+            _buildNote(
+                'Signed in as ${AuthService.instance.currentEmail ?? 'a coach'}'),
+            _buildSyncNowButton(context),
+            if (kDebugMode) _buildChangePasswordButton(context),
+            _buildSignOutButton(context),
+            _buildDeleteAccountButton(context),
+          ] else
+            _buildNote('Not signed in. Coaches sign in to keep their races '
+                'and runners in the cloud. Timers, Bib Recorders and '
+                'Spectators do not need an account.'),
+          const SizedBox(height: 24),
+          _buildSectionHeader('About'),
+          FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snapshot) {
+              final info = snapshot.data;
+              return _buildNote(info == null
+                  ? 'Xceleration'
+                  : 'Xceleration ${info.version} (${info.buildNumber})');
+            },
           ),
+          const SizedBox(height: 24),
         ],
+      ),
+    );
+  }
+
+  Widget _buildNote(String text) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      child: Text(
+        text,
+        style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
       ),
     );
   }
@@ -150,13 +172,30 @@ class _SettingsScreenState extends State<SettingsScreen> {
       isSelected: false,
       onTap: () async {
         final syncService = context.read<ISyncService>();
-        await DialogUtils.executeWithLoadingDialog(
-          context,
-          loadingMessage: 'Syncing...',
-          operation: () async {
-            await syncService.syncAll();
-          },
-        );
+        bool syncSucceeded = false;
+        try {
+          await DialogUtils.executeWithLoadingDialog(
+            context,
+            loadingMessage: 'Syncing...',
+            operation: () async {
+              await syncService.syncAll();
+              syncSucceeded = true;
+            },
+          );
+        } catch (e) {
+          if (!context.mounted) return;
+          Logger.e('Sync failed: $e');
+          DialogUtils.showErrorDialog(context,
+              message: 'Could not sync. Check you are online and try again.');
+          return;
+        }
+        if (!context.mounted) return;
+        if (syncSucceeded) {
+          DialogUtils.showSuccessDialog(
+            context,
+            message: 'Done, synced successfully!',
+          );
+        }
       },
     );
   }
@@ -194,15 +233,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'This will permanently delete your account and associated cloud data. Continue?',
           confirmText: 'Delete',
           cancelText: 'Cancel',
+          destructive: true,
         );
         if (!confirmed || !context.mounted) return;
+        final userId = AuthService.instance.currentUserId;
+        if (userId == null) return;
         try {
           await DialogUtils.executeWithLoadingDialog(context,
               loadingMessage: 'Deleting account...', operation: () async {
             await AuthService.instance.deleteCurrentUserAccount();
           });
           if (!context.mounted) return;
-          // Ensure the local session is cleared after account deletion
+          // The account is gone from the server; the races must not stay on
+          // the phone, where the next person to sign in would find them.
+          await ServiceLocator.get<IDatabaseConnectionProvider>()
+              .deleteUserData(userId);
           await AuthService.instance.signOut();
           if (!context.mounted) return;
           DialogUtils.showSuccessDialog(context, message: 'Account deleted');
@@ -212,9 +257,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           );
         } catch (e) {
           if (!context.mounted) return;
+          Logger.e('Account deletion failed: $e');
           DialogUtils.showErrorDialog(
             context,
-            message: 'Failed to delete account: $e',
+            message: 'Could not delete your account. Check you are online '
+                'and try again.',
           );
         }
       },
@@ -229,6 +276,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       Icons.logout,
       isSelected: false,
       onTap: () async {
+        // A cursor belongs to the account that set it, and the database to the
+        // user whose races are in it. Both have to go before the next sign-in.
+        // Settings is reachable from the assistant and spectator screens too,
+        // where the coach database may never have been opened: then there is
+        // no cursor to clear, and signing out must still go ahead.
+        try {
+          await context.read<ISyncService>().clearSyncCursors();
+        } on StateError {
+          Logger.d('Sign out: no database open, so no sync cursors to clear');
+        }
+        await ServiceLocator.get<IDatabaseConnectionProvider>().close();
         await AuthService.instance.signOut();
         if (!context.mounted) return;
         Navigator.of(context).pushAndRemoveUntil(

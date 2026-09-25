@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/app_header.dart';
+import '../../../core/services/screen_awake.dart';
+import '../../shared/utils/live_race_screen.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../shared/role_bar/widgets/instructions_banner.dart';
 import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
 import '../../../shared/settings_screen.dart';
 import '../../../core/utils/enums.dart';
-import '../widgets/timer_display_widget.dart';
 import '../widgets/race_controls_widget.dart';
 import '../widgets/race_status_widget.dart';
-import '../widgets/bottom_controls_widget.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../controller/timing_controller.dart';
 import '../../shared/services/assistant_storage_service.dart';
@@ -17,6 +17,9 @@ import '../widgets/records_list_widget.dart';
 import '../../../shared/role_bar/models/role_enums.dart';
 import '../../shared/widgets/race_header_widget.dart';
 import '../../../core/components/coach_mark.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
 
 class TimingScreen extends StatefulWidget {
   const TimingScreen({super.key});
@@ -30,6 +33,8 @@ class _TimingScreenState extends State<TimingScreen>
   late TimingController _controller;
   late TabController _tabController;
   late final TutorialManager tutorialManager = TutorialManager();
+  late final Listenable _raceStateAndRecords;
+  late final Listenable _raceStateAndInfo;
 
   @override
   void initState() {
@@ -39,6 +44,15 @@ class _TimingScreenState extends State<TimingScreen>
       storage: AssistantStorageService.instance,
       audioPlayer: AudioPlayer(),
     );
+    _raceStateAndRecords = Listenable.merge([
+      _controller.raceStateSignal,
+      _controller.recordsSignal,
+    ]);
+    _raceStateAndInfo = Listenable.merge([
+      _controller.raceStateSignal,
+      _controller.raceInfoSignal,
+    ]);
+    _raceStateAndInfo.addListener(_keepScreenOnWhileLive);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       InstructionsBanner.showInstructionsSheet(context, Role.timer).then((_) {
@@ -59,111 +73,203 @@ class _TimingScreenState extends State<TimingScreen>
     return TutorialRoot(
       tutorialManager: tutorialManager,
       child: Scaffold(
-        body: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            AppHeader(
-              title: 'Race Timer',
-              currentRole: Role.timer,
-              tutorialManager: tutorialManager,
-              onRoleTap: () =>
-                  RoleSelectorSheet.showRoleSelection(context, Role.timer),
-              onSettingsTap: () => Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => SettingsScreen(
-                    currentRole: Role.timer.toValueString(),
+        // While the clock runs, the header and practice banner give way so
+        // the times and the Log Finish button have the room.
+        body: ListenableBuilder(
+          listenable: _raceStateAndInfo,
+          builder: (context, _) {
+            final live =
+                _controller.startTime != null && !_controller.raceStopped;
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (live)
+                  SizedBox(height: MediaQuery.paddingOf(context).top)
+                else
+                  AppHeader(
+                    title: 'Race Timer',
+                    currentRole: Role.timer,
+                    tutorialManager: tutorialManager,
+                    onRoleTap: () => RoleSelectorSheet.showRoleSelection(
+                        context, Role.timer),
+                    onSettingsTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => SettingsScreen(
+                          currentRole: Role.timer.toValueString(),
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-              // Only rebuild the parts that depend on controller state
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  return Column(
+                Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg),
+                  child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      CoachMark(
-                        id: 'race_header_tutorial',
-                        tutorialManager: tutorialManager,
-                        config: const CoachMarkConfig(
-                          title: 'Race Information',
-                          description:
-                              'This shows your current race. A demo race has been loaded so you can test the features. Tap the menu to load a race from your coach.',
-                          icon: Icons.info_outline,
-                          alignmentY: AlignmentY.bottom,
-                          type: CoachMarkType.targeted,
-                          backgroundColor: Color(0xFF1976D2),
-                        ),
-                        child: RaceHeaderWidget(
-                          currentRace: _controller.currentRace,
-                          role: DeviceName.raceTimer,
-                          onLoadRace: () =>
-                              _controller.showLoadRaceSheet(context),
-                          onShowOtherRaces: () =>
-                              _controller.showOtherRaces(context),
-                          onDeleteRace: () async {
-                            final error = await _controller.deleteCurrentRace();
-                            if (error != null && context.mounted) {
-                              DialogUtils.showErrorDialog(context,
-                                  message: error.userMessage);
-                            }
-                          },
-                        ),
+                      _buildRaceHeader(context, live),
+                      // Why the race could not be opened, if it failed to load.
+                      ListenableBuilder(
+                        listenable: _controller,
+                        builder: (context, child) {
+                          final error = _controller.loadError;
+                          if (error == null) return const SizedBox.shrink();
+                          return _LoadErrorBanner(
+                            message: error.userMessage,
+                            onRetry: _controller.retryLoad,
+                          );
+                        },
                       ),
-                      const SizedBox(height: 8),
-                      RaceStatusWidget(controller: _controller),
-                      const SizedBox(height: 8),
-                      TimerDisplayWidget(
-                        controller: _controller,
+                      const SizedBox(height: AppSpacing.sm),
+                      ListenableBuilder(
+                        listenable: _raceStateAndRecords,
+                        builder: (context, child) =>
+                            RaceStatusWidget(controller: _controller),
                       ),
-                      const SizedBox(height: 8),
-                      RaceControlsWidget(controller: _controller),
                     ],
-                  );
-                },
-              ),
-              Expanded(
-                child: AnimatedBuilder(
-                  animation: _controller,
-                  builder: (context, child) {
-                    return RecordsListWidget(controller: _controller);
-                  },
+                  ),
                 ),
-              ),
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  if (_controller.raceStopped == false &&
-                      _controller.hasTimingData) {
-                    return BottomControlsWidget(
-                      controller: _controller,
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-                  ],
+                Expanded(
+                  // Records list: rebuilds only when records change.
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                    child: ListenableBuilder(
+                      listenable: _controller.recordsSignal,
+                      builder: (context, child) =>
+                          RecordsListWidget(controller: _controller),
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+                // The thumb area: Start, Log Finish, or Share Times.
+                SafeArea(
+                  top: false,
+                  minimum: const EdgeInsets.only(bottom: AppSpacing.lg),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                    child: ListenableBuilder(
+                      listenable: _raceStateAndRecords,
+                      builder: (context, child) =>
+                          RaceControlsWidget(controller: _controller),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 
+  Widget _buildRaceHeader(BuildContext context, bool live) {
+    // Race header: only rebuilds when the loaded race changes
+    return ListenableBuilder(
+      listenable: _controller.raceInfoSignal,
+      builder: (context, child) {
+        return CoachMark(
+          id: 'race_header_tutorial',
+          tutorialManager: tutorialManager,
+          config: const CoachMarkConfig(
+            title: 'Race Information',
+            description:
+                'This shows your current race. A practice race is loaded so you can try things out. Tap Get Race from Coach for the real one.',
+            icon: Icons.info_outline,
+            alignmentY: AlignmentY.bottom,
+            type: CoachMarkType.targeted,
+            backgroundColor: Color(0xFF1976D2),
+          ),
+          child: RaceHeaderWidget(
+            currentRace: _controller.currentRace,
+            role: DeviceName.raceTimer,
+            compact: live,
+            loading: _controller.loadingRace,
+            onLoadRace: () => _controller.showLoadRaceSheet(context),
+            onShowOtherRaces: () => _controller.showOtherRaces(context),
+            // A copy of the times on the phone itself, in case sharing with
+            // the coach fails.
+            onDownloadRace: _controller.currentRace == null
+                ? null
+                : () => _controller.downloadRace(context),
+            onDeleteRace: () async {
+              final error = await _controller.deleteCurrentRace();
+              if (error != null && context.mounted) {
+                DialogUtils.showErrorDialog(context,
+                    message: error.userMessage);
+              }
+            },
+            clearRecordsLabel: 'Clear Times',
+            canClearRecords: () =>
+                _controller.raceStopped && _controller.hasTimingData,
+            onClearRecords: () async {
+              final confirmed = await DialogUtils.showConfirmationDialog(
+                context,
+                title: 'Clear Race Times',
+                content: 'This removes every time logged for this race.',
+                confirmText: 'Clear Times',
+                cancelText: 'Cancel',
+                destructive: true,
+              );
+              if (confirmed && context.mounted) {
+                await _controller.doClearRaceTimes();
+              }
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  /// The screen stays on while the clock runs.
+  void _keepScreenOnWhileLive() {
+    final live = _controller.currentRace != null &&
+        _controller.startTime != null &&
+        !_controller.raceStopped;
+    ScreenAwake.set(live);
+    // Reopened here if the app closes mid-race.
+    LiveRaceScreen.mark(live ? LiveRaceScreen.timer : null);
+  }
+
   @override
   void dispose() {
+    _raceStateAndInfo.removeListener(_keepScreenOnWhileLive);
+    ScreenAwake.set(false);
+    LiveRaceScreen.mark(null);
     _tabController.dispose();
     _controller.dispose();
     tutorialManager.dispose();
     super.dispose();
+  }
+}
+
+class _LoadErrorBanner extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+
+  const _LoadErrorBanner({required this.message, required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(top: 8),
+      padding: const EdgeInsets.fromLTRB(12, 8, 4, 8),
+      decoration: BoxDecoration(
+        color: AppColors.redColor.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.redColor),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.error_outline, color: AppColors.redColor),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(message,
+                style: AppTypography.bodySmall
+                    .copyWith(color: AppColors.darkColor)),
+          ),
+          TextButton(onPressed: onRetry, child: const Text('Try again')),
+        ],
+      ),
+    );
   }
 }

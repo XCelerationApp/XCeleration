@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import 'package:xceleration/core/utils/color_utils.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
 
-class RunnerSearchBar extends StatelessWidget {
-  final TextEditingController controller;
-  final String searchAttribute;
-  final Function() onSearchChanged;
-  final Function(String?) onAttributeChanged;
-  final VoidCallback? onDeleteAll;
-  final bool isViewMode;
-
+class RunnerSearchBar extends StatefulWidget {
   const RunnerSearchBar({
     super.key,
     required this.controller,
@@ -20,139 +16,171 @@ class RunnerSearchBar extends StatelessWidget {
     this.isViewMode = false,
   });
 
+  final TextEditingController controller;
+  final String searchAttribute;
+  final VoidCallback onSearchChanged;
+  final ValueChanged<String?> onAttributeChanged;
+
+  /// Kept for API compatibility; no longer rendered in the UI.
+  final VoidCallback? onDeleteAll;
+  final bool isViewMode;
+
+  @override
+  State<RunnerSearchBar> createState() => _RunnerSearchBarState();
+}
+
+class _RunnerSearchBarState extends State<RunnerSearchBar> {
+  bool _hasText = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _hasText = widget.controller.text.isNotEmpty;
+    widget.controller.addListener(_onControllerChanged);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onControllerChanged);
+    super.dispose();
+  }
+
+  void _onControllerChanged() {
+    final hasText = widget.controller.text.isNotEmpty;
+    if (hasText != _hasText) setState(() => _hasText = hasText);
+  }
+
+  void _clearSearch() {
+    widget.controller.clear();
+    widget.onSearchChanged();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.zero,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Flexible(
-                flex: 3,
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: ColorUtils.withOpacity(Colors.black, 0.05),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: controller,
-                    decoration: InputDecoration(
-                      hintText: 'Search',
-                      hintStyle: TextStyle(
-                          color: ColorUtils.withOpacity(
-                              AppColors.mediumColor, 0.7)),
-                      prefixIcon: Icon(Icons.search,
-                          color: ColorUtils.withOpacity(
-                              AppColors.primaryColor, 0.8)),
-                      fillColor: Colors.white,
-                      filled: true,
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.lightColor),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(
-                            color: AppColors.primaryColor, width: 1.5),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: AppColors.lightColor),
-                      ),
-                    ),
-                    onChanged: (_) => onSearchChanged(),
-                  ),
-                ),
+    return Row(
+      children: [
+        Expanded(child: _SearchField(this)),
+        const SizedBox(width: AppSpacing.sm),
+        _AttributeDropdown(
+          value: widget.searchAttribute,
+          onChanged: widget.onAttributeChanged,
+        ),
+      ],
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField(this.state);
+
+  final _RunnerSearchBarState state;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceColor,
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: AppSpacing.md),
+          Icon(
+            Icons.search,
+            size: 18,
+            color: AppColors.mediumColor,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: TextField(
+              controller: state.widget.controller,
+              onChanged: (_) => state.widget.onSearchChanged(),
+              style: AppTypography.smallBodyRegular.copyWith(
+                color: AppColors.darkColor,
               ),
-              const SizedBox(width: 10),
-              Flexible(
-                flex: 2,
-                child: Container(
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: ColorUtils.withOpacity(Colors.black, 0.05),
-                        spreadRadius: 1,
-                        blurRadius: 3,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                    border: Border.all(color: AppColors.lightColor),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    child: DropdownButtonHideUnderline(
-                      child: DropdownButton<String>(
-                        value: searchAttribute,
-                        onChanged: onAttributeChanged,
-                        items: ['All', 'Bib Number', 'Name', 'Grade', 'Team']
-                            .map((value) => DropdownMenuItem(
-                                  value: value,
-                                  child: Text(
-                                    value,
-                                    style: TextStyle(
-                                      color: AppColors.darkColor,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ))
-                            .toList(),
-                        icon: const Icon(Icons.arrow_drop_down,
-                            color: AppColors.navBarColor),
-                        iconSize: 30,
-                        isExpanded: true,
-                        focusColor: AppColors.backgroundColor,
-                        style:
-                            TextStyle(color: AppColors.darkColor, fontSize: 14),
-                      ),
-                    ),
-                  ),
+              decoration: InputDecoration(
+                hintText: 'Search runners…',
+                hintStyle: AppTypography.smallBodyRegular.copyWith(
+                  color: AppColors.mediumColor.withValues(alpha: 0.7),
                 ),
+                border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
-              const SizedBox(width: 6),
-              if (!isViewMode)
-                SizedBox(
-                  height: 48,
-                  width: 48,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: ColorUtils.withOpacity(Colors.black, 0.05),
-                          spreadRadius: 1,
-                          blurRadius: 3,
-                          offset: const Offset(0, 1),
-                        ),
-                      ],
-                      border: Border.all(color: AppColors.lightColor),
+            ),
+          ),
+          AnimatedOpacity(
+            opacity: state._hasText ? 1.0 : 0.0,
+            duration: AppAnimations.fast,
+            child: state._hasText
+                ? GestureDetector(
+                    onTap: state._clearSearch,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.sm,
+                      ),
+                      child: Icon(
+                        Icons.close,
+                        size: 16,
+                        color: AppColors.mediumColor,
+                      ),
                     ),
-                    child: IconButton(
-                      icon:
-                          Icon(Icons.delete_outline, color: AppColors.redColor),
-                      // tooltip: 'Delete All Runners',
-                      onPressed: onDeleteAll,
+                  )
+                : const SizedBox(width: AppSpacing.xl),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AttributeDropdown extends StatelessWidget {
+  const _AttributeDropdown({required this.value, required this.onChanged});
+
+  final String value;
+  final ValueChanged<String?> onChanged;
+
+  static const _options = ['All', 'Bib Number', 'Name', 'Grade', 'Team'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceColor,
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: value,
+          onChanged: onChanged,
+          focusColor: Colors.transparent,
+          icon: Icon(
+            Icons.keyboard_arrow_down,
+            size: 18,
+            color: AppColors.primaryColor,
+          ),
+          style: AppTypography.smallBodyRegular.copyWith(
+            color: AppColors.darkColor,
+          ),
+          items: _options
+              .map(
+                (opt) => DropdownMenuItem(
+                  value: opt,
+                  child: Text(
+                    opt,
+                    style: AppTypography.smallBodyRegular.copyWith(
+                      color: AppColors.darkColor,
                     ),
                   ),
                 ),
-            ],
-          );
-        },
+              )
+              .toList(),
+        ),
       ),
     );
   }

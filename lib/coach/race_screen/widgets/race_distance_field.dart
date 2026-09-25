@@ -4,7 +4,7 @@ import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 
 class RaceDistanceField extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
   final ValueChanged<String>? onChanged;
 
   const RaceDistanceField({
@@ -27,8 +27,7 @@ class RaceDistanceField extends StatelessWidget {
               hint: '0.0',
               error: controller.form.errorFor(RaceField.distance),
               onChanged: (value) {
-                controller
-                    .validateDistance(controller.form.distanceController.text);
+                controller.form.applyValidation(RaceField.distance);
                 // Only trigger autosave when we have valid input
                 if (value.isNotEmpty &&
                     controller.form.errorFor(RaceField.distance) == null) {

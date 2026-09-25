@@ -30,13 +30,8 @@ import 'package:xceleration/core/services/sync_service.dart' as _i5;
 // ignore_for_file: invalid_use_of_internal_member
 
 class _FakeAuthResponse_0 extends _i1.SmartFake implements _i2.AuthResponse {
-  _FakeAuthResponse_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeAuthResponse_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [ISyncService].
@@ -48,20 +43,39 @@ class MockISyncService extends _i1.Mock implements _i3.ISyncService {
   }
 
   @override
-  _i4.Stream<_i5.SyncEvent> get syncEvents => (super.noSuchMethod(
-        Invocation.getter(#syncEvents),
-        returnValue: _i4.Stream<_i5.SyncEvent>.empty(),
-      ) as _i4.Stream<_i5.SyncEvent>);
+  _i4.Stream<_i5.SyncEvent> get syncEvents =>
+      (super.noSuchMethod(
+            Invocation.getter(#syncEvents),
+            returnValue: _i4.Stream<_i5.SyncEvent>.empty(),
+          )
+          as _i4.Stream<_i5.SyncEvent>);
 
   @override
-  _i4.Future<void> syncAll() => (super.noSuchMethod(
-        Invocation.method(
-          #syncAll,
-          [],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> syncAll() =>
+      (super.noSuchMethod(
+            Invocation.method(#syncAll, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> clearSyncCursors() =>
+      (super.noSuchMethod(
+            Invocation.method(#clearSyncCursors, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> dispose() =>
+      (super.noSuchMethod(
+            Invocation.method(#dispose, []),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 }
 
 /// A class which mocks [IAuthService].
@@ -73,10 +87,9 @@ class MockIAuthService extends _i1.Mock implements _i6.IAuthService {
   }
 
   @override
-  bool get isSignedIn => (super.noSuchMethod(
-        Invocation.getter(#isSignedIn),
-        returnValue: false,
-      ) as bool);
+  bool get isSignedIn =>
+      (super.noSuchMethod(Invocation.getter(#isSignedIn), returnValue: false)
+          as bool);
 
   @override
   _i4.Future<_i2.AuthResponse> signInWithEmailPassword(
@@ -84,24 +97,15 @@ class MockIAuthService extends _i1.Mock implements _i6.IAuthService {
     String? password,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #signInWithEmailPassword,
-          [
-            email,
-            password,
-          ],
-        ),
-        returnValue: _i4.Future<_i2.AuthResponse>.value(_FakeAuthResponse_0(
-          this,
-          Invocation.method(
-            #signInWithEmailPassword,
-            [
-              email,
-              password,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i2.AuthResponse>);
+            Invocation.method(#signInWithEmailPassword, [email, password]),
+            returnValue: _i4.Future<_i2.AuthResponse>.value(
+              _FakeAuthResponse_0(
+                this,
+                Invocation.method(#signInWithEmailPassword, [email, password]),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.AuthResponse>);
 
   @override
   _i4.Future<_i2.AuthResponse> signUpWithEmailPassword(
@@ -109,34 +113,71 @@ class MockIAuthService extends _i1.Mock implements _i6.IAuthService {
     String? password,
   ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #signUpWithEmailPassword,
-          [
-            email,
-            password,
-          ],
-        ),
-        returnValue: _i4.Future<_i2.AuthResponse>.value(_FakeAuthResponse_0(
-          this,
-          Invocation.method(
-            #signUpWithEmailPassword,
-            [
-              email,
-              password,
-            ],
-          ),
-        )),
-      ) as _i4.Future<_i2.AuthResponse>);
+            Invocation.method(#signUpWithEmailPassword, [email, password]),
+            returnValue: _i4.Future<_i2.AuthResponse>.value(
+              _FakeAuthResponse_0(
+                this,
+                Invocation.method(#signUpWithEmailPassword, [email, password]),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.AuthResponse>);
 
   @override
-  _i4.Future<void> sendPasswordResetEmail(String? email) => (super.noSuchMethod(
-        Invocation.method(
-          #sendPasswordResetEmail,
-          [email],
-        ),
-        returnValue: _i4.Future<void>.value(),
-        returnValueForMissingStub: _i4.Future<void>.value(),
-      ) as _i4.Future<void>);
+  _i4.Future<void> sendPasswordResetEmail(String? email) =>
+      (super.noSuchMethod(
+            Invocation.method(#sendPasswordResetEmail, [email]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<_i2.AuthResponse> verifyEmailOtp(String? email, String? token) =>
+      (super.noSuchMethod(
+            Invocation.method(#verifyEmailOtp, [email, token]),
+            returnValue: _i4.Future<_i2.AuthResponse>.value(
+              _FakeAuthResponse_0(
+                this,
+                Invocation.method(#verifyEmailOtp, [email, token]),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.AuthResponse>);
+
+  @override
+  _i4.Future<_i2.AuthResponse> verifyPasswordResetOtp(
+    String? email,
+    String? token,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#verifyPasswordResetOtp, [email, token]),
+            returnValue: _i4.Future<_i2.AuthResponse>.value(
+              _FakeAuthResponse_0(
+                this,
+                Invocation.method(#verifyPasswordResetOtp, [email, token]),
+              ),
+            ),
+          )
+          as _i4.Future<_i2.AuthResponse>);
+
+  @override
+  _i4.Future<void> updatePassword(String? newPassword) =>
+      (super.noSuchMethod(
+            Invocation.method(#updatePassword, [newPassword]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
+
+  @override
+  _i4.Future<void> resendEmailConfirmation(String? email) =>
+      (super.noSuchMethod(
+            Invocation.method(#resendEmailConfirmation, [email]),
+            returnValue: _i4.Future<void>.value(),
+            returnValueForMissingStub: _i4.Future<void>.value(),
+          )
+          as _i4.Future<void>);
 }
 
 /// A class which mocks [Connectivity].
@@ -150,18 +191,18 @@ class MockConnectivity extends _i1.Mock implements _i7.Connectivity {
   @override
   _i4.Stream<List<_i8.ConnectivityResult>> get onConnectivityChanged =>
       (super.noSuchMethod(
-        Invocation.getter(#onConnectivityChanged),
-        returnValue: _i4.Stream<List<_i8.ConnectivityResult>>.empty(),
-      ) as _i4.Stream<List<_i8.ConnectivityResult>>);
+            Invocation.getter(#onConnectivityChanged),
+            returnValue: _i4.Stream<List<_i8.ConnectivityResult>>.empty(),
+          )
+          as _i4.Stream<List<_i8.ConnectivityResult>>);
 
   @override
   _i4.Future<List<_i8.ConnectivityResult>> checkConnectivity() =>
       (super.noSuchMethod(
-        Invocation.method(
-          #checkConnectivity,
-          [],
-        ),
-        returnValue: _i4.Future<List<_i8.ConnectivityResult>>.value(
-            <_i8.ConnectivityResult>[]),
-      ) as _i4.Future<List<_i8.ConnectivityResult>>);
+            Invocation.method(#checkConnectivity, []),
+            returnValue: _i4.Future<List<_i8.ConnectivityResult>>.value(
+              <_i8.ConnectivityResult>[],
+            ),
+          )
+          as _i4.Future<List<_i8.ConnectivityResult>>);
 }

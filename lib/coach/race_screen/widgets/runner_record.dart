@@ -102,7 +102,7 @@ class RunnerRecord {
     );
   }
 
-  Map<String, dynamic> toMap({database = false}) {
+  Map<String, dynamic> toMap({bool database = false}) {
     if (database) {
       return {
         'bib_number': bib,

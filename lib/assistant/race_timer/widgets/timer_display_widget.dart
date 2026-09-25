@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../core/utils/time_formatter.dart';
 import '../../../core/theme/typography.dart';
-import '../model/timing_data.dart';
 import '../controller/timing_controller.dart';
 
 class TimerDisplayWidget extends StatelessWidget {
@@ -14,35 +13,26 @@ class TimerDisplayWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder(
-      stream: Stream.periodic(const Duration(milliseconds: 10)),
+      stream: (controller.raceStopped || controller.startTime == null)
+          ? const Stream<int>.empty()
+          : Stream.periodic(const Duration(milliseconds: 10)),
       builder: (context, _) {
-        final elapsed = _calculateElapsedTime(
-            controller.startTime, controller.raceDuration, controller);
-        return Container(
+        final elapsed = controller.raceElapsed;
+        // Scales down rather than wrapping on a narrow phone or at a large
+        // text size; even-width digits keep it from jittering as it counts.
+        return FittedBox(
+          fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          width: MediaQuery.of(context).size.width * 0.9,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
           child: Text(
             TimeFormatter.formatDurationWithZeros(elapsed),
+            maxLines: 1,
             style: AppTypography.displayLarge.copyWith(
-              fontSize: MediaQuery.of(context).size.width * 0.11,
               letterSpacing: -0.5,
+              fontFeatures: const [FontFeature.tabularFigures()],
             ),
           ),
         );
       },
     );
-  }
-
-  Duration _calculateElapsedTime(
-      DateTime? startTime, Duration? raceDuration, TimingData timingData) {
-    if (timingData.raceStopped || startTime == null) {
-      return raceDuration ?? Duration.zero;
-    }
-    return DateTime.now().difference(startTime);
   }
 }

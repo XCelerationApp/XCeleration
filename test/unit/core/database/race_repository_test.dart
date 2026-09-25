@@ -35,6 +35,16 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
   Future<void> deleteDatabase() async {
     _db = null;
   }
+
+  @override
+  Future<void> openForUser(String userId) async {
+    // The in-memory database is not per user; opening is a no-op.
+    await database;
+  }
+
+  @override
+  Future<void> deleteUserData(String userId) async => deleteDatabase();
+
 }
 
 void main() {
@@ -94,6 +104,63 @@ void main() {
       );
 
   group('RaceRepository', () {
+    group('updated_at stamps', () {
+      Future<String> raceUpdatedAt(int id) async => (await (await connProvider
+                  .database)
+              .query('races', where: 'race_id = ?', whereArgs: [id]))
+          .single['updated_at'] as String;
+
+      Future<String> participantUpdatedAt(int raceId, int runnerId) async =>
+          (await (await connProvider.database).query('race_participants',
+                  where: 'race_id = ? AND runner_id = ?',
+                  whereArgs: [raceId, runnerId]))
+              .single['updated_at'] as String;
+
+      test('createRace stamps updated_at in UTC', () async {
+        final id = await repo.createRace(validRace());
+        expect(await raceUpdatedAt(id), endsWith('Z'));
+      });
+
+      test('updateRaceFlowState stamps updated_at in UTC', () async {
+        final id = await repo.createRace(validRace());
+        await repo.updateRaceFlowState(id, Race.FLOW_PRE_RACE);
+        expect(await raceUpdatedAt(id), endsWith('Z'));
+      });
+
+      test('addRaceParticipant stamps updated_at in UTC', () async {
+        final raceId = await repo.createRace(validRace());
+        final runnerId = await insertRunner();
+        final teamId = await insertTeam('Eagles');
+        await repo.addRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId));
+        expect(await participantUpdatedAt(raceId, runnerId), endsWith('Z'));
+      });
+
+      test('updateRaceParticipant stamps updated_at in UTC', () async {
+        final raceId = await repo.createRace(validRace());
+        final runnerId = await insertRunner();
+        final t1 = await insertTeam('Eagles');
+        final t2 = await insertTeam('Hawks');
+        await repo.addRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1));
+        await repo.updateRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t2));
+        expect(await participantUpdatedAt(raceId, runnerId), endsWith('Z'));
+      });
+
+      test('updateRaceParticipantTeam stamps updated_at in UTC', () async {
+        final raceId = await repo.createRace(validRace());
+        final runnerId = await insertRunner();
+        final t1 = await insertTeam('Eagles');
+        final t2 = await insertTeam('Hawks');
+        await repo.addRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1));
+        await repo.updateRaceParticipantTeam(
+            raceId: raceId, runnerId: runnerId, newTeamId: t2);
+        expect(await participantUpdatedAt(raceId, runnerId), endsWith('Z'));
+      });
+    });
+
     // =========================================================================
     // RACE CRUD
     // =========================================================================
@@ -279,8 +346,9 @@ void main() {
         expect(teams.length, 2);
       });
 
-      test('throws when race does not exist', () async {
-        expect(() => repo.getRaceTeams(9999), throwsException);
+      test('returns empty list when race does not exist', () async {
+        final teams = await repo.getRaceTeams(9999);
+        expect(teams, isEmpty);
       });
     });
 
@@ -460,6 +528,13 @@ void main() {
             await repo.searchRaceParticipants(raceId, 'XYZ', 'name');
         expect(results, isEmpty);
       });
+
+      test('throws ArgumentError for unknown searchParameter', () async {
+        expect(
+          () => repo.searchRaceParticipants(raceId, 'x', 'injected_column'),
+          throwsA(isA<ArgumentError>()),
+        );
+      });
     });
 
     // =========================================================================
@@ -480,13 +555,17 @@ void main() {
     });
 
     group('updateRaceFlowState', () {
-      // updateRaceFlowState delegates to updateRace(Race(raceId, flowState))
-      // which fails validation because raceName is null. This is a known
-      // limitation of the current implementation.
-      test('throws because partial Race fails isValid check', () async {
+      test('updates only the flow_state column without touching other fields', () async {
         final id = await repo.createRace(validRace());
+        await repo.updateRaceFlowState(id, Race.FLOW_PRE_RACE);
+        final updated = await repo.getRace(id);
+        expect(updated!.flowState, Race.FLOW_PRE_RACE);
+        expect(updated.raceName, validRace().raceName);
+      });
+
+      test('throws for unknown race id', () async {
         expect(
-          () => repo.updateRaceFlowState(id, Race.FLOW_PRE_RACE),
+          () => repo.updateRaceFlowState(9999, Race.FLOW_PRE_RACE),
           throwsException,
         );
       });

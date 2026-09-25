@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../controller/timing_controller.dart';
@@ -15,10 +18,23 @@ class RecordsListWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!controller.hasTimingData) {
-      return const Center(
-        child: Text(
-          'No race times yet',
-          style: TextStyle(color: Colors.grey, fontSize: 16),
+      final String hint;
+      if (controller.startTime == null) {
+        hint = 'Times appear here as you log them.';
+      } else if (controller.raceStopped) {
+        hint = 'No times were logged.';
+      } else {
+        hint = 'Tap Log Finish as each runner crosses the line.';
+      }
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Text(
+            hint,
+            textAlign: TextAlign.center,
+            style: AppTypography.bodyRegular
+                .copyWith(color: AppColors.mediumColor),
+          ),
         ),
       );
     }
@@ -29,23 +45,26 @@ class RecordsListWidget extends StatelessWidget {
       Expanded(
           child: ListView.separated(
         controller: controller.scrollController,
+        // The screen already clears the notch; without this the list adds
+        // the safe-area gap again above the first row.
+        padding: EdgeInsets.zero,
         physics: const BouncingScrollPhysics(),
         itemCount: uiRecords.length,
         separatorBuilder: (context, index) => const SizedBox(height: 1),
         itemBuilder: (context, index) {
           final uiRecord = uiRecords[index];
-          return _buildRecordItem(uiRecord, index, context);
+          return _buildRecordItem(uiRecord, index, context, uiRecords.length);
         },
       ))
     ]);
   }
 
-  Widget _buildRecordItem(UIRecord uiRecord, int index, BuildContext context) {
-    final item = UIRecordItem(uiRecord: uiRecord, index: index);
+  Widget _buildRecordItem(UIRecord uiRecord, int index, BuildContext context, int totalCount) {
+    final item = RecordListItem(uiRecord: uiRecord, index: index);
 
     final bool canSwipe = (uiRecord.textColor == Colors.black) || // unconfirmed
         (uiRecord.type != RecordType.runnerTime &&
-            index == controller.uiRecords.length - 1); // conflict and last
+            index == totalCount - 1); // conflict and last
 
     if (!canSwipe) return item;
 

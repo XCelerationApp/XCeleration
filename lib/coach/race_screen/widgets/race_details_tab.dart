@@ -14,7 +14,7 @@ import 'dart:io';
 import '../../../shared/models/database/race.dart';
 
 class RaceDetailsTab extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
 
   const RaceDetailsTab({
     super.key,
@@ -22,41 +22,49 @@ class RaceDetailsTab extends StatelessWidget {
   });
 
   Widget _buildLocationEditWidget(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 2,
-          child: Focus(
-            onFocusChange: (hasFocus) {
-              if (!hasFocus) {
-                controller.handleFieldFocusLoss(context, RaceField.location);
-              }
-            },
-            child: buildTextField(
-              context: context,
-              controller: controller.form.locationController,
-              hint: (Platform.isIOS || Platform.isAndroid)
-                  ? 'Other location'
-                  : 'Enter race location',
-              error: controller.form.errorFor(RaceField.location),
-              onChanged: (_) => controller.trackFieldChange(RaceField.location),
-              keyboardType: TextInputType.text,
-            ),
-          ),
-        ),
-        if (controller.isLocationButtonVisible &&
-            (Platform.isIOS || Platform.isAndroid)) ...[
-          const SizedBox(width: AppSpacing.md),
-          Expanded(
-            flex: 1,
-            child: IconButton(
-              icon:
-                  const Icon(Icons.my_location, color: AppColors.primaryColor),
-              onPressed: () => controller.getCurrentLocation(context),
-            ),
-          ),
-        ]
-      ],
+    final canLocate = controller.isLocationButtonVisible &&
+        (Platform.isIOS || Platform.isAndroid);
+    return Focus(
+      onFocusChange: (hasFocus) {
+        if (!hasFocus) {
+          controller.handleFieldFocusLoss(context, RaceField.location);
+        }
+      },
+      child: buildTextField(
+        context: context,
+        controller: controller.form.locationController,
+        hint: 'Where is the race?',
+        error: controller.form.errorFor(RaceField.location),
+        onChanged: (_) => controller.trackFieldChange(RaceField.location),
+        keyboardType: TextInputType.text,
+        // Inside the field, so the field keeps the full width.
+        suffixIcon: canLocate
+            ? IconButton(
+                tooltip: 'Use my location',
+                icon: const Icon(Icons.my_location,
+                    color: AppColors.primaryColor),
+                onPressed: () => controller.getCurrentLocation(context),
+              )
+            : null,
+      ),
+    );
+  }
+
+  Widget _buildDateEditWidget(BuildContext context) {
+    // A calendar, not typing a date in a set format.
+    return buildTextField(
+      context: context,
+      controller: controller.form.dateController,
+      hint: 'Tap to pick a date',
+      error: controller.form.errorFor(RaceField.date),
+      readOnly: true,
+      onTap: () => controller.selectDate(context),
+      suffixIcon: IconButton(
+        tooltip: 'Pick a date',
+        icon: const Icon(Icons.calendar_today, color: AppColors.primaryColor),
+        onPressed: () => controller.selectDate(context),
+      ),
+      onChanged: (_) => controller.trackFieldChange(RaceField.date),
     );
   }
 
@@ -112,7 +120,12 @@ class RaceDetailsTab extends StatelessWidget {
     final teams = controller.teams;
     final canEdit = controller.canEdit;
     final runnerCount = raceRunners.length;
-    final teamCount = teams.length;
+    // A runner's team counts even if it was never added to the race itself:
+    // races that came from another phone before those links synced lack them.
+    final teamCount = {
+      for (final team in teams) team.teamId,
+      for (final runner in raceRunners) runner.team.teamId,
+    }.length;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
@@ -127,10 +140,9 @@ class RaceDetailsTab extends StatelessWidget {
             label: 'Location',
             icon: Icons.location_on,
             textController: controller.form.locationController,
-            hint: (Platform.isIOS || Platform.isAndroid)
-                ? 'Other location'
-                : 'Enter race location',
+            hint: 'Where is the race?',
             error: controller.form.errorFor(RaceField.location),
+            maxDisplayLines: 2,
             customEditWidget: _buildLocationEditWidget(context),
           ),
           InlineEditableField(
@@ -139,16 +151,12 @@ class RaceDetailsTab extends StatelessWidget {
             label: 'Race Date',
             icon: Icons.calendar_today,
             textController: controller.form.dateController,
-            hint: 'YYYY-MM-DD',
+            hint: 'Tap to pick a date',
             error: controller.form.errorFor(RaceField.date),
-            suffixIcon: IconButton(
-              icon: const Icon(Icons.calendar_today,
-                  color: AppColors.primaryColor),
-              onPressed: () => controller.selectDate(context),
-            ),
+            customEditWidget: _buildDateEditWidget(context),
             getDisplayValue: () {
               if (race.raceDate != null) {
-                return DateFormat('yyyy-MM-dd').format(race.raceDate!);
+                return DateFormat('EEE, MMM d, yyyy').format(race.raceDate!);
               }
               return 'Not set';
             },
@@ -168,23 +176,23 @@ class RaceDetailsTab extends StatelessWidget {
             },
           ),
 
-          const SizedBox(height: AppSpacing.lg),
-          if (runnerCount > 0)
-            Builder(
-                  builder: (context) {
-                    final isViewMode = !canEdit ||
-                        race.flowState == Race.FLOW_FINISHED ||
-                        race.flowState == Race.FLOW_POST_RACE;
-                    return _TeamsRow(
-                      teamCount: teamCount,
-                      runnerCount: runnerCount,
-                      onTap: () =>
-                          controller.loadRunnersManagementScreenWithConfirmation(
-                              context,
-                              isViewMode: isViewMode),
-                    );
-                  },
-                )
+          Builder(
+            builder: (context) {
+              final isViewMode = !canEdit ||
+                  race.flowState == Race.FLOW_FINISHED ||
+                  race.flowState == Race.FLOW_POST_RACE;
+              return _TeamsRow(
+                teamCount: teamCount,
+                runnerCount: runnerCount,
+                onTap: () =>
+                    controller.loadRunnersManagementScreenWithConfirmation(
+                        context,
+                        isViewMode: isViewMode),
+              );
+            },
+          ),
+          // Room to scroll the last row above the Save Changes bar.
+          const SizedBox(height: AppSpacing.xxxl * 2),
         ],
       ),
     );
@@ -220,7 +228,6 @@ class _TeamsRowState extends State<_TeamsRow> {
         duration: AppAnimations.fast,
         curve: AppAnimations.spring,
         margin: const EdgeInsets.only(bottom: AppSpacing.lg),
-        padding: const EdgeInsets.all(AppSpacing.xs),
         decoration: BoxDecoration(
           color: _pressed
               ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
@@ -237,6 +244,7 @@ class _TeamsRowState extends State<_TeamsRow> {
               ),
               child: Icon(Icons.group_rounded,
                   color: AppColors.primaryColor, size: 22),
+              // Same size as the other rows' icons, so they line up.
             ),
             const SizedBox(width: AppSpacing.lg),
             Expanded(
@@ -251,11 +259,15 @@ class _TeamsRowState extends State<_TeamsRow> {
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
-                    '${widget.teamCount} team${widget.teamCount == 1 ? '' : 's'}, ${widget.runnerCount} runner${widget.runnerCount == 1 ? '' : 's'}',
+                    widget.runnerCount == 0
+                        ? 'None yet. Tap to add'
+                        : '${widget.teamCount} team${widget.teamCount == 1 ? '' : 's'}, ${widget.runnerCount} runner${widget.runnerCount == 1 ? '' : 's'}',
                     style: AppTypography.bodySemibold.copyWith(
-                      color: AppColors.darkColor,
+                      color: widget.runnerCount == 0
+                          ? AppColors.primaryColor
+                          : AppColors.darkColor,
                     ),
-                    maxLines: 1,
+                    maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                 ],

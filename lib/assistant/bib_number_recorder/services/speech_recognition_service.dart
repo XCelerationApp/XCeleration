@@ -1,0 +1,181 @@
+import 'dart:isolate';
+
+import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
+import 'package:sherpa_onnx/sherpa_onnx.dart' as sherpa;
+import 'package:xceleration/assistant/bib_number_recorder/services/i_speech_recognition_service.dart';
+import 'package:xceleration/assistant/bib_number_recorder/services/model_assets.dart';
+
+/// Whether a recording is too short to transcribe. A tap of the mic button
+/// records a few hundredths of a second, and the model aborts the whole app
+/// (an uncaught ONNX exception) on clips under about 0.08 s; nobody can say
+/// a bib in under a quarter of one.
+@visibleForTesting
+bool tooShortToTranscribe(int samples, int sampleRate) =>
+    sampleRate <= 0 || samples < sampleRate * 0.25;
+
+// ---------------------------------------------------------------------------
+// Isolate entry point — must be top-level to be spawnable
+// ---------------------------------------------------------------------------
+
+/// Long-lived inference isolate. Loads the model once, then processes
+/// transcription requests until a shutdown signal is received.
+void _inferenceIsolateEntry(({
+  String encoder,
+  String decoder,
+  String joiner,
+  String tokens,
+  SendPort mainSendPort,
+}) args) {
+  sherpa.initBindings();
+
+  final config = sherpa.OfflineRecognizerConfig(
+    model: sherpa.OfflineModelConfig(
+      transducer: sherpa.OfflineTransducerModelConfig(
+        encoder: args.encoder,
+        decoder: args.decoder,
+        joiner: args.joiner,
+      ),
+      tokens: args.tokens,
+      numThreads: 2,
+      debug: false,
+    ),
+    decodingMethod: 'modified_beam_search',
+    maxActivePaths: 8,
+  );
+
+  final recognizer = sherpa.OfflineRecognizer(config);
+  final port = ReceivePort();
+
+  // Signal to the main isolate that the model is loaded and we are ready.
+  args.mainSendPort.send(port.sendPort);
+
+  port.listen((message) {
+    if (message == null) {
+      // Shutdown signal — free resources and exit.
+      port.close();
+      recognizer.free();
+      return;
+    }
+
+    // message: ({String wavPath, SendPort replyPort})
+    final wavPath = (message as ({String wavPath, SendPort replyPort})).wavPath;
+    final replyPort = message.replyPort;
+
+    try {
+      final wave = sherpa.readWave(wavPath);
+      assert(() {
+        final durationSec = wave.samples.isEmpty
+            ? 0.0
+            : wave.samples.length / wave.sampleRate;
+        // ignore: avoid_print — Logger.d is unavailable in isolates.
+        print('[SherpaOnnx] WAV loaded: '
+            '${wave.samples.length} samples, '
+            'rate=${wave.sampleRate} Hz, '
+            'duration=${durationSec.toStringAsFixed(2)}s');
+        return true;
+      }());
+
+      if (tooShortToTranscribe(wave.samples.length, wave.sampleRate)) {
+        assert(() {
+          // ignore: avoid_print
+          print('[SherpaOnnx] Too short to hold a bib — returning blank');
+          return true;
+        }());
+        replyPort.send('');
+        return;
+      }
+      final stream = recognizer.createStream();
+      try {
+        stream.acceptWaveform(
+            samples: wave.samples, sampleRate: wave.sampleRate);
+        recognizer.decode(stream);
+        final rawResult = recognizer.getResult(stream);
+        final transcript = rawResult.text.trim().toLowerCase();
+        assert(() {
+          // ignore: avoid_print
+          print('[SherpaOnnx] Raw model text: "${rawResult.text}"');
+          // ignore: avoid_print
+          print('[SherpaOnnx] Normalised transcript: "$transcript"');
+          return true;
+        }());
+        replyPort.send(transcript);
+      } finally {
+        stream.free();
+      }
+    } catch (e, st) {
+      assert(() {
+        // ignore: avoid_print
+        print('[SherpaOnnx] Transcription error: $e\n$st');
+        return true;
+      }());
+      replyPort.send('');
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+/// [ISpeechRecognitionService] implementation backed by a long-lived
+/// background [Isolate].
+///
+/// The ONNX model is loaded once in [initialize] and kept resident across
+/// instances via a static cache. This avoids reloading the ~28 MB model every
+/// time the bib recorder screen is revisited. Each [transcribe] call sends
+/// the WAV path to the isolate and awaits the transcript.
+class SpeechRecognitionService implements ISpeechRecognitionService {
+  // Static cache — the send-port survives across instances so the model is
+  // loaded only once per app session.
+  static SendPort? _cachedSendPort;
+
+  @override
+  Future<void> initialize(ModelAssets assets) async {
+    // Reuse the existing isolate if one is already running.
+    if (_cachedSendPort != null) return;
+
+    final ready = ReceivePort();
+
+    await Isolate.spawn(
+      _inferenceIsolateEntry,
+      (
+        encoder: p.join(assets.modelDir, 'encoder-epoch-99-avg-1.int8.onnx'),
+        decoder: p.join(assets.modelDir, 'decoder-epoch-99-avg-1.int8.onnx'),
+        joiner: p.join(assets.modelDir, 'joiner-epoch-99-avg-1.int8.onnx'),
+        tokens: p.join(assets.modelDir, 'tokens.txt'),
+        mainSendPort: ready.sendPort,
+      ),
+    );
+
+    // Wait until the isolate signals it has loaded the model.
+    _cachedSendPort = await ready.first as SendPort;
+    ready.close();
+  }
+
+  @override
+  Future<String> transcribe(String wavPath) async {
+    if (_cachedSendPort == null) return '';
+
+    final reply = ReceivePort();
+    try {
+      _cachedSendPort!.send((wavPath: wavPath, replyPort: reply.sendPort));
+      final result = await reply.first
+          .timeout(const Duration(seconds: 30)) as String;
+      return result;
+    } catch (_) {
+      // Isolate may have crashed — clear the stale SendPort so the next
+      // initialize() call respawns it.
+      _cachedSendPort = null;
+      return '';
+    } finally {
+      reply.close();
+    }
+  }
+
+  @override
+  Future<void> dispose() async {
+    // No-op: the isolate is intentionally kept alive across screen visits.
+    // It will be cleaned up when the app process exits.
+  }
+}

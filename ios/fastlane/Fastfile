@@ -13,10 +13,16 @@
 # Uncomment the line if you want fastlane to automatically update itself
 # update_fastlane
 
-# Load environment variables from .env file
+# Load environment variables.
+# - ios/fastlane/.env: build/signing secrets (App Store Connect key, match).
+#   Never bundled into the app.
+# - repo-root .env: app config (BUNDLE_ID, TEAM_ID, public keys). This file is
+#   bundled into the app as an asset, so it must never hold secrets
+#   (enforced by scripts/check_bundled_env.sh).
 require 'dotenv'
-dotenv_path = File.join(__dir__, "..", "..", ".env")
-Dotenv.load(dotenv_path) if File.exist?(dotenv_path)
+[File.join(__dir__, ".env"), File.join(__dir__, "..", "..", ".env")].each do |path|
+  Dotenv.load(path) if File.exist?(path)
+end
 
 # Check if environment variables are set
 required_env_vars = [

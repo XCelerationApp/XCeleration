@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:googleapis/sheets/v4.dart' as sheets;
@@ -9,6 +10,10 @@ import 'package:xceleration/core/services/connectivity_service.dart';
 import 'google_auth_service.dart';
 import 'google_drive_service.dart';
 import 'i_google_sheets_service.dart';
+import 'file_processing.dart';
+import 'sheet_tabs.dart';
+import '../components/sheet_tab_chooser.dart';
+import 'package:csv/csv.dart';
 
 /// Service for interacting with Google Sheets API
 class GoogleSheetsService implements IGoogleSheetsService {
@@ -21,9 +26,72 @@ class GoogleSheetsService implements IGoogleSheetsService {
     GoogleAuthService? authService,
     GoogleDriveService? driveService,
     ConnectivityService? connectivity,
+    http.Client? httpClient,
   })  : _authService = authService ?? GoogleAuthService.instance,
-        _connectivity = connectivity ?? const ConnectivityService() {
+        _connectivity = connectivity ?? const ConnectivityService(),
+        _http = httpClient {
     _driveService = driveService;
+  }
+
+  final http.Client? _http;
+
+  Future<http.Response> _get(Uri url, String token) {
+    final headers = {'Authorization': 'Bearer $token'};
+    return _http?.get(url, headers: headers) ?? http.get(url, headers: headers);
+  }
+
+  /// The names of a spreadsheet's visible tabs, in order, or null if they
+  /// could not be read.
+  @visibleForTesting
+  Future<List<String>?> sheetTabs(String fileId, String token) async {
+    try {
+      final response = await _get(
+        Uri.https('sheets.googleapis.com', '/v4/spreadsheets/$fileId',
+            {'fields': 'sheets.properties(title,hidden)'}),
+        token,
+      );
+      if (response.statusCode != 200) {
+        Logger.d('Could not list tabs: ${response.statusCode}');
+        return null;
+      }
+      final body = jsonDecode(utf8.decode(response.bodyBytes)) as Map;
+      return [
+        for (final sheet in (body['sheets'] as List? ?? const []))
+          if ((sheet['properties']?['hidden'] as bool?) != true)
+            '${sheet['properties']?['title'] ?? ''}',
+      ].where((t) => t.isNotEmpty).toList();
+    } catch (e) {
+      Logger.d('Could not list tabs: $e');
+      return null;
+    }
+  }
+
+  /// A tab's cells as shown in the sheet, so bib 007 stays 007.
+  @visibleForTesting
+  Future<List<List<dynamic>>?> tabRows(
+      String fileId, String tab, String token) async {
+    try {
+      // A tab's name is quoted in a range, with any quote in it doubled.
+      final range = "'${tab.replaceAll("'", "''")}'";
+      final response = await _get(
+        Uri.https('sheets.googleapis.com',
+            '/v4/spreadsheets/$fileId/values/$range',
+            {'valueRenderOption': 'FORMATTED_VALUE'}),
+        token,
+      );
+      if (response.statusCode != 200) {
+        Logger.d('Could not read tab "$tab": ${response.statusCode}');
+        return null;
+      }
+      final body = jsonDecode(utf8.decode(response.bodyBytes)) as Map;
+      return [
+        for (final row in (body['values'] as List? ?? const []))
+          [for (final cell in row as List) '$cell'],
+      ];
+    } catch (e) {
+      Logger.d('Could not read tab "$tab": $e');
+      return null;
+    }
   }
 
   /// Get GoogleDriveService instance, lazily initializing it when needed
@@ -204,16 +272,35 @@ class GoogleSheetsService implements IGoogleSheetsService {
         return null;
       }
 
-      // Ensure we're signed in
-      if (!await _authService.signIn()) {
-        Logger.d('Failed to sign in to download sheet');
-        return null;
-      }
-
       final accessToken = await _authService.iosAccessToken;
       if (accessToken == null) {
         Logger.d('Failed to get access token');
         return null;
+      }
+
+      // A sheet with several tabs (say one per school): ask which to import.
+      // The plain export below only ever gave the first tab.
+      final tabs = await sheetTabs(fileId, accessToken);
+      if (tabs != null &&
+          tabs.length > 1 &&
+          context != null &&
+          context.mounted) {
+        final chosen = await chooseSheetTabs(context, fileName, tabs);
+        if (chosen == null) return null;
+        final byTab = <String, List<List<dynamic>>>{};
+        for (final tab in chosen) {
+          final rows = await tabRows(fileId, tab, accessToken);
+          if (rows == null) throw Exception('Could not read the "$tab" tab');
+          byTab[tab] = rows;
+        }
+        final combined = combineTabs(byTab);
+        noteRowsSkippedBeforeFile(combined.skipped);
+        final directory = await getTemporaryDirectory();
+        final safe = fileName.replaceAll(RegExp(r'[/\\:*?"<>|]'), '-');
+        final file = File('${directory.path}/$safe (tabs).csv');
+        await file.writeAsString(
+            const ListToCsvConverter().convert(combined.rows));
+        return file;
       }
 
       // Google Sheets need to be exported in a specific format, not downloaded directly
@@ -232,8 +319,12 @@ class GoogleSheetsService implements IGoogleSheetsService {
 
       // Save the CSV content to a file
       final directory = await getTemporaryDirectory();
-      final file = File('${directory.path}/$fileName.csv');
-      await file.writeAsString(response.body);
+      final safeFileName = fileName.replaceAll(RegExp(r'[/\\:*?"<>|]'), '-');
+      final file = File('${directory.path}/$safeFileName.csv');
+      // The body as UTF-8: without a charset Google's CSV was read as
+      // Latin-1, turning "José" into "JosÃ©".
+      await file.writeAsString(utf8.decode(response.bodyBytes,
+          allowMalformed: true));
 
       Logger.d('Google Sheet successfully exported to CSV: ${file.path}');
       return file;

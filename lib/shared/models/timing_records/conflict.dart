@@ -15,7 +15,7 @@ class Conflict {
   }
 
   String encode() {
-    return '$type,$offBy';
+    return '${type.index},$offBy';
   }
 
   factory Conflict.decode(String encoded) {

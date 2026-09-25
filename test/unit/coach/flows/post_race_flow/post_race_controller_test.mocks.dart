@@ -6,11 +6,14 @@
 import 'dart:async' as _i6;
 import 'dart:ui' as _i8;
 
-import 'package:flutter/material.dart' as _i11;
+import 'package:flutter/material.dart' as _i12;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/controller/load_results_controller.dart'
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart'
     as _i9;
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/dev/race_simulator.dart'
+    as _i13;
 import 'package:xceleration/coach/race_results/model/team_record.dart' as _i7;
+import 'package:xceleration/core/app_error.dart' as _i11;
 import 'package:xceleration/core/services/device_connection_service.dart'
     as _i5;
 import 'package:xceleration/shared/models/database/base_models.dart' as _i2;
@@ -35,45 +38,30 @@ import 'package:xceleration/shared/services/race_results_service.dart' as _i3;
 // ignore_for_file: invalid_use_of_internal_member
 
 class _FakeRace_0 extends _i1.SmartFake implements _i2.Race {
-  _FakeRace_0(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeRace_0(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeRaceResultsData_1 extends _i1.SmartFake
     implements _i3.RaceResultsData {
-  _FakeRaceResultsData_1(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeRaceResultsData_1(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeMasterRace_2 extends _i1.SmartFake implements _i4.MasterRace {
-  _FakeMasterRace_2(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeMasterRace_2(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 class _FakeDevicesManager_3 extends _i1.SmartFake
     implements _i5.DevicesManager {
-  _FakeDevicesManager_3(
-    Object parent,
-    Invocation parentInvocation,
-  ) : super(
-          parent,
-          parentInvocation,
-        );
+  _FakeDevicesManager_3(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
+}
+
+class _FakeDuration_4 extends _i1.SmartFake implements Duration {
+  _FakeDuration_4(Object parent, Invocation parentInvocation)
+    : super(parent, parentInvocation);
 }
 
 /// A class which mocks [MasterRace].
@@ -85,224 +73,225 @@ class MockMasterRace extends _i1.Mock implements _i4.MasterRace {
   }
 
   @override
-  int get raceId => (super.noSuchMethod(
-        Invocation.getter(#raceId),
-        returnValue: 0,
-      ) as int);
+  int get raceId =>
+      (super.noSuchMethod(Invocation.getter(#raceId), returnValue: 0) as int);
 
   @override
-  _i6.Future<_i2.Race> get race => (super.noSuchMethod(
-        Invocation.getter(#race),
-        returnValue: _i6.Future<_i2.Race>.value(_FakeRace_0(
-          this,
-          Invocation.getter(#race),
-        )),
-      ) as _i6.Future<_i2.Race>);
+  _i6.Future<_i2.Race> get race =>
+      (super.noSuchMethod(
+            Invocation.getter(#race),
+            returnValue: _i6.Future<_i2.Race>.value(
+              _FakeRace_0(this, Invocation.getter(#race)),
+            ),
+          )
+          as _i6.Future<_i2.Race>);
 
   @override
   _i6.Future<List<_i2.RaceParticipant>> get raceParticipants =>
       (super.noSuchMethod(
-        Invocation.getter(#raceParticipants),
-        returnValue: _i6.Future<List<_i2.RaceParticipant>>.value(
-            <_i2.RaceParticipant>[]),
-      ) as _i6.Future<List<_i2.RaceParticipant>>);
+            Invocation.getter(#raceParticipants),
+            returnValue: _i6.Future<List<_i2.RaceParticipant>>.value(
+              <_i2.RaceParticipant>[],
+            ),
+          )
+          as _i6.Future<List<_i2.RaceParticipant>>);
 
   @override
-  _i6.Future<List<_i2.RaceRunner>> get raceRunners => (super.noSuchMethod(
-        Invocation.getter(#raceRunners),
-        returnValue: _i6.Future<List<_i2.RaceRunner>>.value(<_i2.RaceRunner>[]),
-      ) as _i6.Future<List<_i2.RaceRunner>>);
+  _i6.Future<List<_i2.RaceRunner>> get raceRunners =>
+      (super.noSuchMethod(
+            Invocation.getter(#raceRunners),
+            returnValue: _i6.Future<List<_i2.RaceRunner>>.value(
+              <_i2.RaceRunner>[],
+            ),
+          )
+          as _i6.Future<List<_i2.RaceRunner>>);
 
   @override
-  _i6.Future<List<_i2.Team>> get teams => (super.noSuchMethod(
-        Invocation.getter(#teams),
-        returnValue: _i6.Future<List<_i2.Team>>.value(<_i2.Team>[]),
-      ) as _i6.Future<List<_i2.Team>>);
+  _i6.Future<List<_i2.Team>> get teams =>
+      (super.noSuchMethod(
+            Invocation.getter(#teams),
+            returnValue: _i6.Future<List<_i2.Team>>.value(<_i2.Team>[]),
+          )
+          as _i6.Future<List<_i2.Team>>);
 
   @override
   _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>> get teamtoRaceRunnersMap =>
       (super.noSuchMethod(
-        Invocation.getter(#teamtoRaceRunnersMap),
-        returnValue: _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>>.value(
-            <_i2.Team, List<_i2.RaceRunner>>{}),
-      ) as _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>>);
+            Invocation.getter(#teamtoRaceRunnersMap),
+            returnValue: _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>>.value(
+              <_i2.Team, List<_i2.RaceRunner>>{},
+            ),
+          )
+          as _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>>);
 
   @override
   _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>> get filteredSearchResults =>
       (super.noSuchMethod(
-        Invocation.getter(#filteredSearchResults),
-        returnValue: _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>>.value(
-            <_i2.Team, List<_i2.RaceRunner>>{}),
-      ) as _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>>);
+            Invocation.getter(#filteredSearchResults),
+            returnValue: _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>>.value(
+              <_i2.Team, List<_i2.RaceRunner>>{},
+            ),
+          )
+          as _i6.Future<Map<_i2.Team, List<_i2.RaceRunner>>>);
 
   @override
-  _i6.Future<List<_i2.RaceResult>> get results => (super.noSuchMethod(
-        Invocation.getter(#results),
-        returnValue: _i6.Future<List<_i2.RaceResult>>.value(<_i2.RaceResult>[]),
-      ) as _i6.Future<List<_i2.RaceResult>>);
+  _i6.Future<List<_i2.RaceResult>> get results =>
+      (super.noSuchMethod(
+            Invocation.getter(#results),
+            returnValue: _i6.Future<List<_i2.RaceResult>>.value(
+              <_i2.RaceResult>[],
+            ),
+          )
+          as _i6.Future<List<_i2.RaceResult>>);
 
   @override
-  _i6.Future<List<_i7.TeamRecord>> get teamStandings => (super.noSuchMethod(
-        Invocation.getter(#teamStandings),
-        returnValue: _i6.Future<List<_i7.TeamRecord>>.value(<_i7.TeamRecord>[]),
-      ) as _i6.Future<List<_i7.TeamRecord>>);
+  _i6.Future<List<_i7.TeamRecord>> get teamStandings =>
+      (super.noSuchMethod(
+            Invocation.getter(#teamStandings),
+            returnValue: _i6.Future<List<_i7.TeamRecord>>.value(
+              <_i7.TeamRecord>[],
+            ),
+          )
+          as _i6.Future<List<_i7.TeamRecord>>);
 
   @override
-  _i6.Future<_i3.RaceResultsData> get raceResultsData => (super.noSuchMethod(
-        Invocation.getter(#raceResultsData),
-        returnValue:
-            _i6.Future<_i3.RaceResultsData>.value(_FakeRaceResultsData_1(
-          this,
-          Invocation.getter(#raceResultsData),
-        )),
-      ) as _i6.Future<_i3.RaceResultsData>);
+  _i6.Future<_i3.RaceResultsData> get raceResultsData =>
+      (super.noSuchMethod(
+            Invocation.getter(#raceResultsData),
+            returnValue: _i6.Future<_i3.RaceResultsData>.value(
+              _FakeRaceResultsData_1(this, Invocation.getter(#raceResultsData)),
+            ),
+          )
+          as _i6.Future<_i3.RaceResultsData>);
 
   @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-      ) as bool);
+  bool get hasListeners =>
+      (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
+          as bool);
 
   @override
   _i6.Future<_i2.RaceRunner?> getRaceRunnerFromRaceParticipant(
-          _i2.RaceParticipant? raceParticipant) =>
+    _i2.RaceParticipant? raceParticipant,
+  ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getRaceRunnerFromRaceParticipant,
-          [raceParticipant],
-        ),
-        returnValue: _i6.Future<_i2.RaceRunner?>.value(),
-      ) as _i6.Future<_i2.RaceRunner?>);
+            Invocation.method(#getRaceRunnerFromRaceParticipant, [
+              raceParticipant,
+            ]),
+            returnValue: _i6.Future<_i2.RaceRunner?>.value(),
+          )
+          as _i6.Future<_i2.RaceRunner?>);
 
   @override
   _i6.Future<void> updateRaceParticipant(
-          _i2.RaceParticipant? raceParticipant) =>
+    _i2.RaceParticipant? raceParticipant,
+  ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #updateRaceParticipant,
-          [raceParticipant],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#updateRaceParticipant, [raceParticipant]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<void> addRaceParticipant(_i2.RaceParticipant? raceParticipant) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #addRaceParticipant,
-          [raceParticipant],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#addRaceParticipant, [raceParticipant]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<void> addRaceParticipantsBulk(
-          List<_i2.RaceParticipant>? raceParticipants) =>
+    List<_i2.RaceParticipant>? raceParticipants,
+  ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #addRaceParticipantsBulk,
-          [raceParticipants],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#addRaceParticipantsBulk, [raceParticipants]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<void> removeRaceParticipant(
-          _i2.RaceParticipant? raceParticipant) =>
+    _i2.RaceParticipant? raceParticipant,
+  ) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #removeRaceParticipant,
-          [raceParticipant],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#removeRaceParticipant, [raceParticipant]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<void> addTeamParticipant(_i2.TeamParticipant? teamParticipant) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #addTeamParticipant,
-          [teamParticipant],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#addTeamParticipant, [teamParticipant]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<void> removeTeamFromRace(_i2.TeamParticipant? teamParticipant) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #removeTeamFromRace,
-          [teamParticipant],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#removeTeamFromRace, [teamParticipant]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
-  _i6.Future<void> updateRace(_i2.Race? race) => (super.noSuchMethod(
-        Invocation.method(
-          #updateRace,
-          [race],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+  _i6.Future<void> updateRace(_i2.Race? race) =>
+      (super.noSuchMethod(
+            Invocation.method(#updateRace, [race]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<void> removeRaceRunner(_i2.RaceRunner? raceRunner) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #removeRaceRunner,
-          [raceRunner],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#removeRaceRunner, [raceRunner]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
-  _i6.Future<void> addResult(_i2.RaceResult? result) => (super.noSuchMethod(
-        Invocation.method(
-          #addResult,
-          [result],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+  _i6.Future<void> addResult(_i2.RaceResult? result) =>
+      (super.noSuchMethod(
+            Invocation.method(#addResult, [result]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<void> saveResults(List<_i2.RaceResult>? results) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveResults,
-          [results],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#saveResults, [results]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
-  _i6.Future<_i2.Team?> getTeamByName(String? teamName) => (super.noSuchMethod(
-        Invocation.method(
-          #getTeamByName,
-          [teamName],
-        ),
-        returnValue: _i6.Future<_i2.Team?>.value(),
-      ) as _i6.Future<_i2.Team?>);
+  _i6.Future<_i2.Team?> getTeamByName(String? teamName) =>
+      (super.noSuchMethod(
+            Invocation.method(#getTeamByName, [teamName]),
+            returnValue: _i6.Future<_i2.Team?>.value(),
+          )
+          as _i6.Future<_i2.Team?>);
 
   @override
   _i6.Future<_i2.RaceRunner?> getRaceRunnerByBib(String? bibNumber) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getRaceRunnerByBib,
-          [bibNumber],
-        ),
-        returnValue: _i6.Future<_i2.RaceRunner?>.value(),
-      ) as _i6.Future<_i2.RaceRunner?>);
+            Invocation.method(#getRaceRunnerByBib, [bibNumber]),
+            returnValue: _i6.Future<_i2.RaceRunner?>.value(),
+          )
+          as _i6.Future<_i2.RaceRunner?>);
 
   @override
   _i6.Future<void> searchRaceRunners(
@@ -310,106 +299,74 @@ class MockMasterRace extends _i1.Mock implements _i4.MasterRace {
     String? searchAttribute = 'all',
   ]) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #searchRaceRunners,
-          [
-            query,
-            searchAttribute,
-          ],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#searchRaceRunners, [query, searchAttribute]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<_i2.Runner?> getRunnerByBib(String? bibNumber) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #getRunnerByBib,
-          [bibNumber],
-        ),
-        returnValue: _i6.Future<_i2.Runner?>.value(),
-      ) as _i6.Future<_i2.Runner?>);
+            Invocation.method(#getRunnerByBib, [bibNumber]),
+            returnValue: _i6.Future<_i2.Runner?>.value(),
+          )
+          as _i6.Future<_i2.Runner?>);
 
   @override
-  _i6.Future<int> createRunner(_i2.Runner? runner) => (super.noSuchMethod(
-        Invocation.method(
-          #createRunner,
-          [runner],
-        ),
-        returnValue: _i6.Future<int>.value(0),
-      ) as _i6.Future<int>);
-
-  @override
-  _i6.Future<void> addRunnerToTeam(
-    int? teamId,
-    int? runnerId,
-  ) =>
+  _i6.Future<int> createRunner(_i2.Runner? runner) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #addRunnerToTeam,
-          [
-            teamId,
-            runnerId,
-          ],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#createRunner, [runner]),
+            returnValue: _i6.Future<int>.value(0),
+          )
+          as _i6.Future<int>);
 
   @override
-  _i6.Future<List<_i2.Team>> getOtherTeams() => (super.noSuchMethod(
-        Invocation.method(
-          #getOtherTeams,
-          [],
-        ),
-        returnValue: _i6.Future<List<_i2.Team>>.value(<_i2.Team>[]),
-      ) as _i6.Future<List<_i2.Team>>);
+  _i6.Future<void> addRunnerToTeam(int? teamId, int? runnerId) =>
+      (super.noSuchMethod(
+            Invocation.method(#addRunnerToTeam, [teamId, runnerId]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<List<_i2.Team>> getOtherTeams() =>
+      (super.noSuchMethod(
+            Invocation.method(#getOtherTeams, []),
+            returnValue: _i6.Future<List<_i2.Team>>.value(<_i2.Team>[]),
+          )
+          as _i6.Future<List<_i2.Team>>);
 
   @override
   void invalidateCache() => super.noSuchMethod(
-        Invocation.method(
-          #invalidateCache,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#invalidateCache, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void addListener(_i8.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeListener(_i8.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }
 
 /// A class which mocks [LoadResultsController].
@@ -422,247 +379,261 @@ class MockLoadResultsController extends _i1.Mock
   }
 
   @override
-  _i4.MasterRace get masterRace => (super.noSuchMethod(
-        Invocation.getter(#masterRace),
-        returnValue: _FakeMasterRace_2(
-          this,
-          Invocation.getter(#masterRace),
-        ),
-      ) as _i4.MasterRace);
+  _i4.MasterRace get masterRace =>
+      (super.noSuchMethod(
+            Invocation.getter(#masterRace),
+            returnValue: _FakeMasterRace_2(
+              this,
+              Invocation.getter(#masterRace),
+            ),
+          )
+          as _i4.MasterRace);
 
   @override
-  List<_i2.RaceResult> get results => (super.noSuchMethod(
-        Invocation.getter(#results),
-        returnValue: <_i2.RaceResult>[],
-      ) as List<_i2.RaceResult>);
+  List<_i2.RaceResult> get results =>
+      (super.noSuchMethod(
+            Invocation.getter(#results),
+            returnValue: <_i2.RaceResult>[],
+          )
+          as List<_i2.RaceResult>);
 
   @override
-  _i5.DevicesManager get devices => (super.noSuchMethod(
-        Invocation.getter(#devices),
-        returnValue: _FakeDevicesManager_3(
-          this,
-          Invocation.getter(#devices),
-        ),
-      ) as _i5.DevicesManager);
+  _i5.DevicesManager get devices =>
+      (super.noSuchMethod(
+            Invocation.getter(#devices),
+            returnValue: _FakeDevicesManager_3(
+              this,
+              Invocation.getter(#devices),
+            ),
+          )
+          as _i5.DevicesManager);
 
   @override
-  bool get resultsLoaded => (super.noSuchMethod(
-        Invocation.getter(#resultsLoaded),
-        returnValue: false,
-      ) as bool);
+  Duration get timeShift =>
+      (super.noSuchMethod(
+            Invocation.getter(#timeShift),
+            returnValue: _FakeDuration_4(this, Invocation.getter(#timeShift)),
+          )
+          as Duration);
 
   @override
-  bool get hasBibConflicts => (super.noSuchMethod(
-        Invocation.getter(#hasBibConflicts),
-        returnValue: false,
-      ) as bool);
+  bool get resultsLoaded =>
+      (super.noSuchMethod(Invocation.getter(#resultsLoaded), returnValue: false)
+          as bool);
 
   @override
-  bool get hasTimingConflicts => (super.noSuchMethod(
-        Invocation.getter(#hasTimingConflicts),
-        returnValue: false,
-      ) as bool);
+  bool get hasBibConflicts =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasBibConflicts),
+            returnValue: false,
+          )
+          as bool);
 
   @override
-  bool get hasError => (super.noSuchMethod(
-        Invocation.getter(#hasError),
-        returnValue: false,
-      ) as bool);
+  bool get hasTimingConflicts =>
+      (super.noSuchMethod(
+            Invocation.getter(#hasTimingConflicts),
+            returnValue: false,
+          )
+          as bool);
+
+  @override
+  bool get hasError =>
+      (super.noSuchMethod(Invocation.getter(#hasError), returnValue: false)
+          as bool);
+
+  @override
+  int get timingConflictCount =>
+      (super.noSuchMethod(
+            Invocation.getter(#timingConflictCount),
+            returnValue: 0,
+          )
+          as int);
 
   @override
   set results(List<_i2.RaceResult>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #results,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#results, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set timingChunks(List<_i10.TimingChunk>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #timingChunks,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#timingChunks, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set raceRunners(List<dynamic>? value) => super.noSuchMethod(
-        Invocation.setter(
-          #raceRunners,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#raceRunners, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set resultsLoaded(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #resultsLoaded,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#resultsLoaded, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set hasBibConflicts(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #hasBibConflicts,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#hasBibConflicts, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
   set hasTimingConflicts(bool? value) => super.noSuchMethod(
-        Invocation.setter(
-          #hasTimingConflicts,
-          value,
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.setter(#hasTimingConflicts, value),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  bool get hasListeners => (super.noSuchMethod(
-        Invocation.getter(#hasListeners),
-        returnValue: false,
-      ) as bool);
+  bool get hasListeners =>
+      (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
+          as bool);
+
+  @override
+  _i11.AppError? shiftAllTimes(Duration? by) =>
+      (super.noSuchMethod(Invocation.method(#shiftAllTimes, [by]))
+          as _i11.AppError?);
 
   @override
   void initialize() => super.noSuchMethod(
-        Invocation.method(
-          #initialize,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#initialize, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
-  _i6.Future<void> resetDevices() => (super.noSuchMethod(
-        Invocation.method(
-          #resetDevices,
-          [],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+  _i6.Future<void> resetDevices() =>
+      (super.noSuchMethod(
+            Invocation.method(#resetDevices, []),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
-  _i6.Future<void> loadResults() => (super.noSuchMethod(
-        Invocation.method(
-          #loadResults,
-          [],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+  _i6.Future<void> loadResults() =>
+      (super.noSuchMethod(
+            Invocation.method(#loadResults, []),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
   _i6.Future<void> saveRaceResults(List<_i2.RaceResult>? results) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #saveRaceResults,
-          [results],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#saveRaceResults, [results]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
-  _i6.Future<void> saveCurrentResults() => (super.noSuchMethod(
-        Invocation.method(
-          #saveCurrentResults,
-          [],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
-
-  @override
-  _i6.Future<void> processReceivedData(_i11.BuildContext? context) =>
+  _i6.Future<_i11.AppError?> saveCurrentResults() =>
       (super.noSuchMethod(
-        Invocation.method(
-          #processReceivedData,
-          [context],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#saveCurrentResults, []),
+            returnValue: _i6.Future<_i11.AppError?>.value(),
+          )
+          as _i6.Future<_i11.AppError?>);
 
   @override
-  _i6.Future<void> showBibConflictsSheet(_i11.BuildContext? context) =>
+  _i6.Future<void> processReceivedData(_i12.BuildContext? context) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #showBibConflictsSheet,
-          [context],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(#processReceivedData, [context]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
 
   @override
-  _i6.Future<void> showTimingConflictsSheet(_i11.BuildContext? context) =>
+  _i6.Future<_i13.SimulatedRace?> loadSimulatedResults(
+    _i12.BuildContext? context,
+    _i13.SimulatedScenario? scenario, {
+    _i13.RaceSimulator? simulator,
+  }) =>
       (super.noSuchMethod(
-        Invocation.method(
-          #showTimingConflictsSheet,
-          [context],
-        ),
-        returnValue: _i6.Future<void>.value(),
-        returnValueForMissingStub: _i6.Future<void>.value(),
-      ) as _i6.Future<void>);
+            Invocation.method(
+              #loadSimulatedResults,
+              [context, scenario],
+              {#simulator: simulator},
+            ),
+            returnValue: _i6.Future<_i13.SimulatedRace?>.value(),
+          )
+          as _i6.Future<_i13.SimulatedRace?>);
 
   @override
-  bool containsBibConflicts() => (super.noSuchMethod(
-        Invocation.method(
-          #containsBibConflicts,
-          [],
-        ),
-        returnValue: false,
-      ) as bool);
+  ({_i11.AppError? error, List<_i2.RaceResult> results}) buildResults() =>
+      (super.noSuchMethod(
+            Invocation.method(#buildResults, []),
+            returnValue: (error: null, results: <_i2.RaceResult>[]),
+          )
+          as ({_i11.AppError? error, List<_i2.RaceResult> results}));
 
   @override
-  bool containsTimingConflicts() => (super.noSuchMethod(
-        Invocation.method(
-          #containsTimingConflicts,
-          [],
-        ),
-        returnValue: false,
-      ) as bool);
+  _i6.Future<void> showBibConflictsSheet(_i12.BuildContext? context) =>
+      (super.noSuchMethod(
+            Invocation.method(#showBibConflictsSheet, [context]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> applyResolvedRunners(List<_i2.RaceRunner?>? updated) =>
+      (super.noSuchMethod(
+            Invocation.method(#applyResolvedRunners, [updated]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> showTimingConflictsSheet(_i12.BuildContext? context) =>
+      (super.noSuchMethod(
+            Invocation.method(#showTimingConflictsSheet, [context]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  bool containsBibConflicts() =>
+      (super.noSuchMethod(
+            Invocation.method(#containsBibConflicts, []),
+            returnValue: false,
+          )
+          as bool);
+
+  @override
+  bool containsTimingConflicts() =>
+      (super.noSuchMethod(
+            Invocation.method(#containsTimingConflicts, []),
+            returnValue: false,
+          )
+          as bool);
 
   @override
   void addListener(_i8.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #addListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void removeListener(_i8.VoidCallback? listener) => super.noSuchMethod(
-        Invocation.method(
-          #removeListener,
-          [listener],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#removeListener, [listener]),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void dispose() => super.noSuchMethod(
-        Invocation.method(
-          #dispose,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#dispose, []),
+    returnValueForMissingStub: null,
+  );
 
   @override
   void notifyListeners() => super.noSuchMethod(
-        Invocation.method(
-          #notifyListeners,
-          [],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#notifyListeners, []),
+    returnValueForMissingStub: null,
+  );
 }

@@ -2,16 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/controller/post_race_controller.dart';
-import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controller.dart';
+import 'package:xceleration/coach/flows/post_race_flow/controller/post_race_controller.dart';
+import 'package:xceleration/coach/flows/pre_race_flow/controller/pre_race_controller.dart';
 import 'package:xceleration/coach/flows/controller/flow_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/race.dart';
+import 'package:xceleration/coach/race_screen/services/race_service.dart';
 
 @GenerateMocks([
-  RaceController,
+  RaceScreenController,
   PreRaceController,
   PostRaceController,
   MasterRace,
@@ -42,7 +43,7 @@ final _testRace =
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  late MockRaceController mockRaceController;
+  late MockRaceScreenController mockRaceController;
   late MockPreRaceController mockPreRaceController;
   late MockPostRaceController mockPostRaceController;
   late MockMasterRace mockMasterRace;
@@ -50,7 +51,7 @@ void main() {
   late MasterFlowController controller;
 
   setUp(() {
-    mockRaceController = MockRaceController();
+    mockRaceController = MockRaceScreenController();
     mockPreRaceController = MockPreRaceController();
     mockPostRaceController = MockPostRaceController();
     mockMasterRace = MockMasterRace();
@@ -60,6 +61,7 @@ void main() {
     when(mockMasterRace.raceId).thenReturn(1);
     when(mockMasterRace.race).thenAnswer((_) async => _testRace);
     when(mockMasterRace.teams).thenAnswer((_) async => []);
+    when(mockMasterRace.raceRunners).thenAnswer((_) async => []);
     when(mockMasterRace.teamtoRaceRunnersMap).thenAnswer((_) async => {});
     when(mockRaceController.form).thenReturn(fakeForm);
     when(mockRaceController.teamsOrNull).thenReturn(null);
@@ -70,6 +72,7 @@ void main() {
       raceController: mockRaceController,
       preRaceController: mockPreRaceController,
       postRaceController: mockPostRaceController,
+      raceService: RaceService(),
     );
   });
 
@@ -207,16 +210,16 @@ void main() {
           flowState: Race.FLOW_SETUP_COMPLETED,
         );
         when(mockMasterRace.race).thenAnswer((_) async => completedRace);
-        // handleFlowNavigation re-fetches race (still FLOW_SETUP_COMPLETED) →
-        // hits completed-suffix branch → needs tabController
-        final tabController = TabController(length: 2, vsync: tester);
-        when(mockRaceController.tabController).thenReturn(tabController);
+        // handleFlowNavigation is now called with the locally-tracked FLOW_PRE_RACE
+        // (no second DB read) → dispatches to _preRaceFlow.
+        when(mockPreRaceController.showPreRaceFlow(any, any))
+            .thenAnswer((_) async => false);
 
         await controller.continueRaceFlow(context);
 
         verify(mockRaceController.updateRaceFlowState(any, Race.FLOW_PRE_RACE))
             .called(1);
-        tabController.dispose();
+        verify(mockPreRaceController.showPreRaceFlow(any, any)).called(1);
       });
 
       testWidgets('FLOW_PRE_RACE: delegates to preRaceFlow', (tester) async {

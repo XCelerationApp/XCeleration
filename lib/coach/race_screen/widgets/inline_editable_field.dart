@@ -9,7 +9,7 @@ import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 
 class InlineEditableField extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
   final RaceField field;
   final String label;
   final IconData icon;
@@ -20,6 +20,9 @@ class InlineEditableField extends StatelessWidget {
   final Widget? suffixIcon;
   final Widget? customEditWidget;
   final String Function()? getDisplayValue;
+
+  /// How many lines the saved value may take, such as 2 for an address.
+  final int maxDisplayLines;
 
   const InlineEditableField({
     super.key,
@@ -34,12 +37,14 @@ class InlineEditableField extends StatelessWidget {
     this.suffixIcon,
     this.customEditWidget,
     this.getDisplayValue,
+    this.maxDisplayLines = 1,
   });
 
   @override
   Widget build(BuildContext context) {
     final displayValue = getDisplayValue?.call() ?? textController.text;
-    final isEmpty = displayValue.isEmpty ||
+    final isEmpty =
+        displayValue.isEmpty ||
         displayValue == 'Not set' ||
         displayValue == '0 ';
 
@@ -48,8 +53,11 @@ class InlineEditableField extends StatelessWidget {
       child: Builder(
         builder: (context) {
           // Simple synchronous check - no async needed
-          final isEditable = controller.form
-              .shouldShowAsEditable(field, controller.race, controller.canEdit);
+          final isEditable = controller.form.shouldShowAsEditable(
+            field,
+            controller.race,
+            controller.canEdit,
+          );
 
           return isEditable
               ? _buildEditableMode(context)
@@ -60,52 +68,60 @@ class InlineEditableField extends StatelessWidget {
   }
 
   Widget _buildViewMode(
-      BuildContext context, String displayValue, bool isEmpty) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(AppSpacing.md),
-          decoration: BoxDecoration(
-            color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
-            borderRadius: BorderRadius.circular(AppBorderRadius.md),
+    BuildContext context,
+    String displayValue,
+    bool isEmpty,
+  ) {
+    // The whole row edits, not just the small pencil.
+    return InkWell(
+      onTap: controller.canEdit
+          ? () => controller.form.startEditing(field)
+          : null,
+      borderRadius: BorderRadius.circular(AppBorderRadius.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+            ),
+            child: Icon(icon, color: AppColors.primaryColor, size: 22),
           ),
-          child: Icon(icon, color: AppColors.primaryColor, size: 22),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: AppTypography.bodySemibold.copyWith(
-                  color: AppColors.darkColor,
+          const SizedBox(width: AppSpacing.lg),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpacing.xs),
-              Text(
-                isEmpty ? 'Not set' : displayValue,
-                style: AppTypography.bodySemibold.copyWith(
-                  color: isEmpty ? AppColors.lightColor : AppColors.mediumColor,
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  isEmpty ? 'Not set' : displayValue,
+                  style: AppTypography.bodySemibold.copyWith(
+                    color: isEmpty
+                        ? AppColors.mediumColor
+                        : AppColors.darkColor,
+                  ),
+                  maxLines: maxDisplayLines,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+              ],
+            ),
           ),
-        ),
-        Builder(
-          builder: (context) {
-            final canEdit = controller.canEdit;
-            if (canEdit) {
-              return Row(
-                children: [
-                  const SizedBox(width: AppSpacing.sm),
-                  InkWell(
-                    onTap: () => controller.form.startEditing(field),
-                    borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-                    child: Container(
+          Builder(
+            builder: (context) {
+              final canEdit = controller.canEdit;
+              if (canEdit) {
+                return Row(
+                  children: [
+                    const SizedBox(width: AppSpacing.sm),
+                    Padding(
                       padding: const EdgeInsets.all(AppSpacing.sm),
                       child: Icon(
                         Icons.edit,
@@ -113,14 +129,14 @@ class InlineEditableField extends StatelessWidget {
                         size: 20,
                       ),
                     ),
-                  ),
-                ],
-              );
-            }
-            return const SizedBox.shrink();
-          },
-        ),
-      ],
+                  ],
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
+        ],
+      ),
     );
   }
 
@@ -133,7 +149,9 @@ class InlineEditableField extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+                color: AppColors.primaryColor.withValues(
+                  alpha: AppOpacity.light,
+                ),
                 borderRadius: BorderRadius.circular(AppBorderRadius.md),
               ),
               child: Icon(icon, color: AppColors.primaryColor, size: 22),

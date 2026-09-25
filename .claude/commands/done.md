@@ -14,29 +14,26 @@ Run both:
 
 If either check fails, stop and tell the user exactly what is unfinished before going any further.
 
-## 3. Check if this is a subissue
-
-Fetch the issue using `mcp__linear__get_issue`. Check whether it has a parent issue.
-
-- **If it has a parent** → it is a subissue. Mark it Done (`mcp__linear__save_issue`), tell the user it's marked Done, and **stop here**. Do not touch the worktree or Cursor.
-- **If it has no parent** → it is a top-level issue. Continue to step 4.
-
-## 4. Mark the issue as Done
+## 3. Mark the issue as Done
 
 Use `mcp__linear__save_issue` to set the status to Done.
 
-## 5. Remove the local worktree
+## 4. Check if this is a subissue
 
-Get the paths:
+Fetch the issue using `mcp__linear__get_issue`. Check whether it has a parent issue.
+
+- **If it has a parent** → it is a subissue. Tell the user it's marked Done and **stop here**. Do not touch the worktree or Cursor.
+- **If it has no parent** → it is a top-level issue. Continue to step 5.
+
+## 5. Remove the worktree
+
+Get the issue number from the issue ID (e.g. `XCE-123` → `123`) and run:
 ```bash
-WORKTREE=$(git rev-parse --show-toplevel)
 MAIN=$(dirname $(git rev-parse --git-common-dir))
+python3 "$MAIN/scripts/remove_worktree.py" <number>
 ```
 
-Remove the worktree from the main repo:
-```bash
-git -C "$MAIN" worktree remove "$WORKTREE" --force
-```
+This handles simulator cleanup and worktree removal in one step.
 
 ## 6. Confirm to the user
 

@@ -1,8 +1,10 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
+import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
+import 'package:xceleration/core/theme/app_spacing.dart';
+import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/utils/enums.dart';
 
 class SpectatorBroadcastSheet extends StatefulWidget {
@@ -17,38 +19,32 @@ class SpectatorBroadcastSheet extends StatefulWidget {
 
 class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
   final Set<ConnectedDevice> _finished = {};
-  Timer? _timeoutTimer;
+  final _finishedCount = ValueNotifier<int>(0);
+  final Map<ConnectedDevice, VoidCallback> _listeners = {};
 
   @override
   void initState() {
     super.initState();
-    // Listen for device status changes to compute sent count
     for (final d in widget.devices.otherDevices) {
-      d.addListener(_onDeviceChanged);
+      void listener() => _onDeviceChanged(d);
+      _listeners[d] = listener;
+      d.addListener(listener);
     }
-    // Auto-timeout after 2 minutes
-    _timeoutTimer = Timer(const Duration(minutes: 2), () {
-      if (mounted) Navigator.of(context).maybePop();
-    });
   }
 
-  void _onDeviceChanged() {
+  void _onDeviceChanged(ConnectedDevice device) {
     if (!mounted) return;
-    setState(() {
-      for (final d in widget.devices.otherDevices) {
-        if (d.status == ConnectionStatus.finished) {
-          _finished.add(d);
-        }
-      }
-    });
+    if (device.status == ConnectionStatus.finished && _finished.add(device)) {
+      _finishedCount.value = _finished.length;
+    }
   }
 
   @override
   void dispose() {
-    for (final d in widget.devices.otherDevices) {
-      d.removeListener(_onDeviceChanged);
+    for (final entry in _listeners.entries) {
+      entry.key.removeListener(entry.value);
     }
-    _timeoutTimer?.cancel();
+    _finishedCount.dispose();
     super.dispose();
   }
 
@@ -59,19 +55,22 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          padding: const EdgeInsets.symmetric(
+              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            color: AppColors.backgroundColor,
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
             border: Border.all(color: AppColors.lightColor, width: 1),
           ),
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  'Sent to ${_finished.length} device${_finished.length == 1 ? '' : 's'}',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w600),
+                child: ValueListenableBuilder<int>(
+                  valueListenable: _finishedCount,
+                  builder: (context, count, _) => Text(
+                    'Sent to $count device${count == 1 ? '' : 's'}',
+                    style: AppTypography.bodySemibold,
+                  ),
                 ),
               ),
               TextButton.icon(
@@ -82,7 +81,7 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: AppSpacing.md),
         // Underlying wireless connection UI modeled after coach↔assistant
         DeviceConnectionWidget(devices: widget.devices),
       ],

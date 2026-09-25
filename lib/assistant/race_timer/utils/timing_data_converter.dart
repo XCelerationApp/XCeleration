@@ -5,8 +5,15 @@ import '../../../core/utils/enums.dart';
 import '../../../core/theme/app_colors.dart';
 import '../model/ui_record.dart';
 
-/// Utility class for converting TimingDatum records to UIRecord objects
-class TimingDataConverter {
+/// Utility class for converting [TimingChunk] records to [UIRecord]/[UIChunk]
+/// objects for the Assistant live-timing screen.
+///
+/// This is intentionally separate from [CoachTimingDataConverter]
+/// (lib/coach/merge_conflicts/utils/timing_data_converter.dart), which handles
+/// batch conversion for the Coach merge-conflict UI. The two converters use
+/// different UIChunk types and conflict-resolution strategies and must not be
+/// merged.
+class RaceTimerDataConverter {
   final Map<TimingChunk, UIRecord> _cachedRecords = {};
 
   /// Main conversion method - converts TimingDatum records to UIRecord objects
@@ -69,8 +76,11 @@ class TimingDataConverter {
         endingPlace++;
       }
     } else if (chunk.conflictRecord!.conflict!.type == ConflictType.extraTime) {
+      // Never below zero: a chunk claiming more extra times than it holds
+      // (only reachable from older data) used to crash the whole list.
       final int extraTimesIndex =
-          chunk.timingData.length - chunk.conflictRecord!.conflict!.offBy;
+          (chunk.timingData.length - chunk.conflictRecord!.conflict!.offBy)
+              .clamp(0, chunk.timingData.length);
       for (int i = 0; i < extraTimesIndex; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
         uiRecords.add(UIRecord(

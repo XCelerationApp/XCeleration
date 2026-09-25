@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/repositories/i_race_repository.dart';
 import 'package:xceleration/core/repositories/i_runner_repository.dart';
 import 'package:xceleration/core/repositories/i_team_repository.dart';
@@ -12,7 +13,7 @@ import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_input_form.dart';
 import '../../../core/utils/file_processing.dart';
 import '../../../core/utils/sheet_utils.dart';
-import '../../../shared/models/database/master_race.dart';
+import '../../../shared/models/database/i_master_race_resolver.dart';
 import '../../../shared/models/database/runner.dart';
 import '../../../shared/models/database/team.dart';
 import '../../../core/components/create_team_sheet.dart';
@@ -20,8 +21,15 @@ import '../widgets/existing_teams_browser_sheet.dart';
 import '../widgets/edit_team_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
+import '../widgets/add_runner_choice_sheet.dart';
+import '../widgets/add_team_choice_sheet.dart';
 import '../widgets/imported_runners_selection_sheet.dart';
+import '../widgets/recent_spreadsheets_sheet.dart';
 import '../widgets/spreadsheet_load_sheet.dart';
+import '../services/roster_export.dart';
+import '../services/roster_importer.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:xceleration/core/result.dart';
 
 class RunnersManagementController with ChangeNotifier {
   final VoidCallback? onBack;
@@ -29,8 +37,8 @@ class RunnersManagementController with ChangeNotifier {
   final bool isViewMode;
   bool showHeader = true;
 
-  // Use MasterRace for all data management
-  final MasterRace masterRace;
+  // Use IMasterRaceResolver for all data management
+  final IMasterRaceResolver masterRace;
 
   // Repository interfaces
   late final IRunnerRepository _runners;
@@ -44,6 +52,7 @@ class RunnersManagementController with ChangeNotifier {
 
   // UI state
   bool isLoading = true;
+  int totalRunnerCount = 0;
   String searchAttribute = 'All';
   final TextEditingController searchController = TextEditingController();
 
@@ -57,10 +66,13 @@ class RunnersManagementController with ChangeNotifier {
     this.onContentChanged,
     this.isViewMode = false,
     Stream<SyncEvent>? syncStream,
+    IRunnerRepository? runners,
+    ITeamRepository? teams,
+    IRaceRepository? races,
   }) {
-    _runners = ServiceLocator.get<IRunnerRepository>();
-    _teams = ServiceLocator.get<ITeamRepository>();
-    _races = ServiceLocator.get<IRaceRepository>();
+    _runners = runners ?? ServiceLocator.get<IRunnerRepository>();
+    _teams = teams ?? ServiceLocator.get<ITeamRepository>();
+    _races = races ?? ServiceLocator.get<IRaceRepository>();
     // Create and store the listener function
     _masterRaceListener = () {
       // The listener's only job is to tell the UI to rebuild.
@@ -96,7 +108,8 @@ class RunnersManagementController with ChangeNotifier {
         _initialRaceRunners = List.from(raceRunners);
       }
 
-      _updateFilteredRaceRunners();
+      totalRunnerCount = raceRunners.length;
+      await _updateFilteredRaceRunners();
       isLoading = false;
       notifyListeners();
       onContentChanged?.call();
@@ -115,7 +128,16 @@ class RunnersManagementController with ChangeNotifier {
   // SEARCH AND FILTERING
   // ============================================================================
 
-  void filterRaceRunners(String query) async {
+  Future<Map<Team, List<RaceRunner>>> get filteredSearchResults =>
+      masterRace.filteredSearchResults;
+
+  void setSearchAttribute(String value) {
+    searchAttribute = value;
+    notifyListeners();
+    filterRaceRunners(searchController.text.trim());
+  }
+
+  Future<void> filterRaceRunners(String query) async {
     final searchAttr = (() {
       switch (searchAttribute) {
         case 'All':
@@ -137,8 +159,8 @@ class RunnersManagementController with ChangeNotifier {
     notifyListeners();
   }
 
-  void _updateFilteredRaceRunners() async {
-    filterRaceRunners(searchController.text);
+  Future<void> _updateFilteredRaceRunners() async {
+    await filterRaceRunners(searchController.text);
   }
   // ============================================================================
   // RUNNER OPERATIONS
@@ -239,6 +261,8 @@ class RunnersManagementController with ChangeNotifier {
       if (context.mounted) {
         Navigator.of(context).pop();
       }
+    } on DataInUseException {
+      rethrow; // carries a message for the user
     } catch (e) {
       Logger.e('Error handling runner submission: $e');
       throw Exception('Failed to save runner: $e');
@@ -252,6 +276,18 @@ class RunnersManagementController with ChangeNotifier {
     int targetTeamId,
   ) async {
     final int? oldRunnerId = raceRunner.runner.runnerId;
+
+    // This merge deletes the edited runner at the end. Check before changing
+    // anything: deleting a runner cascades to their saved race results.
+    if (oldRunnerId != null &&
+        oldRunnerId != existingRunner.runnerId &&
+        await _runners.countRaceResults(oldRunnerId) > 0) {
+      throw DataInUseException(
+          'Bib ${raceRunner.runner.bibNumber} already belongs to '
+          '${existingRunner.name ?? 'another runner'}, and this runner has '
+          'saved race results, so the two cannot be merged. Use a different '
+          'bib number.');
+    }
 
     // Remove current runner's race mapping if it exists
     if (oldRunnerId != null) {
@@ -307,6 +343,21 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> _updateExistingRunner(
       RaceRunner raceRunner, int targetTeamId) async {
+    // Other runners with this bib are deleted below; refuse before changing
+    // anything if one of them has saved race results.
+    final duplicates = [
+      for (final r in await _runners.getRunnersByBibAll(raceRunner.runner.bibNumber!))
+        if (r.runnerId != null && r.runnerId != raceRunner.runner.runnerId) r,
+    ];
+    for (final r in duplicates) {
+      if (await _runners.countRaceResults(r.runnerId!) > 0) {
+        throw DataInUseException(
+            'Another runner (${r.name ?? 'unnamed'}) also has bib '
+            '${r.bibNumber} and has saved race results. Use a different bib '
+            'number.');
+      }
+    }
+
     // Update runner details and team mappings
     await _races.updateRunnerWithTeams(
       runner: raceRunner.runner,
@@ -363,22 +414,29 @@ class RunnersManagementController with ChangeNotifier {
         runnerId: runnerId,
         teamId: newTeamId,
       ));
-    } else {}
+    }
   }
 
   // ============================================================================
   // TEAM OPERATIONS
   // ============================================================================
 
-  Future<void> createTeam(Team team) async {
-    if (team.name == null || team.name!.trim().isEmpty) return;
+  /// Creates [team], returning why it could not be created, or null on success.
+  ///
+  /// A name already in use used to return quietly and the sheet closed as
+  /// though the team had been made. Team names are unique across the whole
+  /// app, not just this race, so this happens to a coach who has the name on
+  /// another race.
+  Future<AppError?> createTeam(Team team) async {
+    if (team.name == null || team.name!.trim().isEmpty) {
+      return const AppError(userMessage: 'Enter a team name.');
+    }
 
     try {
-      // Check if team already exists
       final existingTeam = await masterRace.getTeamByName(team.name!);
       if (existingTeam != null) {
-        // Team already exists, do nothing
-        return;
+        return AppError(
+            userMessage: 'A team named "${team.name}" already exists.');
       }
 
       // Persist team and capture newly assigned id
@@ -389,12 +447,62 @@ class RunnersManagementController with ChangeNotifier {
         teamId: newTeamId,
         colorOverride: team.color?.toARGB32(),
       ));
-      onContentChanged?.call();
-      loadData();
+      await forceRefresh();
+      return null;
     } catch (e) {
       Logger.e('Error creating team: $e');
-      throw Exception('Failed to create team: $e');
+      return AppError(
+        userMessage: 'Could not create the team. Please try again.',
+        originalException: e,
+      );
     }
+  }
+
+  /// Debug builds only: adds three teams of seven runners, so the race flow
+  /// can be tried without typing a roster. Bibs start at 901 and skip any
+  /// already taken.
+  Future<void> addSampleRoster() async {
+    const teams = [
+      ('Sample Eagles', 'EAG', 0xFF1565C0),
+      ('Sample Hawks', 'HAW', 0xFFC62828),
+      ('Sample Owls', 'OWL', 0xFF2E7D32),
+    ];
+    const names = [
+      'Avery', 'Blake', 'Casey', 'Devon', 'Emery', 'Finley', 'Gray', //
+      'Harper', 'Indigo', 'Jordan', 'Kai', 'Logan', 'Morgan', 'Nico',
+      'Oakley', 'Parker', 'Quinn', 'Riley', 'Sage', 'Taylor', 'Umi',
+    ];
+    var bib = 900;
+    var n = 0;
+    for (var (name, abbreviation, color) in teams) {
+      // Team names are unique across the app, not just this race, so find a
+      // name no team anywhere has.
+      final base = name;
+      for (var k = 2; await _teams.getTeamByName(name) != null; k++) {
+        name = '$base $k';
+      }
+      await createTeam(
+          Team(name: name, abbreviation: abbreviation, color: Color(color)));
+      final team = await masterRace.getTeamByName(name);
+      if (team?.teamId == null) continue;
+      for (var i = 0; i < 7; i++) {
+        do {
+          bib++;
+        } while (await _runners.getRunnerByBib('$bib') != null);
+        final runnerId = await masterRace.createRunner(Runner(
+          name: '${names[n++ % names.length]} ${base.split(' ').last}',
+          bibNumber: '$bib',
+          grade: 9 + i % 4,
+        ));
+        await masterRace.addRunnerToTeam(team!.teamId!, runnerId);
+        await masterRace.addRaceParticipant(RaceParticipant(
+          raceId: masterRace.raceId,
+          runnerId: runnerId,
+          teamId: team.teamId!,
+        ));
+      }
+    }
+    await forceRefresh();
   }
 
   Future<void> showAddRunnerToTeam(BuildContext context, Team team) async {
@@ -403,6 +511,95 @@ class RunnersManagementController with ChangeNotifier {
 
   Future<void> showImportRunnersToTeam(BuildContext context, Team team) async {
     await loadSpreadsheet(context, team);
+  }
+
+  Future<void> showAddTeamChoiceSheet(BuildContext context) async {
+    final otherTeams = await masterRace.getOtherTeams();
+    if (!context.mounted) return;
+    await sheet(
+      context: context,
+      title: 'Add Team',
+      body: AddTeamChoiceSheet(
+        showImportFromPreviousRace: otherTeams.isNotEmpty,
+        onImportFromPreviousRace: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showExistingTeamsBrowser(context);
+        },
+        onImportFromSpreadsheet: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showImportTeamFromSpreadsheet(context);
+        },
+        onCreateTeam: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showCreateTeamSheet(context);
+        },
+      ),
+    );
+  }
+
+  /// Imports whole teams from a spreadsheet. Each row goes to the team in
+  /// its Team (or School) column, created if the coach has no such team. A
+  /// sheet with no team column is for one team, which the coach names.
+  Future<void> showImportTeamFromSpreadsheet(BuildContext context) async {
+    final rows = await pickSpreadsheetRows(context);
+    if (rows == null || !context.mounted) return;
+
+    Team? intoTeam;
+    if (rows.runners.any((r) => (r['team'] as String?)?.isNotEmpty != true)) {
+      // Some rows name no team: ask which team they are on.
+      await DialogUtils.showMessageDialog(
+        context,
+        title: 'Which Team?',
+        message: rows.runners.every((r) => r['team'] == null)
+            ? 'This spreadsheet has no Team column, so its runners go on one '
+                'team. Create that team next. To import several teams at '
+                'once, add a Team column.'
+            : 'Some rows have no team. Create the team they go on next.',
+        doneText: 'Next',
+      );
+      if (!context.mounted) return;
+      intoTeam = await _createTeamForImport(context);
+      if (intoTeam == null || !context.mounted) return;
+    }
+    await _importRows(context, rows, intoTeam: intoTeam);
+  }
+
+  /// Opens Create Team and returns the saved team, or null if cancelled.
+  Future<Team?> _createTeamForImport(BuildContext context) async {
+    final createdTeam = await sheet(
+      context: context,
+      title: 'Create New Team',
+      body: CreateTeamSheet(masterRace: masterRace, createTeam: createTeam),
+    );
+    if (createdTeam is! Team) return null;
+    return await _teams.getTeamByName(createdTeam.name ?? '');
+  }
+
+  /// Shares this race's runners as a spreadsheet the import can read back.
+  Future<void> exportRoster(BuildContext context) async {
+    final runners = await masterRace.raceRunners;
+    if (!context.mounted) return;
+    if (runners.isEmpty) {
+      DialogUtils.showErrorDialog(context,
+          message: 'There are no runners to export yet.');
+      return;
+    }
+    final raceName = (await _races.getRace(masterRace.raceId))?.raceName;
+    final result = await RosterExport.writeCsv(raceName ?? 'Runners', runners);
+    switch (result) {
+      case Success(:final value):
+        await SharePlus.instance.share(ShareParams(
+          files: [value],
+          subject: '${raceName ?? 'Race'} runners',
+        ));
+      case Failure(:final error):
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context, message: error.userMessage);
+        }
+    }
   }
 
   Future<void> showCreateTeamSheet(BuildContext context) async {
@@ -423,36 +620,40 @@ class RunnersManagementController with ChangeNotifier {
           (t) => t.name == createdTeam.name,
           orElse: () => createdTeam);
       if (!context.mounted) return;
-      await showAddRunnersToTeamSheet(context, persisted);
+      await showAddRunnerChoiceSheet(context, persisted);
     }
+  }
+
+  Future<void> showAddRunnerChoiceSheet(BuildContext context, Team team) async {
+    await sheet(
+      context: context,
+      title: 'Add Runner',
+      body: AddRunnerChoiceSheet(
+        onAddManually: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showAddRunnersToTeamSheet(context, team);
+        },
+        onImportFromSpreadsheet: () async {
+          Navigator.of(context).pop();
+          if (!context.mounted) return;
+          await showImportRunnersToTeam(context, team);
+        },
+      ),
+    );
   }
 
   Future<void> showAddRunnersToTeamSheet(
       BuildContext context, Team team) async {
     await sheet(
       context: context,
-      title: 'Add Runners to ${team.abbreviation}',
+      title: 'Add Runner to ${team.abbreviation ?? team.name ?? "Team"}',
       body: AddRunnersToTeamSheet(
-        masterRace: masterRace,
         team: team,
-        onComplete: (selectedRunnerIds) async {
-          // Add selected existing runners in bulk to avoid repeated rebuilds
-          final participants = selectedRunnerIds
-              .map((runnerId) => RaceParticipant(
-                    raceId: masterRace.raceId,
-                    runnerId: runnerId,
-                    teamId: team.teamId!,
-                  ))
-              .toList();
-          if (participants.isNotEmpty) {
-            await masterRace.addRaceParticipantsBulk(participants);
-          }
-          onContentChanged?.call();
-          await loadData();
-        },
-        onRequestManualAdd: () async {
-          await showAddRunnerToTeam(context, team);
-          await loadData();
+        raceId: masterRace.raceId,
+        getRunnerByBib: _runners.getRunnerByBib,
+        onSubmit: (raceRunner) async {
+          await handleRunnerSubmission(context, raceRunner);
         },
       ),
     );
@@ -468,8 +669,7 @@ class RunnersManagementController with ChangeNotifier {
           try {
             await _teams.updateTeam(updatedTeam);
             // If color/name changed, ensure race team participation reflects color override when shown
-            onContentChanged?.call();
-            await loadData();
+            await forceRefresh();
           } catch (e) {
             Logger.e('Failed to update team: $e');
             if (context.mounted) {
@@ -614,8 +814,7 @@ class RunnersManagementController with ChangeNotifier {
         teamId: team.teamId!,
       ));
 
-      onContentChanged?.call();
-      await loadData();
+      await forceRefresh();
       return true;
     } catch (e) {
       Logger.e('Error deleting team: $e');
@@ -624,193 +823,142 @@ class RunnersManagementController with ChangeNotifier {
   }
 
   Future<void> loadSpreadsheet(BuildContext context, Team team) async {
-    final bool useGoogleDrive = await showSpreadsheetLoadSheet(context);
-    if (!context.mounted) return;
+    final rows = await pickSpreadsheetRows(context);
+    if (rows == null || !context.mounted) return;
+    // Imported onto this team: a Team column in the sheet is ignored here,
+    // since the coach chose the team by tapping its + Runner button.
+    final onThisTeam = SpreadsheetRows([
+      for (final row in rows.runners) {...row}..remove('team'),
+    ], rows.skipped);
+    await _importRows(context, onThisTeam, intoTeam: team);
+  }
+
+  /// Asks where the spreadsheet is, reads it, and returns its rows, or null
+  /// when cancelled or when there was nothing to import (already said).
+  Future<SpreadsheetRows?> pickSpreadsheetRows(BuildContext context) async {
+    final action = await showSpreadsheetLoadSheet(context);
+    if (action == null || !context.mounted) return null;
 
     try {
-      final List<Map<String, dynamic>> importData = await processSpreadsheet(
-        context,
-        useGoogleDrive: useGoogleDrive,
-      );
-
-      if (importData.isEmpty) {
-        if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'No Valid Runners Loaded');
-        }
-        return;
+      final SpreadsheetRows importData;
+      if (action == SpreadsheetImportAction.recent) {
+        final file = await sheet(
+          context: context,
+          title: 'Previously Selected',
+          body: const RecentSpreadsheetsSheet(),
+        );
+        if (file == null || !context.mounted) return null;
+        importData = await processSpreadsheetFromFile(context, file);
+      } else {
+        importData = await processSpreadsheet(
+          context,
+          useGoogleDrive: action == SpreadsheetImportAction.googleDrive,
+        );
       }
 
-      // Let the user select which imported rows to add
-      if (!context.mounted) return;
-      final selectedRows = await sheet(
-        context: context,
-        title: 'Select Runners to Add',
-        body: ImportedRunnersSelectionSheet(importedRunners: importData),
-      ) as List<Map<String, dynamic>>?;
-
-      // If user cancels or selects none, stop silently
-      if (selectedRows == null || selectedRows.isEmpty) {
-        return;
-      }
-
-      // Track conflicts where an existing runner (by bib) has different details
-      final conflicts = <Map<String, Runner>>[];
-
-      // Clear filtered search results cache to prevent stale data
-      masterRace.invalidateCache();
-
-      // First pass: add all non-conflicting runners immediately
-      for (final data in selectedRows) {
-        final String name = (data['name'] as String?)?.trim() ?? '';
-        final int grade = (data['grade'] as int?) ?? 0;
-        final String bib = (data['bib'] as String?)?.trim() ?? '';
-
-        if (name.isEmpty || bib.isEmpty || grade <= 0) {
-          Logger.d(
-              'Skipping invalid spreadsheet row: name="$name", grade=$grade, bib="$bib"');
-          continue;
-        }
-
-        final existingRunner = await _runners.getRunnerByBib(bib);
-        if (existingRunner != null) {
-          final bool sameDetails = (existingRunner.name == name) &&
-              ((existingRunner.grade ?? 0) == grade);
-
-          // Ensure global roster mapping so team->runners queries work
-          await _runners.addRunnerToTeam(team.teamId!, existingRunner.runnerId!);
-
-          // If already in this race, update team if needed; otherwise add to race
-          final existingRaceParticipant =
-              await _races.getRaceParticipantByBib(masterRace.raceId, bib);
-          if (existingRaceParticipant == null) {
-            await masterRace.addRaceParticipant(RaceParticipant(
-              raceId: masterRace.raceId,
-              runnerId: existingRunner.runnerId!,
-              teamId: team.teamId!,
-            ));
-          } else if (existingRaceParticipant.teamId != team.teamId) {
-            await _races.updateRaceParticipantTeam(
-              raceId: masterRace.raceId,
-              runnerId: existingRunner.runnerId!,
-              newTeamId: team.teamId!,
-            );
-            await masterRace.updateRaceParticipant(RaceParticipant(
-              raceId: masterRace.raceId,
-              runnerId: existingRunner.runnerId!,
-              teamId: team.teamId!,
-            ));
-          }
-
-          if (!sameDetails) {
-            // Keep the imported values we want to apply if user confirms overwrite
-            final replacement =
-                Runner(name: name, bibNumber: bib, grade: grade);
-            conflicts
-                .add({'existing': existingRunner, 'replacement': replacement});
-          }
-          continue;
-        }
-
-        // Create brand-new runner
-        final newRunner = Runner(name: name, bibNumber: bib, grade: grade);
-        final newRunnerId = await _runners.createRunner(newRunner);
-        await _runners.addRunnerToTeam(team.teamId!, newRunnerId);
-        await masterRace.addRaceParticipant(RaceParticipant(
-          raceId: masterRace.raceId,
-          runnerId: newRunnerId,
-          teamId: team.teamId!,
-        ));
-      }
-
-      // Resolve conflicts interactively, one-by-one
-      if (conflicts.isNotEmpty) {
-        if (!context.mounted) return;
-        for (final entry in conflicts) {
-          final existing = entry['existing']!;
-          final replacement = entry['replacement']!;
-          if (!context.mounted) return;
-
-          final overwrite = await DialogUtils.showConfirmationDialog(
+      if (importData.runners.isEmpty) {
+        final skipped = importData.skipped;
+        if (skipped.isNotEmpty && context.mounted) {
+          DialogUtils.showMessageDialog(
             context,
-            title: 'Resolve Conflict (Bib ${existing.bibNumber})',
-            content:
-                'Existing: ${existing.name} (Grade ${existing.grade})\nSpreadsheet: ${replacement.name} (Grade ${replacement.grade})\n\nUse spreadsheet values?',
-            confirmText: 'Overwrite',
-            cancelText: 'Keep Existing',
+            title: 'No Runners Found',
+            message: 'None of the rows could be imported:\n\n'
+                '${skipped.take(5).join('\n')}'
+                '${skipped.length > 5 ? '\n…and ${skipped.length - 5} more' : ''}'
+                '\n\nEach runner needs a name, a grade from 9 to 12, and a '
+                'bib number.',
           );
-
-          if (overwrite) {
-            // Update existing runner in place (keeps FKs intact)
-            await _runners.updateRunner(Runner(
-              runnerId: existing.runnerId!,
-              name: replacement.name,
-              bibNumber: replacement.bibNumber,
-              grade: replacement.grade,
-            ));
-
-            // Ensure team roster and race participation are correct
-            await _runners.addRunnerToTeam(team.teamId!, existing.runnerId!);
-            final existingRp = await _races.getRaceParticipant(
-              RaceParticipant(
-                  raceId: masterRace.raceId, runnerId: existing.runnerId!),
-            );
-            if (existingRp == null) {
-              await masterRace.addRaceParticipant(RaceParticipant(
-                raceId: masterRace.raceId,
-                runnerId: existing.runnerId!,
-                teamId: team.teamId!,
-              ));
-            } else if (existingRp.teamId != team.teamId) {
-              await _races.updateRaceParticipantTeam(
-                raceId: masterRace.raceId,
-                runnerId: existing.runnerId!,
-                newTeamId: team.teamId!,
-              );
-              await masterRace.updateRaceParticipant(RaceParticipant(
-                raceId: masterRace.raceId,
-                runnerId: existing.runnerId!,
-                teamId: team.teamId!,
-              ));
-            }
-          } else {
-            // Keep existing details but ensure proper mapping/team in this race
-            await _runners.addRunnerToTeam(team.teamId!, existing.runnerId!);
-            final rp = await _races.getRaceParticipantByBib(
-                masterRace.raceId, existing.bibNumber!);
-            if (rp == null) {
-              await masterRace.addRaceParticipant(RaceParticipant(
-                raceId: masterRace.raceId,
-                runnerId: existing.runnerId!,
-                teamId: team.teamId!,
-              ));
-            } else if (rp.teamId != team.teamId) {
-              await _races.updateRaceParticipantTeam(
-                raceId: masterRace.raceId,
-                runnerId: existing.runnerId!,
-                newTeamId: team.teamId!,
-              );
-              await masterRace.updateRaceParticipant(RaceParticipant(
-                raceId: masterRace.raceId,
-                runnerId: existing.runnerId!,
-                teamId: team.teamId!,
-              ));
-            }
-          }
         }
+        return null;
       }
-
-      onContentChanged?.call();
+      return importData;
     } catch (e) {
       Logger.e('Error handling spreadsheet load: $e');
       if (context.mounted) {
         DialogUtils.showMessageDialog(
           context,
-          title: 'Error',
-          message: 'Error importing runners: $e',
+          title: 'Could Not Import',
+          message: 'The spreadsheet could not be read. Check it is a CSV, '
+              'Excel (.xlsx) or Google Sheets file and try again.',
         );
       }
+      return null;
     }
+  }
+
+  /// Lets the coach choose which rows to add, adds them, then settles any
+  /// runner saved before with a different name or grade.
+  Future<void> _importRows(
+    BuildContext context,
+    SpreadsheetRows rows, {
+    Team? intoTeam,
+  }) async {
+    final selectedRows = await sheet(
+      context: context,
+      title: 'Select Runners to Add',
+      body: ImportedRunnersSelectionSheet(
+        importedRunners: rows.runners,
+        skippedRows: rows.skipped,
+      ),
+    ) as List<Map<String, dynamic>>?;
+    if (selectedRows == null || selectedRows.isEmpty) return;
+
+    final importer = RosterImporter(
+      raceId: masterRace.raceId,
+      runners: _runners,
+      teams: _teams,
+      races: _races,
+    );
+    final RosterImportResult result;
+    try {
+      result = await importer.importRows(selectedRows, intoTeam: intoTeam);
+    } catch (e) {
+      Logger.e('Error importing runners: $e');
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context,
+            message: 'Could not add the runners. Please try again.');
+      }
+      await forceRefresh();
+      return;
+    }
+    await forceRefresh();
+
+    for (final conflict in result.conflicts) {
+      if (!context.mounted) break;
+      final existing = conflict.existing;
+      final useSheet = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Bib ${existing.bibNumber} Is Already Saved',
+        content: 'Saved: ${existing.name}, grade ${existing.grade}\n'
+            'Spreadsheet: ${conflict.name}, grade ${conflict.grade}\n\n'
+            'Use the spreadsheet\'s details? Either way, bib '
+            '${existing.bibNumber} is in this race.',
+        confirmText: 'Use Spreadsheet',
+        cancelText: 'Keep Saved',
+      );
+      if (useSheet) await importer.useSpreadsheetDetails(conflict);
+    }
+    if (result.conflicts.isNotEmpty) await forceRefresh();
+
+    if (!context.mounted) return;
+    DialogUtils.showSuccessDialog(context, message: _describe(result));
+  }
+
+  static String _describe(RosterImportResult r) {
+    final parts = <String>[
+      'Added ${r.total} runner${r.total == 1 ? '' : 's'}',
+      if (r.teamsAdded.length > 1) 'on ${r.teamsAdded.length} teams',
+      if (r.teamsAdded.length == 1) 'to ${r.teamsAdded.first}',
+    ];
+    var message = '${parts.join(' ')}.';
+    if (r.teamsCreated.isNotEmpty) {
+      message += ' New team${r.teamsCreated.length == 1 ? '' : 's'}: '
+          '${r.teamsCreated.join(', ')}.';
+    }
+    if (r.unplaced > 0) {
+      message += ' ${r.unplaced} had no team and were left out.';
+    }
+    return message;
   }
 
   // ============================================================================
@@ -818,30 +966,33 @@ class RunnersManagementController with ChangeNotifier {
   // ============================================================================
 
   /// Force refresh the UI by clearing MasterRace caches and notifying listeners
-  /// This is more efficient than reloading all data
+  /// This is more efficient than reloading all data (no loading flash).
   Future<void> forceRefresh() async {
     try {
       // Clear MasterRace caches to force fresh data loading
       masterRace.invalidateCache();
 
-      // Update filtered results
-      _updateFilteredRaceRunners();
+      // Keep totalRunnerCount accurate without a loading-state cycle
+      final raceRunners = await masterRace.raceRunners;
+      totalRunnerCount = raceRunners.length;
 
-      // Notify UI
+      // Update filtered results and notify UI
+      await _updateFilteredRaceRunners();
+      notifyListeners();
+
       onContentChanged?.call();
     } catch (e) {
       Logger.e('Error: $e');
     }
   }
 
-  Future<bool> showSpreadsheetLoadSheet(BuildContext context) async {
-    final result = await sheet(
+  Future<SpreadsheetImportAction?> showSpreadsheetLoadSheet(
+      BuildContext context) async {
+    return await sheet(
       context: context,
-      title: 'Import Runners',
-      titleSize: 24,
+      title: 'Import from a Spreadsheet',
       body: const SpreadsheetLoadSheet(),
     );
-    return result['useGoogleDrive'] ?? false;
   }
 
   @override

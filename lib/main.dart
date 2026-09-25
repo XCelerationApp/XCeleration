@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:provider/provider.dart';
+import 'core/theme/app_border_radius.dart';
 import 'core/theme/app_colors.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
@@ -11,14 +12,7 @@ import 'core/services/splash_screen.dart';
 import 'core/services/event_bus.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'coach/race_screen/controller/race_screen_controller.dart';
-import 'coach/races_screen/controller/races_controller.dart';
-import 'core/services/geo_location_service.dart';
-import 'core/services/post_frame_callback_scheduler.dart';
-import 'coach/races_screen/services/races_service.dart';
 import 'core/services/auth_service.dart';
-import 'core/services/tutorial_manager.dart';
-import 'shared/models/database/master_race.dart';
 import 'core/repositories/i_database_connection_provider.dart';
 import 'core/services/database_write_bus.dart';
 import 'core/services/sync_service.dart';
@@ -40,6 +34,10 @@ class EventBusProvider extends ChangeNotifier {
 
 // Production app entry point
 void main() async {
+  // Must be initialized before dotenv.load() — flutter_dotenv 6.x requires
+  // the binding to be ready before it can read from rootBundle.
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
   await _initializeApp();
 }
 
@@ -50,7 +48,10 @@ Future<void> _initializeApp() async {
   await SentryFlutter.init(
     (options) async {
       options.dsn = dotenv.env['SENTRY_DSN'] ?? '';
-      options.tracesSampleRate = 1.0;
+      // Use 0.2 in production; override via SENTRY_TRACES_SAMPLE_RATE env var.
+      options.tracesSampleRate =
+          double.tryParse(dotenv.env['SENTRY_TRACES_SAMPLE_RATE'] ?? '') ??
+              0.2;
       options.diagnosticLevel = SentryLevel.warning;
       try {
         final info = await PackageInfo.fromPlatform();
@@ -58,15 +59,11 @@ Future<void> _initializeApp() async {
             '${info.packageName}@${info.version}+${info.buildNumber}';
       } catch (_) {}
     },
-    appRunner: () => _runApp(),
+    appRunner: _runApp,
   );
 }
 
-void _runApp() async {
-  // Initialize Flutter binding
-  WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
-  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-
+Future<void> _runApp() async {
   // Set preferred orientations
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
@@ -77,18 +74,20 @@ void _runApp() async {
   await ServiceLocator.initialize();
 
   // Initialize Supabase eagerly so it is ready before any screen is reached.
-  await RemoteApiClient.instance.init();
+  final remoteApi = RemoteApiClient();
+  await remoteApi.init();
+  final authService = AuthService(remoteApi: remoteApi);
 
   // Wire up concrete service instances once at startup
   final syncService = SyncService(
     db: ServiceLocator.get<IDatabaseConnectionProvider>(),
-    remote: RemoteApiClient.instance,
-    syncClient: SupabaseRemoteSyncClient(remote: RemoteApiClient.instance),
-    auth: AuthService.instance,
+    remote: remoteApi,
+    syncClient: SupabaseRemoteSyncClient(remote: remoteApi),
+    auth: authService,
   );
   final connectivitySyncService = ConnectivitySyncService(
     sync: syncService,
-    auth: AuthService.instance,
+    auth: authService,
     writeStream: ServiceLocator.get<DatabaseWriteBus>().writes,
   );
   connectivitySyncService.start();
@@ -99,21 +98,20 @@ void _runApp() async {
         Provider<ISyncService>.value(value: syncService),
         Provider<ConnectivitySyncService>.value(value: connectivitySyncService),
         ChangeNotifierProvider(create: (context) => EventBusProvider()),
-        ChangeNotifierProvider(
-          create: (context) => RaceController(
-              masterRace: MasterRace.getInstance(0),
-              parentController: RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
-        ),
-        ChangeNotifierProvider(
-            create: (context) => RacesController(racesService: RacesService(), authService: AuthService.instance, eventBus: EventBus.instance, geoLocationService: GeoLocationService(), postFrameCallbackScheduler: WidgetsBindingAdapter(), tutorialManager: TutorialManager(), syncStream: syncService.syncEvents)),
       ],
       child: const MyApp(),
     ),
   );
 
-  // Kick off a background sync shortly after startup
+  // Kick off a background sync shortly after startup. A user signed in on a
+  // previous run has not reached a screen that opens their database yet, so
+  // open it here — otherwise there is nothing for the sync to read or write.
   WidgetsBinding.instance.addPostFrameCallback((_) async {
+    final userId = authService.currentUserId;
+    if (userId == null) return;
     try {
+      await ServiceLocator.get<IDatabaseConnectionProvider>()
+          .openForUser(userId);
       await syncService.syncAll();
     } catch (_) {}
   });
@@ -128,7 +126,7 @@ class MyApp extends StatelessWidget {
     final appName = dotenv.env['APP_NAME'];
 
     return MaterialApp(
-      title: appName,
+      title: appName ?? 'XCeleration',
       theme: _buildTheme(),
       home: const SplashScreen(),
       showPerformanceOverlay: false,
@@ -181,6 +179,21 @@ class MyApp extends StatelessWidget {
         ),
       ),
       iconTheme: IconThemeData(color: AppColors.mediumColor),
+      // Every pop-up menu (race menus, Counts differ?) white and rounded in
+      // the app's style, rather than Material's tinted default.
+      popupMenuTheme: PopupMenuThemeData(
+        color: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        elevation: 6,
+        shadowColor: Colors.black26,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+          side: const BorderSide(color: AppColors.lightColor),
+        ),
+        textStyle: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor),
+        labelTextStyle: WidgetStatePropertyAll(
+            AppTypography.bodyRegular.copyWith(color: AppColors.darkColor)),
+      ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           textStyle: TextStyle(color: AppColors.darkColor),

@@ -14,6 +14,18 @@ import 'package:xceleration/core/utils/platform_checker.dart';
     [DevicesManager, PlatformCheckerInterface, BarcodeScannerInterface])
 import 'qr_connection_controller_test.mocks.dart';
 
+class _RecordingNavigatorObserver extends NavigatorObserver {
+  final events = <String>[];
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      events.add('pop');
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      events.add('push');
+}
+
 void main() {
   late MockDevicesManager mockDevices;
   late MockPlatformCheckerInterface mockPlatformChecker;
@@ -231,6 +243,96 @@ void main() {
         await controller.handleTap(ctx);
 
         expect(controller.hasError, isFalse);
+      });
+    });
+
+    group('handleTap — advertiser device (showQR)', () {
+      late ConnectedDevice advertiserDevice;
+
+      setUp(() {
+        when(mockDevices.currentDeviceType)
+            .thenReturn(DeviceType.advertiserDevice);
+        when(mockDevices.currentDeviceName).thenReturn(DeviceName.bibRecorder);
+        advertiserDevice = ConnectedDevice(DeviceName.coach)..data = 'rawdata';
+        when(mockDevices.otherDevices).thenReturn([advertiserDevice]);
+        when(mockDevices.getDevice(DeviceName.coach))
+            .thenReturn(advertiserDevice);
+      });
+
+      testWidgets(
+          'pops current route before showing QR sheet when inSheet is true',
+          (tester) async {
+        final observer = _RecordingNavigatorObserver();
+        final controller = QRConnectionController(
+          devices: mockDevices,
+          platformChecker: mockPlatformChecker,
+          barcodeScanner: mockBarcodeScanner,
+          callback: () {},
+          inSheet: true,
+        );
+
+        final navigatorKey = GlobalKey<NavigatorState>();
+        await tester.pumpWidget(MaterialApp(
+          navigatorKey: navigatorKey,
+          navigatorObservers: [observer],
+          home: const Scaffold(body: SizedBox.shrink()),
+        ));
+
+        // Push a route to simulate DeviceConnectionWidget being inside a sheet.
+        BuildContext? pushedCtx;
+        navigatorKey.currentState!.push(
+          MaterialPageRoute(
+            builder: (ctx) {
+              pushedCtx = ctx;
+              return const Scaffold(body: SizedBox.shrink());
+            },
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Clear the initial push events (home + simulated sheet route).
+        observer.events.clear();
+
+        // Trigger handleTap without awaiting — the QR sheet stays open.
+        // ignore: unawaited_futures
+        controller.handleTap(pushedCtx!);
+        await tester.pumpAndSettle();
+
+        // pop must occur before the QR sheet push.
+        expect(observer.events.first, 'pop');
+        expect(observer.events, contains('push'));
+      });
+
+      testWidgets(
+          'does not pop before showing QR sheet when inSheet is false',
+          (tester) async {
+        final observer = _RecordingNavigatorObserver();
+        final controller = QRConnectionController(
+          devices: mockDevices,
+          platformChecker: mockPlatformChecker,
+          barcodeScanner: mockBarcodeScanner,
+          callback: () {},
+          inSheet: false,
+        );
+
+        BuildContext? ctx;
+        await tester.pumpWidget(MaterialApp(
+          navigatorObservers: [observer],
+          home: Builder(builder: (c) {
+            ctx = c;
+            return const SizedBox.shrink();
+          }),
+        ));
+
+        observer.events.clear();
+
+        // ignore: unawaited_futures
+        controller.handleTap(ctx!);
+        await tester.pumpAndSettle();
+
+        // No pop should have occurred — only a push (the QR sheet).
+        expect(observer.events.where((e) => e == 'pop'), isEmpty);
+        expect(observer.events, contains('push'));
       });
     });
   });

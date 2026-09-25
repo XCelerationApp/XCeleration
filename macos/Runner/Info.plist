@@ -2,12 +2,6 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>NSMicrophoneUsageDescription</key>
-    <string>This app needs access to audio for playing sounds.</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>We need access to your photo library to select images</string>
-	<key>NSCameraUsageDescription</key>
-	<string>We need access to your camera to scan bib numbers</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleExecutable</key>
@@ -34,18 +28,5 @@
 	<string>MainMenu</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
-	<key>NSBluetoothAlwaysUsageDescription</key>
-	<string>We need Bluetooth access to communicate with devices.</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>We need Bluetooth access to communicate with devices.</string>
-	<key>CFBundleURLTypes</key>
-	<array>
-		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>TO_BE_REPLACED_BY_SCRIPT</string>
-			</array>
-		</dict>
-	</array>
 </dict>
 </plist>

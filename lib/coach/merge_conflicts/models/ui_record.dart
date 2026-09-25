@@ -12,6 +12,9 @@ class UIRecord with ChangeNotifier {
   ConflictTime _conflictTime;
 
   String get time => timeController.text;
+
+  /// A missing-time slot with no time entered yet ('TBD', or cleared).
+  bool get isUnfilled => time == 'TBD' || time.isEmpty;
   ConflictTime get conflictTime => _conflictTime;
   String? get validationError => _conflictTime.validationError;
 

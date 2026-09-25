@@ -4,7 +4,7 @@ import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 
 class RaceNameField extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
   final ValueChanged<String>? onChanged;
 
   const RaceNameField({
@@ -23,7 +23,7 @@ class RaceNameField extends StatelessWidget {
         hint: 'Enter race name',
         error: controller.form.errorFor(RaceField.name),
         onChanged: (value) {
-          controller.validateName(controller.form.nameController.text);
+          controller.form.applyValidation(RaceField.name);
           if (onChanged != null) onChanged!(value);
         },
       ),

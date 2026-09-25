@@ -227,6 +227,62 @@ void main() {
 
         expect(result, isA<RemoveExtraTimeOk>());
       });
+
+      test('is refused right after a confirmation', () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.logTime();
+        controller.confirmTimes();
+
+        final result = await controller.removeExtraTime();
+
+        expect(result, isA<RemoveExtraTimeError>());
+        expect(controller.currentChunk.conflictRecord!.conflict!.type,
+            ConflictType.confirmRunner);
+        expect(controller.currentChunk.timingData, hasLength(2));
+      });
+
+      test('is refused when nothing was recorded since a missing time',
+          () async {
+        loadAndStartRace();
+        controller.logTime(); // one recorded time
+        await controller.addMissingTime();
+
+        final result = await controller.removeExtraTime();
+
+        // Cancelling the missing time here threw away both the missed
+        // runner and the stray tap.
+        expect(result, isA<RemoveExtraTimeError>());
+        expect(controller.currentChunk.timingData, hasLength(1));
+        expect(controller.currentChunk.conflictRecord!.conflict!.type,
+            ConflictType.missingTime);
+      });
+
+      test('marks a stray tap logged after a missing time', () async {
+        loadAndStartRace();
+        controller.logTime();
+        await controller.addMissingTime();
+        controller.logTime(); // the stray tap starts a new batch
+
+        final result = await controller.removeExtraTime();
+
+        expect(result, isA<RemoveExtraTimeConfirmRequired>());
+      });
+
+      test('extra times can be added up to the unconfirmed count', () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.logTime();
+        controller.logTime();
+
+        expect(await controller.removeExtraTime(), isA<RemoveExtraTimeOk>());
+        expect(await controller.removeExtraTime(), isA<RemoveExtraTimeOk>());
+        expect(controller.currentChunk.conflictRecord!.conflict!.offBy, 2);
+        expect(controller.runnerCount, 1);
+        // A third would mean every time is extra: that asks to delete them.
+        expect(await controller.removeExtraTime(),
+            isA<RemoveExtraTimeConfirmRequired>());
+      });
     });
 
     group('isLastRecordUndoable', () {
@@ -273,6 +329,100 @@ void main() {
         controller.doUndoLastConflict();
 
         expect(controller.currentChunk.hasConflict, isFalse);
+      });
+    });
+
+    group('changes survive a restart', () {
+      test('undoing a confirmation is saved', () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.confirmTimes();
+        clearInteractions(mockStorage);
+
+        controller.doUndoLastConflict();
+        await controller.pendingWrites;
+
+        final saved = verify(mockStorage.saveChunk(testRace.raceId, captureAny))
+            .captured
+            .last as TimingChunk;
+        expect(saved.conflictRecord, isNull);
+        expect(saved.timingData, hasLength(1));
+      });
+
+      test('deleting the only time in a chunk deletes that chunk, not the one '
+          'before it', () async {
+        loadAndStartRace();
+        controller.logTime();
+        controller.confirmTimes();
+        final previousId = controller.currentChunk.id;
+        controller.logTime(); // starts a new chunk
+        final emptiedId = controller.currentChunk.id;
+        final record = controller.uiRecords.last;
+
+        await controller.executeDeleteRecord(record);
+        await controller.pendingWrites;
+
+        verify(mockStorage.deleteChunk(testRace.raceId, emptiedId)).called(1);
+        verifyNever(mockStorage.deleteChunk(testRace.raceId, previousId));
+      });
+
+      test('a race whose times cannot be read is not opened', () async {
+        when(mockStorage.getChunks(any)).thenAnswer((_) async =>
+            const Failure(AppError(userMessage: 'Could not load')));
+        final race = RaceRecord(
+          raceId: 3,
+          date: DateTime(2024, 6, 1),
+          name: 'Unreadable',
+          type: DeviceName.raceTimer.toString(),
+          stopped: true,
+        );
+
+        await controller.loadOtherRace(race);
+
+        expect(controller.currentRace, isNull);
+        expect(controller.loadError, isNotNull);
+      });
+
+      test('closes the open race when another race fails to load', () async {
+        loadAndStartRace();
+        controller.logTime();
+        when(mockStorage.getChunks(any)).thenAnswer((_) async =>
+            const Failure(AppError(userMessage: 'Could not load')));
+        final other = RaceRecord(
+          raceId: 3,
+          date: DateTime(2024, 6, 1),
+          name: 'Unreadable',
+          type: DeviceName.raceTimer.toString(),
+          stopped: true,
+        );
+
+        await controller.loadOtherRace(other);
+
+        // The first race's times were cleared from memory: leaving it open
+        // would let new times or a new start overwrite its saved data.
+        expect(controller.currentRace, isNull);
+        expect(controller.loadError!.userMessage, contains('Unreadable'));
+      });
+
+      test('retryLoad opens the race once its times can be read', () async {
+        when(mockStorage.getChunks(any)).thenAnswer((_) async =>
+            const Failure(AppError(userMessage: 'Could not load')));
+        final race = RaceRecord(
+          raceId: 3,
+          date: DateTime(2024, 6, 1),
+          name: 'Flaky',
+          type: DeviceName.raceTimer.toString(),
+          stopped: true,
+        );
+        await controller.loadOtherRace(race);
+        expect(controller.currentRace, isNull);
+
+        when(mockStorage.getChunks(any))
+            .thenAnswer((_) async => const Success([]));
+        await controller.retryLoad();
+
+        expect(controller.currentRace, race);
+        expect(controller.loadError, isNull);
       });
     });
 

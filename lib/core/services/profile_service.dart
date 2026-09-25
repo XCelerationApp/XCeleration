@@ -1,19 +1,22 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:xceleration/core/services/remote_api_client.dart';
-import 'package:xceleration/core/services/auth_service.dart';
+import 'package:xceleration/core/services/i_auth_service.dart';
+import 'package:xceleration/core/services/i_remote_api_client.dart';
 
 class ProfileService {
-  ProfileService._();
-  static final ProfileService instance = ProfileService._();
+  ProfileService({
+    required IRemoteApiClient remoteApi,
+    required IAuthService auth,
+  })  : _remoteApi = remoteApi,
+        _auth = auth;
 
-  SupabaseClient get _client => RemoteApiClient.instance.client;
+  final IRemoteApiClient _remoteApi;
+  final IAuthService _auth;
 
   Future<void> ensureProfileUpsert() async {
-    final userId = AuthService.instance.currentUserId;
-    final email = AuthService.instance.currentEmail;
+    final userId = _auth.currentUserId;
+    final email = _auth.currentEmail;
     if (userId == null || email == null) return;
     try {
-      await _client.from('user_profiles').upsert({
+      await _remoteApi.client.from('user_profiles').upsert({
         'user_id': userId,
         'email': email,
       }, onConflict: 'user_id');

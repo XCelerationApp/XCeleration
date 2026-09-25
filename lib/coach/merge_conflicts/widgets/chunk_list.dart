@@ -1,26 +1,37 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/utils/enums.dart';
 import '../controller/merge_conflicts_controller.dart';
 import 'runner_time_record.dart';
 import 'header_widgets.dart';
 import 'resolve_conflict_button.dart';
+import 'undo_button.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 
 class ChunkList extends StatelessWidget {
-  final MergeConflictsController controller;
-  const ChunkList({super.key, required this.controller});
+  const ChunkList({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        for (int index = 0; index < controller.uiChunks.length; index++)
-          ChunkItem(
+    return Consumer<MergeConflictsController>(
+      builder: (context, controller, _) {
+        final chunks = controller.uiChunks;
+        return ListView.builder(
+          shrinkWrap: true,
+          // Nested in the screen's scroll view: no safe-area inset of its own.
+          padding: EdgeInsets.zero,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: chunks.length,
+          itemBuilder: (context, index) => ChunkItem(
+            key: ValueKey(chunks[index].chunkId),
             index: index,
-            chunk: controller.uiChunks[index],
+            chunk: chunks[index],
             controller: controller,
           ),
-      ],
+        );
+      },
     );
   }
 }
@@ -44,14 +55,9 @@ class _ChunkItemState extends State<ChunkItem> {
   @override
   Widget build(BuildContext context) {
     final chunkType = widget.chunk.conflict.type;
-    final previousChunk = widget.index > 0
-        ? widget.controller.timingChunks[widget.index - 1]
-        : null;
-    final previousChunkEndTime = previousChunk != null &&
-            previousChunk.hasConflict &&
-            previousChunk.conflictRecord != null
-        ? previousChunk.conflictRecord!.time
-        : '0.0';
+    final previousChunkEndTime =
+        widget.controller.previousEndTimeFor(widget.chunk.chunkId);
+    final undoLabel = widget.controller.undoLabel(widget.chunk.chunkId);
 
     return Padding(
         padding: const EdgeInsets.only(bottom: 24),
@@ -84,17 +90,40 @@ class _ChunkItemState extends State<ChunkItem> {
                 chunkType == ConflictType.missingTime)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
-                child: ResolveConflictButton(
-                  isResolved: widget.chunk.isResolvedLocally,
-                  onResolve: () async {
-                    if (chunkType == ConflictType.extraTime) {
-                      await widget.controller
-                          .resolveExtraTimeConflict(widget.index);
-                    } else if (chunkType == ConflictType.missingTime) {
-                      await widget.controller
-                          .resolveMissingTimeConflict(widget.index);
-                    }
-                  },
+                child: Row(
+                  children: [
+                    // Slides in the first time there is something to take
+                    // back, rather than jumping the resolve button sideways.
+                    AnimatedSize(
+                      duration: AppAnimations.fast,
+                      curve: AppAnimations.spring,
+                      child: undoLabel == null
+                          ? const SizedBox.shrink()
+                          : Padding(
+                              padding:
+                                  const EdgeInsets.only(right: AppSpacing.sm),
+                              child: UndoButton(
+                                label: undoLabel,
+                                onUndo: () => widget.controller
+                                    .undo(widget.chunk.chunkId),
+                              ),
+                            ),
+                    ),
+                    Expanded(
+                      child: ResolveConflictButton(
+                        isResolved: widget.chunk.isResolvedLocally,
+                        onResolve: () async {
+                          if (chunkType == ConflictType.extraTime) {
+                            await widget.controller
+                                .resolveExtraTimeConflict(widget.chunk.chunkId);
+                          } else if (chunkType == ConflictType.missingTime) {
+                            await widget.controller.resolveMissingTimeConflict(
+                                widget.chunk.chunkId);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],

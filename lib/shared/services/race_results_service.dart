@@ -21,21 +21,25 @@ class RaceResultsService implements IRaceResultsService {
 
     // Ensure runners within each team are sorted by their finish time
     for (final team in teams) {
-      team.runners.sort((a, b) => a.compareTimeTo(b));
+      team.runners.sort(_compareFinish);
     }
 
     return teams;
   }
 
   /// Helper function to group results by team into TeamRecord objects
+  ///
+  /// Runners without a team still count in the individual results but are
+  /// left out of team scoring (a null team used to crash the calculation).
+  /// Grouped by team id rather than [Team] equality, which also compares
+  /// fields like updatedAt.
   List<TeamRecord> _getTeamsFromResults(List<RaceResult> results) {
     final List<TeamRecord> teams = [];
-    for (var team in groupBy(results, (result) => result.team!).entries) {
-      final teamRecord = TeamRecord(
-        team: team.key,
-        runners: team.value,
-      );
-      teams.add(teamRecord);
+    final withTeam = results.where((r) => r.team != null);
+    for (final group
+        in groupBy(withTeam, (result) => result.team!.teamId ?? result.team!.name)
+            .values) {
+      teams.add(TeamRecord(team: group.first.team!, runners: group));
     }
     return teams;
   }
@@ -51,6 +55,7 @@ class RaceResultsService implements IRaceResultsService {
   }
 
   /// Convert RaceResult objects to ResultsRecord objects for UI display
+  @override
   List<ResultsRecord> convertToResultsRecords(List<RaceResult> raceResults,
       {double? raceDistance, String? distanceUnit}) {
     // Convert race distance to miles and compute pace/mi only
@@ -121,7 +126,18 @@ class RaceResultsService implements IRaceResultsService {
 
   /// Sort runners by their finish time
   void _sortRunners(List<RaceResult> results) {
-    results.sort((a, b) => a.compareTimeTo(b));
+    results.sort(_compareFinish);
+  }
+
+  /// Finish order: by time, then by chute place for equal times, then by
+  /// result id. Sorting by time alone left ties in arbitrary order (Dart's
+  /// sort is not stable), which could swap places and change team scores.
+  static int _compareFinish(RaceResult a, RaceResult b) {
+    final byTime = a.compareTimeTo(b);
+    if (byTime != 0) return byTime;
+    final byPlace = (a.place ?? 1 << 30).compareTo(b.place ?? 1 << 30);
+    if (byPlace != 0) return byPlace;
+    return (a.resultId ?? 0).compareTo(b.resultId ?? 0);
   }
 
   /// Sort teams by score and assign places
@@ -157,7 +173,7 @@ class RaceResultsService implements IRaceResultsService {
         if (team.runners.length >= 5) team,
     ];
 
-    completeTeams.sort((a, b) => a.score.compareTo(b.score));
+    completeTeams.sort(_compareTeamsForPlacing);
 
     // Assign places to complete teams first
     for (int i = 0; i < completeTeams.length; i++) {
@@ -173,6 +189,27 @@ class RaceResultsService implements IRaceResultsService {
     teams
       ..clear()
       ..addAll([...completeTeams, ...incompleteTeams]);
+  }
+
+  /// Orders eligible teams by score, lowest first.
+  ///
+  /// A tied score is broken by the sixth runner's place (NFHS rule); a team
+  /// with a sixth runner beats a tied team without one. If neither team has a
+  /// sixth runner, the fifth runner's place decides.
+  static int _compareTeamsForPlacing(TeamRecord a, TeamRecord b) {
+    final byScore = a.score.compareTo(b.score);
+    if (byScore != 0) return byScore;
+
+    int? placeOf(TeamRecord team, int index) =>
+        team.runners.length > index ? team.runners[index].place : null;
+
+    final sixthA = placeOf(a, 5);
+    final sixthB = placeOf(b, 5);
+    if (sixthA != null && sixthB != null) return sixthA.compareTo(sixthB);
+    if (sixthA != null) return -1;
+    if (sixthB != null) return 1;
+
+    return (placeOf(a, 4) ?? 0).compareTo(placeOf(b, 4) ?? 0);
   }
 
   /// Complete race results calculation - main orchestrator function

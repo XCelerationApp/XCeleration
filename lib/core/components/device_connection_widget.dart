@@ -83,6 +83,7 @@ class DeviceConnectionWidget extends StatelessWidget {
         QRConnectionWidget(
           devices: devices,
           callback: () => _handleCallback(context),
+          inSheet: inSheet,
         ),
       ],
     );

@@ -12,7 +12,7 @@ Future<void> _defaultSupabaseInitializer({
   required String url,
   required String anonKey,
 }) =>
-    Supabase.initialize(url: url, anonKey: anonKey);
+    Supabase.initialize(url: url, anonKey: anonKey, debug: false);
 
 class RemoteApiClient implements IRemoteApiClient {
   RemoteApiClient({
@@ -20,10 +20,6 @@ class RemoteApiClient implements IRemoteApiClient {
     SupabaseInitializer? initializer,
   })  : _env = env ?? dotenv.env,
         _initializer = initializer ?? _defaultSupabaseInitializer;
-
-  // TODO(refactor): Remove once ProfileService, ParentLinkService, and
-  // AuthService are migrated to constructor-injected IRemoteApiClient.
-  static final RemoteApiClient instance = RemoteApiClient();
 
   final Map<String, String> _env;
   final SupabaseInitializer _initializer;

@@ -72,7 +72,8 @@ class ConfirmedRunnerTimeCell extends StatelessWidget {
 
 class ExtraTimeCell extends StatelessWidget {
   final String time;
-  final void Function() onRemoveExtraTime;
+  /// Null once every extra time is removed: the rest belong to runners.
+  final void Function()? onRemoveExtraTime;
 
   const ExtraTimeCell({
     super.key,
@@ -88,11 +89,12 @@ class ExtraTimeCell extends StatelessWidget {
         Expanded(
           child: TimeDisplay(time: time),
         ),
-        CellActionIcon(
-          icon: Icons.close,
-          tooltip: 'Remove extra time',
-          onPressed: () => onRemoveExtraTime(),
-        ),
+        if (onRemoveExtraTime != null)
+          CellActionIcon(
+            icon: Icons.close,
+            tooltip: 'Remove extra time',
+            onPressed: onRemoveExtraTime,
+          ),
       ],
     );
   }
@@ -163,7 +165,9 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
             final hasError = widget.record.validationError != null &&
                 widget.record.validationError!.isNotEmpty;
 
+            // Centred in the row's height, level with the runner's name.
             return Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 if (widget.isOriginallyTBD) ...[

@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
-import 'package:xceleration/core/utils/connectivity_utils.dart';
 
 /// Listens to connectivity changes and local DB writes, triggering sync on
 /// Wi‑Fi. A 2-second debounce prevents hammering the remote after rapid writes.
@@ -11,16 +11,19 @@ class ConnectivitySyncService {
   final IAuthService _auth;
   final Stream<void>? _writeStream;
   final Connectivity _connectivity;
+  final ConnectivityService _connectivityService;
 
   ConnectivitySyncService({
     required ISyncService sync,
     required IAuthService auth,
     Stream<void>? writeStream,
     Connectivity? connectivity,
+    ConnectivityService? connectivityService,
   })  : _sync = sync,
         _auth = auth,
         _writeStream = writeStream,
-        _connectivity = connectivity ?? Connectivity();
+        _connectivity = connectivity ?? Connectivity(),
+        _connectivityService = connectivityService ?? const ConnectivityService();
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   StreamSubscription<void>? _writeSub;
@@ -55,7 +58,7 @@ class ConnectivitySyncService {
   Future<void> _syncIfOnWifi() async {
     try {
       if (_auth.isSignedIn &&
-          await ConnectivityUtils.isOnline(connectivity: _connectivity)) {
+          await _connectivityService.isOnline()) {
         await _sync.syncAll();
       }
     } catch (_) {}

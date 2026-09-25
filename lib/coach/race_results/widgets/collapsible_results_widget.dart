@@ -1,100 +1,81 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../model/results_record.dart';
 import '../model/team_record.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
-/// A widget that displays a collapsible list of race results
-/// Can handle both individual results (ResultsRecord) and team results (TeamRecord)
-class CollapsibleResultsWidget extends StatefulWidget {
-  final List<dynamic> results;
+/// A generic widget that displays a collapsible list of items.
+///
+/// Callers supply a typed [headerBuilder] and [rowBuilder].
+/// Use [CollapsibleIndividualResultsWidget] or [CollapsibleTeamResultsWidget]
+/// for the pre-built race-result variants.
+class CollapsibleResultsWidget<T> extends StatefulWidget {
+  final List<T> results;
   final int initialVisibleCount;
+  final Widget Function() headerBuilder;
+  final Widget Function(T) rowBuilder;
 
-  const CollapsibleResultsWidget(
-      {super.key, required this.results, this.initialVisibleCount = 5});
+  const CollapsibleResultsWidget({
+    super.key,
+    required this.results,
+    required this.headerBuilder,
+    required this.rowBuilder,
+    this.initialVisibleCount = 5,
+  });
 
   @override
-  State<CollapsibleResultsWidget> createState() =>
-      _CollapsibleResultsWidgetState();
+  State<CollapsibleResultsWidget<T>> createState() =>
+      _CollapsibleResultsWidgetState<T>();
 }
 
-class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
+class _CollapsibleResultsWidgetState<T>
+    extends State<CollapsibleResultsWidget<T>> {
   bool isExpanded = false;
-  late List<dynamic> displayResults;
-  static const int nameCharacterLimit = 18;
-
-  @override
-  void initState() {
-    super.initState();
-    _updateDisplayResults();
-  }
-
-  void _updateDisplayResults() {
-    displayResults = isExpanded
-        ? widget.results
-        : widget.results.take(widget.initialVisibleCount).toList();
-  }
 
   void toggleExpansion() {
     setState(() {
       isExpanded = !isExpanded;
-      _updateDisplayResults();
     });
-  }
-
-  /// Truncates a string to the specified character limit
-  String _truncateName(String name, {int limit = nameCharacterLimit}) {
-    if (name.length <= limit) {
-      return name;
-    }
-    return '${name.substring(0, limit)}...';
   }
 
   @override
   Widget build(BuildContext context) {
-    // Check if results list is empty
     if (widget.results.isEmpty) {
       return const Center(child: Text('No results to display'));
     }
 
-    // Determine the type of results we're displaying
-    bool isTeamResults = widget.results.first is TeamRecord;
+    final displayResults = isExpanded
+        ? widget.results
+        : widget.results.take(widget.initialVisibleCount).toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Wrap the entire table (header + rows) in a single horizontal scroll
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Display the appropriate header
-              isTeamResults
-                  ? _buildTeamResultsHeader()
-                  : _buildIndividualResultsHeader(),
-
-              const SizedBox(height: 8),
-
-              // Display results rows
-              ...displayResults.map((item) {
-                final index = displayResults.indexOf(item);
-                // Use subtle alternate row colors for better readability
-                final backgroundColor = index % 2 == 0
-                    ? Colors.transparent
-                    : ColorUtils.withOpacity(Colors.grey, 0.05);
-
-                return Container(
-                  color: backgroundColor,
-                  padding: const EdgeInsets.symmetric(vertical: 6.0),
-                  child: isTeamResults
-                      ? _buildTeamResultRow(item as TeamRecord)
-                      : _buildIndividualResultRow(item as ResultsRecord),
-                );
-              }),
-            ],
-          ),
+        // The columns share the screen's width rather than scrolling
+        // sideways, so the score and time are never off the edge.
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+          child: widget.headerBuilder(),
         ),
+        const Divider(height: 1, color: AppColors.lightColor),
+        ...displayResults.asMap().entries.map((entry) {
+          final index = entry.key;
+          final item = entry.value;
+          final backgroundColor = index % 2 == 0
+              ? Colors.transparent
+              : ColorUtils.withOpacity(Colors.grey, 0.05);
+
+          // A little room at each side, so the times on the right do not
+          // sit against the card's edge or the shaded row's.
+          return Container(
+            color: backgroundColor,
+            padding: const EdgeInsets.symmetric(
+                vertical: AppSpacing.sm, horizontal: AppSpacing.sm),
+            child: widget.rowBuilder(item),
+          );
+        }),
 
         // "See more"/"See less" button if needed
         if (widget.results.length > widget.initialVisibleCount)
@@ -117,125 +98,196 @@ class _CollapsibleResultsWidgetState extends State<CollapsibleResultsWidget> {
       ],
     );
   }
+}
 
-  Widget _buildIndividualResultsHeader() {
+/// The width of the place column in both results tables.
+const double _placeWidth = 52;
+
+TextStyle get _headerStyle =>
+    AppTypography.captionBold.copyWith(color: AppColors.mediumColor);
+
+const _tabular = [FontFeature.tabularFigures()];
+
+/// "Place" over the narrow place column, shrunk rather than wrapped at a
+/// large text size.
+class _PlaceHeader extends StatelessWidget {
+  const _PlaceHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: _placeWidth,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text('Place', style: _headerStyle),
+      ),
+    );
+  }
+}
+
+/// Pre-built [CollapsibleResultsWidget] variant for individual race results.
+class CollapsibleIndividualResultsWidget extends StatelessWidget {
+  final List<ResultsRecord> results;
+  final int initialVisibleCount;
+
+  const CollapsibleIndividualResultsWidget({
+    super.key,
+    required this.results,
+    this.initialVisibleCount = 5,
+  });
+
+  static Widget _buildHeader() {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: Row(
         children: [
-          SizedBox(
-              width: 60,
-              child: Text('Place', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 150,
-              child: Text('Name', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 70,
-              child: Text('Team', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 80,
-              child: Text('Time', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 70,
-              child: Text('Pace/mi', style: AppTypography.bodySemibold)),
+          const _PlaceHeader(),
+          Expanded(child: Text('Runner', style: _headerStyle)),
+          Text('Time', style: _headerStyle),
         ],
       ),
     );
   }
 
-  Widget _buildTeamResultsHeader() {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8.0),
-      child: Row(
-        children: [
-          SizedBox(
-              width: 60,
-              child: Text('Place', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 70,
-              child: Text('Team', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 150,
-              child: Text('Scorers', style: AppTypography.bodySemibold)),
-          SizedBox(
-              width: 50,
-              child: Text('Score', style: AppTypography.bodySemibold)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildIndividualResultRow(ResultsRecord result) {
-    return Column(
+  static Widget _buildRow(ResultsRecord result) {
+    final pace = result.formattedPacePerMile;
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        SizedBox(
+          width: _placeWidth,
+          child: Text('${result.place}', style: AppTypography.bodySemibold),
+        ),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(result.name,
+                  style: AppTypography.bodyRegular,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              Text(result.teamAbbreviation,
+                  style: AppTypography.caption
+                      .copyWith(color: AppColors.mediumColor),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+            ],
+          ),
+        ),
+        const SizedBox(width: AppSpacing.sm),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            SizedBox(
-              width: 60,
-              child: Text('${result.place}', style: AppTypography.bodyRegular),
-            ),
-            SizedBox(
-              width: 150,
-              child: Text(_truncateName(result.name),
-                  style: AppTypography.bodyRegular),
-            ),
-            SizedBox(
-              width: 70,
-              child: Text(_truncateName(result.teamAbbreviation, limit: 20),
-                  style: AppTypography.bodyRegular),
-            ),
-            SizedBox(
-              width: 80,
-              child: Text(result.formattedFinishTime,
-                  style: AppTypography.bodyRegular),
-            ),
-            SizedBox(
-              width: 70,
-              child: Text(
-                  result.formattedPacePerMile.isEmpty
-                      ? '-'
-                      : result.formattedPacePerMile,
-                  style: AppTypography.bodyRegular),
-            ),
+            Text(result.formattedFinishTime,
+                style: AppTypography.bodySemibold
+                    .copyWith(fontFeatures: _tabular)),
+            if (pace.isNotEmpty)
+              Text('$pace/mi',
+                  style: AppTypography.caption.copyWith(
+                      color: AppColors.mediumColor, fontFeatures: _tabular)),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildTeamResultRow(TeamRecord team) {
-    // Format the scorer places as a string (e.g., "1, 4, 7, 12, 15")
+  @override
+  Widget build(BuildContext context) {
+    return CollapsibleResultsWidget<ResultsRecord>(
+      results: results,
+      initialVisibleCount: initialVisibleCount,
+      headerBuilder: _buildHeader,
+      rowBuilder: _buildRow,
+    );
+  }
+}
+
+/// Pre-built [CollapsibleResultsWidget] variant for team race results.
+class CollapsibleTeamResultsWidget extends StatelessWidget {
+  final List<TeamRecord> results;
+  final int initialVisibleCount;
+
+  const CollapsibleTeamResultsWidget({
+    super.key,
+    required this.results,
+    this.initialVisibleCount = 5,
+  });
+
+  static Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+      child: Row(
+        children: [
+          const _PlaceHeader(),
+          Expanded(child: Text('Team', style: _headerStyle)),
+          Text('Score', style: _headerStyle),
+        ],
+      ),
+    );
+  }
+
+  /// [tied] when another team has the same score: the order then comes from
+  /// the sixth runners, which the row says, since the scores alone look like
+  /// a mistake.
+  static Widget _buildRow(TeamRecord team, {bool tied = false}) {
     final scorerPlaces = team.scorers.isNotEmpty
         ? [
             ...team.scorers.map((scorer) => scorer.place.toString()),
             if (team.topSeven.length > 5)
               '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
           ].join(', ')
-        : 'N/A';
+        : 'No scorers';
+
+    final abbrev = team.team.abbreviation ?? 'N/A';
+    // The team's name reads more easily than its three letters.
+    final name = team.team.name?.trim();
+    final label = name == null || name.isEmpty ? abbrev : name;
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 60,
+          width: _placeWidth,
           child: Text(team.place != null ? '${team.place}' : '-',
-              style: AppTypography.bodyRegular),
+              style: AppTypography.bodySemibold),
         ),
-        SizedBox(
-          width: 70,
-          child: Text(_truncateName(team.team.abbreviation ?? 'N/A', limit: 15),
-              style: AppTypography.bodyRegular),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(label,
+                  style: AppTypography.bodyRegular,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis),
+              Text('Scorers: $scorerPlaces',
+                  style: AppTypography.caption
+                      .copyWith(color: AppColors.mediumColor)),
+              if (tied)
+                Text('Tie broken by the 6th runner',
+                    style: AppTypography.caption
+                        .copyWith(color: AppColors.primaryColor)),
+            ],
+          ),
         ),
-        SizedBox(
-          width: 150,
-          child: Text(scorerPlaces, style: AppTypography.bodyRegular),
-        ),
-        SizedBox(
-          width: 50,
-          child: Text('${team.score != 0 ? team.score : 'N/A'}',
-              style: AppTypography.bodyRegular),
-        ),
+        const SizedBox(width: AppSpacing.sm),
+        Text('${team.score != 0 ? team.score : '-'}',
+            style: AppTypography.bodySemibold
+                .copyWith(fontFeatures: _tabular)),
       ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CollapsibleResultsWidget<TeamRecord>(
+      results: results,
+      initialVisibleCount: initialVisibleCount,
+      headerBuilder: _buildHeader,
+      rowBuilder: (team) => _buildRow(team,
+          tied: team.score != 0 &&
+              results.any((other) =>
+                  !identical(other, team) && other.score == team.score)),
     );
   }
 }

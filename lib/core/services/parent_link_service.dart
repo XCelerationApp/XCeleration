@@ -1,18 +1,21 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:xceleration/core/services/remote_api_client.dart';
-import 'package:xceleration/core/services/auth_service.dart';
+import 'package:xceleration/core/services/i_auth_service.dart';
+import 'package:xceleration/core/services/i_remote_api_client.dart';
 
 class ParentLinkService {
-  ParentLinkService._();
-  static final ParentLinkService instance = ParentLinkService._();
+  ParentLinkService({
+    required IRemoteApiClient remoteApi,
+    required IAuthService auth,
+  })  : _remoteApi = remoteApi,
+        _auth = auth;
 
-  SupabaseClient get _client => RemoteApiClient.instance.client;
+  final IRemoteApiClient _remoteApi;
+  final IAuthService _auth;
 
   Future<List<Map<String, dynamic>>> listLinkedCoaches() async {
-    final viewerId = AuthService.instance.currentUserId;
+    final viewerId = _auth.currentUserId;
     if (viewerId == null) return [];
     try {
-      final List rows = await _client
+      final List rows = await _remoteApi.client
           .from('coach_links')
           .select('coach_user_id')
           .eq('viewer_user_id', viewerId);
@@ -31,13 +34,16 @@ class ParentLinkService {
         .toList();
     if (coachIds.isEmpty) return [];
     try {
-      final query =
-          _client.from('user_profiles').select('user_id, email, display_name');
+      // Postgrest filters return a new builder; reassign or the filter is lost
+      // and every user's profile is fetched.
+      var query = _remoteApi.client
+          .from('user_profiles')
+          .select('user_id, email, display_name');
       if (coachIds.length == 1) {
-        query.eq('user_id', coachIds.first);
+        query = query.eq('user_id', coachIds.first);
       } else {
         final orExpr = coachIds.map((id) => 'user_id.eq.$id').join(',');
-        query.or(orExpr);
+        query = query.or(orExpr);
       }
       final List profiles = await query;
       final profileMap = {
@@ -61,18 +67,17 @@ class ParentLinkService {
   }
 
   Future<bool> linkCoachByEmail(String coachEmail) async {
-    final viewerId = AuthService.instance.currentUserId;
+    final viewerId = _auth.currentUserId;
     if (viewerId == null) return false;
     try {
-      final List profiles = await _client
-          .from('user_profiles')
-          .select('user_id')
-          .eq('email', coachEmail)
-          .limit(1);
-      if (profiles.isEmpty) return false;
-      final coachId = (profiles.first as Map)['user_id'] as String?;
+      // user_profiles is only readable for yourself and linked users, so the
+      // coach is found through a lookup function that returns just their id.
+      final coachId = await _remoteApi.client.rpc<String?>(
+        'find_user_id_by_email',
+        params: {'p_email': coachEmail},
+      );
       if (coachId == null) return false;
-      await _client.from('coach_links').upsert({
+      await _remoteApi.client.from('coach_links').upsert({
         'coach_user_id': coachId,
         'viewer_user_id': viewerId,
       }, onConflict: 'coach_user_id,viewer_user_id');
@@ -83,10 +88,10 @@ class ParentLinkService {
   }
 
   Future<void> unlinkCoach(String coachUserId) async {
-    final viewerId = AuthService.instance.currentUserId;
+    final viewerId = _auth.currentUserId;
     if (viewerId == null) return;
     try {
-      await _client
+      await _remoteApi.client
           .from('coach_links')
           .delete()
           .match({'coach_user_id': coachUserId, 'viewer_user_id': viewerId});

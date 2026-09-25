@@ -11,7 +11,7 @@ class RaceDateField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: controller,
+      listenable: controller.dateErrorNotifier,
       builder: (context, _) => buildInputRow(
         label: 'Date',
         inputWidget: buildTextField(

@@ -2,14 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xceleration/coach/flows/PreRaceFlow/controller/pre_race_controller.dart';
-import 'package:xceleration/coach/flows/PreRaceFlow/steps/flow_complete/pre_race_flow_complete.dart';
-import 'package:xceleration/coach/flows/PreRaceFlow/steps/review_runners/review_runners_step.dart';
-import 'package:xceleration/coach/flows/PreRaceFlow/steps/share_race/share_race_step.dart';
+import 'package:xceleration/coach/flows/pre_race_flow/controller/pre_race_controller.dart';
+import 'package:xceleration/coach/flows/pre_race_flow/steps/flow_complete/pre_race_flow_complete_step.dart';
+import 'package:xceleration/coach/flows/pre_race_flow/steps/review_runners/review_runners_step.dart';
+import 'package:xceleration/coach/flows/pre_race_flow/steps/share_race/share_race_step.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
+import 'package:xceleration/coach/race_screen/services/i_race_service.dart';
+import 'package:xceleration/coach/race_screen/services/race_service.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 
 @GenerateMocks([MasterRace])
 import 'pre_race_controller_test.mocks.dart';
@@ -36,7 +39,8 @@ PreRaceController _buildController(
 }
 
 void _stubCheckRunners(MockMasterRace mockMasterRace) {
-  when(mockMasterRace.teamtoRaceRunnersMap).thenAnswer((_) async => {});
+  when(mockMasterRace.teams).thenAnswer((_) async => []);
+  when(mockMasterRace.raceRunners).thenAnswer((_) async => []);
 }
 
 // ---------------------------------------------------------------------------
@@ -48,10 +52,15 @@ void main() {
   late DevicesManager devices;
 
   setUp(() {
+    ServiceLocator.register<IRaceService>(RaceService());
     mockMasterRace = MockMasterRace();
     _stubCheckRunners(mockMasterRace);
     devices =
         DevicesManager(DeviceName.coach, DeviceType.advertiserDevice, data: '');
+  });
+
+  tearDown(() {
+    ServiceLocator.restoreDefault();
   });
 
   // =========================================================================
@@ -73,6 +82,45 @@ void main() {
 
     // -----------------------------------------------------------------------
     group('showPreRaceFlow', () {
+      testWidgets('reopening at the share step sends the roster as it is now',
+          (tester) async {
+        // Closed at the share step, a runner added, then reopened there: the
+        // assistants must get the roster with that runner.
+        var roster = 'roster-before';
+        Future<bool> closeAtShareStep({
+          required BuildContext context,
+          required List<FlowStep> steps,
+          bool showProgressIndicator = true,
+          int initialIndex = 0,
+          StepChangedCallback? onStepChanged,
+          void Function(int lastIndex)? onDismiss,
+        }) async {
+          onDismiss?.call(1);
+          return false;
+        }
+
+        final controller = _buildController(
+          mockMasterRace,
+          devices: devices,
+          encodeRaceData: (_) async => 'race',
+          encodeBibData: (_) async => roster,
+          showFlowFn: closeAtShareStep,
+        );
+        BuildContext? ctx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            ctx = context;
+            return const SizedBox();
+          }),
+        ));
+        await controller.showPreRaceFlow(ctx!, false);
+
+        roster = 'roster-after';
+        await controller.showPreRaceFlow(ctx!, false);
+
+        expect(devices.bibRecorder!.data, 'race---roster-after');
+      });
+
       testWidgets('starts at index 0 on first call and resumes at persisted index on next call',
           (tester) async {
         final capturedIndices = <int>[];
@@ -93,6 +141,8 @@ void main() {
         final controller = _buildController(
           mockMasterRace,
           devices: devices,
+          encodeRaceData: (_) async => 'race',
+          encodeBibData: (_) async => 'roster',
           showFlowFn: fakeShowFlow,
         );
 
@@ -242,6 +292,60 @@ void main() {
         expect(devices.raceTimer!.data, raceEncoded);
         expect(devices.bibRecorder!.data, '');
       });
+    });
+  });
+
+  // =========================================================================
+  group('showSendAgainSheet', () {
+    Future<BuildContext> host(WidgetTester tester) async {
+      late BuildContext context;
+      await tester.pumpWidget(MaterialApp(
+        home: Builder(builder: (c) {
+          context = c;
+          return const Scaffold();
+        }),
+      ));
+      return context;
+    }
+
+    testWidgets('sends the race and roster as they are now', (tester) async {
+      final again =
+          DevicesManager(DeviceName.coach, DeviceType.advertiserDevice, data: '');
+      final controller = _buildController(
+        mockMasterRace,
+        devices: devices,
+        encodeRaceData: (_) async => 'RACE',
+        encodeBibData: (_) async => 'BIBS',
+      )..createDevices = () => again;
+      final context = await host(tester);
+
+      controller.showSendAgainSheet(context);
+      await tester.pump();
+      await tester.pump();
+
+      expect(again.raceTimer!.data, 'RACE');
+      expect(again.bibRecorder!.data, 'RACE---BIBS');
+      expect(find.text('Send Race Again'), findsOneWidget);
+      // The flow's own connections are left alone.
+      expect(devices.raceTimer!.data, '');
+    });
+
+    testWidgets('says so and opens nothing when the race cannot be prepared',
+        (tester) async {
+      final controller = _buildController(
+        mockMasterRace,
+        devices: devices,
+        encodeRaceData: (_) async => '',
+        encodeBibData: (_) async => 'BIBS',
+      );
+      final context = await host(tester);
+
+      await controller.showSendAgainSheet(context);
+      await tester.pump();
+
+      expect(find.text('Send Race Again'), findsNothing);
+      expect(find.textContaining('Could not prepare the race'), findsOneWidget);
+      await tester.pump(const Duration(seconds: 10));
     });
   });
 }

@@ -6,6 +6,7 @@ import 'package:xceleration/coach/flows/controller/flow_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
 import 'package:xceleration/coach/race_screen/controller/race_geo_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
+import 'package:xceleration/coach/race_screen/services/race_service.dart';
 import 'package:xceleration/coach/races_screen/controller/i_parent_race_controller.dart';
 import 'package:xceleration/core/services/date_picker_service.dart';
 import 'package:xceleration/core/services/event_bus.dart';
@@ -54,7 +55,7 @@ void main() {
   late MockIEventBus mockEventBus;
   late MockIDeviceConnectionFactory mockDevicesFactory;
   late MockRaceGeoController mockGeoController;
-  late RaceController controller;
+  late RaceScreenController controller;
 
   // A fully-populated test race (flowState != FLOW_SETUP avoids the
   // checkSetupComplete→TeamsAndRunnersWidget code path in loadAllData)
@@ -93,7 +94,7 @@ void main() {
     when(mockFlowController.beginNextFlow(any)).thenAnswer((_) async {});
     when(mockGeoController.isLocationButtonVisible).thenReturn(true);
 
-    controller = RaceController(
+    controller = RaceScreenController(
       masterRace: mockMasterRace,
       parentController: mockParentController,
       datePickerService: mockDatePickerService,
@@ -101,6 +102,7 @@ void main() {
       eventBus: mockEventBus,
       devicesFactory: mockDevicesFactory,
       geoController: mockGeoController,
+      raceService: RaceService(),
     );
   });
 
@@ -109,7 +111,7 @@ void main() {
   });
 
   // =========================================================================
-  group('RaceController', () {
+  group('RaceScreenController', () {
     // -------------------------------------------------------------------------
     group('selectDate', () {
       testWidgets('updates dateController when a date is picked',
@@ -143,78 +145,89 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    group('validateName', () {
+    group('validateName (via form.applyValidation)', () {
       test('sets name error when name is empty', () {
-        controller.validateName('');
+        controller.form.nameController.text = '';
+        controller.form.applyValidation(RaceField.name);
 
         expect(controller.form.errorFor(RaceField.name), isNotNull);
       });
 
       test('clears name error when name is valid', () {
-        controller.validateName('Valid Name');
+        controller.form.nameController.text = 'Valid Name';
+        controller.form.applyValidation(RaceField.name);
 
         expect(controller.form.errorFor(RaceField.name), isNull);
       });
     });
 
     // -------------------------------------------------------------------------
-    group('validateLocation', () {
+    group('validateLocation (via form.applyValidation)', () {
       test('sets location error when location is empty', () {
-        controller.validateLocation('');
+        controller.form.locationController.text = '';
+        controller.form.applyValidation(RaceField.location);
 
         expect(controller.form.errorFor(RaceField.location), isNotNull);
       });
 
       test('clears location error when location is valid', () {
-        controller.validateLocation('Some Location');
+        controller.form.locationController.text = 'Some Location';
+        controller.form.applyValidation(RaceField.location);
 
         expect(controller.form.errorFor(RaceField.location), isNull);
       });
     });
 
     // -------------------------------------------------------------------------
-    group('validateDate', () {
+    group('validateDate (via form.applyValidation)', () {
       test('sets date error when date is empty', () {
-        controller.validateDate('');
+        controller.form.dateController.text = '';
+        controller.form.applyValidation(RaceField.date);
 
         expect(controller.form.errorFor(RaceField.date), isNotNull);
       });
 
       test('sets date error when date is invalid format', () {
-        controller.validateDate('not-a-date');
+        controller.form.dateController.text = 'not-a-date';
+        controller.form.applyValidation(RaceField.date);
 
         expect(controller.form.errorFor(RaceField.date), isNotNull);
       });
 
       test('clears date error when date is valid', () {
-        controller.validateDate('2024-06-15');
+        controller.form.dateController.text = '2024-06-15';
+        controller.form.applyValidation(RaceField.date);
 
         expect(controller.form.errorFor(RaceField.date), isNull);
       });
     });
 
     // -------------------------------------------------------------------------
-    group('validateDistance', () {
+    group('validateDistance (via form.applyValidation)', () {
       test('sets distance error when distance is empty', () {
-        controller.validateDistance('');
+        controller.form.distanceController.text = '';
+        controller.form.applyValidation(RaceField.distance);
 
         expect(controller.form.errorFor(RaceField.distance), isNotNull);
       });
 
       test('sets distance error when distance is not a number', () {
-        controller.validateDistance('abc');
+        controller.form.distanceController.text = 'abc';
+        controller.form.applyValidation(RaceField.distance);
 
         expect(controller.form.errorFor(RaceField.distance), isNotNull);
       });
 
       test('sets distance error when distance is zero or negative', () {
-        controller.validateDistance('0');
+        controller.form.distanceController.text = '0';
+        controller.form.applyValidation(RaceField.distance);
 
         expect(controller.form.errorFor(RaceField.distance), isNotNull);
       });
 
       test('clears distance error when distance is valid', () {
-        controller.validateDistance('5.0');
+        controller.form.distanceController.text = '5.0';
+        controller.form.applyValidation(RaceField.distance);
 
         expect(controller.form.errorFor(RaceField.distance), isNull);
       });
@@ -724,6 +737,95 @@ void main() {
 
         expect(controller.isLocationButtonVisible, isFalse);
         verify(mockGeoController.isLocationButtonVisible).called(1);
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    group('_masterRaceListener', () {
+      test('registers listener on masterRace during construction', () {
+        verify(mockMasterRace.addListener(any)).called(1);
+      });
+
+      test('removes listener on masterRace during dispose', () {
+        controller.dispose();
+
+        verify(mockMasterRace.removeListener(any)).called(1);
+        // Re-create so tearDown dispose() doesn't throw on a disposed controller
+        controller = RaceScreenController(
+          masterRace: mockMasterRace,
+          parentController: mockParentController,
+          datePickerService: mockDatePickerService,
+          flowController: mockFlowController,
+          eventBus: mockEventBus,
+          devicesFactory: mockDevicesFactory,
+          geoController: mockGeoController,
+          raceService: RaceService(),
+        );
+      });
+
+      testWidgets(
+          'listener triggers a data refresh when not already loading',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        // Capture the listener registered with masterRace
+        final captured =
+            verify(mockMasterRace.addListener(captureAny)).captured;
+        final VoidCallback listener = captured.last as VoidCallback;
+
+        final refreshingStates = <bool>[];
+        controller
+            .addListener(() => refreshingStates.add(controller.isRefreshing));
+
+        listener();
+        await tester.pump();
+
+        expect(refreshingStates, contains(true));
+        expect(controller.isRefreshing, isFalse);
+      });
+
+      testWidgets(
+          'listener is a no-op while initial load is in progress',
+          (tester) async {
+        // Capture listener before any load
+        final captured =
+            verify(mockMasterRace.addListener(captureAny)).captured;
+        final VoidCallback listener = captured.last as VoidCallback;
+
+        // isInitialLoading is true before loadAllData completes
+        expect(controller.isLoading, isTrue);
+
+        int notifyCount = 0;
+        controller.addListener(() => notifyCount++);
+
+        // Firing the listener while initial load is pending must not trigger
+        // another refresh (isInitialLoading guard).
+        listener();
+
+        expect(notifyCount, 0);
+      });
+
+      testWidgets(
+          'listener is a no-op while a refresh is already in progress',
+          (tester) async {
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        final captured =
+            verify(mockMasterRace.addListener(captureAny)).captured;
+        final VoidCallback listener = captured.last as VoidCallback;
+
+        // Manually set refreshing to simulate an in-progress refresh
+        listener(); // starts a refresh (_isRefreshing becomes true)
+
+        int notifyCount = 0;
+        controller.addListener(() => notifyCount++);
+
+        // Second call while refresh is in flight must be a no-op
+        listener();
+
+        expect(notifyCount, 0);
       });
     });
   });

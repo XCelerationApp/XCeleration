@@ -1,0 +1,323 @@
+import 'package:flutter/material.dart';
+import '../model/bib_conflict.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/typography.dart';
+import '../../../core/utils/sheet_utils.dart';
+import '../utils/ordinal.dart';
+
+/// Opens the "Around Nth place" bottom sheet showing nearby finishers
+/// alongside the highlighted conflict row.
+///
+/// Uses a custom sheet layout so that horizontal padding is applied only to
+/// the header — the body rows manage their own padding, which lets the
+/// conflict row fill edge-to-edge without any layout tricks.
+void showNearbySheet(
+  BuildContext context, {
+  required List<NearbyFinisher> entries,
+  required int conflictPosition,
+  required String conflictBib,
+  String? conflictTime,
+  String conflictLabel = 'Unknown runner',
+}) {
+  FocusManager.instance.primaryFocus?.unfocus();
+  showModalBottomSheet<void>(
+    backgroundColor: Colors.transparent,
+    context: context,
+    isScrollControlled: true,
+    enableDrag: true,
+    builder: (ctx) {
+      final bottomInset = MediaQuery.of(ctx).viewInsets.bottom;
+      return Container(
+        decoration: const BoxDecoration(
+          color: AppColors.backgroundColor,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        ),
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(ctx).size.height * 0.92,
+        ),
+        child: Padding(
+          padding: EdgeInsets.only(top: 8, bottom: bottomInset + 36),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                child: createSheetHeader(
+                  'Around ${ordinal(conflictPosition)} place',
+                ),
+              ),
+              Flexible(
+                child: NearbyFinishersSheet(
+                  entries: entries,
+                  conflictPosition: conflictPosition,
+                  conflictBib: conflictBib,
+                  conflictTime: conflictTime,
+                  conflictLabel: conflictLabel,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    },
+  ).then((_) => FocusManager.instance.primaryFocus?.unfocus());
+}
+
+/// Scrollable list of finishers surrounding a conflict position.
+/// The conflict's own row is highlighted with a full-width salmon background.
+class NearbyFinishersSheet extends StatelessWidget {
+  const NearbyFinishersSheet({
+    super.key,
+    required this.entries,
+    required this.conflictPosition,
+    required this.conflictBib,
+    this.conflictTime,
+    this.conflictLabel = 'Unknown runner',
+  });
+
+  final List<NearbyFinisher> entries;
+  final int conflictPosition;
+  final String conflictBib;
+
+  /// Null when the Timer has not settled that place.
+  final String? conflictTime;
+
+  /// What the disputed row says in place of a runner's name.
+  final String conflictLabel;
+
+  static const _windowSize = 4;
+
+  @override
+  Widget build(BuildContext context) {
+    // Take the 4 closest entries above and 4 closest below the conflict position.
+    final above = (entries.where((e) => e.place < conflictPosition).toList()
+          ..sort((a, b) => b.place.compareTo(a.place)))
+        .take(_windowSize)
+        .toList()
+        .reversed
+        .toList();
+    final below = (entries.where((e) => e.place > conflictPosition).toList()
+          ..sort((a, b) => a.place.compareTo(b.place)))
+        .take(_windowSize)
+        .toList();
+
+    final allRows = <(int, Widget)>[
+      for (final e in [...above, ...below]) (e.place, _FinisherRow(entry: e)),
+      (
+        conflictPosition,
+        _ConflictFinisherRow(
+          position: conflictPosition,
+          bib: conflictBib,
+          time: conflictTime,
+          label: conflictLabel,
+        ),
+      ),
+    ]..sort((a, b) => a.$1.compareTo(b.$1));
+
+    final widgets = <Widget>[];
+    for (int i = 0; i < allRows.length; i++) {
+      widgets.add(
+        _AnimatedListItem(
+          index: i,
+          child: allRows[i].$2,
+        ),
+      );
+      if (i < allRows.length - 1) {
+        widgets.add(Divider(height: 1, thickness: 1, color: AppColors.lightColor));
+      }
+    }
+
+    return ConstrainedBox(
+      constraints: BoxConstraints(
+        maxHeight: MediaQuery.sizeOf(context).height * 0.6,
+      ),
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: widgets,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Animation
+// ---------------------------------------------------------------------------
+
+class _AnimatedListItem extends StatefulWidget {
+  const _AnimatedListItem({required this.child, required this.index});
+
+  final Widget child;
+  final int index;
+
+  @override
+  State<_AnimatedListItem> createState() => _AnimatedListItemState();
+}
+
+class _AnimatedListItemState extends State<_AnimatedListItem>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+
+  static final _revealMs = AppAnimations.reveal.inMilliseconds;
+  static const _staggerMs = 40;
+
+  @override
+  void initState() {
+    super.initState();
+    final delayMs = widget.index * _staggerMs;
+    final totalMs = delayMs + _revealMs;
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: totalMs),
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(
+        totalMs > 0 ? delayMs / totalMs : 0.0,
+        1.0,
+        curve: AppAnimations.enter,
+      ),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: widget.child,
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Row widgets
+// ---------------------------------------------------------------------------
+
+class _FinisherRow extends StatelessWidget {
+  const _FinisherRow({required this.entry});
+
+  final NearbyFinisher entry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.md,
+        horizontal: AppSpacing.xl,
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 36,
+            child: Text(
+              ordinal(entry.place),
+              style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(entry.name, style: AppTypography.smallBodySemibold),
+                Text(
+                  entry.team,
+                  style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+                ),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                entry.time ?? '—',
+                style: AppTypography.smallBodySemibold.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Text(
+                '#${entry.bibNumber}',
+                style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ConflictFinisherRow extends StatelessWidget {
+  const _ConflictFinisherRow({
+    required this.position,
+    required this.bib,
+    this.time,
+    required this.label,
+  });
+
+  final int position;
+  final String bib;
+  final String? time;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.selectedRoleColor,
+      padding: const EdgeInsets.symmetric(
+        vertical: AppSpacing.md,
+        horizontal: AppSpacing.xl,
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 36,
+            child: Text(
+              ordinal(position),
+              style: AppTypography.captionBold.copyWith(
+                color: AppColors.primaryColor,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label, style: AppTypography.smallBodySemibold),
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                time ?? '—',
+                style: AppTypography.smallBodySemibold.copyWith(
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Text(
+                '#$bib',
+                style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
