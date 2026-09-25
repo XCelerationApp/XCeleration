@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/screen_awake.dart';
+import '../../shared/utils/live_race_screen.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../core/utils/enums.dart';
 import '../../../core/theme/app_colors.dart';
@@ -63,9 +64,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
   }
 
   void _onControllerChanged() {
-    // The screen stays on while recording.
-    ScreenAwake.set(
-        _controller.currentRace != null && !_controller.raceStopped);
+    // The screen stays on while recording, and is reopened if the app
+    // closes mid-race.
+    final live = _controller.currentRace != null && !_controller.raceStopped;
+    ScreenAwake.set(live);
+    LiveRaceScreen.mark(live ? LiveRaceScreen.bibRecorder : null);
     if (_controller.runnersJustLoaded) {
       _controller.clearRunnersJustLoaded();
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -150,6 +153,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     _lifecycle.dispose();
     _voice.dispose();
     ScreenAwake.set(false);
+    LiveRaceScreen.mark(null);
     _controller.dispose();
     super.dispose();
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/app_header.dart';
 import '../../../core/services/screen_awake.dart';
+import '../../shared/utils/live_race_screen.dart';
 import '../../../core/services/tutorial_manager.dart';
 import '../../../shared/role_bar/widgets/instructions_banner.dart';
 import '../../../shared/role_bar/widgets/role_selector_sheet.dart';
@@ -221,15 +222,19 @@ class _TimingScreenState extends State<TimingScreen>
 
   /// The screen stays on while the clock runs.
   void _keepScreenOnWhileLive() {
-    ScreenAwake.set(_controller.currentRace != null &&
+    final live = _controller.currentRace != null &&
         _controller.startTime != null &&
-        !_controller.raceStopped);
+        !_controller.raceStopped;
+    ScreenAwake.set(live);
+    // Reopened here if the app closes mid-race.
+    LiveRaceScreen.mark(live ? LiveRaceScreen.timer : null);
   }
 
   @override
   void dispose() {
     _raceStateAndInfo.removeListener(_keepScreenOnWhileLive);
     ScreenAwake.set(false);
+    LiveRaceScreen.mark(null);
     _tabController.dispose();
     _controller.dispose();
     tutorialManager.dispose();
