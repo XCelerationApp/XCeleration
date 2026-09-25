@@ -307,7 +307,14 @@ class _DropdownField<T> extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppBorderRadius.md),
           ),
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+          // Rounded and white, like the app's other menus.
           child: DropdownButton<T>(
+            dropdownColor: Colors.white,
+            borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+            elevation: 4,
+            menuMaxHeight: 360,
+            icon: const Icon(Icons.keyboard_arrow_down_rounded,
+                color: AppColors.mediumColor),
             value: value,
             onChanged: onChanged,
             isExpanded: true,
