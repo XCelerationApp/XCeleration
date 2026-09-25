@@ -58,8 +58,8 @@ class SettingsScreen extends StatelessWidget {
             builder: (context, snapshot) {
               final info = snapshot.data;
               return _buildNote(info == null
-                  ? 'Xceleration'
-                  : 'Xceleration ${info.version} (${info.buildNumber})');
+                  ? 'XCeleration'
+                  : 'XCeleration ${info.version} (${info.buildNumber})');
             },
           ),
           const SizedBox(height: 24),
@@ -167,7 +167,7 @@ class SettingsScreen extends StatelessWidget {
     return _buildRoleItem(
       context,
       'Sync Now',
-      'Push local changes and pull updates from the cloud',
+      'Save your races to your account and get changes made on your other phones',
       Icons.sync,
       isSelected: false,
       onTap: () async {

@@ -167,7 +167,7 @@ void main() {
     expect(find.text('16th place'), findsOneWidget);
     expect(find.text('21st place'), findsOneWidget);
     // 16th has no settled time; it says so rather than guessing.
-    expect(find.text('Time not settled'), findsOneWidget);
+    expect(find.text('Time comes next'), findsOneWidget);
     expect(find.text('16:03.78'), findsOneWidget);
 
     await tester.tap(find.text('16th place'));

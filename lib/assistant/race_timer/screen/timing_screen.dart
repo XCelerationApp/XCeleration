@@ -87,7 +87,7 @@ class _TimingScreenState extends State<TimingScreen>
                   SizedBox(height: MediaQuery.paddingOf(context).top)
                 else
                   AppHeader(
-                    title: 'Race Timer',
+                    title: 'Timer',
                     currentRole: Role.timer,
                     tutorialManager: tutorialManager,
                     onRoleTap: () => RoleSelectorSheet.showRoleSelection(

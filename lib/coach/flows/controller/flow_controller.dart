@@ -289,7 +289,7 @@ class MasterFlowController {
     await updateRaceFlowState(context, Race.FLOW_FINISHED);
     if (context.mounted) {
       // A finished race opens on its results, so they are one tap away.
-      closeRaceSheet(context, message: 'Results saved.');
+      closeRaceSheet(context, message: 'Results saved. Open the race to see and share them.');
     }
     return true;
   }

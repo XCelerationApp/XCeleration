@@ -196,7 +196,7 @@ class _HeaderCard extends StatelessWidget {
               ),
               const SizedBox(width: AppSpacing.xs),
               Text(
-                conflict.occurrence.time ?? 'Time not settled',
+                conflict.occurrence.time ?? 'Time comes next',
                 style: AppTypography.bodySemibold.copyWith(
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),

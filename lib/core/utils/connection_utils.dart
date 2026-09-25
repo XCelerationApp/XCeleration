@@ -3,7 +3,7 @@ import 'enums.dart';
 const Map<DeviceName, String> _deviceNameStrings = {
   DeviceName.coach: 'Coach',
   DeviceName.bibRecorder: 'Bib Recorder',
-  DeviceName.raceTimer: 'Race Timer',
+  DeviceName.raceTimer: 'Timer',
   DeviceName.spectator: 'Spectator',
 };
 

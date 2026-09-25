@@ -130,7 +130,7 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              widget.occurrence.time ?? 'Time not settled',
+              widget.occurrence.time ?? 'Time comes next',
               style: widget.occurrence.time != null
                   ? AppTypography.displaySmall
                   : AppTypography.bodyRegular

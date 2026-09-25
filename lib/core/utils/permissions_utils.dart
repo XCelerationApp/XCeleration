@@ -66,7 +66,7 @@ class PermissionsUtils {
       Permission.camera,
       title: 'Camera Permission',
       message: message ??
-          'Xceleration uses the camera to scan the QR code on a '
+          'XCeleration uses the camera to scan the QR code on a '
               'teammate\'s phone, so you can pass race data between phones.',
       buttonText: 'Allow Camera Access',
     );
@@ -80,7 +80,7 @@ class PermissionsUtils {
       Permission.location,
       title: 'Location Permission',
       message: message ??
-          'Xceleration uses where you are to fill in a race\'s address when '
+          'XCeleration uses where you are to fill in a race\'s address when '
               'you tap the location button. It is used only then.',
       buttonText: 'Allow Location Access',
     );
@@ -94,7 +94,7 @@ class PermissionsUtils {
       Permission.nearbyWifiDevices,
       title: 'Connection Permission',
       message: message ??
-          'Lets Xceleration find your coach\'s and teammates\' phones '
+          'Lets XCeleration find your coach\'s and teammates\' phones '
               'nearby, to send races, times and bib numbers between them.',
       buttonText: 'Allow',
     );
