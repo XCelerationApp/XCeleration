@@ -9,7 +9,8 @@ import '../../shared/role_bar/models/role_enums.dart';
 import '../../shared/role_bar/widgets/instructions_banner.dart';
 
 /// Top-of-screen header used across all role screens.
-/// Includes a large title, instructions button, role switcher, and settings.
+/// Includes a large title that opens the role switcher, an instructions
+/// button, and settings.
 ///
 /// Navigation is decoupled via [onRoleTap] and [onSettingsTap] callbacks —
 /// screens own navigation; this shared component does not.
@@ -19,7 +20,7 @@ class AppHeader extends StatelessWidget {
   final TutorialManager tutorialManager;
   final TextStyle? titleStyle;
 
-  /// Called when the user taps the role-switcher button.
+  /// Called when the user taps the title, to switch roles.
   /// The parent screen is responsible for showing the role selector.
   final VoidCallback onRoleTap;
 
@@ -50,11 +51,53 @@ class AppHeader extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
+          // Tapping the title switches roles; the arrow beside it says so.
+          // It shrinks to fit beside the buttons at a large text size, rather
+          // than cutting the title down to "My ...". There used to be a
+          // person button for this too, which looked like an account page.
           Flexible(
-            child: Text(
-              title,
-              style: titleStyle ?? AppTypography.displayMedium,
-              overflow: TextOverflow.ellipsis,
+            child: CoachMark(
+              id: 'role_bar_tutorial',
+              tutorialManager: tutorialManager,
+              config: const CoachMarkConfig(
+                title: 'Switch Roles',
+                // Opens rightward from the title, at the left edge.
+                alignmentX: AlignmentX.right,
+                alignmentY: AlignmentY.bottom,
+                description:
+                    'Tap the title to switch between Coach, Timer, and Bib Recorder',
+                icon: Icons.touch_app,
+                type: CoachMarkType.targeted,
+                backgroundColor: Color(0xFF1976D2),
+                elevation: 12,
+              ),
+              child: Semantics(
+                button: true,
+                label: '$title. Switch roles',
+                excludeSemantics: true,
+                child: GestureDetector(
+                  key: const ValueKey('app_header_title'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onRoleTap,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          style: titleStyle ?? AppTypography.displayMedium,
+                        ),
+                        const SizedBox(width: AppSpacing.xs),
+                        const Icon(Icons.keyboard_arrow_down_rounded,
+                            size: 28, color: AppColors.mediumColor),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -63,26 +106,6 @@ class AppHeader extends StatelessWidget {
             highlight: true,
             onTap: () =>
                 InstructionsBanner.showInstructionsSheetManual(context, currentRole),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          CoachMark(
-            id: 'role_bar_tutorial',
-            tutorialManager: tutorialManager,
-            config: const CoachMarkConfig(
-              title: 'Switch Roles',
-              alignmentX: AlignmentX.left,
-              alignmentY: AlignmentY.bottom,
-              description:
-                  'Click here to switch between Coach, Timer, and Bib Recorder roles',
-              icon: Icons.touch_app,
-              type: CoachMarkType.targeted,
-              backgroundColor: Color(0xFF1976D2),
-              elevation: 12,
-            ),
-            child: _HeaderIconButton(
-              icon: Icons.person_outline,
-              onTap: onRoleTap,
-            ),
           ),
           const SizedBox(width: AppSpacing.sm),
           _HeaderIconButton(

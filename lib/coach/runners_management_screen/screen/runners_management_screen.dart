@@ -1,43 +1,25 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart'; // Selector, ChangeNotifierProvider
 import 'package:xceleration/core/services/i_sync_service.dart';
 import '../controller/runners_management_controller.dart';
+import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/components/button_components.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
-import '../../../shared/models/database/master_race.dart';
-import '../widgets/list_titles.dart';
+import '../../../shared/models/database/i_master_race_resolver.dart';
 import '../widgets/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
 
 // Main Screen
 class TeamsAndRunnersManagementWidget extends StatefulWidget {
-  final MasterRace masterRace;
+  final IMasterRaceResolver masterRace;
   final VoidCallback? onBack;
   final VoidCallback? onContentChanged;
   final bool? showHeader;
   final bool isViewMode;
-
-  // Add a static method that can be called from outside
-  static Future<bool> checkMinimumRunnersLoaded(MasterRace masterRace) async {
-    final teamToRaceRunnersMap = await masterRace.teamtoRaceRunnersMap;
-
-    // If there are no teams yet, we cannot proceed
-    if (teamToRaceRunnersMap.isEmpty) {
-      // No teams -> cannot proceed
-      return false;
-    }
-
-    for (final entry in teamToRaceRunnersMap.entries) {
-      if (entry.value.isEmpty) {
-        // Team with zero runners -> cannot proceed
-        return false;
-      }
-    }
-
-    // All teams have at least one runner
-    return true;
-  }
 
   const TeamsAndRunnersManagementWidget({
     super.key,
@@ -81,42 +63,46 @@ class _TeamsAndRunnersManagementWidgetState
   Widget build(BuildContext context) {
     return ChangeNotifierProvider.value(
       value: _controller,
-      child: Consumer<RunnersManagementController>(
-        builder: (context, controller, child) {
+      // Selector gates rebuilds of the header/search section to only the
+      // fields those sections actually read. RunnersList subscribes to the
+      // controller independently, so it is placed outside the Selector —
+      // search/filter notifications no longer cause a full-column rebuild.
+      child: Selector<RunnersManagementController,
+          ({bool showHeader, bool isLoading, int totalRunnerCount, String searchAttribute})>(
+        selector: (_, c) => (
+          showHeader: c.showHeader,
+          isLoading: c.isLoading,
+          totalRunnerCount: c.totalRunnerCount,
+          searchAttribute: c.searchAttribute,
+        ),
+        builder: (context, data, _) {
           return Material(
             color: AppColors.backgroundColor,
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                return Column(
-                  // Make the column take up the full available height
-                  mainAxisSize: MainAxisSize.max,
-                  children: [
-                    if (controller.showHeader) ...[
-                      createSheetHeader(
-                        'Teams and Runners',
-                        backArrow: true,
-                        context: context,
-                        onBack: widget.onBack,
+            child: Column(
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                if (data.showHeader)
+                  ColoredBox(
+                    color: AppColors.backgroundColor,
+                    child: _buildHeader(_controller),
+                  ),
+                if (!data.isLoading)
+                  ColoredBox(
+                    color: AppColors.backgroundColor,
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(
+                        AppSpacing.lg,
+                        AppSpacing.sm,
+                        AppSpacing.lg,
+                        AppSpacing.md,
                       ),
-                    ],
-
-                    if (!controller.isViewMode) ...[
-                      _buildActionButtons(),
-                      const SizedBox(height: 12),
-                    ],
-                    if (!controller.isLoading) ...[
-                      _buildSearchSection(),
-                      const SizedBox(height: 8),
-                      const ListTitles(),
-                      const SizedBox(height: 4),
-                    ],
-                    // Use Expanded to fill remaining space with top-aligned content
-                    Expanded(
-                      child: RunnersList(controller: controller),
+                      child: _buildSearchSection(),
                     ),
-                  ],
-                );
-              },
+                  ),
+                Expanded(
+                  child: RunnersList(controller: _controller),
+                ),
+              ],
             ),
           );
         },
@@ -124,26 +110,67 @@ class _TeamsAndRunnersManagementWidgetState
     );
   }
 
-  // UI Building Methods
-  Widget _buildActionButtons() {
+  Widget _buildHeader(RunnersManagementController controller) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8.0),
-      child: Row(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        AppSpacing.md,
+      ),
+      child: Column(
         children: [
-          Expanded(
-            child: SharedActionButton(
-              text: 'Create Team',
-              icon: Icons.group_add,
-              onPressed: () => _controller.showCreateTeamSheet(context),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: SharedActionButton(
-              text: 'Import Teams',
-              icon: Icons.download,
-              onPressed: () => _controller.showExistingTeamsBrowser(context),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (widget.onBack != null)
+                createBackArrow(context, onBack: widget.onBack),
+              // Gives way to the buttons in a narrow sheet, which overflowed
+              // by a few pixels.
+              Flexible(
+                child: Text(
+                  'Runners',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTypography.titleMedium.copyWith(
+                    color: AppColors.darkColor,
+                  ),
+                ),
+              ),
+              if (controller.totalRunnerCount > 0) ...[
+                const SizedBox(width: AppSpacing.sm),
+                Text(
+                  '${controller.totalRunnerCount}',
+                  style: AppTypography.captionBold.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
+                ),
+              ],
+              const Spacer(),
+              // Test tools: in debug and profile builds, never in the store build.
+              if (!kReleaseMode &&
+                  !controller.isViewMode &&
+                  controller.totalRunnerCount == 0)
+                IconButton(
+                  onPressed: _controller.addSampleRoster,
+                  icon: const Icon(Icons.science_outlined),
+                  tooltip: 'Add sample roster (debug)',
+                ),
+              if (controller.totalRunnerCount > 0)
+                IconButton(
+                  onPressed: () => _controller.exportRoster(context),
+                  icon: const Icon(Icons.ios_share),
+                  // Compact, so "Runners" fits beside it in a sheet.
+                  visualDensity: VisualDensity.compact,
+                  color: AppColors.mediumColor,
+                  tooltip: 'Export runners to a spreadsheet',
+                ),
+              if (!controller.isViewMode)
+                _AddTeamButton(
+                  onTap: () =>
+                      _controller.showAddTeamChoiceSheet(context),
+                ),
+            ],
           ),
         ],
       ),
@@ -157,16 +184,49 @@ class _TeamsAndRunnersManagementWidgetState
       onSearchChanged: () => _controller
           .filterRaceRunners(_controller.searchController.text.trim()),
       onAttributeChanged: (value) {
-        setState(() {
-          _controller.searchAttribute = value!;
-          _controller
-              .filterRaceRunners(_controller.searchController.text.trim());
-        });
+        _controller.setSearchAttribute(value!);
       },
-      onDeleteAll: _controller.isViewMode
-          ? null
-          : () => _controller.confirmDeleteAllRunners(context),
       isViewMode: _controller.isViewMode,
+    );
+  }
+}
+
+class _AddTeamButton extends StatelessWidget {
+  const _AddTeamButton({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.sm,
+        ),
+        decoration: BoxDecoration(
+          color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+          border: Border.all(
+            color: AppColors.primaryColor,
+            width: 1.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add, size: 16, color: AppColors.primaryColor),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              'Add Team',
+              style: AppTypography.smallBodySemibold.copyWith(
+                color: AppColors.primaryColor,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

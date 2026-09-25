@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:flutter_colorpicker/flutter_colorpicker.dart';
+import '../app_error.dart';
 import '../repositories/i_team_repository.dart';
 import '../services/service_locator.dart';
 import '../theme/app_animations.dart';
@@ -9,12 +10,12 @@ import '../theme/app_colors.dart';
 import '../theme/app_opacity.dart';
 import '../theme/app_spacing.dart';
 import 'textfield_utils.dart';
-import '../../shared/models/database/master_race.dart';
+import '../../shared/models/database/i_master_race_resolver.dart';
 import '../../shared/models/database/team.dart';
 
 class CreateTeamSheet extends StatefulWidget {
-  final MasterRace masterRace;
-  final Future<void> Function(Team) createTeam;
+  final IMasterRaceResolver masterRace;
+  final Future<AppError?> Function(Team) createTeam;
 
   const CreateTeamSheet({
     super.key,
@@ -194,11 +195,17 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
     setState(() {
       _isCreating = true;
     });
-    await widget.createTeam(team);
+    final error = await widget.createTeam(team);
     if (!mounted) return; // Parent may have popped the sheet in the callback
     setState(() {
       _isCreating = false;
     });
+    if (error != null) {
+      // Keep the sheet open with the reason on the field, rather than closing
+      // as though the team had been made.
+      setState(() => _teamNameError = error.userMessage);
+      return;
+    }
     if (Navigator.of(context).canPop()) {
       Navigator.of(context).pop(team);
     }

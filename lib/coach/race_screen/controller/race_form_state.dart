@@ -25,6 +25,14 @@ class RaceFormState extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sets multiple field errors at once and notifies listeners only once.
+  void setErrors(Map<RaceField, String?> errors) {
+    for (final entry in errors.entries) {
+      _errors[entry.key] = entry.value;
+    }
+    notifyListeners();
+  }
+
   // Editing state
   final Set<RaceField> _editingFields = {};
   bool isEditing(RaceField field) => _editingFields.contains(field);
@@ -76,12 +84,17 @@ class RaceFormState extends ChangeNotifier {
       RaceField.unit => ctrl.text,
     };
 
+    final bool wasDirty = _changedFields.contains(field);
     if (currentValue != _originalValues[field]) {
       _changedFields.add(field);
     } else {
       _changedFields.remove(field);
     }
-    notifyListeners();
+    // Only rebuild when a field transitions between clean and dirty.
+    // Avoids a full screen rebuild on every keystroke.
+    if (_changedFields.contains(field) != wasDirty) {
+      notifyListeners();
+    }
   }
 
   void revertField(RaceField field) {
@@ -185,6 +198,12 @@ class RaceFormState extends ChangeNotifier {
     RaceField.distance: RaceService.validateDistance,
   };
 
+  /// Returns the validation result for [field] without mutating error state.
+  String? validateField(RaceField field) {
+    final validator = _fieldValidators[field];
+    return validator?.call(controllerFor(field).text);
+  }
+
   /// Looks up the validator for [field] and applies it via [setError].
   void applyValidation(RaceField field) {
     final validator = _fieldValidators[field];
@@ -192,18 +211,6 @@ class RaceFormState extends ChangeNotifier {
       setError(field, validator(controllerFor(field).text));
     }
   }
-
-  void validateName(String name) =>
-      setError(RaceField.name, RaceService.validateName(name));
-
-  void validateLocation(String location) =>
-      setError(RaceField.location, RaceService.validateLocation(location));
-
-  void validateDate(String dateString) =>
-      setError(RaceField.date, RaceService.validateDate(dateString));
-
-  void validateDistance(String distanceString) =>
-      setError(RaceField.distance, RaceService.validateDistance(distanceString));
 
   @override
   void dispose() {

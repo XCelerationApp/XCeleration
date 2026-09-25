@@ -39,11 +39,12 @@ class BibEncodeUtils {
     final bibData = await Future.wait(raceParticipants.map((runner) async {
       final raceRunner =
           await masterRace.getRaceRunnerFromRaceParticipant(runner);
-      if (raceRunner == null) return '';
-      return BibDatum.fromRaceRunner(raceRunner);
+      return raceRunner == null ? null : BibDatum.fromRaceRunner(raceRunner);
     }));
 
-    return getEncodedBibData(bibData.cast<BibDatum>());
+    // Skip participants whose runner is missing. Returning '' for them and
+    // casting to BibDatum threw, so sharing the roster failed outright.
+    return getEncodedBibData(bibData.whereType<BibDatum>().toList());
   }
 
   static Future<String> getEncodedBibData(List<BibDatum> bibData) async {

@@ -9,6 +9,13 @@ import '../models/role_enums.dart';
 import '../../../core/components/page_route_animations.dart';
 import '../../../core/services/auth_service.dart';
 import '../../role_screen.dart';
+import '../../screens/sign_in_screen.dart';
+import '../../../core/components/dialog_utils.dart';
+import '../../../core/repositories/i_database_connection_provider.dart';
+import '../../../core/services/profile_service.dart';
+import '../../../core/services/remote_api_client.dart';
+import '../../../core/services/service_locator.dart';
+import '../../../core/utils/logger.dart';
 
 /// Sheet for selecting roles or profiles
 class RoleSelectorSheet {
@@ -47,14 +54,39 @@ class RoleSelectorSheet {
     return result;
   }
 
-  static void _navigateToRoleScreen(BuildContext context, Role role) {
-    if (role == Role.coach || role == Role.spectator) {
-      if (!AuthService.instance.isSignedIn) {
+  /// Opens [role] the way the home screen does. Only the coach needs an
+  /// account: without one the coach signs in first, and with one their own
+  /// database is opened before their races are shown. Spectators and
+  /// assistants go straight in.
+  static Future<void> _navigateToRoleScreen(
+      BuildContext context, Role role) async {
+    if (role == Role.coach) {
+      final auth = AuthService.instance;
+      if (!auth.isSignedIn) {
         Navigator.of(context).push(
-          RolePageRouteAnimation(child: const RoleScreen()),
+          RolePageRouteAnimation(
+            child: SignInScreen(
+              authService: auth,
+              profileService:
+                  ProfileService(remoteApi: RemoteApiClient(), auth: auth),
+            ),
+          ),
         );
         return;
       }
+      try {
+        await ServiceLocator.get<IDatabaseConnectionProvider>()
+            .openForUser(auth.currentUserId!);
+      } catch (e) {
+        Logger.e('Could not open the coach database: $e');
+        if (context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Could not open your races. Please restart the app '
+                  'and try again.');
+        }
+        return;
+      }
+      if (!context.mounted) return;
     }
     Navigator.of(context).pushAndRemoveUntil(
       RolePageRouteAnimation(child: role.screen),

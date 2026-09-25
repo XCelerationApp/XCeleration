@@ -40,13 +40,6 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
       if (mounted) Navigator.of(context).pop(null);
     };
     _controller.initState();
-    _controller.addListener(_rebuildUi);
-  }
-
-  void _rebuildUi() {
-    if (mounted) {
-      setState(() {});
-    }
   }
 
   @override
@@ -59,11 +52,7 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
             Expanded(
               child: ListView(
                 padding: EdgeInsets.zero,
-                children: [
-                  InstructionsAndList(
-                    controller: _controller,
-                  )
-                ],
+                children: const [InstructionsAndList()],
               ),
             ),
           ],
@@ -74,60 +63,58 @@ class _MergeConflictsScreenState extends State<MergeConflictsScreen> {
 
   @override
   void dispose() {
-    _controller.removeListener(_rebuildUi);
     // Don't dispose controller - Provider handles it
     super.dispose();
   }
 }
 
 class InstructionsAndList extends StatelessWidget {
-  const InstructionsAndList({
-    super.key,
-    required this.controller,
-  });
-  final MergeConflictsController controller;
+  const InstructionsAndList({super.key});
+
   @override
   Widget build(BuildContext context) {
-    if (controller.timingChunks.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.hourglass_empty, size: 64, color: Colors.grey[400]),
-            const SizedBox(height: 16),
-            Text(
-              'No race results to review',
-              style:
-                  AppTypography.titleSemibold.copyWith(color: Colors.grey[600]),
+    return Selector<MergeConflictsController, bool>(
+      selector: (_, c) => c.timingChunks.isEmpty,
+      builder: (context, isEmpty, _) {
+        if (isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.hourglass_empty, size: 64, color: Colors.grey[400]),
+                const SizedBox(height: 16),
+                Text(
+                  'No race results to review',
+                  style: AppTypography.titleSemibold
+                      .copyWith(color: Colors.grey[600]),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    }
+          );
+        }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-      child: Column(
-        children: [
-          // Instructions card
-          InstructionCard(
-            title: 'Review Race Results',
-            instructions: [
-              InstructionItem(
-                  number: '1',
-                  text: 'Find the runners with the unknown times (orange)'),
-              InstructionItem(number: '2', text: 'Update times as needed'),
-              InstructionItem(
-                  number: '3', text: 'Save when all results are confirmed'),
+        return const Padding(
+          padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: Column(
+            children: [
+              InstructionCard(
+                title: 'Review Race Results',
+                instructions: [
+                  InstructionItem(
+                      number: '1',
+                      text: 'Find the runners with the unknown times (orange)'),
+                  InstructionItem(number: '2', text: 'Update times as needed'),
+                  InstructionItem(
+                      number: '3', text: 'Save when all results are confirmed'),
+                ],
+              ),
+              SizedBox(height: 16),
+              ChunkList(),
+              SizedBox(height: 24),
             ],
           ),
-          const SizedBox(height: 16),
-
-          // Content based on mode
-          ChunkList(controller: controller),
-          const SizedBox(height: 24),
-        ],
-      ),
+        );
+      },
     );
   }
 }

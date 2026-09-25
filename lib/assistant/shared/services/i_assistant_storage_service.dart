@@ -5,10 +5,26 @@ import 'package:xceleration/core/result.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
+/// A race sent by the coach, as this phone stored it.
+class ReceivedRace {
+  const ReceivedRace({required this.race, required this.isNew});
+
+  /// The race to open. Its [RaceRecord.raceId] can differ from the one the
+  /// coach sent, when that number was already taken by another race here.
+  final RaceRecord race;
+
+  /// False when this race was already on the phone, with whatever has been
+  /// recorded for it.
+  final bool isNew;
+}
+
 abstract interface class IAssistantStorageService {
   // Race Methods
 
   Future<Result<void>> saveNewRace(RaceRecord race);
+
+  /// Stores a race the coach sent, unless it is already here.
+  Future<Result<ReceivedRace>> receiveRace(RaceRecord race);
 
   Future<Result<void>> updateRace(RaceRecord race);
 

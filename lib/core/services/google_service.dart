@@ -1,5 +1,4 @@
 import 'dart:async';
-// import 'dart:convert'; // Unused
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -19,8 +18,10 @@ class GoogleService {
   static GoogleService? _instance;
   static GoogleService get instance => _instance ??= GoogleService();
 
+  static const String _driveScope =
+      'https://www.googleapis.com/auth/drive.file';
+
   // Authentication
-  GoogleSignIn? _googleSignIn;
   GoogleSignInAccount? _currentUser;
   String? _accessToken;
   DateTime? _tokenExpiry;
@@ -32,7 +33,6 @@ class GoogleService {
   // Configuration
   static String get _webClientId =>
       dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
-  // API key not currently used - OAuth flow handles authentication
 
   // Dependencies
   final ConnectivityService _connectivity;
@@ -42,22 +42,14 @@ class GoogleService {
 
   GoogleService({
     ConnectivityService? connectivity,
-    GoogleSignIn? googleSignIn,
-  }) : _connectivity = connectivity ?? const ConnectivityService() {
-    if (googleSignIn != null) {
-      _googleSignIn = googleSignIn;
-      _initialized = true;
-    }
-  }
+  }) : _connectivity = connectivity ?? const ConnectivityService();
 
   /// Initialize the Google service
   Future<void> initialize() async {
     if (_initialized) return;
 
-    _googleSignIn = GoogleSignIn(
-      scopes: ['https://www.googleapis.com/auth/drive.file'],
+    await GoogleSignIn.instance.initialize(
       serverClientId: _webClientId,
-      forceCodeForRefreshToken: true,
     );
 
     await _loadStoredAuth();
@@ -80,20 +72,40 @@ class GoogleService {
         return false;
       }
 
-      // Try silent sign-in first
-      _currentUser = await _googleSignIn!.signInSilently();
+      // Try lightweight authentication first (no UI)
+      final lightweightFuture =
+          GoogleSignIn.instance.attemptLightweightAuthentication();
+      if (lightweightFuture != null) {
+        _currentUser = await lightweightFuture;
+      }
 
-      // If silent sign-in fails, try interactive sign-in
-      _currentUser ??= await _googleSignIn!.signIn();
-
+      // If that fails, try interactive sign-in
       if (_currentUser == null) {
-        Logger.d('Sign-in cancelled by user');
+        try {
+          _currentUser = await GoogleSignIn.instance.authenticate(
+            scopeHint: [_driveScope],
+          );
+        } on GoogleSignInException catch (e) {
+          if (e.code == GoogleSignInExceptionCode.canceled) {
+            Logger.d('Sign-in cancelled by user');
+          } else {
+            Logger.e('Sign-in failed', error: e);
+          }
+          return false;
+        }
+      }
+
+      // Get access token via authorization client
+      try {
+        final authz = await _currentUser!.authorizationClient
+            .authorizeScopes([_driveScope]);
+        _accessToken = authz.accessToken;
+      } on GoogleSignInException catch (e) {
+        Logger.e('Failed to get access token', error: e);
+        _currentUser = null;
         return false;
       }
 
-      // Get access token
-      final auth = await _currentUser!.authentication;
-      _accessToken = auth.accessToken;
       _tokenExpiry = DateTime.now().add(const Duration(minutes: 55));
 
       // Initialize API clients
@@ -112,7 +124,7 @@ class GoogleService {
 
   /// Sign out
   Future<void> signOut() async {
-    await _googleSignIn?.signOut();
+    await GoogleSignIn.instance.signOut();
     _currentUser = null;
     _accessToken = null;
     _tokenExpiry = null;

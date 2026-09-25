@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/utils/enums.dart';
 import '../model/ui_record.dart';
 
-class UIRecordItem extends StatelessWidget {
+class RecordListItem extends StatelessWidget {
   final UIRecord uiRecord;
   final int index;
 
-  const UIRecordItem({
+  const RecordListItem({
     super.key,
     required this.uiRecord,
     required this.index,
@@ -17,16 +19,11 @@ class UIRecordItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final isEven = index % 2 == 0;
     return Container(
-      margin: EdgeInsets.fromLTRB(
-        MediaQuery.of(context).size.width * 0.02,
-        0,
-        MediaQuery.of(context).size.width * 0.01,
-        0,
-      ),
       decoration: BoxDecoration(
-        color: isEven ? const Color(0xFFF5F5F5) : Colors.white,
+        color: isEven ? AppColors.surfaceColor : Colors.white,
       ),
-      padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 8.0),
+      padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.md, horizontal: AppSpacing.lg),
       child: _buildRecordContent(context),
     );
   }
@@ -50,6 +47,7 @@ class UIRecordItem extends StatelessWidget {
           displayText,
           style: AppTypography.headerSemibold.copyWith(
             color: uiRecord.textColor,
+            fontFeatures: const [FontFeature.tabularFigures()],
           ),
         ),
       ],

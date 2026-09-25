@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
 import 'package:xceleration/core/repositories/runner_repository.dart';
 import 'package:xceleration/core/utils/local_schema.dart';
@@ -35,6 +36,16 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
   Future<void> deleteDatabase() async {
     _db = null;
   }
+
+  @override
+  Future<void> openForUser(String userId) async {
+    // The in-memory database is not per user; opening is a no-op.
+    await database;
+  }
+
+  @override
+  Future<void> deleteUserData(String userId) async => deleteDatabase();
+
 }
 
 void main() {
@@ -67,9 +78,36 @@ void main() {
     });
   }
 
+  // A finished race with one saved result, for delete-guard tests.
+  Future<void> insertResult(int runnerId, int? teamId) async {
+    final db = await connProvider.database;
+    final raceId = await db.insert('races', {
+      'name': 'Meet',
+      'is_dirty': 0,
+    });
+    await db.insert('race_results', {
+      'race_id': raceId,
+      'runner_id': runnerId,
+      'team_id': teamId,
+      'place': 1,
+      'finish_time': 1000,
+      'is_dirty': 0,
+    });
+  }
+
   const validRunner = Runner(name: 'Alice', bibNumber: '100', grade: 11);
 
   group('RunnerRepository', () {
+    group('updated_at stamps', () {
+      test('createRunner stamps updated_at in UTC', () async {
+        final id = await repo.createRunner(validRunner);
+        final row = (await (await connProvider.database)
+                .query('runners', where: 'runner_id = ?', whereArgs: [id]))
+            .single;
+        expect(row['updated_at'], endsWith('Z'));
+      });
+    });
+
     group('createRunner', () {
       test('returns auto-assigned id for a valid runner', () async {
         final id = await repo.createRunner(validRunner);
@@ -197,6 +235,29 @@ void main() {
       });
     });
 
+    group('deleting a runner with saved results', () {
+      // Deletes cascade to race_results, so these must be refused.
+      test('deleteRunnerEverywhere refuses and keeps the results', () async {
+        final id = await repo.createRunner(validRunner);
+        await insertResult(id, null);
+
+        await expectLater(
+            repo.deleteRunnerEverywhere(id), throwsA(isA<DataInUseException>()));
+
+        expect(await repo.getRunner(id), isNotNull);
+        expect(await repo.countRaceResults(id), 1);
+      });
+
+      test('removeRunner refuses and keeps the results', () async {
+        final id = await repo.createRunner(validRunner);
+        await insertResult(id, null);
+
+        await expectLater(
+            repo.removeRunner(id), throwsA(isA<DataInUseException>()));
+        expect(await repo.countRaceResults(id), 1);
+      });
+    });
+
     group('deleteRunnerEverywhere', () {
       test('completes without error when runner does not exist', () async {
         await expectLater(repo.deleteRunnerEverywhere(9999), completes);
@@ -208,15 +269,18 @@ void main() {
         expect(await repo.getRunner(id), isNull);
       });
 
-      test('removes associated team_rosters rows', () async {
+      test('tombstones associated team_rosters rows', () async {
         final runnerId = await repo.createRunner(validRunner);
         final teamId = await insertTeam('Eagles');
         await repo.addRunnerToTeam(teamId, runnerId);
         await repo.deleteRunnerEverywhere(runnerId);
+        expect(await repo.getTeamRunners(teamId), isEmpty);
+        // The row itself stays so the removal can be pushed to the server.
         final db = await connProvider.database;
         final rows = await db.query('team_rosters',
             where: 'runner_id = ?', whereArgs: [runnerId]);
-        expect(rows, isEmpty);
+        expect(rows, hasLength(1));
+        expect(rows.first['deleted_at'], isNotNull);
       });
     });
 

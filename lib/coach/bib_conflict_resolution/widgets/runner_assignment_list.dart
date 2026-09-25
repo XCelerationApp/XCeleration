@@ -1,0 +1,553 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:xceleration/shared/models/database/race_runner.dart';
+import '../controller/conflict_resolution_controller.dart';
+import '../../../core/theme/app_animations.dart';
+import '../../../core/theme/app_border_radius.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
+
+/// Shared resolution list used by both DuplicateStep2Card and UnknownBibCard.
+/// Shows unassigned runners with school filter pills, team-grouped rows,
+/// and an expand-then-confirm interaction.
+class RunnerAssignmentList extends StatefulWidget {
+  const RunnerAssignmentList({
+    super.key,
+    required this.targetBib,
+    this.forbiddenBib,
+    this.onAssign,
+  });
+
+  /// The bib being resolved: the list starts with the nearest bib numbers,
+  /// since a mistyped bib is usually a digit or two out.
+  final String targetBib;
+  final String? forbiddenBib;
+
+  /// Optional override for the assign action. When set, called instead of
+  /// [ConflictResolutionController.prepareAssign] so callers can use a
+  /// different controller method (e.g. [prepareAssignForDuplicate]).
+  final void Function(RaceRunner runner, String label)? onAssign;
+
+  @override
+  State<RunnerAssignmentList> createState() => _RunnerAssignmentListState();
+}
+
+class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
+  String? _activeTeam; // null = "All"
+  RaceRunner? _selectedRunner;
+
+  List<RaceRunner> _filter(List<RaceRunner> runners) {
+    if (_activeTeam == null) return runners;
+    return runners.where((r) => r.team.name == _activeTeam).toList();
+  }
+
+  Map<String, List<RaceRunner>> _groupByTeam(List<RaceRunner> runners) {
+    final map = <String, List<RaceRunner>>{};
+    for (final r in runners) {
+      map.putIfAbsent(r.team.name ?? '', () => []).add(r);
+    }
+    return map;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final controller = context.watch<ConflictResolutionController>();
+    final nearbyRunners = controller.runnersNearBib(widget.targetBib);
+    final teams = controller.teams;
+    final filtered = _filter(nearbyRunners);
+    final grouped = _groupByTeam(filtered);
+
+    // Build a flat list of typed item descriptors so ListView.builder can
+    // lazily construct only the widgets currently in view.
+    var rowIndex = 0;
+    final items = <_ListItem>[];
+    for (final team in grouped.keys) {
+      items.add(_SectionHeader(team: team, count: grouped[team]!.length));
+      for (final runner in grouped[team]!) {
+        items.add(_RunnerRow(runner: runner, animIndex: rowIndex++));
+      }
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _SchoolFilterPills(
+          teams: teams,
+          activeTeam: _activeTeam,
+          onChanged: (t) => setState(() {
+            _activeTeam = t;
+            _selectedRunner = null;
+          }),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        // Scrollable runner list — bounded so the CTA below stays visible.
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxHeight: 440),
+          child: nearbyRunners.isEmpty
+              ? _EmptyState(message: 'No unassigned runners — create a new one.')
+              : filtered.isEmpty
+                  ? const _EmptyState(message: 'No runners from this school.')
+                  : ListView.builder(
+                      itemCount: items.length,
+                      itemBuilder: (_, i) {
+                        final item = items[i];
+                        return switch (item) {
+                          _SectionHeader(:final team, :final count) =>
+                            _TeamSection(team: team, count: count),
+                          _RunnerRow(:final runner, :final animIndex) =>
+                            _AnimatedRunnerRow(
+                              key: ValueKey(runner.runner.bibNumber),
+                              index: animIndex,
+                              runner: runner,
+                              isSelected: _selectedRunner?.runner.bibNumber ==
+                                  runner.runner.bibNumber,
+                              onSelect: () =>
+                                  setState(() => _selectedRunner = runner),
+                            ),
+                        };
+                      },
+                    ),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        // CTA lives outside the scroll so it stays visible when a runner is selected.
+        AnimatedSwitcher(
+          duration: AppAnimations.standard,
+          child: _selectedRunner == null
+              ? const SizedBox.shrink()
+              : _AssignCta(
+                  key: ValueKey(_selectedRunner!.runner.bibNumber),
+                  runnerName: _selectedRunner!.runner.name ?? '',
+                  onAssign: () {
+                    final label = 'Bib #${widget.targetBib}';
+                    if (widget.onAssign != null) {
+                      widget.onAssign!(_selectedRunner!, label);
+                    } else {
+                      controller.prepareAssign(_selectedRunner!, label);
+                    }
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// List item descriptors for lazy ListView.builder rendering
+// ---------------------------------------------------------------------------
+
+sealed class _ListItem {}
+
+final class _SectionHeader extends _ListItem {
+  _SectionHeader({required this.team, required this.count});
+  final String team;
+  final int count;
+}
+
+final class _RunnerRow extends _ListItem {
+  _RunnerRow({required this.runner, required this.animIndex});
+  final RaceRunner runner;
+  final int animIndex;
+}
+
+// ---------------------------------------------------------------------------
+
+class _SchoolFilterPills extends StatelessWidget {
+  const _SchoolFilterPills({
+    required this.teams,
+    required this.activeTeam,
+    required this.onChanged,
+  });
+
+  final List<String> teams;
+  final String? activeTeam;
+  final ValueChanged<String?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final allOptions = <String?>[null, ...teams];
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: allOptions.map((team) {
+          final isActive = activeTeam == team;
+          return Padding(
+            padding: const EdgeInsets.only(right: AppSpacing.xs),
+            child: GestureDetector(
+              onTap: () => onChanged(team),
+              child: AnimatedContainer(
+                duration: AppAnimations.fast,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: isActive ? AppColors.selectedRoleColor : Colors.white,
+                  borderRadius: BorderRadius.circular(AppBorderRadius.full),
+                  border: Border.all(
+                    color: isActive ? AppColors.primaryColor : AppColors.lightColor,
+                  ),
+                ),
+                child: Text(
+                  team ?? 'All',
+                  style: AppTypography.smallBodyRegular.copyWith(
+                    color: isActive ? AppColors.primaryColor : AppColors.mediumColor,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _TeamSection extends StatelessWidget {
+  const _TeamSection({required this.team, required this.count});
+
+  final String team;
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.md, bottom: AppSpacing.xs),
+      child: Row(
+        children: [
+          Text(
+            team.toUpperCase(),
+            style: AppTypography.smallCaption.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.mediumColor,
+            ),
+          ),
+          const SizedBox(width: AppSpacing.xs),
+          Text(
+            '· $count',
+            style: AppTypography.smallCaption.copyWith(color: AppColors.mediumColor),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _AnimatedRunnerRow extends StatefulWidget {
+  const _AnimatedRunnerRow({
+    super.key,
+    required this.index,
+    required this.runner,
+    required this.isSelected,
+    required this.onSelect,
+  });
+
+  final int index;
+  final RaceRunner runner;
+  final bool isSelected;
+  final VoidCallback onSelect;
+
+  @override
+  State<_AnimatedRunnerRow> createState() => _AnimatedRunnerRowState();
+}
+
+class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _opacity;
+  bool _expanded = false;
+
+  static const _revealMs = 350; // AppAnimations.reveal
+  static const _staggerMs = 40;
+
+  @override
+  void initState() {
+    super.initState();
+    final delayMs = widget.index * _staggerMs;
+    final totalMs = delayMs + _revealMs;
+    _controller = AnimationController(
+      vsync: this,
+      duration: Duration(milliseconds: totalMs),
+    );
+    _opacity = CurvedAnimation(
+      parent: _controller,
+      curve: Interval(
+        totalMs > 0 ? delayMs / totalMs : 0.0,
+        1.0,
+        curve: AppAnimations.enter,
+      ),
+    );
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: GestureDetector(
+        onTap: () {
+          if (_expanded && !widget.isSelected) {
+            widget.onSelect();
+          } else {
+            setState(() => _expanded = !_expanded);
+          }
+        },
+        child: AnimatedContainer(
+          duration: AppAnimations.standard,
+          margin: const EdgeInsets.only(bottom: AppSpacing.xs),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
+          decoration: BoxDecoration(
+            color: widget.isSelected ? AppColors.selectedRoleColor : Colors.white,
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
+            border: Border.all(
+              color: widget.isSelected ? AppColors.primaryColor : AppColors.lightColor,
+            ),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  _BibAvatar(
+                    bibNumber: widget.runner.runner.bibNumber ?? '',
+                    isSelected: widget.isSelected,
+                  ),
+                  const SizedBox(width: AppSpacing.md),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(widget.runner.runner.name ?? '', style: AppTypography.smallBodySemibold),
+                        Text(
+                          widget.runner.team.name ?? '',
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.mediumColor,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.5 : 0,
+                    duration: AppAnimations.fast,
+                    child: const Icon(
+                      Icons.keyboard_arrow_down,
+                      color: AppColors.mediumColor,
+                      size: 20,
+                    ),
+                  ),
+                ],
+              ),
+              AnimatedSize(
+                duration: AppAnimations.standard,
+                curve: AppAnimations.spring,
+                child: _expanded
+                    ? _ExpandedDetail(
+                        runner: widget.runner,
+                        onSelect: widget.onSelect,
+                        isSelected: widget.isSelected,
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _ExpandedDetail extends StatelessWidget {
+  const _ExpandedDetail({
+    required this.runner,
+    required this.onSelect,
+    required this.isSelected,
+  });
+
+  final RaceRunner runner;
+  final VoidCallback onSelect;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: AppSpacing.sm),
+      child: Row(
+        children: [
+          // Wrap rather than a fixed row, so large text drops the second
+          // chip onto its own line instead of pushing Select off the edge.
+          Expanded(
+            child: Wrap(
+              spacing: AppSpacing.xs,
+              runSpacing: AppSpacing.xs,
+              children: [
+                _chip('Grade ${runner.runner.grade ?? '—'}'),
+                _chip('Bib #${runner.runner.bibNumber ?? '—'}'),
+              ],
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          // Says it has been chosen once it has, rather than still "Select".
+          ElevatedButton(
+            onPressed: isSelected ? null : onSelect,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryColor,
+              foregroundColor: Colors.white,
+              disabledBackgroundColor: Colors.white,
+              disabledForegroundColor: AppColors.primaryColor,
+              side: isSelected
+                  ? const BorderSide(color: AppColors.primaryColor)
+                  : null,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.lg,
+                vertical: AppSpacing.xs,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (isSelected) ...[
+                  const Icon(Icons.check,
+                      size: 18, color: AppColors.primaryColor),
+                  const SizedBox(width: AppSpacing.xs),
+                ],
+                Text(
+                  isSelected ? 'Selected' : 'Select',
+                  style: AppTypography.smallBodySemibold.copyWith(
+                      color:
+                          isSelected ? AppColors.primaryColor : Colors.white),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _chip(String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.xs,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.lightColor.withValues(alpha: AppOpacity.medium),
+        borderRadius: BorderRadius.circular(AppBorderRadius.xs),
+      ),
+      child: Text(
+        label,
+        style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _BibAvatar extends StatelessWidget {
+  const _BibAvatar({required this.bibNumber, required this.isSelected});
+
+  final String bibNumber;
+  final bool isSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    // A pill that grows with the bib, rather than a circle four digits
+    // spill out of.
+    return AnimatedContainer(
+      duration: AppAnimations.fast,
+      constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? AppColors.primaryColor
+            : AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+        borderRadius: BorderRadius.circular(AppBorderRadius.full),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        bibNumber,
+        maxLines: 1,
+        style: AppTypography.caption.copyWith(
+          color: isSelected ? Colors.white : AppColors.primaryColor,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _AssignCta extends StatelessWidget {
+  const _AssignCta({super.key, required this.runnerName, required this.onAssign});
+
+  final String runnerName;
+  final VoidCallback onAssign;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onAssign,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [AppColors.primaryColor, Color(0xFFFF7043)],
+          ),
+          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          'Assign $runnerName →',
+          style: AppTypography.bodySemibold.copyWith(color: Colors.white),
+        ),
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+      child: Center(
+        child: Text(
+          message,
+          style: AppTypography.smallBodyRegular.copyWith(color: AppColors.mediumColor),
+          textAlign: TextAlign.center,
+        ),
+      ),
+    );
+  }
+}

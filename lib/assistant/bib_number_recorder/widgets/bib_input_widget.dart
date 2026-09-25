@@ -1,0 +1,161 @@
+import 'package:flutter/material.dart';
+import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/typography.dart';
+import '../model/bib_datum_record.dart';
+import '../controller/bib_number_controller.dart';
+
+class BibInputWidget extends StatelessWidget {
+  final int index;
+  final BibNumberController controller;
+  final BibDatumRecord record;
+
+  const BibInputWidget({
+    super.key,
+    required this.index,
+    required this.record,
+    required this.controller,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // if (!controller.isRecording) return;
+        // controller.focusNodes[index].requestFocus();
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+        decoration: BoxDecoration(
+          color: index % 2 == 0 ? Colors.white : Colors.grey.shade50,
+          border: Border(
+            bottom: BorderSide(
+              color: Colors.grey.shade300,
+              width: 1,
+            ),
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              '${index + 1}.',
+              style: AppTypography.caption.copyWith(
+                color: Colors.grey.shade700,
+                fontWeight: FontWeight.w500,
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(width: 18),
+            SizedBox(
+              width: 96,
+              child: _buildBibTextField(context),
+            ),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Row(
+                children: [
+                  if (record.name != null &&
+                      record.name!.isNotEmpty &&
+                      !record.hasErrors)
+                    Flexible(child: _buildRunnerInfo())
+                  else if (record.hasErrors)
+                    Flexible(child: _buildErrorText()),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBibTextField(BuildContext context) {
+    return TextField(
+      readOnly: controller.raceStopped,
+      canRequestFocus: !controller.raceStopped,
+      key: ValueKey('bibTextField_$index'),
+      controller: controller.controllers[index],
+      focusNode: controller.focusNodes[index],
+      keyboardType: TextInputType.number,
+      textInputAction: TextInputAction.next,
+      style: AppTypography.titleRegular.copyWith(
+        fontWeight: FontWeight.bold,
+      ),
+      onChanged: (value) {
+        controller.handleBibNumber(value, index: index);
+      },
+      decoration: InputDecoration(
+        // labelText: 'Bib #',
+        labelStyle: AppTypography.caption.copyWith(
+          color: Colors.grey.shade700,
+        ),
+        hintText: 'Bib #',
+        hintStyle: AppTypography.bodyRegular.copyWith(
+          color: Colors.grey.shade700,
+        ),
+        border: InputBorder.none,
+        focusedBorder: UnderlineInputBorder(
+          borderSide: BorderSide(
+            color: Colors.grey.shade600, // Darker gray when focused
+            width: 1.5,
+          ),
+        ),
+        enabledBorder: InputBorder.none,
+        errorBorder: InputBorder.none,
+      ),
+    );
+  }
+
+  Widget _buildRunnerInfo() {
+    final runnerName = record.name;
+    if (record.flags.notInDatabase == false && record.bib.isNotEmpty) {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Show team color indicator if available, otherwise green success indicator
+          Container(
+            width: 8,
+            height: 8,
+            margin: const EdgeInsets.only(right: 8),
+            decoration: BoxDecoration(
+              color: record.teamColor ?? Colors.green,
+              shape: BoxShape.circle,
+            ),
+          ),
+          Flexible(
+            child: Text(
+              '$runnerName, ${record.teamAbbreviation}',
+              style: AppTypography.bodyRegular,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  Widget _buildErrorText() {
+    final errors = <String>[];
+    if (record.flags.duplicateBibNumber) errors.add('Duplicate Bib Number');
+    if (record.flags.notInDatabase) errors.add('Runner not found');
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (errors.isNotEmpty)
+          Icon(Icons.error_outline, color: Colors.red, size: 16),
+        if (errors.isNotEmpty) const SizedBox(width: 4),
+        Flexible(
+          child: Text(
+            errors.join(' • '),
+            style: AppTypography.smallBodySemibold.copyWith(
+              color: Colors.red,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

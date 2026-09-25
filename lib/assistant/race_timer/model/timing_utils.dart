@@ -12,9 +12,3 @@ void scrollToBottom(ScrollController scrollController) {
   });
 }
 
-Duration getCurrentDuration(DateTime? startTime, Duration? endTime) {
-  if (startTime == null) {
-    return endTime ?? Duration.zero;
-  }
-  return DateTime.now().difference(startTime);
-}

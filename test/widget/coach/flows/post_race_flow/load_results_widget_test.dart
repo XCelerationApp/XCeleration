@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/controller/load_results_controller.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/widgets/conflict_button.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/widgets/load_results_widget.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/widgets/reload_button.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/widgets/success_message.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/widgets/conflict_button.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/widgets/load_results_widget.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/widgets/reload_button.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/widgets/success_message.dart';
+import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/components/connection_components.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/utils/enums.dart';
@@ -30,6 +31,7 @@ void main() {
     when(mockController.resultsLoaded).thenReturn(resultsLoaded);
     when(mockController.hasBibConflicts).thenReturn(hasBibConflicts);
     when(mockController.hasTimingConflicts).thenReturn(hasTimingConflicts);
+    when(mockController.timeShift).thenReturn(Duration.zero);
   }
 
   setUp(() {
@@ -37,11 +39,14 @@ void main() {
     when(mockDevices.currentDeviceName).thenReturn(DeviceName.coach);
     when(mockDevices.currentDeviceType).thenReturn(DeviceType.browserDevice);
     when(mockDevices.otherDevices).thenReturn([]);
+    when(mockDevices.devices).thenReturn([]);
+    when(mockDevices.allDevicesFinished()).thenReturn(false);
 
     mockController = MockLoadResultsController();
     when(mockController.addListener(any)).thenReturn(null);
     when(mockController.removeListener(any)).thenReturn(null);
     when(mockController.devices).thenReturn(mockDevices);
+    when(mockController.error).thenReturn(null);
     stubController();
   });
 
@@ -61,6 +66,16 @@ void main() {
       await tester.pump();
 
       expect(find.byType(WirelessConnectionWidget), findsOneWidget);
+    });
+
+    testWidgets('shows why the last load failed', (tester) async {
+      when(mockController.error).thenReturn(
+          const AppError(userMessage: 'No finish times were received.'));
+
+      await tester.pumpWidget(buildWidget());
+      await tester.pump();
+
+      expect(find.text('No finish times were received.'), findsOneWidget);
     });
 
     // -----------------------------------------------------------------------

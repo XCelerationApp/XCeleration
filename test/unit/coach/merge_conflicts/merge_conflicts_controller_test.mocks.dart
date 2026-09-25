@@ -35,10 +35,7 @@ class MockIPostFrameCallbackScheduler extends _i1.Mock
 
   @override
   void addPostFrameCallback(_i3.VoidCallback? callback) => super.noSuchMethod(
-        Invocation.method(
-          #addPostFrameCallback,
-          [callback],
-        ),
-        returnValueForMissingStub: null,
-      );
+    Invocation.method(#addPostFrameCallback, [callback]),
+    returnValueForMissingStub: null,
+  );
 }

@@ -189,10 +189,11 @@ void main() {
         expect(controller.nameError, 'Please enter a race name');
       });
 
-      test('notifies listeners', () {
+      test('notifies per-field notifier', () {
         when(mockRacesService.validateName(any)).thenReturn(null);
+        controller.nameErrorNotifier.value = 'some error';
         var notified = false;
-        controller.addListener(() => notified = true);
+        controller.nameErrorNotifier.addListener(() => notified = true);
 
         controller.validateName('State Meet');
 
@@ -217,10 +218,11 @@ void main() {
         expect(controller.locationError, 'Please enter a location');
       });
 
-      test('notifies listeners', () {
+      test('notifies per-field notifier', () {
         when(mockRacesService.validateLocation(any)).thenReturn(null);
+        controller.locationErrorNotifier.value = 'some error';
         var notified = false;
-        controller.addListener(() => notified = true);
+        controller.locationErrorNotifier.addListener(() => notified = true);
 
         controller.validateLocation('123 Main St');
 
@@ -245,10 +247,11 @@ void main() {
         expect(controller.dateError, 'Please select a date');
       });
 
-      test('notifies listeners', () {
+      test('notifies per-field notifier', () {
         when(mockRacesService.validateDate(any)).thenReturn(null);
+        controller.dateErrorNotifier.value = 'some error';
         var notified = false;
-        controller.addListener(() => notified = true);
+        controller.dateErrorNotifier.addListener(() => notified = true);
 
         controller.validateDate('2024-06-15');
 
@@ -273,10 +276,11 @@ void main() {
         expect(controller.distanceError, 'Please enter a race distance');
       });
 
-      test('notifies listeners', () {
+      test('notifies per-field notifier', () {
         when(mockRacesService.validateDistance(any)).thenReturn(null);
+        controller.distanceErrorNotifier.value = 'some error';
         var notified = false;
-        controller.addListener(() => notified = true);
+        controller.distanceErrorNotifier.addListener(() => notified = true);
 
         controller.validateDistance('5.0');
 
@@ -299,7 +303,7 @@ void main() {
     group('updateLocationButtonVisibility', () {
       test('is false when location matches userlocation', () {
         controller.locationController.text = '123 Main St';
-        controller.userlocationController.text = '123 Main St';
+        controller.userLocationController.text = '123 Main St';
 
         controller.updateLocationButtonVisibility();
 
@@ -308,7 +312,7 @@ void main() {
 
       test('is true when location differs from userlocation', () {
         controller.locationController.text = 'Custom Location';
-        controller.userlocationController.text = '123 Main St';
+        controller.userLocationController.text = '123 Main St';
 
         controller.updateLocationButtonVisibility();
 
@@ -605,7 +609,7 @@ void main() {
           timestamp: DateTime.now(),
           changedTables: {'races'},
         ));
-        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
 
         verify(mockRacesService.loadRaces()).called(1);
         expect(controller.races, equals(reloaded));
@@ -644,9 +648,51 @@ void main() {
           timestamp: DateTime.now(),
           changedTables: {'runners', 'teams'},
         ));
-        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
 
         verifyNever(mockRacesService.loadRaces());
+
+        await syncController.close();
+      });
+
+      testWidgets('collapses rapid sync events into a single loadRaces call',
+          (tester) async {
+        final syncController = StreamController<SyncEvent>.broadcast();
+        controller.dispose();
+        controller = RacesController(
+          racesService: mockRacesService,
+          authService: mockAuthService,
+          eventBus: mockEventBus,
+          geoLocationService: mockGeoService,
+          postFrameCallbackScheduler: mockPostFrameScheduler,
+          tutorialManager: mockTutorialManager,
+          datePickerService: mockDatePickerService,
+          colorPickerDialogService: mockColorPickerService,
+          syncStream: syncController.stream,
+        );
+        when(mockPostFrameScheduler.addPostFrameCallback(any)).thenAnswer((_) {});
+        when(mockEventBus.on(any, any))
+            .thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
+
+        await tester.pumpWidget(MaterialApp(home: Builder(builder: (ctx) {
+          controller.initState(ctx);
+          return const SizedBox();
+        })));
+
+        clearInteractions(mockRacesService);
+        when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
+
+        // Fire three rapid events before the debounce window elapses
+        syncController.add(SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}));
+        await tester.pump(const Duration(milliseconds: 100));
+        syncController.add(SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}));
+        await tester.pump(const Duration(milliseconds: 100));
+        syncController.add(SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}));
+
+        // Advance past the debounce window
+        await tester.pump(const Duration(milliseconds: 300));
+
+        verify(mockRacesService.loadRaces()).called(1);
 
         await syncController.close();
       });
@@ -690,10 +736,53 @@ void main() {
             .thenAnswer((_) async => [Race(raceName: 'Reloaded')]);
 
         capturedHandler!(Event(EventTypes.raceFlowStateChanged));
-        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 300));
 
         verify(mockRacesService.loadRaces()).called(1);
         expect(controller.races.first.raceName, 'Reloaded');
+      });
+
+      testWidgets('collapses rapid raceFlowStateChanged events into a single loadRaces call',
+          (tester) async {
+        final context = await _buildContext(tester);
+
+        void Function(Event)? capturedHandler;
+        when(mockEventBus.on(any, any)).thenAnswer((invocation) {
+          capturedHandler =
+              invocation.positionalArguments[1] as void Function(Event);
+          return Stream<Event>.empty().listen((_) {});
+        });
+
+        controller.dispose();
+        controller = _buildController(
+          racesService: mockRacesService,
+          authService: mockAuthService,
+          eventBus: mockEventBus,
+          geoService: mockGeoService,
+          postFrameScheduler: mockPostFrameScheduler,
+          tutorialManager: mockTutorialManager,
+          datePickerService: mockDatePickerService,
+          colorPickerService: mockColorPickerService,
+        );
+
+        when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
+        when(mockPostFrameScheduler.addPostFrameCallback(any)).thenAnswer((_) {});
+
+        controller.initState(context);
+        clearInteractions(mockRacesService);
+        when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
+
+        // Fire three rapid events before the debounce window elapses
+        capturedHandler!(Event(EventTypes.raceFlowStateChanged));
+        await tester.pump(const Duration(milliseconds: 100));
+        capturedHandler!(Event(EventTypes.raceFlowStateChanged));
+        await tester.pump(const Duration(milliseconds: 100));
+        capturedHandler!(Event(EventTypes.raceFlowStateChanged));
+
+        // Advance past the debounce window
+        await tester.pump(const Duration(milliseconds: 300));
+
+        verify(mockRacesService.loadRaces()).called(1);
       });
     });
   });

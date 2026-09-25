@@ -1,3 +1,9 @@
+import '../../../core/theme/app_border_radius.dart';
+import '../../../core/theme/app_opacity.dart';
+import '../../../core/components/button_components.dart';
+import '../../../core/components/dialog_utils.dart';
+import '../services/demo_race_generator.dart';
+import '../../../core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/result.dart';
 import '../../../core/theme/app_colors.dart';
@@ -13,6 +19,25 @@ class RaceHeaderWidget extends StatelessWidget {
   final VoidCallback? onShowOtherRaces;
   final VoidCallback? onDeleteRace;
   final VoidCallback? onShowRunners;
+  final VoidCallback? onDownloadRace;
+
+  /// Clears what has been recorded for this race. It sits in the menu, away
+  /// from the Share button it used to be next to.
+  final VoidCallback? onClearRecords;
+
+  /// The menu label for [onClearRecords], such as 'Clear Times'.
+  final String clearRecordsLabel;
+
+  /// Whether there is anything to clear, checked when the menu opens.
+  final bool Function()? canClearRecords;
+
+  /// While the race runs, the header shrinks to one slim line and the
+  /// practice banner becomes a small tag, leaving the room for the race.
+  final bool compact;
+
+  /// While the race to reopen is still loading, nothing is shown rather
+  /// than "No race yet".
+  final bool loading;
 
   const RaceHeaderWidget({
     super.key,
@@ -22,19 +47,50 @@ class RaceHeaderWidget extends StatelessWidget {
     this.onShowOtherRaces,
     this.onDeleteRace,
     this.onShowRunners,
+    this.onDownloadRace,
+    this.onClearRecords,
+    this.clearRecordsLabel = 'Clear',
+    this.canClearRecords,
+    this.compact = false,
+    this.loading = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
+        padding: EdgeInsets.symmetric(vertical: compact ? 4 : 8),
         child: AnimatedBuilder(
           animation: Listenable.merge([
             if (currentRace != null) _RaceNotifier(currentRace!),
           ]),
           builder: (context, child) {
             if (currentRace == null) {
+              if (loading) {
+                return const SizedBox(
+                  height: 56,
+                  child: Center(
+                    child: SizedBox.square(
+                      dimension: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                );
+              }
               return _buildNoRaceBanner(context);
+            }
+            // The practice race opens by default, and nothing said it was
+            // not the real one.
+            if (!compact &&
+                onLoadRace != null &&
+                DemoRaceGenerator.isDemoRace(currentRace!)) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _buildRaceHeader(context),
+                  const SizedBox(height: AppSpacing.sm),
+                  _PracticeRaceBanner(onGetRace: onLoadRace!),
+                ],
+              );
             }
             return _buildRaceHeader(context);
           },
@@ -62,7 +118,7 @@ class RaceHeaderWidget extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'No Race Loaded',
+              'No race yet',
               style: AppTypography.bodySmall.copyWith(
                 color: AppColors.mediumColor,
               ),
@@ -81,7 +137,7 @@ class RaceHeaderWidget extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               ),
               child: Text(
-                'Load',
+                'Get Race from Coach',
                 style: AppTypography.smallBodySemibold.copyWith(
                   color: Colors.white,
                 ),
@@ -93,8 +149,9 @@ class RaceHeaderWidget extends StatelessWidget {
   }
 
   Widget _buildRaceHeader(BuildContext context) {
+    final isPractice = DemoRaceGenerator.isDemoRace(currentRace!);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: EdgeInsets.fromLTRB(16, compact ? 2 : 6, 4, compact ? 2 : 6),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
@@ -128,7 +185,21 @@ class RaceHeaderWidget extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
           ),
-          const SizedBox(width: 8),
+          if (compact && isPractice) ...[
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.primaryColor
+                    .withValues(alpha: AppOpacity.light),
+                borderRadius: BorderRadius.circular(AppBorderRadius.full),
+              ),
+              child: Text('Practice',
+                  style: AppTypography.captionBold
+                      .copyWith(color: AppColors.primaryColor)),
+            ),
+          ],
+          const SizedBox(width: 4),
           FutureBuilder<List<dynamic>>(
             future: _getOtherRaces(),
             builder: (context, snapshot) {
@@ -178,7 +249,7 @@ class RaceHeaderWidget extends StatelessWidget {
                     );
                   }
 
-                  // Always show "Load New Race"
+                  // Always offer to get a race from the coach
                   if (onLoadRace != null) {
                     items.add(
                       const PopupMenuItem<String>(
@@ -187,7 +258,42 @@ class RaceHeaderWidget extends StatelessWidget {
                           children: [
                             Icon(Icons.add, size: 18),
                             SizedBox(width: 8),
-                            Text('Load New Race'),
+                            // Wraps rather than overflowing the menu at
+                            // larger text sizes.
+                            Flexible(child: Text('Get Race from Coach')),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  // A copy of what this phone recorded, to save or send, in
+                  // case sharing with the coach fails.
+                  if (onDownloadRace != null) {
+                    items.add(
+                      const PopupMenuItem<String>(
+                        value: 'download_race',
+                        child: Row(
+                          children: [
+                            Icon(Icons.download_outlined, size: 18),
+                            SizedBox(width: 8),
+                            Text('Download a Copy'),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
+                  if (onClearRecords != null &&
+                      (canClearRecords?.call() ?? true)) {
+                    items.add(
+                      PopupMenuItem<String>(
+                        value: 'clear_records',
+                        child: Row(
+                          children: [
+                            const Icon(Icons.clear_all, size: 18),
+                            const SizedBox(width: AppSpacing.sm),
+                            Text(clearRecordsLabel),
                           ],
                         ),
                       ),
@@ -233,39 +339,29 @@ class RaceHeaderWidget extends StatelessWidget {
       case 'load_new':
         onLoadRace?.call();
         break;
+      case 'download_race':
+        onDownloadRace?.call();
+        break;
+      case 'clear_records':
+        onClearRecords?.call();
+        break;
       case 'delete_race':
         _showDeleteConfirmation(context);
         break;
     }
   }
 
-  void _showDeleteConfirmation(BuildContext context) {
-    showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Race'),
-        content: Text(
-          'Are you sure you want to delete "${currentRace!.formattedTitle}"? This action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(
-              foregroundColor: Colors.red,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    ).then((confirmed) {
-      if (confirmed == true) {
-        onDeleteRace?.call();
-      }
-    });
+  Future<void> _showDeleteConfirmation(BuildContext context) async {
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Delete Race?',
+      content: 'This deletes "${currentRace!.formattedTitle}" and everything '
+          'recorded for it from this phone. It cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      destructive: true,
+    );
+    if (confirmed) onDeleteRace?.call();
   }
 
   Future<List<RaceRecord>> _getOtherRaces() async {
@@ -275,6 +371,46 @@ class RaceHeaderWidget extends StatelessWidget {
       Success(:final value) => value,
       Failure() => [],
     };
+  }
+}
+
+/// Says the open race is only for practice, and how to get the real one.
+class _PracticeRaceBanner extends StatelessWidget {
+  const _PracticeRaceBanner({required this.onGetRace});
+
+  final VoidCallback onGetRace;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        border: Border.all(
+          color: AppColors.primaryColor.withValues(alpha: AppOpacity.strong),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            'This is a practice race. Before the race starts, get the real '
+            'one from your coach.',
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.darkColor,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          PrimaryButton(
+            text: 'Get Race from Coach',
+            icon: Icons.download,
+            size: ButtonSize.fullWidth,
+            onPressed: onGetRace,
+          ),
+        ],
+      ),
+    );
   }
 }
 

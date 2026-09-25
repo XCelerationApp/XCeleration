@@ -13,16 +13,17 @@ import '../../../core/services/event_bus.dart';
 import '../../../core/services/i_device_connection_factory.dart';
 import 'package:intl/intl.dart';
 import '../../races_screen/controller/i_parent_race_controller.dart';
-import '../services/race_service.dart';
+import '../services/i_race_service.dart';
+import '../../../core/services/service_locator.dart';
 import '../../../core/services/geo_location_service.dart';
 import '../../../core/services/date_picker_service.dart';
 import '../../../core/components/dialog_utils.dart';
 
-// RaceController coordinates data loading, form save orchestration, and
+// RaceScreenController coordinates data loading, form save orchestration, and
 // navigation state. These concerns share the MasterRace dependency tightly
 // enough that further decomposition would introduce circular dependencies.
 // The class is intentionally slightly over 300 lines as a justified exception.
-class RaceController with ChangeNotifier {
+class RaceScreenController with ChangeNotifier {
   // Race data
   bool isRaceSetup = false;
   late TabController tabController;
@@ -68,6 +69,9 @@ class RaceController with ChangeNotifier {
     return _teams!;
   }
 
+  /// Whether this coach may correct the results once the race is finished.
+  bool get canEditResults => parentController.canEdit;
+
   bool get canEdit {
     if (_isInitialLoading) {
       throw StateError('CanEdit not loaded yet - check isLoading first');
@@ -94,6 +98,8 @@ class RaceController with ChangeNotifier {
 
   late final MasterFlowController flowController;
 
+  late final VoidCallback _masterRaceListener;
+
   // Flow state — safe getter that works during loading
   String get flowState {
     if (_isInitialLoading) return 'setup';
@@ -104,10 +110,11 @@ class RaceController with ChangeNotifier {
   final IDatePickerService _datePickerService;
   final IEventBus _eventBus;
   final IDeviceConnectionFactory _devicesFactory;
+  late final IRaceService _raceService;
 
   late final RaceGeoController _geoController;
 
-  RaceController({
+  RaceScreenController({
     required this.masterRace,
     required this.parentController,
     IGeoLocationService? geoLocationService,
@@ -116,9 +123,11 @@ class RaceController with ChangeNotifier {
     IEventBus? eventBus,
     IDeviceConnectionFactory? devicesFactory,
     RaceGeoController? geoController,
+    IRaceService? raceService,
   })  : _datePickerService = datePickerService ?? DatePickerService(),
         _eventBus = eventBus ?? EventBus.instance,
         _devicesFactory = devicesFactory ?? const DeviceConnectionFactoryImpl() {
+    _raceService = raceService ?? ServiceLocator.get<IRaceService>();
     this.flowController =
         flowController ?? MasterFlowController(raceController: this);
     _geoController = geoController ??
@@ -128,10 +137,16 @@ class RaceController with ChangeNotifier {
         );
     _geoController.addListener(notifyListeners);
     form.addListener(notifyListeners);
+    _masterRaceListener = () {
+      if (_isRefreshing || _isInitialLoading) return;
+      _loadData(isInitial: false);
+    };
+    masterRace.addListener(_masterRaceListener);
   }
 
   @override
   void dispose() {
+    masterRace.removeListener(_masterRaceListener);
     _geoController.removeListener(notifyListeners);
     _geoController.dispose();
     form.removeListener(notifyListeners);
@@ -148,7 +163,7 @@ class RaceController with ChangeNotifier {
   }
 
   Future<void> _loadData(
-      {required bool isInitial, required BuildContext context}) async {
+      {required bool isInitial, BuildContext? context}) async {
     try {
       if (isInitial) {
         _isInitialLoading = true;
@@ -158,15 +173,13 @@ class RaceController with ChangeNotifier {
       }
       notifyListeners();
 
-      final results = await Future.wait([
-        masterRace.race,
-        masterRace.raceRunners,
-        masterRace.teams,
-      ]);
-
-      _race = results[0] as Race;
-      _raceRunners = results[1] as List<RaceRunner>;
-      _teams = results[2] as List<Team>;
+      // Start all three futures in parallel for efficient loading.
+      final raceF = masterRace.race;
+      final runnersF = masterRace.raceRunners;
+      final teamsF = masterRace.teams;
+      _race = await raceF;
+      _raceRunners = await runnersF;
+      _teams = await teamsF;
 
       final flowState = _race!.flowState;
       final roleAllowsEdit = parentController.canEdit;
@@ -179,7 +192,7 @@ class RaceController with ChangeNotifier {
         form.initializeFrom(_race!);
 
         if ((_race!.flowState == null || _race!.flowState!.isEmpty) &&
-            context.mounted) {
+            context != null && context.mounted) {
           await updateRaceFlowState(context, Race.FLOW_SETUP);
         }
 
@@ -208,22 +221,49 @@ class RaceController with ChangeNotifier {
   // Save orchestration
 
   Future<void> saveRaceDetails(BuildContext context) async {
-    await RaceService.saveRaceDetails(
+    if (_race == null) return;
+
+    // Parse values once — used for both the service call and in-memory update.
+    final raceName = form.nameController.text.trim();
+    final location = form.locationController.text;
+    final dateText = form.dateController.text;
+    final date = dateText.isNotEmpty ? DateTime.tryParse(dateText) : null;
+    final distanceText = form.distanceController.text;
+    final distance = double.tryParse(distanceText) ?? 0;
+    final unit = form.unitController.text;
+
+    await _raceService.saveRaceDetails(
       masterRace: masterRace,
-      nameController: form.nameController,
-      locationController: form.locationController,
-      dateController: form.dateController,
-      distanceController: form.distanceController,
-      unitController: form.unitController,
+      currentRace: _race!,
+      raceName: raceName,
+      location: location,
+      date: date,
+      distance: distance,
+      unit: unit,
     );
-    await loadRace();
+
+    // Update _race in memory from the saved form values instead of
+    // re-fetching from the DB (eliminates a redundant read).
+    _race = _race!.copyWith(
+      raceName: raceName,
+      location: location,
+      raceDate: date,
+      distance: distance,
+      distanceUnit: unit,
+    );
     notifyListeners();
-    final setupComplete = await RaceService.checkSetupComplete(
+
+    // Pass already-loaded race and teams — avoids two extra DB reads.
+    final race = _race;
+    if (race == null) return;
+    final setupComplete = await _raceService.checkSetupComplete(
+      race: race,
+      teams: _teams ?? [],
       masterRace: masterRace,
-      nameController: form.nameController,
-      locationController: form.locationController,
-      dateController: form.dateController,
-      distanceController: form.distanceController,
+      name: raceName,
+      location: location,
+      date: dateText,
+      distance: distanceText,
     );
     if (setupComplete && context.mounted) {
       await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
@@ -233,14 +273,13 @@ class RaceController with ChangeNotifier {
   Future<void> handleFieldFocusLoss(
       BuildContext context, RaceField field) async {
     trackFieldChange(field);
-    if (!(await _isSetupFlow()) && form.hasUnsavedChanges && context.mounted) {
+    if (!_isSetupFlow() && form.hasUnsavedChanges && context.mounted) {
       await saveAllChanges(context);
     }
   }
 
-  Future<bool> _isSetupFlow() async {
-    final race = await masterRace.race;
-    final flowState = race.flowState;
+  bool _isSetupFlow() {
+    final flowState = _race?.flowState;
     return flowState == Race.FLOW_SETUP ||
         flowState == Race.FLOW_SETUP_COMPLETED;
   }
@@ -248,13 +287,13 @@ class RaceController with ChangeNotifier {
   Future<void> saveAllChanges(BuildContext context) async {
     if (!form.hasUnsavedChanges) return;
 
-    bool allValid = true;
-    for (final field in form.changedFields) {
-      form.applyValidation(field);
-      if (form.errorFor(field) != null) allValid = false;
-    }
+    // Collect all validation results first, then apply in one notifyListeners.
+    final validationResults = {
+      for (final field in form.changedFields) field: form.validateField(field),
+    };
+    form.setErrors(validationResults);
 
-    if (!allValid) return;
+    if (validationResults.values.any((e) => e != null)) return;
 
     await saveRaceDetails(context);
     form.clearChangeTracking();
@@ -291,12 +330,15 @@ class RaceController with ChangeNotifier {
 
     if (previousState == Race.FLOW_SETUP &&
         newState == Race.FLOW_SETUP_COMPLETED) {
-      Future.delayed(Duration.zero, () {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
           DialogUtils.showMessageDialog(context,
               title: 'Setup Complete',
               message:
-                  'You completed setting up your race!\n\nBefore race day, make sure you have two assistants with this app installed on their phones to help time the race.\nBegin the Sharing Race step once you are at the race with your assistants.',
+                  'Your race is set up.\n\nOn race day you need two volunteers '
+                  'with XCeleration on their phones: a Timer and a Bib '
+                  'Recorder. Once you are at the race together, tap Send to '
+                  'Volunteers.',
               doneText: 'Got it');
         }
       });
@@ -320,6 +362,10 @@ class RaceController with ChangeNotifier {
 
   Future<void> beginNextFlow(BuildContext context) =>
       flowController.beginNextFlow(context);
+
+  /// Opens the send page again once the race has gone to the volunteers.
+  Future<void> sendRaceAgain(BuildContext context) =>
+      flowController.preRaceController.showSendAgainSheet(context);
 
   // ---------------------------------------------------------------------------
   // Navigation
@@ -353,8 +399,7 @@ class RaceController with ChangeNotifier {
 
   Future<void> navigateToRaceDetails(BuildContext context) async {
     _showingRunnersManagement = false;
-    await refreshRaceData(context);
-    notifyListeners();
+    await refreshRaceData(context); // _loadData inside already calls notifyListeners
   }
 
   Future<void> refreshRaceData(BuildContext context) async {
@@ -371,15 +416,6 @@ class RaceController with ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
-  // Validation — thin delegations to RaceFormState
-
-  void validateName(String name) => form.validateName(name);
-  void validateLocation(String location) => form.validateLocation(location);
-  void validateDate(String dateString) => form.validateDate(dateString);
-  void validateDistance(String distanceString) =>
-      form.validateDistance(distanceString);
-
-  // ---------------------------------------------------------------------------
   // Date picker
 
   Future<void> selectDate(BuildContext context) async {
@@ -394,6 +430,9 @@ class RaceController with ChangeNotifier {
     if (picked != null) {
       form.dateController.text = DateFormat('yyyy-MM-dd').format(picked);
       notifyListeners();
+      // Picking a date is the whole edit: record it, and save it at once
+      // outside setup, as leaving a typed field does.
+      if (context.mounted) await handleFieldFocusLoss(context, RaceField.date);
     }
   }
 

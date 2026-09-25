@@ -8,7 +8,7 @@ CREATE TABLE IF NOT EXISTS runners (
   uuid TEXT UNIQUE,
   name TEXT NOT NULL CHECK(length(name) > 0),
   grade INTEGER CHECK(grade >= 9 AND grade <= 12),
-  bib_number TEXT UNIQUE NOT NULL CHECK(length(bib_number) > 0),
+  bib_number TEXT NOT NULL CHECK(length(bib_number) > 0),
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT,
@@ -25,14 +25,15 @@ CREATE TABLE IF NOT EXISTS teams (
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
   deleted_at TEXT,
-  is_dirty INTEGER NOT NULL DEFAULT 0,
-  UNIQUE (name)
+  is_dirty INTEGER NOT NULL DEFAULT 0
 );
 
 -- 3. TEAM_ROSTERS (local adds timestamps + is_dirty)
 CREATE TABLE IF NOT EXISTS team_rosters (
   team_id INTEGER NOT NULL,
   runner_id INTEGER NOT NULL,
+  team_uuid TEXT,
+  runner_uuid TEXT,
   joined_date TEXT DEFAULT CURRENT_TIMESTAMP,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -47,6 +48,8 @@ CREATE TABLE IF NOT EXISTS team_rosters (
 CREATE TABLE IF NOT EXISTS race_team_participation (
   race_id INTEGER NOT NULL,
   team_id INTEGER NOT NULL,
+  race_uuid TEXT,
+  team_uuid TEXT,
   team_color_override INTEGER,
   created_at TEXT DEFAULT CURRENT_TIMESTAMP,
   updated_at TEXT DEFAULT CURRENT_TIMESTAMP,
@@ -109,9 +112,7 @@ CREATE TABLE IF NOT EXISTS race_results (
   is_dirty INTEGER NOT NULL DEFAULT 0,
   FOREIGN KEY (race_id) REFERENCES races(race_id) ON DELETE CASCADE,
   FOREIGN KEY (runner_id) REFERENCES runners(runner_id) ON DELETE CASCADE,
-  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE,
-  UNIQUE (race_id, runner_id),
-  UNIQUE (race_id, place)
+  FOREIGN KEY (team_id) REFERENCES teams(team_id) ON DELETE CASCADE
 );
 
 -- 8. SYNC STATE (no is_dirty; internal key-value store)
@@ -141,6 +142,18 @@ CREATE INDEX IF NOT EXISTS idx_races_date ON races(race_date);
 CREATE INDEX IF NOT EXISTS idx_race_results_race ON race_results(race_id);
 CREATE INDEX IF NOT EXISTS idx_race_results_place ON race_results(race_id, place);
 
+-- Uniqueness ignores deleted rows: a deleted runner keeps its bib number and a
+-- deleted team keeps its name, and neither may block the value being used
+-- again. These replace the table constraints those columns used to carry.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_runners_bib_unique
+  ON runners(bib_number) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_teams_name_unique
+  ON teams(name) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_race_results_runner_unique
+  ON race_results(race_id, runner_id) WHERE deleted_at IS NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_race_results_place_unique
+  ON race_results(race_id, place) WHERE deleted_at IS NULL;
+
 -- Partial indexes for soft-delete filtering (schema v16)
 CREATE INDEX IF NOT EXISTS idx_runners_active ON runners(name) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_teams_active ON teams(name) WHERE deleted_at IS NULL;
@@ -148,6 +161,21 @@ CREATE INDEX IF NOT EXISTS idx_races_active ON races(race_date) WHERE deleted_at
 CREATE INDEX IF NOT EXISTS idx_race_participants_active ON race_participants(race_id) WHERE deleted_at IS NULL;
 CREATE INDEX IF NOT EXISTS idx_team_rosters_active ON team_rosters(team_id) WHERE deleted_at IS NULL;
 ''';
+
+/// The `CREATE TABLE` statement for [table] from [localSchemaSql].
+///
+/// The upgrade path rebuilds tables from this, so a table can never be rebuilt
+/// into a shape that differs from what a fresh install gets.
+String createTableStatement(String table) {
+  final marker = 'CREATE TABLE IF NOT EXISTS $table (';
+  return splitSqlStatements(localSchemaSql)
+      .firstWhere((stmt) => stmt.startsWith(marker));
+}
+
+/// Every `CREATE INDEX` statement in [localSchemaSql].
+List<String> createIndexStatements() => splitSqlStatements(localSchemaSql)
+    .where((stmt) => stmt.startsWith('CREATE INDEX') || stmt.startsWith('CREATE UNIQUE INDEX'))
+    .toList();
 
 /// Utility to split and execute the schema script safely
 /// - Strips out single-line comments starting with '--'

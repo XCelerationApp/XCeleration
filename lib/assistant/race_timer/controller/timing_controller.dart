@@ -16,6 +16,9 @@ import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
+import '../../shared/utils/race_to_reopen.dart';
+import '../../shared/services/assistant_export_service.dart';
+import '../../shared/services/race_copy.dart';
 import '../../shared/services/demo_race_generator.dart';
 import '../../../core/app_error.dart';
 import '../../../core/result.dart';
@@ -45,21 +48,34 @@ class TimingController extends TimingData {
   final IHapticFeedback _hapticFeedback;
   bool isAudioPlayerReady = false;
 
+  /// Set when the last race could not be loaded; the race is left closed so
+  /// nothing is recorded over its unread times.
+  AppError? loadError;
+
+  /// The race that failed to load, so [retryLoad] can try it again.
+  RaceRecord? _failedRace;
+
   TimingController({
     required super.storage,
     AudioPlayer? audioPlayer,
     IHapticFeedback? hapticFeedback,
+    super.now,
+    super.monotonic,
   })  : _storage = storage,
         _audioPlayer = audioPlayer,
         _hapticFeedback = hapticFeedback ?? HapticFeedbackService() {
     _initializeControllers();
   }
 
+  /// Opening the last race, started when the Timer opens. Loading another
+  /// race waits for it, so the last race cannot open over the new one.
+  late final Future<void> initialLoad;
+
   void _initializeControllers() {
     if (_audioPlayer != null) {
       _initAudioPlayer();
     }
-    _loadLastRace();
+    initialLoad = _loadLastRace();
   }
 
   Future<void> showOtherRaces(BuildContext context) async {
@@ -82,18 +98,30 @@ class TimingController extends TimingData {
     );
   }
 
-  Future<void> _loadLastRace() async {
-    // Ensure demo race exists if no races are present
-    await DemoRaceGenerator.ensureDemoRaceExists(
-        DeviceName.raceTimer.toString());
+  /// True until the race to reopen has loaded, so the screen does not say
+  /// "No race yet" while it is on its way.
+  bool get loadingRace => _loadingRace;
+  bool _loadingRace = true;
 
-    final result = await _storage.getRaces(DeviceName.raceTimer.toString());
-    final races = switch (result) {
-      Success(:final value) => value,
-      Failure() => <RaceRecord>[],
-    };
-    if (races.isNotEmpty) {
-      _loadRace(races.last);
+  Future<void> _loadLastRace() async {
+    try {
+      // Ensure demo race exists if no races are present
+      await DemoRaceGenerator.ensureDemoRaceExists(
+          DeviceName.raceTimer.toString());
+
+      final result = await _storage.getRaces(DeviceName.raceTimer.toString());
+      final races = switch (result) {
+        Success(:final value) => value,
+        Failure() => <RaceRecord>[],
+      };
+      final race = raceToReopen(races);
+      if (race != null) {
+        await _loadRace(race);
+      }
+    } finally {
+      _loadingRace = false;
+      // The screen may have closed while the race loaded.
+      if (!_disposed) notifyListeners();
     }
   }
 
@@ -112,47 +140,75 @@ class TimingController extends TimingData {
           if (data == null) {
             return;
           }
-          late RaceRecord raceRecord;
-          try {
-            Logger.d('Received race data: $data');
-            raceRecord = RaceRecord.fromEncodedString(data,
-                type: DeviceName.raceTimer.toString());
-
-            Logger.d(
-                'Parsed race record: ${raceRecord.name}, date: ${raceRecord.date}');
-          } catch (e) {
-            Logger.e('Error parsing race data: $e');
-            return;
-          }
-          try {
-            await _storage.saveNewRace(raceRecord);
-            clearRecords();
-            // Also save an initial empty timing chunk for this race, so that the UI is ready for entry.
-            // (If a chunk with id 0 already exists, this will update it.)
-            await _storage.saveChunk(
-              raceRecord.raceId,
-              TimingChunk(id: 0, timingData: []),
-            );
-            _loadRace(raceRecord);
-          } catch (e) {
-            Logger.e('Error saving race: $e');
-          }
+          await loadRaceFromCoach(data);
         },
       ),
     );
   }
 
+  /// Opens the race the coach sent as [data].
+  ///
+  /// A race already on this phone is opened with the times recorded for it:
+  /// the coach may well send the same race twice. Only a race new to this
+  /// phone starts from an empty first batch.
+  @visibleForTesting
+  Future<void> loadRaceFromCoach(String data) async {
+    final RaceRecord sent;
+    try {
+      sent = RaceRecord.fromEncodedString(data,
+          type: DeviceName.raceTimer.toString());
+    } catch (e) {
+      Logger.e('Error parsing race data: $e');
+      return;
+    }
+    await initialLoad;
+    switch (await _storage.receiveRace(sent)) {
+      case Failure(:final error):
+        Logger.e('[TimingController.loadRaceFromCoach] '
+            '${error.originalException}');
+      case Success(:final value):
+        clearRecords();
+        if (value.isNew) {
+          await _storage.saveChunk(
+            value.race.raceId,
+            TimingChunk(id: 0, timingData: []),
+          );
+        }
+        await _loadRace(value.race);
+    }
+  }
+
   Future<void> _loadRace(RaceRecord raceRecord) async {
+    // Let queued saves finish first, so what is read back is up to date.
+    await pendingWrites;
+    // Read the saved times first. If that fails the race must not open: new
+    // times would be saved over the unread chunks, which start at the same ids.
+    final chunksResult = await _storage.getChunks(raceRecord.raceId);
+    final List<TimingChunk> chunks;
+    switch (chunksResult) {
+      case Success(:final value):
+        chunks = value;
+      case Failure(:final error):
+        Logger.e('[TimingController._loadRace] ${error.originalException}');
+        // Close whatever race was open: its times were already cleared from
+        // memory, so starting or logging would write over its saved data.
+        currentRace = null;
+        _failedRace = raceRecord;
+        loadError = AppError(
+          userMessage: 'Could not read the saved times for '
+              '"${raceRecord.name}". They have not been changed. Try again, '
+              'or restart the app.',
+          originalException: error.originalException,
+        );
+        notifyListeners();
+        return;
+    }
+    loadError = null;
+    _failedRace = null;
     currentRace = raceRecord;
     startTime = raceRecord.startedAt;
     raceDuration = raceRecord.duration;
     raceStopped = raceRecord.stopped;
-    // Load timing chunks
-    final chunksResult = await _storage.getChunks(raceRecord.raceId);
-    final chunks = switch (chunksResult) {
-      Success(:final value) => value,
-      Failure() => <TimingChunk>[],
-    };
 
     if (chunks.isNotEmpty) {
       // Set the last chunk as current
@@ -164,14 +220,23 @@ class TimingController extends TimingData {
         cacheChunkInMemoryOnly(chunkToCache);
       }
     }
+    invalidateRecordsCache();
     notifyListeners();
   }
 
   /// Loads a previous race and its timing records
   Future<void> loadOtherRace(RaceRecord race) async {
+    await initialLoad;
     clearRecords();
 
-    _loadRace(race);
+    await _loadRace(race);
+  }
+
+  /// Tries again to open the race that failed to load.
+  Future<void> retryLoad() async {
+    final race = _failedRace;
+    if (race == null) return;
+    await loadOtherRace(race);
   }
 
   Future<void> _initAudioPlayer() async {
@@ -208,7 +273,7 @@ class TimingController extends TimingData {
 
   void _startRace() {
     raceStopped = false;
-    startTime = DateTime.now();
+    startTime = clockNow;
     raceDuration = null;
     notifyListeners();
   }
@@ -224,7 +289,7 @@ class TimingController extends TimingData {
   /// Stops the race. Widget must show a confirmation dialog before calling this.
   void stopRace() {
     if (raceStopped == false && startTime != null) {
-      raceDuration = DateTime.now().difference(startTime!);
+      raceDuration = raceElapsed;
       raceStopped = true;
     }
   }
@@ -251,7 +316,7 @@ class TimingController extends TimingData {
     }
 
     final time = TimeFormatter.formatDuration(
-        getCurrentDuration(startTime, raceDuration));
+        raceElapsed);
     addRunnerTimeRecord(TimingDatum(time: time));
     scrollToBottom(scrollController);
     notifyListeners();
@@ -264,7 +329,7 @@ class TimingController extends TimingData {
           userMessage: 'Race must be started to confirm a time.');
     }
     final time = TimeFormatter.formatDuration(
-        getCurrentDuration(startTime, raceDuration));
+        raceElapsed);
 
     addConfirmRecord(TimingDatum(
         time: time,
@@ -281,7 +346,7 @@ class TimingController extends TimingData {
     }
 
     final time = TimeFormatter.formatDuration(
-        getCurrentDuration(startTime, raceDuration));
+        raceElapsed);
 
     addMissingTimeRecord(TimingDatum(
         time: time,
@@ -296,7 +361,7 @@ class TimingController extends TimingData {
       return const RemoveExtraTimeError(
           AppError(userMessage: 'Race must be started to mark an extra time.'));
     }
-    final currentDuration = getCurrentDuration(startTime, raceDuration);
+    final currentDuration = raceElapsed;
 
     final extraTimeRecord = TimingDatum(
         time: TimeFormatter.formatDuration(currentDuration),
@@ -312,12 +377,21 @@ class TimingController extends TimingData {
   }
 
   RemoveExtraTimeResult? _checkRemoveExtraTimeConflict(TimingDatum record) {
-    if (record.conflict?.type == ConflictType.confirmRunner) {
+    final currentType = currentChunk.conflictRecord?.conflict?.type;
+    // Right after a confirmation every time on screen is confirmed. An extra
+    // time here made a conflict with no times of its own, which the coach
+    // could never see or resolve.
+    if (currentType == ConflictType.confirmRunner) {
       return const RemoveExtraTimeError(
           AppError(userMessage: 'You cannot remove a confirmed time.'));
     }
-    if (record.conflict?.type == ConflictType.missingTime) {
-      return null;
+    // An extra time marks one of the times recorded since the last button,
+    // and there are none since the missing time. (This used to cancel the
+    // missing time, which threw away both the missed runner and the stray.)
+    if (currentType == ConflictType.missingTime) {
+      return const RemoveExtraTimeError(AppError(
+          userMessage: 'There is no time to remove yet. Undo the missing '
+              'time first, or log the time and then remove it.'));
     }
 
     // Calculate the total offBy that would result after adding this record
@@ -366,6 +440,9 @@ class TimingController extends TimingData {
     if (currentChunk.isEmpty) {
       deleteCurrentChunk();
     } else {
+      // Save the undo, or the conflict comes back after a restart.
+      persistCurrentChunk();
+      invalidateRecordsCache();
       notifyListeners();
     }
   }
@@ -374,7 +451,18 @@ class TimingController extends TimingData {
   Future<void> doClearRaceTimes() async {
     clearRecords();
     if (currentRace != null) {
-      _storage.deleteChunks(currentRace!.raceId);
+      // Queued, so a save still waiting to run can't bring the times back.
+      final race = currentRace!;
+      await enqueueWrite(
+          () => _storage.deleteChunks(race.raceId), 'clear race ${race.raceId}');
+      // The saved clock goes too. Otherwise reopening the race brings back the
+      // old start, and the Timer can only resume that clock, not start anew.
+      await enqueueWrite(
+          () => _storage.updateRaceStartTime(race.raceId, race.type, null),
+          'clear the start of race ${race.raceId}');
+      await enqueueWrite(
+          () => _storage.updateRaceDuration(race.raceId, race.type, null),
+          'clear the length of race ${race.raceId}');
     }
   }
 
@@ -382,7 +470,7 @@ class TimingController extends TimingData {
     if (startTime == null) {
       return endTime ?? Duration.zero;
     }
-    return DateTime.now().difference(startTime);
+    return clockNow.difference(startTime);
   }
 
   bool get isLastRecordUndoable {
@@ -433,13 +521,14 @@ class TimingController extends TimingData {
       if (index == -1) return false;
 
       currentChunk.timingData.removeAt(index);
-      _storage.updateChunkTimingData(
-          currentRace!.raceId, currentChunk.id, currentChunk.timingData);
       if (currentChunk.timingData.isEmpty && !currentChunk.hasConflict) {
+        // deleteCurrentChunk removes this chunk's row. Deleting by
+        // currentChunk.id afterwards deleted the previous chunk instead.
         deleteCurrentChunk();
-        _storage.deleteChunk(currentRace!.raceId, currentChunk.id);
         return true;
       }
+      persistCurrentChunk();
+      invalidateRecordsCache();
       notifyListeners();
       return true;
     }
@@ -450,6 +539,8 @@ class TimingController extends TimingData {
         if (currentChunk.timingData.isEmpty) {
           deleteCurrentChunk();
         } else {
+          persistCurrentChunk();
+          invalidateRecordsCache();
           notifyListeners();
         }
         return true;
@@ -473,6 +564,20 @@ class TimingController extends TimingData {
     }
   }
 
+  Future<void> downloadRace(BuildContext context) async {
+    if (currentRace == null) return;
+    final race = currentRace!;
+    final records = uiRecords;
+    await saveRaceCopy(
+      context,
+      race: race,
+      what: 'Finish Times',
+      table: AssistantExportService.timerTable(records),
+      exportFile: (format) =>
+          AssistantExportService.exportTimerData(race, records, format),
+    );
+  }
+
   /// Deletes the current race and all its associated data.
   /// Returns an [AppError] if deletion fails, or null on success.
   Future<AppError?> deleteCurrentRace() async {
@@ -482,8 +587,11 @@ class TimingController extends TimingData {
       // Clear all timing data first
       clearRecords();
 
-      // Delete all chunks associated with this race
-      await _storage.deleteChunks(currentRace!.raceId);
+      // Delete all chunks associated with this race. Queued, so a save still
+      // waiting to run can't recreate them.
+      final raceId = currentRace!.raceId;
+      await enqueueWrite(
+          () => _storage.deleteChunks(raceId), 'delete chunks of $raceId');
 
       // Delete the race from the database
       await _storage.deleteRace(currentRace!.raceId, currentRace!.type);
@@ -505,8 +613,11 @@ class TimingController extends TimingData {
     }
   }
 
+  bool _disposed = false;
+
   @override
   void dispose() {
+    _disposed = true;
     scrollController.dispose();
     _audioPlayer?.dispose();
     super.dispose();

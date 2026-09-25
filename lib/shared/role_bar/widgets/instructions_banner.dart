@@ -76,9 +76,16 @@ class InstructionsBanner extends StatelessWidget {
   static String _getInstructions(Role role) {
     switch (role) {
       case Role.bibRecorder:
-        return 'You record runners bib numbers during the race after they have passed the finish line.\n\nBefore the race begins, you will need the Coach to share the runners with you.';
+        return 'You type each runner\'s bib number as they finish, in the '
+            'order they cross the line.\n\nBefore the race, tap Get Race from '
+            'Coach so your list knows the runners. When there is a break in '
+            'the runners, tell the Timer how many bibs you have.';
       case Role.timer:
-        return 'You time the race. Click start when the race begins, and log times when runners cross the finish line.\n\nWhen there is a break in the runners, check with the Bib Recorder to check that your records are the same number. Adjust if needed.';
+        return 'You time the race. Tap Start when the gun goes, and Log as '
+            'each runner crosses the finish line.\n\nWhen there is a break '
+            'in the runners, compare your count with the Bib Recorder\'s. If '
+            'they are the same, tap Counts match. If not, tap Counts differ? '
+            'and choose what happened.';
       case Role.coach:
         return 'You create and manage the races. You will oversee your assistants and will compile and share the race results.';
       case Role.spectator:

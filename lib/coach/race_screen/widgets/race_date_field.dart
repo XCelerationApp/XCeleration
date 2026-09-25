@@ -5,7 +5,7 @@ import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 
 class RaceDateField extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
   final ValueChanged<String>? onChanged;
 
   const RaceDateField({
@@ -28,7 +28,7 @@ class RaceDateField extends StatelessWidget {
           onPressed: () => controller.selectDate(context),
         ),
         onChanged: (value) {
-          controller.validateDate(controller.form.dateController.text);
+          controller.form.applyValidation(RaceField.date);
           if (onChanged != null) onChanged!(value);
         },
       ),

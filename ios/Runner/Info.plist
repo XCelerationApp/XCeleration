@@ -32,6 +32,16 @@
 				<string>com.googleusercontent.apps.529053126812-57bnskrrh3n15j364ftmc4p9n6vtrcs3</string>
 			</array>
 		</dict>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.xceleration.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>xcelerationapp</string>
+			</array>
+		</dict>
 	</array>
 	<key>CFBundleVersion</key>
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
@@ -55,17 +65,15 @@
 		<string>_wirelessconn._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>This app needs access to your camera to scan QR codes.</string>
+	<string>Xceleration uses the camera to scan the QR code on a teammate&apos;s phone, so you can pass a race, finish times or bib numbers between your phones.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Need local network permission for peer-to-peer data sharing</string>
+	<string>Lets Xceleration find your coach&apos;s and teammates&apos; phones nearby, to send races, finish times and bib numbers between them without the internet.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>Location access is required to determine race locations.</string>
+	<string>When you tap the location button on a race, Xceleration uses where you are to fill in the race&apos;s address for you. It is used only then, and you can always type the address instead.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Location access is required to save race locations.</string>
+	<string>When you tap the location button on a race, Xceleration uses where you are to fill in the race&apos;s address for you. It is used only then, and you can always type the address instead.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>This app needs access to play audio to let you know when buttons have been pressed or actions have been completed</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Access to photo library is needed to upload photos of runner bib numbers.</string>
+	<string>Lets you say bib numbers out loud in the Bib Recorder instead of typing them. What you say is turned into a number on your phone and is never kept or sent anywhere.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -90,7 +98,7 @@
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
 	<key>UIFileSharingEnabled</key>
-	<true/>
+	<false/>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
@@ -112,7 +120,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<false/>
-	<key>io.flutter.embedded_views_preview</key>
-	<true/>
 </dict>
 </plist>

@@ -10,7 +10,7 @@ class RaceDistanceField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: controller,
+      listenable: controller.distanceErrorNotifier,
       builder: (context, _) => buildInputRow(
         label: 'Distance',
         inputWidget: Row(

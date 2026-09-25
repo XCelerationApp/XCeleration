@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/controller/load_results_controller.dart';
-import 'package:xceleration/coach/flows/PostRaceFlow/steps/load_results/load_results_step.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/load_results_step.dart';
 
 @GenerateMocks([LoadResultsController])
 import 'load_results_step_test.mocks.dart';
@@ -41,67 +42,82 @@ void main() {
       setUp(() => step = LoadResultsStep(controller: mockController));
       tearDown(() => step.dispose());
 
-      test('returns true when resultsLoaded is true and no conflicts', () {
-        stubController(resultsLoaded: true);
-
-        expect(step.canProceed!(), isTrue);
-      });
-
-      test('returns false when resultsLoaded is false', () {
+      test('waits for the results to load', () {
         expect(step.canProceed!(), isFalse);
+        expect(step.blockedReason!(), contains('Waiting'));
       });
 
-      test('returns false when hasBibConflicts is true', () {
+      test('lets Next lead into the conflicts once loaded', () {
+        // Next walks the coach through them, so they do not grey it out.
         stubController(resultsLoaded: true, hasBibConflicts: true);
 
-        expect(step.canProceed!(), isFalse);
-      });
-
-      test('returns false when hasTimingConflicts is true', () {
-        stubController(resultsLoaded: true, hasTimingConflicts: true);
-
-        expect(step.canProceed!(), isFalse);
+        expect(step.canProceed!(), isTrue);
+        expect(step.blockedReason!(), isNull);
       });
     });
 
     // -----------------------------------------------------------------------
-    group('onNext', () {
+    group('Next', () {
       late LoadResultsStep step;
 
       setUp(() => step = LoadResultsStep(controller: mockController));
       tearDown(() => step.dispose());
 
-      test('calls saveCurrentResults when canProceed conditions are met',
-          () async {
-        stubController(resultsLoaded: true);
-        when(mockController.saveCurrentResults()).thenAnswer((_) async {});
+      Future<BuildContext> host(WidgetTester tester) async {
+        late BuildContext context;
+        await tester.pumpWidget(MaterialApp(home: Builder(builder: (c) {
+          context = c;
+          return const SizedBox();
+        })));
+        return context;
+      }
 
-        await step.onNext!();
-
-        verify(mockController.saveCurrentResults()).called(1);
-      });
-
-      test('skips saveCurrentResults when resultsLoaded is false', () async {
-        await step.onNext!();
-
-        verifyNever(mockController.saveCurrentResults());
-      });
-
-      test('skips saveCurrentResults when hasBibConflicts is true', () async {
+      testWidgets('opens the bib conflicts first', (tester) async {
+        final context = await host(tester);
         stubController(resultsLoaded: true, hasBibConflicts: true);
+        when(mockController.showBibConflictsSheet(any)).thenAnswer((_) async {
+          stubController(resultsLoaded: true);
+        });
 
-        await step.onNext!();
+        await step.beforeNext!(context);
 
-        verifyNever(mockController.saveCurrentResults());
+        verify(mockController.showBibConflictsSheet(any)).called(1);
+        verifyNever(mockController.showTimingConflictsSheet(any));
       });
 
-      test('skips saveCurrentResults when hasTimingConflicts is true',
-          () async {
+      testWidgets('opens the timing conflicts when only those are left',
+          (tester) async {
+        final context = await host(tester);
         stubController(resultsLoaded: true, hasTimingConflicts: true);
+        when(mockController.showTimingConflictsSheet(any))
+            .thenAnswer((_) async => stubController(resultsLoaded: true));
 
-        await step.onNext!();
+        await step.beforeNext!(context);
 
-        verifyNever(mockController.saveCurrentResults());
+        verify(mockController.showTimingConflictsSheet(any)).called(1);
+      });
+
+      testWidgets('stays on this page while conflicts are left',
+          (tester) async {
+        final context = await host(tester);
+        stubController(resultsLoaded: true, hasTimingConflicts: true);
+        when(mockController.showTimingConflictsSheet(any))
+            .thenAnswer((_) async {});
+
+        await expectLater(
+            step.beforeNext!(context), throwsA(isA<FlowStepBlocked>()));
+      });
+
+      testWidgets('moves straight on when there are no conflicts',
+          (tester) async {
+        final context = await host(tester);
+        stubController(resultsLoaded: true);
+
+        await step.beforeNext!(context);
+
+        verifyNever(mockController.showBibConflictsSheet(any));
+        verifyNever(mockController.showTimingConflictsSheet(any));
+        expect(step.onNext, isNull, reason: 'saving is on the next page');
       });
     });
 

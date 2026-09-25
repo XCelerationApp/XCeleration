@@ -4,12 +4,10 @@ import '../controller/race_screen_controller.dart';
 import '../../../core/components/button_components.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/typography.dart';
 
 class UnsavedChangesBar extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
 
   const UnsavedChangesBar({
     super.key,
@@ -19,44 +17,32 @@ class UnsavedChangesBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // controller.flowState and controller.form are synchronous — no FutureBuilder needed.
-    // The parent Consumer<RaceController> already rebuilds this widget on every notifyListeners().
+    // The parent Consumer<RaceScreenController> already rebuilds this widget on every notifyListeners().
     final flowState = controller.flowState;
     final bool isSetupFlow = flowState == Race.FLOW_SETUP ||
         flowState == Race.FLOW_SETUP_COMPLETED;
 
     if (!isSetupFlow) return const SizedBox.shrink();
 
-    final bool showLoadTeams = controller.raceRunners.isEmpty;
+    // Adding teams is a row in the race details now, beside the other
+    // things setup needs, rather than a button floating over them.
     final bool showSaveRow = controller.form.hasUnsavedChanges;
 
-    if (!showLoadTeams && !showSaveRow) return const SizedBox.shrink();
-
-    final bool isViewMode = !controller.canEdit ||
-        controller.race.flowState == Race.FLOW_FINISHED ||
-        controller.race.flowState == Race.FLOW_POST_RACE;
+    if (!showSaveRow) return const SizedBox.shrink();
 
     return Container(
       color: AppColors.backgroundColor,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Divider(height: 1, thickness: 1, color: AppColors.lightColor),
+          if (showSaveRow)
+            const Divider(height: 1, thickness: 1, color: AppColors.lightColor),
           Padding(
             padding: const EdgeInsets.fromLTRB(
                 AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (showLoadTeams) ...[
-                  _LoadTeamsButton(
-                    onPressed: () =>
-                        controller.loadRunnersManagementScreenWithConfirmation(
-                          context,
-                          isViewMode: isViewMode,
-                        ),
-                  ),
-                  if (showSaveRow) const SizedBox(height: AppSpacing.sm),
-                ],
                 if (showSaveRow)
                   Row(
                     children: [
@@ -93,49 +79,6 @@ class UnsavedChangesBar extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _LoadTeamsButton extends StatelessWidget {
-  const _LoadTeamsButton({required this.onPressed});
-
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: TextButton(
-        onPressed: onPressed,
-        style: TextButton.styleFrom(
-          backgroundColor:
-              AppColors.primaryColor.withValues(alpha: AppOpacity.light),
-          padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-          ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(
-              Icons.group_rounded,
-              color: AppColors.primaryColor,
-              size: 20,
-            ),
-            const SizedBox(width: AppSpacing.sm),
-            Text(
-              'Load Teams and Runners',
-              style: AppTypography.bodySemibold.copyWith(
-                color: AppColors.primaryColor,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

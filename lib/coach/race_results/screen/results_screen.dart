@@ -5,18 +5,23 @@ import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import '../controller/race_results_controller.dart';
+import '../edit/edit_results_screen.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
-import '../widgets/share_button.dart';
+import '../../../core/theme/app_spacing.dart';
 import '../widgets/individual_results_widget.dart';
 import '../widgets/team_results_widget.dart';
 
 class ResultsScreen extends StatefulWidget {
   final MasterRace masterRace;
 
+  /// Whether to offer Edit Results.
+  final bool canEdit;
+
   const ResultsScreen({
     super.key,
     required this.masterRace,
+    this.canEdit = false,
   });
 
   @override
@@ -34,6 +39,15 @@ class _ResultsScreenState extends State<ResultsScreen> {
       syncStream: context.read<ISyncService>().syncEvents,
     );
     _controller.loadRaceResults(widget.masterRace);
+  }
+
+  /// Opens the results for correcting, and shows them afresh if any change
+  /// was saved.
+  Future<void> _editResults() async {
+    final saved = await EditResultsScreen.open(context, widget.masterRace);
+    if (!saved || !mounted) return;
+    widget.masterRace.invalidateCache();
+    await _controller.loadRaceResults(widget.masterRace);
   }
 
   @override
@@ -86,6 +100,39 @@ class _ResultsScreenState extends State<ResultsScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  // Share sits up here rather than floating
+                                  // over the list, where it covered the times.
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: AppSpacing.lg),
+                                    child: Row(
+                                      children: [
+                                        FilledButton.icon(
+                                          onPressed: () => ShareRaceController
+                                              .showShareRaceSheet(
+                                            context: context,
+                                            raceResultsData:
+                                                controller.raceResultsData!,
+                                            masterRace: widget.masterRace,
+                                          ),
+                                          style: FilledButton.styleFrom(
+                                            backgroundColor:
+                                                AppColors.primaryColor,
+                                          ),
+                                          icon: const Icon(Icons.ios_share),
+                                          label: const Text('Share Results'),
+                                        ),
+                                        const Spacer(),
+                                        if (widget.canEdit)
+                                          TextButton.icon(
+                                            onPressed: _editResults,
+                                            icon:
+                                                const Icon(Icons.edit_outlined),
+                                            label: const Text('Edit'),
+                                          ),
+                                      ],
+                                    ),
+                                  ),
                                   TeamResultsWidget(
                                     raceResultsData:
                                         controller.raceResultsData!,
@@ -95,7 +142,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                         controller.raceResultsData!,
                                     initialVisibleCount: 5,
                                   ),
-                                  const SizedBox(height: 80),
+                                  const SizedBox(height: AppSpacing.xl),
                                 ],
                               ),
                             ),
@@ -103,19 +150,6 @@ class _ResultsScreenState extends State<ResultsScreen> {
                         ),
                       ],
                     ],
-                  ),
-                ],
-                if (controller.raceResultsData != null) ...[
-                  Positioned(
-                    bottom: 16,
-                    right: 16,
-                    child: ShareButton(onPressed: () {
-                      ShareRaceController.showShareRaceSheet(
-                        context: context,
-                        raceResultsData: controller.raceResultsData!,
-                        masterRace: widget.masterRace,
-                      );
-                    }),
                   ),
                 ],
               ],

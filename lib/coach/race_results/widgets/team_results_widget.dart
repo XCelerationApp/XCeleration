@@ -37,7 +37,7 @@ class TeamResultsWidget extends StatelessWidget {
               style: AppTypography.titleSemibold,
             ),
             const SizedBox(height: 16),
-            CollapsibleResultsWidget(
+            CollapsibleTeamResultsWidget(
                 results: raceResultsData.overallTeamResults,
                 initialVisibleCount: 3),
           ],

@@ -6,7 +6,7 @@ import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 
 class RaceLocationField extends StatelessWidget {
-  final RaceController controller;
+  final RaceScreenController controller;
   final ValueChanged<String>? onChanged;
 
   const RaceLocationField({
@@ -31,8 +31,7 @@ class RaceLocationField extends StatelessWidget {
                   : 'Enter race location',
               error: controller.form.errorFor(RaceField.location),
               onChanged: (value) {
-                controller.validateLocation(
-                    controller.form.locationController.text);
+                controller.form.applyValidation(RaceField.location);
                 if (onChanged != null) onChanged!(value);
               },
               keyboardType: TextInputType.text,

@@ -1,3 +1,4 @@
+import '../../shared/models/race_stage.dart';
 import 'package:flutter/material.dart';
 import '../../shared/models/database/race.dart';
 import '../theme/app_border_radius.dart';
@@ -49,25 +50,6 @@ class StatusBadge extends StatelessWidget {
     }
   }
 
-  static String _labelFor(String flowState) {
-    switch (flowState) {
-      case Race.FLOW_SETUP:
-        return 'Setting Up';
-      case Race.FLOW_SETUP_COMPLETED:
-        return 'Ready to Share';
-      case Race.FLOW_PRE_RACE:
-        return 'Sharing Race';
-      case Race.FLOW_PRE_RACE_COMPLETED:
-        return 'Ready for Results';
-      case Race.FLOW_POST_RACE:
-        return 'Processing Results';
-      case Race.FLOW_FINISHED:
-        return 'Race Complete';
-      default:
-        return 'Unknown';
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final color = _colorFor(flowState);
@@ -91,7 +73,7 @@ class StatusBadge extends StatelessWidget {
           Icon(_iconFor(flowState), size: AppSpacing.md, color: color),
           const SizedBox(width: AppSpacing.xs),
           Text(
-            _labelFor(flowState),
+            RaceStage.of(flowState).badge,
             style: AppTypography.smallBodySemibold.copyWith(color: color),
           ),
         ],

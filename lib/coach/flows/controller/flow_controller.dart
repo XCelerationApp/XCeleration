@@ -4,30 +4,39 @@ import 'package:xceleration/core/components/button_components.dart';
 import '../model/flow_model.dart';
 import 'package:provider/provider.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../flows/widgets/flow_indicator.dart';
-import '../PreRaceFlow/controller/pre_race_controller.dart';
-import '../PostRaceFlow/controller/post_race_controller.dart';
+import '../pre_race_flow/controller/pre_race_controller.dart';
+import '../post_race_flow/controller/post_race_controller.dart';
 import 'dart:async';
 import '../../../coach/race_screen/controller/race_screen_controller.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../core/components/dialog_utils.dart';
-import '../../../coach/race_screen/services/race_service.dart';
+import '../../../coach/race_screen/services/i_race_service.dart';
+import '../../../core/services/service_locator.dart';
 
 /// Controller class for handling all flow-related operations
 class MasterFlowController {
-  final RaceController raceController;
+  final RaceScreenController raceController;
   late PreRaceController preRaceController;
   late PostRaceController postRaceController;
+
+  late final IRaceService _raceService;
 
   MasterFlowController({
     required this.raceController,
     PreRaceController? preRaceController,
     PostRaceController? postRaceController,
+    IRaceService? raceService,
   }) {
-    this.preRaceController = preRaceController ??
+    _raceService = raceService ?? ServiceLocator.get<IRaceService>();
+    this.preRaceController =
+        preRaceController ??
         PreRaceController(masterRace: raceController.masterRace);
-    this.postRaceController = postRaceController ??
+    this.postRaceController =
+        postRaceController ??
         PostRaceController(masterRace: raceController.masterRace);
   }
 
@@ -35,7 +44,9 @@ class MasterFlowController {
   /// the raceFlowStateChanged event. This is the low-level persistence
   /// operation — higher-level orchestration lives in the methods below.
   Future<void> updateRaceFlowState(
-      BuildContext context, String newState) async {
+    BuildContext context,
+    String newState,
+  ) async {
     await raceController.updateRaceFlowState(context, newState);
   }
 
@@ -81,41 +92,55 @@ class MasterFlowController {
 
     final currentState = race.flowState!;
 
-    // Setup state: validate completeness before advancing
+    // Setup state: validate completeness before advancing.
+    // Pass the already-fetched race and cached teams to avoid extra DB reads.
     if (currentState == Race.FLOW_SETUP) {
-      final canAdvance = await RaceService.checkSetupComplete(
+      final canAdvance = await _raceService.checkSetupComplete(
+        race: race,
+        teams: raceController.teamsOrNull ?? [],
         masterRace: raceController.masterRace,
-        nameController: raceController.form.nameController,
-        locationController: raceController.form.locationController,
-        dateController: raceController.form.dateController,
-        distanceController: raceController.form.distanceController,
+        name: raceController.form.nameController.text.trim(),
+        location: raceController.form.locationController.text,
+        date: raceController.form.dateController.text,
+        distance: raceController.form.distanceController.text,
       );
 
       if (!context.mounted) return;
 
       if (!canAdvance) {
         final missing = _getMissingSetupItems();
-        DialogUtils.showMessageDialog(
+        if (missing.isEmpty) {
+          DialogUtils.showMessageDialog(
+            context,
+            title: 'A Few Things Left',
+            message: 'Check the race details, then try again.',
+            doneText: 'Got it',
+          );
+          return;
+        }
+        DialogUtils.showChecklistDialog(
           context,
-          title: 'Setup Incomplete',
-          message: missing.isEmpty
-              ? 'Please complete all required fields before continuing.'
-              : 'Please fill in the following before continuing:\n\n${missing.map((item) => '• $item').join('\n')}',
-          doneText: 'Got it',
+          title: 'A Few Things Left',
+          message: 'Finish these before sending the race to volunteers.',
+          items: {
+            for (final item in _setupItems) item: !missing.contains(item),
+          },
         );
         return;
       }
 
       if (!context.mounted) return;
       await raceController.updateRaceFlowState(
-          context, Race.FLOW_SETUP_COMPLETED);
+        context,
+        Race.FLOW_SETUP_COMPLETED,
+      );
       return;
     }
 
-    // Completed states: advance to the next active state
+    // Completed states: advance to the next active state.
+    // Track the resolved state locally so we can navigate without a second DB read.
+    String nextState = currentState;
     if (currentState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
-      String nextState;
-
       if (currentState == Race.FLOW_SETUP_COMPLETED) {
         nextState = Race.FLOW_PRE_RACE;
       } else if (currentState == Race.FLOW_PRE_RACE_COMPLETED) {
@@ -131,15 +156,15 @@ class MasterFlowController {
 
     if (!context.mounted) return;
 
-    // Navigate to the current flow's screen
-    final currentRace = await raceController.masterRace.race;
-    if (!context.mounted) return;
-    await handleFlowNavigation(context, currentRace.flowState!);
+    // Navigate using the already-known state — eliminates a redundant DB read.
+    await handleFlowNavigation(context, nextState);
   }
 
   /// Navigate to the appropriate screen based on flow state
   Future<bool> handleFlowNavigation(
-      BuildContext context, String flowState) async {
+    BuildContext context,
+    String flowState,
+  ) async {
     // For completed states, just return to race screen (already there)
     if (flowState.contains(Race.FLOW_COMPLETED_SUFFIX) ||
         flowState == Race.FLOW_FINISHED) {
@@ -171,8 +196,10 @@ class MasterFlowController {
     // Use the navigator context which is more stable during transitions
     final contextToUse = context.mounted ? context : navigatorContext;
 
-    final bool completed =
-        await preRaceController.showPreRaceFlow(contextToUse, true);
+    final bool completed = await preRaceController.showPreRaceFlow(
+      contextToUse,
+      true,
+    );
 
     // If not completed, just return
     if (!completed) return false;
@@ -195,8 +222,10 @@ class MasterFlowController {
     // Use the navigator context which is more stable during transitions
     final contextToUse = context.mounted ? context : navigatorContext;
 
-    final bool completed =
-        await postRaceController.showPostRaceFlow(contextToUse, true);
+    final bool completed = await postRaceController.showPostRaceFlow(
+      contextToUse,
+      true,
+    );
 
     // If not completed, just return
     if (!completed) return false;
@@ -206,8 +235,10 @@ class MasterFlowController {
     // Set the race state directly to finished after post-race flow completes
     await updateRaceFlowState(context, Race.FLOW_FINISHED);
 
-    // Add a short delay to let the UI settle
-    await Future.delayed(const Duration(milliseconds: 500));
+    // Wait for the next frame so the UI reflects the new state before animating.
+    final frameReady = Completer<void>();
+    WidgetsBinding.instance.addPostFrameCallback((_) => frameReady.complete());
+    await frameReady.future;
 
     // Return to race results tab
     Logger.d('MasterFlowController: Navigating to results tab');
@@ -216,6 +247,15 @@ class MasterFlowController {
   }
 
   /// Returns human-readable missing setup items for the Continue dialog.
+  /// Everything setup needs, in the order the screen shows it.
+  static const _setupItems = [
+    'Race name',
+    'Location',
+    'Race date',
+    'Distance',
+    'Teams and runners',
+  ];
+
   List<String> _getMissingSetupItems() {
     final missing = <String>[];
     if (raceController.form.nameController.text.trim().isEmpty) {
@@ -244,7 +284,7 @@ class FlowController extends ChangeNotifier {
   final StepChangedCallback? onStepChanged;
 
   FlowController(this.steps, {int initialIndex = 0, this.onStepChanged})
-      : _currentIndex = initialIndex {
+    : _currentIndex = initialIndex {
     _subscribeToCurrentStep();
   }
 
@@ -262,8 +302,14 @@ class FlowController extends ChangeNotifier {
       currentStep.canProceed == null || currentStep.canProceed!();
   bool get canGoForward => canProceed && !isLastStep;
 
+  /// Why Next is greyed out on this step, if the step says.
+  String? get blockedReason =>
+      canProceed ? null : currentStep.blockedReason?.call();
+
   FlowStep get currentStep => steps[_currentIndex];
 
+  /// Moves to the next step. Throws [FlowStepBlocked] (and stays put) if the
+  /// current step's [FlowStep.onNext] refuses.
   Future<void> goToNext() async {
     if (currentStep.onNext != null) {
       await currentStep.onNext!();
@@ -284,12 +330,13 @@ class FlowController extends ChangeNotifier {
     }
   }
 
+  /// Stops listening to the steps but leaves them working. A race keeps its
+  /// flow's steps and shows them again each time the flow opens; disposing
+  /// them here left a reopened Load Results step unable to tell the flow its
+  /// conflicts were resolved, so Save Results stayed greyed out.
   @override
   void dispose() {
     _contentChangeSubscription?.cancel();
-    for (final step in steps) {
-      step.dispose();
-    }
     super.dispose();
   }
 }
@@ -317,7 +364,8 @@ Future<bool> showFlow({
   if (!context.mounted) {
     // Use navigator context as fallback if the original context is gone
     Logger.d(
-        'Original context unmounted during flow transition, using navigator context');
+      'Original context unmounted during flow transition, using navigator context',
+    );
   }
 
   // Use the navigatorContext which is more stable during transitions
@@ -330,27 +378,42 @@ Future<bool> showFlow({
     title: null,
     takeUpScreen: true,
     useRootNavigator: true,
+    horizontalPadding: 0,
     body: ChangeNotifierProvider.value(
       value: controller,
-      child: Consumer<FlowController>(
-        builder: (context, controller, _) {
-          final currentStep = controller.currentStep;
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (showProgressIndicator)
-                EnhancedFlowIndicator(
-                  totalSteps: steps.length,
-                  currentStep: controller.currentIndex,
-                  onBack: controller.canGoBack ? controller.goBack : null,
-                ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 0, 0, 16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Indicator: rebuilds only on step navigation (currentIndex change)
+          if (showProgressIndicator)
+            Selector<FlowController, (int, bool)>(
+              selector: (_, c) => (c.currentIndex, c.canGoBack),
+              builder: (ctx, data, _) {
+                final (currentIndex, canGoBack) = data;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: EnhancedFlowIndicator(
+                    totalSteps: steps.length,
+                    currentStep: currentIndex,
+                    onBack: canGoBack
+                        ? () => ctx.read<FlowController>().goBack()
+                        : null,
+                  ),
+                );
+              },
+            ),
+          // Title + description: rebuilds only on step navigation
+          Selector<FlowController, int>(
+            selector: (_, c) => c.currentIndex,
+            builder: (_, index, _) {
+              final step = steps[index];
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      currentStep.title,
+                      step.title,
                       style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -360,7 +423,7 @@ Future<bool> showFlow({
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      currentStep.description,
+                      step.description,
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.black54,
@@ -369,49 +432,91 @@ Future<bool> showFlow({
                     ),
                   ],
                 ),
-              ),
-              Expanded(
-                child: Padding(
-                  padding: EdgeInsets.zero,
-                  child: currentStep.canScroll
-                      ? SingleChildScrollView(
-                          child: currentStep.content,
-                        )
-                      : currentStep.content,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 16, 0, 24),
-                child: FullWidthButton(
-                  text: 'Next',
-                  borderRadius: 6,
-                  fontSize: 16,
-                  textColor: Colors.white,
-                  backgroundColor: controller.canProceed
-                      ? AppColors.primaryColor
-                      : Colors.grey,
-                  fontWeight: FontWeight.w600,
-                  onPressed: controller.canProceed
-                      ? () async {
-                          if (controller.canGoForward) {
-                            await controller.goToNext();
-                          } else if (controller.isLastStep) {
-                            // Call onNext for the final step before completing
-                            if (controller.currentStep.onNext != null) {
-                              await controller.currentStep.onNext!();
+              );
+            },
+          ),
+          // Content: rebuilds only on step navigation
+          Expanded(
+            child: Selector<FlowController, int>(
+              selector: (_, c) => c.currentIndex,
+              builder: (_, index, _) {
+                final step = steps[index];
+                return step.canScroll
+                    ? SingleChildScrollView(child: step.content)
+                    : step.content;
+              },
+            ),
+          ),
+          // Next button: rebuilds only when canProceed or step changes
+          Selector<FlowController, (bool, int, String?)>(
+            selector: (_, c) => (c.canProceed, c.currentIndex, c.blockedReason),
+            builder: (ctx, data, _) {
+              final (canProceed, index, blockedReason) = data;
+              final label = steps[index].nextLabel ??
+                  (index == steps.length - 1 ? 'Done' : 'Next');
+              return Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (blockedReason != null) ...[
+                      Text(
+                        blockedReason,
+                        textAlign: TextAlign.center,
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.mediumColor,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                    ],
+                    FullWidthButton(
+                      text: label,
+                      borderRadius: 6,
+                      fontSize: 16,
+                      textColor: Colors.white,
+                      backgroundColor: canProceed
+                          ? AppColors.primaryColor
+                          : Colors.grey,
+                      fontWeight: FontWeight.w600,
+                      onPressed: canProceed
+                          ? () async {
+                              final c = ctx.read<FlowController>();
+                              try {
+                                final before = c.currentStep.beforeNext;
+                                if (before != null) {
+                                  await before(ctx);
+                                  if (!ctx.mounted) return;
+                                }
+                                if (c.canGoForward) {
+                                  await c.goToNext();
+                                } else if (c.isLastStep) {
+                                  if (c.currentStep.onNext != null) {
+                                    await c.currentStep.onNext!();
+                                  }
+                                  completed = true;
+                                  if (!contextToUse.mounted) return;
+                                  Navigator.of(
+                                    context,
+                                    rootNavigator: true,
+                                  ).pop();
+                                }
+                              } on FlowStepBlocked catch (e) {
+                                // Stay on this step and say why.
+                                if (!ctx.mounted) return;
+                                DialogUtils.showErrorDialog(
+                                  ctx,
+                                  message: e.message,
+                                );
+                              }
                             }
-                            // Complete the flow
-                            completed = true;
-                            if (!contextToUse.mounted) return;
-                            Navigator.of(context, rootNavigator: true).pop();
-                          }
-                        }
-                      : null,
+                          : null,
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          );
-        },
+              );
+            },
+          ),
+        ],
       ),
     ),
   );

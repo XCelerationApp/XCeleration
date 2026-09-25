@@ -1,5 +1,15 @@
+import 'package:xceleration/core/utils/sync_timestamp.dart';
+
 // ignore_for_file: constant_identifier_names, non_constant_identifier_names
 
+/// Coach-side race configuration entity stored in the Coach SQLite database.
+///
+/// **Why this differs from [lib/assistant/shared/models/race_record.dart]:**
+/// [Race] owns the full race spec: location, distance, flow-state machine, and
+/// Supabase sync metadata (`uuid`, `isDirty`). [RaceRecord] is a lightweight
+/// Assistant-side record of a single timing session (start/stop timestamps,
+/// duration, race type) — it has no knowledge of flow state, location, or
+/// distance. The two live in separate databases and must not be merged.
 class Race {
   final int? raceId;
   final String? uuid;
@@ -59,26 +69,25 @@ class Race {
       uuid: race['uuid'],
       ownerUserId: race['owner_user_id']?.toString(),
       raceName: race['name'],
-      raceDate:
-          race['race_date'] != null ? DateTime.parse(race['race_date']) : null,
+      raceDate: _dateOrNull(race['race_date']),
       location: race['location'] ?? '',
       distance: race['distance'] != null
           ? double.parse(race['distance'].toString())
           : 0.0,
       distanceUnit: race['distance_unit'] ?? 'mi',
       flowState: race['flow_state'] ?? FLOW_SETUP,
-      createdAt: race['created_at'] != null
-          ? DateTime.parse(race['created_at'])
-          : null,
-      updatedAt: race['updated_at'] != null
-          ? DateTime.parse(race['updated_at'])
-          : null,
-      deletedAt: race['deleted_at'] != null
-          ? DateTime.parse(race['deleted_at'])
-          : null,
+      createdAt: _dateOrNull(race['created_at']),
+      updatedAt: _dateOrNull(race['updated_at']),
+      deletedAt: _dateOrNull(race['deleted_at']),
       isDirty: race['is_dirty'],
     );
   }
+
+  /// A stored date, or null when there is none or it cannot be read. The
+  /// race_date column defaults to '', and one unreadable row must not stop
+  /// the whole races list from loading.
+  static DateTime? _dateOrNull(Object? value) =>
+      value == null ? null : DateTime.tryParse(value.toString());
 
   // Convert a Race into a Map
   Map<String, dynamic> toMap() {
@@ -91,7 +100,7 @@ class Race {
       'distance_unit': distanceUnit,
       'flow_state': flowState,
       'created_at': createdAt?.toIso8601String(),
-      'updated_at': DateTime.now().toIso8601String(),
+      'updated_at': SyncTimestamp.now(),
       'deleted_at': deletedAt?.toIso8601String(),
       'is_dirty': isDirty,
     };

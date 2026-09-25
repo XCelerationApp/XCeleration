@@ -5,12 +5,20 @@ import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
+import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:xceleration/core/services/connectivity_sync_service.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_sync_service.dart';
 
 @GenerateMocks([ISyncService, IAuthService, Connectivity])
 import 'connectivity_sync_service_test.mocks.dart';
+
+class _FakeConnectivityService extends ConnectivityService {
+  bool online;
+  _FakeConnectivityService({required this.online});
+  @override
+  Future<bool> isOnline() async => online;
+}
 
 void main() {
   late ConnectivitySyncService service;
@@ -38,12 +46,13 @@ void main() {
     await writeController.close();
   });
 
-  void buildService() {
+  void buildService({bool online = true, ConnectivityService? connectivityService}) {
     service = ConnectivitySyncService(
       sync: mockSync,
       auth: mockAuth,
       writeStream: writeController.stream,
       connectivity: mockConnectivity,
+      connectivityService: connectivityService ?? _FakeConnectivityService(online: online),
     );
   }
 
@@ -52,9 +61,7 @@ void main() {
       test('calls syncAll immediately when signed in and online', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.wifi]);
-          buildService();
+          buildService(online: true);
 
           service.start();
           async.flushMicrotasks();
@@ -66,9 +73,7 @@ void main() {
       test('does not call syncAll when signed out', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(false);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.wifi]);
-          buildService();
+          buildService(online: true);
 
           service.start();
           async.flushMicrotasks();
@@ -80,9 +85,7 @@ void main() {
       test('does not call syncAll when offline', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.none]);
-          buildService();
+          buildService(online: false);
 
           service.start();
           async.flushMicrotasks();
@@ -91,12 +94,10 @@ void main() {
         });
       });
 
-      test('does not throw when connectivity check throws', () {
+      test('does not throw when isOnline returns false', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenThrow(Exception('platform error'));
-          buildService();
+          buildService(online: false);
 
           expect(() {
             service.start();
@@ -110,9 +111,7 @@ void main() {
       test('calling start twice does not add duplicate connectivity subscription', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.wifi]);
-          buildService();
+          buildService(online: true);
 
           service.start();
           async.flushMicrotasks();
@@ -135,9 +134,7 @@ void main() {
       test('calls syncAll when connectivity changes to wifi and signed in', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(false);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.none]);
-          buildService();
+          buildService(online: false);
 
           service.start();
           async.flushMicrotasks();
@@ -154,9 +151,7 @@ void main() {
       test('does not call syncAll on connectivity event when signed out', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(false);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.none]);
-          buildService();
+          buildService(online: false);
 
           service.start();
           async.flushMicrotasks();
@@ -171,9 +166,7 @@ void main() {
       test('does not call syncAll on connectivity event when result is not wifi', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.none]);
-          buildService();
+          buildService(online: false);
 
           service.start();
           async.flushMicrotasks();
@@ -189,9 +182,7 @@ void main() {
       test('does not throw when syncAll throws during connectivity event', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(false);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.none]);
-          buildService();
+          buildService(online: false);
           service.start();
           async.flushMicrotasks();
 
@@ -210,9 +201,7 @@ void main() {
       test('calls syncAll after 2-second debounce following a write event', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.wifi]);
-          buildService();
+          buildService(online: true);
 
           service.start();
           async.flushMicrotasks();
@@ -231,9 +220,7 @@ void main() {
       test('multiple rapid writes result in a single debounced sync', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.wifi]);
-          buildService();
+          buildService(online: true);
 
           service.start();
           async.flushMicrotasks();
@@ -256,9 +243,7 @@ void main() {
       test('does not call syncAll from debounce when signed out', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(false);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.none]);
-          buildService();
+          buildService(online: false);
 
           service.start();
           async.flushMicrotasks();
@@ -274,9 +259,7 @@ void main() {
       test('does not call syncAll from debounce when offline', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.none]);
-          buildService();
+          buildService(online: false);
 
           service.start();
           async.flushMicrotasks();
@@ -294,9 +277,7 @@ void main() {
       test('prevents connectivity events from triggering sync after stop', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.none]);
-          buildService();
+          buildService(online: false);
 
           service.start();
           async.flushMicrotasks();
@@ -312,9 +293,7 @@ void main() {
       test('prevents write stream events from triggering sync after stop', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.wifi]);
-          buildService();
+          buildService(online: true);
 
           service.start();
           async.flushMicrotasks();
@@ -332,17 +311,15 @@ void main() {
       test('allows start to re-subscribe after stop', () {
         fakeAsync((async) {
           when(mockAuth.isSignedIn).thenReturn(false);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.none]);
-          buildService();
+          final fakeConnectivity = _FakeConnectivityService(online: false);
+          buildService(connectivityService: fakeConnectivity);
 
           service.start();
           async.flushMicrotasks();
           service.stop();
 
           when(mockAuth.isSignedIn).thenReturn(true);
-          when(mockConnectivity.checkConnectivity())
-              .thenAnswer((_) async => [ConnectivityResult.wifi]);
+          fakeConnectivity.online = true;
 
           service.start();
           async.flushMicrotasks();

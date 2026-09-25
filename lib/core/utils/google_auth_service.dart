@@ -28,24 +28,62 @@ class GoogleAuthClient extends http.BaseClient {
 }
 
 /// Service for handling Google authentication
+///
+/// ## Two-token design — why it exists
+///
+/// The app maintains two separate OAuth 2.0 access tokens for the same signed-in
+/// Google user:
+///
+/// ### 1. iOS token  (`iosAccessToken`)
+/// Obtained directly from the native `google_sign_in` SDK via
+/// `GoogleSignInAccount.authentication.accessToken`. The SDK manages refresh
+/// tokens internally, so this token is always fresh on request.
+///
+/// Used for: Drive REST API calls and Sheets API calls (via `GoogleAuthClient`).
+///
+/// ### 2. Web token  (`webAccessToken`)
+/// Obtained by exchanging `GoogleSignInAccount.serverAuthCode` at a backend
+/// endpoint (`WEB_ACCESS_TOKEN_API_ENDPOINT`). The exchange uses the **web**
+/// OAuth 2.0 client ID and is performed server-side so the client secret never
+/// lives in the app.
+///
+/// **Why the web token is required for the picker:**
+/// The Google Drive Picker API (`google.picker.PickerBuilder`) is a JavaScript
+/// API designed for web applications. Internally it validates the OAuth token
+/// against the "Authorized JavaScript origins" configured on the OAuth client in
+/// Google Cloud Console. An iOS/mobile OAuth client has no JavaScript origins,
+/// so a token issued by the iOS client will fail the Picker's origin check.
+/// `setOrigin('https://xceleration-app.github.io/')` in the picker HTML must
+/// match an entry on the **web** OAuth client's authorized origins — the web
+/// token satisfies this; the iOS token does not.
+///
+/// **Do NOT switch the picker to use `iosAccessToken`** — it will appear to
+/// work in some cases but will fail the Picker's origin/client validation.
+///
+/// ### serverAuthCode is one-time use
+/// Google's serverAuthCode is a single-use authorization code. After it is
+/// exchanged at the backend for a web access token, the same code cannot be
+/// used again. The exchanged token is cached in memory and SharedPreferences
+/// for up to 55 minutes (5-minute buffer before the 60-minute Google expiry).
+/// When the token expires, `signIn()` forces a fresh interactive sign-in to
+/// obtain a new serverAuthCode, which is then exchanged for a new web token.
 class GoogleAuthService {
   static GoogleAuthService? _instance;
-  // Retrieve client ID from environment variables
-  // static String get _iosClientId => dotenv.env['GOOGLE_IOS_OAUTH_CLIENT_ID'] ?? '';
   static String get _webClientId =>
       dotenv.env['GOOGLE_WEB_OAUTH_CLIENT_ID'] ?? '';
 
-  final ConnectivityService _connectivity;
-  final GoogleSignIn? _googleSignInOverride;
+  static const String _driveScope =
+      'https://www.googleapis.com/auth/drive.file';
 
-  GoogleSignIn? _googleSignIn;
+  final ConnectivityService _connectivity;
+
   GoogleSignInAccount? _currentUser;
   String? _iosAccessToken;
   String? _webAccessToken;
   DateTime? _iosAccessTokenExpiry;
   DateTime? _webAccessTokenExpiry;
   bool _prefsLoaded = false;
-  bool _signInInitialized = false;
+  bool _googleSignInInitialized = false;
 
   // Keys for shared preferences
   static const String _keyIosAccessToken = 'google_ios_auth_token';
@@ -65,9 +103,7 @@ class GoogleAuthService {
 
   GoogleAuthService({
     ConnectivityService? connectivity,
-    GoogleSignIn? googleSignIn,
-  })  : _connectivity = connectivity ?? const ConnectivityService(),
-        _googleSignInOverride = googleSignIn;
+  }) : _connectivity = connectivity ?? const ConnectivityService();
 
   /// Asynchronously load preferences but don't block instance creation
   Future<void> _loadPrefsAsync() async {
@@ -156,23 +192,6 @@ class GoogleAuthService {
     }
   }
 
-  /// Initialize Google Sign In
-  void _initGoogleSignIn() {
-    if (_googleSignIn != null) return;
-    if (_googleSignInOverride != null) {
-      _googleSignIn = _googleSignInOverride;
-      return;
-    }
-    _googleSignIn = GoogleSignIn(
-      scopes: [
-        'https://www.googleapis.com/auth/drive.file',
-      ],
-      serverClientId: _webClientId,
-      forceCodeForRefreshToken:
-          true, // This forces the auth code to be included
-    );
-  }
-
   /// Check if the user is already authenticated with a valid ios token
   bool get hasValidIosToken {
     if (_iosAccessToken == null || _iosAccessTokenExpiry == null) return false;
@@ -192,28 +211,65 @@ class GoogleAuthService {
   /// Get the current signed-in user
   GoogleSignInAccount? get currentUser => _currentUser;
 
+  /// Stores an access token obtained outside of google_sign_in (e.g. from
+  /// the picker OAuth code exchange) so that services can use it via
+  /// [iosAccessToken] without a google_sign_in session.
+  /// Also persists the token to SharedPreferences.
+  Future<void> setIosToken(String token, DateTime expiry) async {
+    _iosAccessToken = token;
+    _iosAccessTokenExpiry = expiry;
+    await _saveAuthDataToPrefs();
+  }
+
+  /// Stores an access token as the web token (e.g. from the picker OAuth code
+  /// exchange) so that subsequent [signIn] calls with [requireWebToken]=true
+  /// skip the interactive auth screen while this token is still valid.
+  Future<void> setWebToken(String token, DateTime expiry) async {
+    _webAccessToken = token;
+    _webAccessTokenExpiry = expiry;
+    await _saveAuthDataToPrefs();
+  }
+
+  /// Stores [token] as both the iOS and web tokens in a single SharedPreferences
+  /// write. Use this after a picker code exchange where both tokens should be
+  /// set to the same value.
+  Future<void> setPickerTokens(String token, DateTime expiry) async {
+    _iosAccessToken = token;
+    _iosAccessTokenExpiry = expiry;
+    _webAccessToken = token;
+    _webAccessTokenExpiry = expiry;
+    await _saveAuthDataToPrefs();
+  }
+
   /// Get or refresh the ios access token if we have a signed-in user
   Future<String?> get iosAccessToken async {
     // Ensure prefs are loaded and sign-in is initialized
     await _ensureInitialized();
 
-    if (_currentUser == null) return null;
-
+    // Return a directly-set token (e.g. from picker code exchange) even
+    // without a google_sign_in session.
     if (hasValidIosToken) return _iosAccessToken;
 
-    try {
-      final auth = await _currentUser!.authentication;
-      if (auth.accessToken != null) {
-        _iosAccessToken = auth.accessToken;
-        _iosAccessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+    if (_currentUser == null) return null;
 
-        // Save the updated token to preferences
-        await _saveAuthDataToPrefs();
-        return _iosAccessToken;
-      } else {
-        Logger.d('Failed to get iOS token - no access token');
-        return null;
-      }
+    try {
+      // Try without prompting first
+      GoogleSignInClientAuthorization? authz = await _currentUser!
+          .authorizationClient
+          .authorizationForScopes([_driveScope]);
+
+      // If silent authorization failed, prompt the user
+      authz ??=
+          await _currentUser!.authorizationClient.authorizeScopes([_driveScope]);
+
+      _iosAccessToken = authz.accessToken;
+      _iosAccessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+
+      // Save the updated token to preferences
+      await _saveAuthDataToPrefs();
+      return _iosAccessToken;
+    } on GoogleSignInException catch (e) {
+      Logger.d('Error getting iOS access token: $e');
     } catch (e) {
       Logger.d('Error getting iOS access token: $e');
     }
@@ -221,32 +277,60 @@ class GoogleAuthService {
     return null;
   }
 
-  /// Get or refresh the web access token if we have a signed-in user
+  /// Get or refresh the web access token if we have a signed-in user.
+  ///
+  /// The web token is required specifically for the Google Drive Picker API.
+  /// See the class-level comment for the full explanation of why.
+  ///
+  /// If the cached token is still valid (< 55 min old) it is returned directly.
+  /// Otherwise we attempt to exchange `_currentUser.serverAuthCode` at the
+  /// backend. Because serverAuthCode is single-use, this only works once per
+  /// sign-in session. When the token expires, `signIn()` must be called first
+  /// (it forces a fresh interactive sign-in to get a new code).
   Future<String?> get webAccessToken async {
     // Ensure prefs are loaded and sign-in is initialized
     await _ensureInitialized();
 
-    if (_currentUser == null) return null;
+    if (_currentUser == null) {
+      Logger.d('[WebToken] No current user — cannot get web token');
+      return null;
+    }
 
-    if (hasValidWebToken) return _webAccessToken;
+    if (hasValidWebToken) {
+      final remaining = _webAccessTokenExpiry!
+          .subtract(const Duration(minutes: 5))
+          .difference(DateTime.now());
+      Logger.d('[WebToken] Returning cached token '
+          '(${remaining.inMinutes}m${remaining.inSeconds.remainder(60)}s remaining), '
+          'length=${_webAccessToken!.length}');
+      return _webAccessToken;
+    }
+
+    Logger.d('[WebToken] No valid cached token — attempting server auth code exchange.');
 
     try {
-      final serverAuthCode = _currentUser!.serverAuthCode;
+      final serverAuthz = await _currentUser!.authorizationClient
+          .authorizeServer([_driveScope]);
+      final serverAuthCode = serverAuthz?.serverAuthCode;
       if (serverAuthCode != null) {
-        Logger.d('Exchanging server auth code for access token');
+        Logger.d('[WebToken] Exchanging server auth code for access token');
         _webAccessToken =
             await _exchangeServerAuthCodeForAccessToken(serverAuthCode);
         _webAccessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
+
+        Logger.d('[WebToken] Exchange result: '
+            '${_webAccessToken != null ? "success (length=${_webAccessToken!.length})" : "FAILED — null returned"}');
 
         // Save the updated token to preferences
         await _saveAuthDataToPrefs();
         return _webAccessToken;
       } else {
-        Logger.d('Failed to get Web token - no server auth code');
+        Logger.d('[WebToken] FAILED — no server auth code on current user. '
+            'A fresh interactive sign-in is needed to get a new code.');
         return null;
       }
     } catch (e) {
-      Logger.d('Error getting web access token: $e');
+      Logger.d('[WebToken] Error getting web access token: $e');
     }
 
     return null;
@@ -260,10 +344,12 @@ class GoogleAuthService {
       _prefsLoaded = true;
     }
 
-    // Initialize sign-in if not already initialized
-    if (!_signInInitialized) {
-      _initGoogleSignIn();
-      _signInInitialized = true;
+    // Initialize GoogleSignIn if not already done
+    if (!_googleSignInInitialized) {
+      await GoogleSignIn.instance.initialize(
+        serverClientId: _webClientId,
+      );
+      _googleSignInInitialized = true;
     }
   }
 
@@ -275,6 +361,15 @@ class GoogleAuthService {
     return GoogleAuthClient(token);
   }
 
+  /// Exchanges a one-time serverAuthCode for a web access token via the backend.
+  ///
+  /// The exchange is done server-side (not in-app) so the web OAuth client
+  /// secret is never embedded in the binary. The backend endpoint receives the
+  /// auth code and client ID, calls Google's token endpoint with the secret,
+  /// and returns the resulting access token.
+  ///
+  /// IMPORTANT: Google's serverAuthCode is single-use. Once exchanged, the
+  /// same code will be rejected by Google. Do not retry with the same code.
   Future<String?> _exchangeServerAuthCodeForAccessToken(String authCode) async {
     Logger.d('Exchanging auth code for token with client ID: $_webClientId');
     if (!await _connectivity.isOnline()) {
@@ -299,18 +394,39 @@ class GoogleAuthService {
 
     if (response.statusCode == 200) {
       final responseJson = jsonDecode(response.body);
-      return responseJson['access_token'] as String?;
+      final token = responseJson['access_token'] as String?;
+      Logger.d('[WebToken] Backend exchange HTTP 200 — '
+          'access_token ${token != null ? "present (length=${token.length})" : "MISSING from response"}');
+      return token;
     } else {
-      Logger.e('Token exchange failed: ${response.body}');
+      Logger.e('[WebToken] Backend exchange failed: '
+          'status=${response.statusCode} body=${response.body}');
       return null;
     }
   }
 
   /// Sign in the user - only use when explicitly requested by the user
-  /// Tries silent sign-in first before prompting interactive sign-in
-  Future<bool> signIn() async {
+  /// Tries silent sign-in first before prompting interactive sign-in.
+  ///
+  /// [requireWebToken] controls whether the web OAuth token is obtained.
+  /// Pass `false` when the caller will handle its own auth (e.g. the Google
+  /// Picker, which runs its own OAuth flow and exchanges the resulting code for
+  /// an access token). In that case this method only checks connectivity and
+  /// returns `true` — no google_sign_in UI is shown.
+  Future<bool> signIn({bool requireWebToken = true}) async {
     try {
       await _ensureInitialized();
+
+      if (!requireWebToken) {
+        // Caller will handle auth — just verify connectivity.
+        if (!await _connectivity.isOnline()) {
+          Logger.d('No internet connection — skipping Google sign-in');
+          return false;
+        }
+        Logger.d('signIn(requireWebToken: false) — skipping google_sign_in UI');
+        return true;
+      }
+
       // Check if we already have valid tokens
       if (_currentUser != null && hasValidIosToken && hasValidWebToken) {
         Logger.d('Already signed in with valid iOS and Web tokens');
@@ -323,17 +439,36 @@ class GoogleAuthService {
       // If we need a web token but don't have a valid one, force interactive sign-in
       if (!hasValidWebToken) {
         Logger.d('Need web token, forcing interactive sign-in');
-        await _googleSignIn!.signOut();
-        _currentUser = await _googleSignIn!.signIn();
+        await GoogleSignIn.instance.signOut();
+        try {
+          _currentUser = await GoogleSignIn.instance.authenticate(
+            scopeHint: [_driveScope],
+          );
+        } on GoogleSignInException catch (e) {
+          Logger.d('Sign-in failed: ${e.description}');
+          return false;
+        }
       } else {
         if (_currentUser == null) {
-          // Try silent sign-in first
-          Logger.d('Attempting silent sign-in');
-          _currentUser = await _googleSignIn!.signInSilently();
+          // Try lightweight authentication first
+          Logger.d('Attempting lightweight authentication');
+          final lightweightFuture =
+              GoogleSignIn.instance.attemptLightweightAuthentication();
+          if (lightweightFuture != null) {
+            _currentUser = await lightweightFuture;
+          }
 
           if (_currentUser == null) {
-            Logger.d('Silent sign-in failed, trying interactive sign-in');
-            _currentUser = await _googleSignIn!.signIn();
+            Logger.d(
+                'Lightweight authentication failed, trying interactive sign-in');
+            try {
+              _currentUser = await GoogleSignIn.instance.authenticate(
+                scopeHint: [_driveScope],
+              );
+            } on GoogleSignInException catch (e) {
+              Logger.d('Sign-in failed: ${e.description}');
+              return false;
+            }
           }
         }
       }
@@ -372,7 +507,7 @@ class GoogleAuthService {
     _iosAccessTokenExpiry = null;
     _webAccessToken = null;
     _webAccessTokenExpiry = null;
-    await _googleSignIn!.signOut();
+    await GoogleSignIn.instance.signOut();
     _currentUser = null;
 
     // Clear all saved auth data

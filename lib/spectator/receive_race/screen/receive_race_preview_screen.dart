@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 import 'package:xceleration/coach/race_results/widgets/team_results_widget.dart';
@@ -7,12 +8,11 @@ import 'package:xceleration/core/services/device_connection_service.dart';
 import 'package:xceleration/core/components/device_connection_widget.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
+import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/spectator/services/spectator_storage_service.dart';
+import 'package:xceleration/spectator/utils/race_payload_decoder.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/dialog_utils.dart';
-import 'dart:convert';
-import 'dart:io';
-import 'dart:typed_data';
 
 class ReceiveRacePreviewScreen extends StatefulWidget {
   final RaceResultsData data;
@@ -43,15 +43,14 @@ class _ReceiveRacePreviewScreenState extends State<ReceiveRacePreviewScreen> {
     });
 
     try {
-      // Decode the payload to extract race metadata
-      final Uint8List b = base64Decode(widget.encodedPayload!);
-      final String decoded = utf8.decode(gzip.decode(b));
-      final Map<String, dynamic> map =
-          jsonDecode(decoded) as Map<String, dynamic>;
-      final raceMap = map['race'] as Map<String, dynamic>;
+      // Decode the payload off the UI thread to extract race metadata
+      final raceMap =
+          await compute(decodeRaceMap, widget.encodedPayload!);
+
+      if (!mounted) return;
 
       // Save the race to local storage
-      await SpectatorStorageService.instance.saveRace(
+      await ServiceLocator.get<SpectatorStorageService>().saveRace(
         raceUuid: raceMap['uuid']?.toString(),
         raceName: raceMap['name']?.toString() ?? 'Race',
         raceDate: raceMap['race_date']?.toString(),

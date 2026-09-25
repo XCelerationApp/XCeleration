@@ -25,40 +25,111 @@ class BasicAlertDialog extends StatelessWidget {
   final List<Widget> actions;
   final double backgroundTint;
 
+  /// Shown between the message and the buttons, such as a checklist.
+  final Widget? extra;
+
   const BasicAlertDialog({
     super.key,
     required this.title,
     required this.content,
     required this.actions,
     this.backgroundTint = 1.0,
+    this.extra,
   });
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
+    return Dialog(
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+        borderRadius: BorderRadius.circular(AppBorderRadius.xl),
       ),
       backgroundColor: AppColors.backgroundColor,
-      titlePadding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.lg),
-      contentPadding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.lg),
-      title: Text(
-        title,
-        style: AppTypography.titleSemibold.copyWith(
-          color: AppColors.primaryColor,
+      surfaceTintColor: Colors.transparent,
+      insetPadding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.xl),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                title,
+                style: AppTypography.titleSemibold
+                    .copyWith(color: AppColors.darkColor),
+              ),
+              if (content.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.sm),
+                Text(
+                  content,
+                  style: AppTypography.bodyRegular
+                      .copyWith(color: AppColors.mediumColor),
+                ),
+              ],
+              if (extra != null) ...[
+                const SizedBox(height: AppSpacing.lg),
+                extra!,
+              ],
+              const SizedBox(height: AppSpacing.xl),
+              // Two choices sit side by side; one fills the width.
+              Row(
+                children: [
+                  for (final (i, action) in actions.indexed) ...[
+                    if (i > 0) const SizedBox(width: AppSpacing.md),
+                    Expanded(child: action),
+                  ],
+                ],
+              ),
+            ],
+          ),
         ),
       ),
-      content: Text(
-        content,
-        style: AppTypography.bodyRegular.copyWith(
-          color: AppColors.mediumColor,
-        ),
-      ),
-      actionsPadding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
-      actions: actions,
+    );
+  }
+}
+
+/// The buttons at the bottom of an app dialog: [primary] filled, the other
+/// outlined, and [destructive] in red for choices that lose something.
+class DialogButton extends StatelessWidget {
+  const DialogButton({
+    super.key,
+    required this.text,
+    required this.onPressed,
+    this.primary = false,
+    this.destructive = false,
+  });
+
+  final String text;
+  final VoidCallback onPressed;
+  final bool primary;
+  final bool destructive;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = destructive ? AppColors.redColor : AppColors.primaryColor;
+    final shape = WidgetStatePropertyAll(RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppBorderRadius.md)));
+    const minSize = WidgetStatePropertyAll(Size(0, 48));
+    final label = Text(text,
+        textAlign: TextAlign.center, style: AppTypography.bodySemibold);
+    if (primary) {
+      return FilledButton(
+        onPressed: onPressed,
+        style: FilledButton.styleFrom(
+                backgroundColor: color, foregroundColor: Colors.white)
+            .copyWith(shape: shape, minimumSize: minSize),
+        child: label,
+      );
+    }
+    return OutlinedButton(
+      onPressed: onPressed,
+      style: OutlinedButton.styleFrom(
+        foregroundColor: AppColors.darkColor,
+        side: const BorderSide(color: AppColors.borderColor),
+      ).copyWith(shape: shape, minimumSize: minSize),
+      child: label,
     );
   }
 }
@@ -79,8 +150,68 @@ class DialogUtils {
         title: title,
         content: message,
         actions: [
-          TextButton(
-            child: Text(doneText, style: AppTypography.buttonText),
+          DialogButton(
+            text: doneText,
+            primary: true,
+            onPressed: () => Navigator.of(context).pop(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Shows what a step needs, ticking off what is done, so the coach sees
+  /// how close they are rather than only what is missing.
+  static Future<void> showChecklistDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+    required Map<String, bool> items,
+    String doneText = 'Got it',
+  }) async {
+    await showDialog<void>(
+      context: context,
+      barrierColor: Colors.black54,
+      builder: (context) => BasicAlertDialog(
+        title: title,
+        content: message,
+        extra: Column(
+          children: [
+            for (final MapEntry(key: item, value: done) in items.entries)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                child: Row(
+                  children: [
+                    Icon(
+                      done
+                          ? Icons.check_circle_rounded
+                          : Icons.radio_button_unchecked,
+                      size: 22,
+                      color: done ? Colors.green.shade600 : AppColors.primaryColor,
+                    ),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(
+                      child: Text(
+                        item,
+                        style: (done
+                                ? AppTypography.bodyRegular
+                                : AppTypography.bodySemibold)
+                            .copyWith(
+                          color: done
+                              ? AppColors.mediumColor
+                              : AppColors.darkColor,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+        actions: [
+          DialogButton(
+            text: doneText,
+            primary: true,
             onPressed: () => Navigator.of(context).pop(),
           ),
         ],
@@ -95,6 +226,7 @@ class DialogUtils {
     String confirmText = 'Yes',
     String cancelText = 'No',
     Color barrierColor = Colors.black54,
+    bool destructive = false,
   }) async {
     return await showDialog<bool>(
           context: context,
@@ -103,13 +235,15 @@ class DialogUtils {
             title: title,
             content: content,
             actions: [
-              TextButton(
+              DialogButton(
+                text: cancelText,
                 onPressed: () => Navigator.of(context).pop(false),
-                child: Text(cancelText, style: AppTypography.buttonText),
               ),
-              TextButton(
+              DialogButton(
+                text: confirmText,
+                primary: true,
+                destructive: destructive,
                 onPressed: () => Navigator.of(context).pop(true),
-                child: Text(confirmText, style: AppTypography.buttonText),
               ),
             ],
           ),
