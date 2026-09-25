@@ -13,7 +13,9 @@ import '../../../core/utils/enums.dart';
 import '../../../core/result.dart';
 import '../../../core/app_error.dart';
 
-enum DownloadFormat { csv, pdf }
+/// How a copy of the race is saved: copied as text, made into a Google
+/// Sheet, or a CSV or PDF file.
+enum DownloadFormat { text, sheets, csv, pdf }
 
 /// Service for generating and sharing CSV/PDF exports of assistant race data.
 ///
@@ -31,9 +33,9 @@ class AssistantExportService {
     List<UIRecord> records,
     DownloadFormat format,
   ) async {
-    return format == DownloadFormat.csv
-        ? _exportTimerCsv(race, records)
-        : _exportTimerPdf(race, records);
+    return format == DownloadFormat.pdf
+        ? _exportTimerPdf(race, records)
+        : _exportTimerCsv(race, records);
   }
 
   static Future<Result<XFile>> exportBibData(
@@ -41,10 +43,40 @@ class AssistantExportService {
     List<BibDatumRecord> records,
     DownloadFormat format,
   ) async {
-    return format == DownloadFormat.csv
-        ? _exportBibCsv(race, records)
-        : _exportBibPdf(race, records);
+    return format == DownloadFormat.pdf
+        ? _exportBibPdf(race, records)
+        : _exportBibCsv(race, records);
   }
+
+  /// The Timer's finish times as a table: a heading row, then place and time.
+  static List<List<String>> timerTable(List<UIRecord> records) => [
+        ['Place', 'Time'],
+        ...records
+            .where((r) => r.type == RecordType.runnerTime)
+            .map((r) => [r.place?.toString() ?? '', r.time]),
+      ];
+
+  /// The Bib Recorder's list as a table: a heading row, then [bibRows].
+  static List<List<String>> bibTable(List<BibDatumRecord> records) => [
+        ['Place', 'Bib', 'Name', 'Team', 'Grade'],
+        ...bibRows(records),
+      ];
+
+  /// A table as plain text under the race's name and date. Columns are
+  /// split by tabs, so it reads in a message and pastes into a spreadsheet
+  /// as columns.
+  static String asText(RaceRecord race, List<List<String>> table) {
+    final lines = [
+      '${race.name} — ${_formattedDate(race.date)}',
+      '',
+      for (final row in table) row.join('\t'),
+    ];
+    return lines.join('\n');
+  }
+
+  /// The name of a Google Sheet made from the race.
+  static String sheetTitle(RaceRecord race, String what) =>
+      '${race.name} — $what (${_formattedDate(race.date)})';
 
   static Future<void> shareFile(XFile file, String subject) async {
     await SharePlus.instance.share(
@@ -65,10 +97,7 @@ class AssistantExportService {
         ['Race', race.name],
         ['Date', _formattedDate(race.date)],
         [],
-        ['Place', 'Time'],
-        ...records
-            .where((r) => r.type == RecordType.runnerTime)
-            .map((r) => [r.place?.toString() ?? '', r.time]),
+        ...timerTable(records),
       ];
 
       final csv = const ListToCsvConverter().convert(rows);
@@ -90,10 +119,7 @@ class AssistantExportService {
       final (regular, bold) = await _loadFonts();
       final theme = pw.ThemeData.withFont(base: regular, bold: bold);
 
-      final rows = records
-          .where((r) => r.type == RecordType.runnerTime)
-          .map((r) => [r.place?.toString() ?? '', r.time])
-          .toList();
+      final rows = timerTable(records).skip(1).toList();
 
       pdf.addPage(pw.MultiPage(
         theme: theme,
@@ -135,8 +161,7 @@ class AssistantExportService {
         ['Race', race.name],
         ['Date', _formattedDate(race.date)],
         [],
-        ['Place', 'Bib', 'Name', 'Team', 'Grade'],
-        ...bibRows(records),
+        ...bibTable(records),
       ];
 
       final csv = const ListToCsvConverter().convert(rows);

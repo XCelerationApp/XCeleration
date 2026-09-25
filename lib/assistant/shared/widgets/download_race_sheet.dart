@@ -7,7 +7,8 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../services/assistant_export_service.dart';
 
-/// Bottom sheet that lets the user choose between CSV and PDF download formats.
+/// Bottom sheet for how to save a copy of the race: copied as text, a
+/// Google Sheet, or a CSV or PDF file.
 ///
 /// Closes itself with a [DownloadFormat] value when the user taps an option.
 class DownloadRaceSheet extends StatelessWidget {
@@ -20,16 +21,30 @@ class DownloadRaceSheet extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _FormatTile(
+          icon: Icons.content_copy_outlined,
+          title: 'Copy as Text',
+          subtitle: 'Paste into a message, email or spreadsheet',
+          onTap: () => Navigator.of(context).pop(DownloadFormat.text),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _FormatTile(
+          icon: Icons.grid_on_outlined,
+          title: 'Google Sheets',
+          subtitle: 'Make a new sheet in your Google Drive',
+          onTap: () => Navigator.of(context).pop(DownloadFormat.sheets),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        _FormatTile(
           icon: Icons.table_chart_outlined,
-          title: 'CSV',
-          subtitle: 'Spreadsheet format — open in Excel or Google Sheets',
+          title: 'CSV File',
+          subtitle: 'Open in Excel, Numbers or Google Sheets',
           onTap: () => Navigator.of(context).pop(DownloadFormat.csv),
         ),
         const SizedBox(height: AppSpacing.md),
         _FormatTile(
           icon: Icons.picture_as_pdf_outlined,
-          title: 'PDF',
-          subtitle: 'Print-friendly document',
+          title: 'PDF File',
+          subtitle: 'Ready to print',
           onTap: () => Navigator.of(context).pop(DownloadFormat.pdf),
         ),
       ],

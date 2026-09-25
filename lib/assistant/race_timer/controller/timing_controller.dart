@@ -15,15 +15,13 @@ import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
-import '../../shared/widgets/download_race_sheet.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
 import '../../shared/utils/race_to_reopen.dart';
 import '../../shared/services/assistant_export_service.dart';
+import '../../shared/services/race_copy.dart';
 import '../../shared/services/demo_race_generator.dart';
 import '../../../core/app_error.dart';
 import '../../../core/result.dart';
-import '../../../core/components/dialog_utils.dart';
-import 'package:share_plus/share_plus.dart';
 
 sealed class RemoveExtraTimeResult {
   const RemoveExtraTimeResult();
@@ -557,42 +555,16 @@ class TimingController extends TimingData {
 
   Future<void> downloadRace(BuildContext context) async {
     if (currentRace == null) return;
-
-    final dynamic rawFormat = await sheet(
-      context: context,
-      title: 'Download a Copy',
-      body: const DownloadRaceSheet(),
-    );
-    final format = rawFormat is DownloadFormat ? rawFormat : null;
-
-    if (format == null || !context.mounted) return;
-
     final race = currentRace!;
     final records = uiRecords;
-
-    final xFile = await DialogUtils.executeWithLoadingDialog<XFile>(
+    await saveRaceCopy(
       context,
-      loadingMessage: 'Preparing download...',
-      operation: () async {
-        final result =
-            await AssistantExportService.exportTimerData(race, records, format);
-        return switch (result) {
-          Success(:final value) => value,
-          Failure(:final error) => throw Exception(error.userMessage),
-        };
-      },
+      race: race,
+      what: 'Finish Times',
+      table: AssistantExportService.timerTable(records),
+      exportFile: (format) =>
+          AssistantExportService.exportTimerData(race, records, format),
     );
-
-    if (xFile == null || !context.mounted) return;
-
-    try {
-      await AssistantExportService.shareFile(xFile, race.name);
-    } catch (e) {
-      Logger.e('Error sharing race download: $e');
-      if (context.mounted) {
-        DialogUtils.showErrorDialog(context, message: 'Failed to share file.');
-      }
-    }
   }
 
   /// Deletes the current race and all its associated data.
