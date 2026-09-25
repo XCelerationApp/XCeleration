@@ -32,6 +32,11 @@ class FlowStep {
   /// What the button under the step says, such as 'Save Results'. Without
   /// it the button says Next, or Done on the last step.
   final String? nextLabel;
+
+  /// Runs when the button is pressed, before moving on, with a context for
+  /// opening screens: Load Results walks the coach through any conflicts
+  /// here. Throw [FlowStepBlocked] to stay on the step.
+  final Future<void> Function(BuildContext context)? beforeNext;
   final StreamController<void> _contentChangeController;
 
   FlowStep({
@@ -44,6 +49,7 @@ class FlowStep {
     this.onNext,
     this.onBack,
     this.nextLabel,
+    this.beforeNext,
   }) : _contentChangeController = StreamController<void>.broadcast();
 
   Stream<void> get onContentChange => _contentChangeController.stream;

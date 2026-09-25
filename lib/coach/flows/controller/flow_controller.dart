@@ -482,6 +482,11 @@ Future<bool> showFlow({
                           ? () async {
                               final c = ctx.read<FlowController>();
                               try {
+                                final before = c.currentStep.beforeNext;
+                                if (before != null) {
+                                  await before(ctx);
+                                  if (!ctx.mounted) return;
+                                }
                                 if (c.canGoForward) {
                                   await c.goToNext();
                                 } else if (c.isLastStep) {

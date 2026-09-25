@@ -131,7 +131,7 @@ void main() {
           }
         }
 
-        await tap(tester, find.text('Confirm & Submit Results'));
+        await tap(tester, find.text('Done'));
         await done;
 
         expect(controller.raceRunners, truth, reason: race.notes.join('\n'));

@@ -126,6 +126,14 @@ class MockLoadResultsController extends _i1.Mock
           as bool);
 
   @override
+  int get timingConflictCount =>
+      (super.noSuchMethod(
+            Invocation.getter(#timingConflictCount),
+            returnValue: 0,
+          )
+          as int);
+
+  @override
   set results(List<_i5.RaceResult>? value) => super.noSuchMethod(
     Invocation.setter(#results, value),
     returnValueForMissingStub: null,
@@ -236,6 +244,14 @@ class MockLoadResultsController extends _i1.Mock
             returnValue: _i8.Future<_i10.SimulatedRace?>.value(),
           )
           as _i8.Future<_i10.SimulatedRace?>);
+
+  @override
+  ({_i7.AppError? error, List<_i5.RaceResult> results}) buildResults() =>
+      (super.noSuchMethod(
+            Invocation.method(#buildResults, []),
+            returnValue: (error: null, results: <_i5.RaceResult>[]),
+          )
+          as ({_i7.AppError? error, List<_i5.RaceResult> results}));
 
   @override
   _i8.Future<void> showBibConflictsSheet(_i9.BuildContext? context) =>

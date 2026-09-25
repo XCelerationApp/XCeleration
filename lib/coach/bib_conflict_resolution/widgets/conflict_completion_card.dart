@@ -20,6 +20,7 @@ class ConflictCompletionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ConflictResolutionController>();
+    final timing = controller.timingConflictsNext;
 
     return SizedBox.expand(
       child: SingleChildScrollView(
@@ -31,13 +32,19 @@ class ConflictCompletionCard extends StatelessWidget {
             _SuccessIcon(),
             const SizedBox(height: AppSpacing.xl),
             Text(
-              'All conflicts resolved',
+              'All bib numbers sorted',
               style: AppTypography.titleLarge,
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: AppSpacing.sm),
             Text(
-              'Review the summary below, then confirm to submit results.',
+              timing > 0
+                  ? 'Check the changes below. Next, $timing '
+                      '${timing == 1 ? 'place needs its time' : 'places need their times'} '
+                      'sorted out, where the Timer and Bib Recorder counts '
+                      'differ.'
+                  : 'Check the changes below. There are no timing conflicts, '
+                      'so the results are ready to check and save.',
               style: AppTypography.bodyRegular.copyWith(
                 color: AppColors.mediumColor,
               ),
@@ -47,7 +54,7 @@ class ConflictCompletionCard extends StatelessWidget {
             _ResolutionLog(log: controller.resolutionLog),
             const SizedBox(height: AppSpacing.xxl),
             FullWidthButton(
-              text: 'Confirm & Submit Results',
+              text: timing > 0 ? 'Next: Timing Conflicts' : 'Done',
               // Who finished at each place the coach settled, to be written
               // back into the finish order.
               onPressed: () =>

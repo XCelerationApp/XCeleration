@@ -5,6 +5,7 @@ import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/flows/post_race_flow/controller/post_race_controller.dart';
 import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/controller/load_results_controller.dart';
 import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/load_results_step.dart';
+import 'package:xceleration/coach/flows/post_race_flow/steps/review_results/review_results_step.dart';
 import 'package:xceleration/coach/flows/post_race_flow/steps/reconnect/reconnect_step.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
@@ -58,7 +59,7 @@ void main() {
   group('PostRaceController', () {
     // -----------------------------------------------------------------------
     group('_initializeSteps', () {
-      test('builds two steps in the correct order', () {
+      test('builds three steps in the correct order', () {
         final controller = _buildController(
           mockMasterRace,
           loadResultsController: mockLoadResultsController,
@@ -66,9 +67,10 @@ void main() {
 
         final steps = controller.buildSteps();
 
-        expect(steps.length, 2);
+        expect(steps.length, 3);
         expect(steps[0], isA<ReconnectStep>());
         expect(steps[1], isA<LoadResultsStep>());
+        expect(steps[2], isA<ReviewResultsStep>());
       });
 
       test('calls initialize() on injected LoadResultsController', () {
@@ -193,9 +195,10 @@ void main() {
         await controller.showPostRaceFlow(ctx!, false);
 
         expect(capturedSteps, isNotNull);
-        expect(capturedSteps!.length, 2);
+        expect(capturedSteps!.length, 3);
         expect(capturedSteps![0], isA<ReconnectStep>());
         expect(capturedSteps![1], isA<LoadResultsStep>());
+        expect(capturedSteps![2], isA<ReviewResultsStep>());
       });
     });
   });

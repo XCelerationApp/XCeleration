@@ -16,15 +16,24 @@ class LoadResultsStep extends FlowStep {
   }) : super(
           title: 'Load Results',
           description: 'The times and bibs load as each volunteer\'s phone '
-              'connects. Fix anything flagged, then save.',
-          nextLabel: 'Save Results',
+              'connects. Then tap Next.',
+          nextLabel: 'Next',
           // Initialize with a placeholder
           content: SizedBox.shrink(),
-          onNext: () async {
-            // Save results when user clicks next. A failed save must keep the
-            // flow here: finishing would mark the race done without results.
-            final error = await controller.saveCurrentResults();
-            if (error != null) throw FlowStepBlocked(error.userMessage);
+          // Next walks the coach through any conflicts, bibs then times, and
+          // stays here if some are left. Saving happens on the next page,
+          // once the coach has seen the results.
+          beforeNext: (context) async {
+            if (controller.hasBibConflicts) {
+              // Moves on to the timing conflicts itself once bibs are done.
+              await controller.showBibConflictsSheet(context);
+            } else if (controller.hasTimingConflicts) {
+              await controller.showTimingConflictsSheet(context);
+            }
+            if (controller.hasBibConflicts || controller.hasTimingConflicts) {
+              throw const FlowStepBlocked(
+                  'Some conflicts still need sorting out. Tap Next to carry on.');
+            }
           },
         ) {
     // Listen to controller changes and notify the flow system
@@ -46,20 +55,10 @@ class LoadResultsStep extends FlowStep {
   Widget get content => _content;
 
   @override
-  bool Function()? get canProceed => () {
-        return controller.resultsLoaded &&
-            !controller.hasBibConflicts &&
-            !controller.hasTimingConflicts;
-      };
+  bool Function()? get canProceed => () => controller.resultsLoaded;
 
   @override
-  String? Function()? get blockedReason => () {
-        if (!controller.resultsLoaded) {
-          return 'Waiting for the times and bibs from your volunteers.';
-        }
-        if (controller.hasBibConflicts || controller.hasTimingConflicts) {
-          return 'Resolve the conflicts above, then save.';
-        }
-        return null;
-      };
+  String? Function()? get blockedReason => () => controller.resultsLoaded
+      ? null
+      : 'Waiting for the times and bibs from your volunteers.';
 }
