@@ -17,6 +17,8 @@ class RaceNameField extends StatelessWidget {
           context: context,
           controller: controller.nameController,
           hint: 'Enter race name',
+          // The only field on the sheet, so typing can start at once.
+          autofocus: true,
           error: controller.nameError,
           onChanged: (_) =>
               controller.validateName(controller.nameController.text),

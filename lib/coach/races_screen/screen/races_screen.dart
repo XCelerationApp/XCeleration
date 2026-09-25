@@ -132,7 +132,10 @@ class RacesScreenState extends State<RacesScreen> {
                     child: CustomScrollView(
                       slivers: [
                         SliverPadding(
-                          padding: EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xl),
+                          // Room below the last race for the + button, which
+                          // otherwise sat on top of it.
+                          padding: EdgeInsets.fromLTRB(
+                              AppSpacing.xl, 0, AppSpacing.xl, 96),
                           sliver: RacesList(
                             controller: _controller,
                             canEdit: widget.canEdit,

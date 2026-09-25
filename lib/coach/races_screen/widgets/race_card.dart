@@ -15,6 +15,7 @@ import '../../../core/theme/app_animations.dart';
 import '../../../shared/models/database/race.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/components/status_badge.dart';
+import '../../../core/utils/enums.dart' show RaceScreenPage;
 
 class RaceCard extends StatefulWidget {
   const RaceCard({
@@ -78,6 +79,10 @@ class _RaceCardState extends State<RaceCard> {
                   child: RaceScreen(
                     masterRace: masterRace,
                     parentController: widget.controller,
+                    // A finished race is opened for its results.
+                    page: widget.flowState == Race.FLOW_FINISHED
+                        ? RaceScreenPage.results
+                        : RaceScreenPage.main,
                   ),
                 ),
                 takeUpScreen: false,
