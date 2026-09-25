@@ -653,6 +653,9 @@ class RunnersManagementController with ChangeNotifier {
           }
         }
 
+        // The runner count and search box read from the refreshed race; the
+        // list alone updated, so they stayed hidden until the page reopened.
+        await forceRefresh();
         if (context.mounted) {
           final n = selectedTeams.length;
           DialogUtils.showSuccessDialog(context,
