@@ -22,6 +22,21 @@ class SpreadsheetRows {
   static const empty = SpreadsheetRows([]);
 }
 
+/// Rows a spreadsheet lost before it became a file, such as those left out
+/// when several Google Sheet tabs were combined. Reported with the next
+/// import's own skipped rows, then forgotten.
+List<String> _skippedBeforeFile = const [];
+
+/// Records rows left out while preparing the file about to be imported.
+void noteRowsSkippedBeforeFile(List<String> rows) => _skippedBeforeFile = rows;
+
+SpreadsheetRows _withSkippedBeforeFile(SpreadsheetRows rows) {
+  final earlier = _skippedBeforeFile;
+  _skippedBeforeFile = const [];
+  if (earlier.isEmpty) return rows;
+  return SpreadsheetRows(rows.runners, [...earlier, ...rows.skipped]);
+}
+
 /// Processes an already-downloaded [file] through the spreadsheet pipeline
 /// (parse → validate → extract runner rows). Used for the "Recent Spreadsheets"
 /// flow where the file has already been downloaded before this call.
@@ -51,7 +66,7 @@ Future<SpreadsheetRows> processSpreadsheetFromFile(
       }
       result = processSpreadsheetData(parsedData);
     }
-    return result ?? SpreadsheetRows.empty;
+    return _withSkippedBeforeFile(result ?? SpreadsheetRows.empty);
   } catch (e) {
     Logger.e('Error processing spreadsheet file: $e');
     final ctx =
@@ -138,8 +153,7 @@ Future<SpreadsheetRows> processSpreadsheet(BuildContext context,
       return SpreadsheetRows.empty;
     }
 
-    // Return the result or empty list if null
-    return result;
+    return _withSkippedBeforeFile(result);
   } catch (e) {
     Logger.e('Error processing spreadsheet: $e');
     if (!context.mounted) context = navigatorContext;
@@ -155,7 +169,6 @@ Future<SpreadsheetRows> processSpreadsheet(BuildContext context,
 /// Process the spreadsheet data to get the runner data. Rows that can't be
 /// imported are listed in [SpreadsheetRows.skipped] rather than dropped
 /// silently.
-@visibleForTesting
 SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
   final List<Map<String, dynamic>> runnerData = [];
   final List<String> skipped = [];
