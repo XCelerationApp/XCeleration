@@ -198,6 +198,8 @@ class _TimingScreenState extends State<TimingScreen>
                     message: error.userMessage);
               }
             },
+            onAdjustStart: () => _controller.showAdjustStartSheet(context),
+            canAdjustStart: () => _controller.startTime != null,
             clearRecordsLabel: 'Clear Times',
             canClearRecords: () =>
                 _controller.raceStopped && _controller.hasTimingData,

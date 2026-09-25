@@ -1,4 +1,4 @@
-import '../utils/time_shift.dart';
+import 'package:xceleration/shared/models/timing_records/time_shift.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';

@@ -12,6 +12,7 @@ import '../model/timing_utils.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../../../core/utils/sheet_utils.dart';
+import '../../../core/components/adjust_times_form.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
@@ -562,6 +563,27 @@ class TimingController extends TimingData {
       default:
         return false;
     }
+  }
+
+  /// For a Timer who pressed Start before or after the gun: moves the clock
+  /// and every time by the seconds they say.
+  Future<void> showAdjustStartSheet(BuildContext context) async {
+    await sheet(
+      context: context,
+      title: 'Started Early or Late?',
+      body: AdjustTimesForm(
+        explanation: timeShift == Duration.zero
+            ? 'Pressed Start after the gun? Every time is short by the same '
+                'amount. Say how many seconds and the clock and every time '
+                'are corrected, so your coach gets times from the gun.'
+            : 'Times already moved ${describeShift(timeShift)}. Any change '
+                'here is added to that.',
+        onShift: (by) {
+          final refused = shiftAllTimes(by);
+          return refused == null ? null : AppError(userMessage: refused);
+        },
+      ),
+    );
   }
 
   Future<void> downloadRace(BuildContext context) async {

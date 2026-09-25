@@ -82,7 +82,9 @@ class InstructionsBanner extends StatelessWidget {
             'the runners, tell the Timer how many bibs you have.';
       case Role.timer:
         return 'You time the race. Tap Start when the gun goes, and Log as '
-            'each runner crosses the finish line.\n\nWhen there is a break '
+            'each runner crosses the finish line. Missed the gun by a few '
+            'seconds? That is fine: once the race has started, choose Started '
+            'Early or Late? from the menu.\n\nWhen there is a break '
             'in the runners, compare your count with the Bib Recorder\'s. If '
             'they are the same, tap Counts match. If not, tap Counts differ? '
             'and choose what happened.';
