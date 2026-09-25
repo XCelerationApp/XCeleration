@@ -82,6 +82,7 @@ void main() {
 
   testWidgets('Voice turns on from the switch, and holding the button '
       'records a bib', (tester) async {
+    final semantics = tester.ensureSemantics();
     final voice = build(() async => const Success(null));
     await tester.pumpWidget(host(voice));
     expect(find.text('Hold and Say Bib'), findsNothing);
@@ -101,11 +102,15 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(added, ['42']);
-    expect(find.text('Heard 42 · Alice, EAG'), findsOneWidget);
+    // Large, with who it is, to check at a glance.
+    expect(find.text('42'), findsOneWidget);
+    expect(find.text('Alice, EAG'), findsOneWidget);
+    expect(find.bySemanticsLabel(RegExp('Heard 42, Alice, EAG')), findsOneWidget);
 
     await tester.tap(find.text('Undo'));
     expect(undone, 1);
     voice.dispose();
+    semantics.dispose();
   });
 
   testWidgets('says when a bib is not on the roster', (tester) async {
@@ -120,7 +125,8 @@ void main() {
     await finger.up();
     await tester.pumpAndSettle();
 
-    expect(find.text('Heard 901 (not on the roster)'), findsOneWidget);
+    expect(find.text('901'), findsOneWidget);
+    expect(find.text('Not on the roster'), findsOneWidget);
     voice.dispose();
   });
 
@@ -143,6 +149,52 @@ void main() {
     expect(added, isEmpty);
     voice.dispose();
   });
+
+  for (final (name, size) in const [
+    ('iPhone SE', Size(320, 568)),
+    ('iPhone 13 Pro', Size(390, 844)),
+  ]) {
+    testWidgets('a long bib and name fit on an $name at large text',
+        (tester) async {
+      tester.view.physicalSize = size;
+      tester.view.devicePixelRatio = 1.0;
+      tester.platformDispatcher.textScaleFactorTestValue = 1.5;
+      addTearDown(tester.view.reset);
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+      final voice = VoiceEntryController(
+        onBibHeard: (bib) async => added.add(bib),
+        createService: () => fake = _FakeVoice(() async => const Success(null)),
+        haptics: _NoHaptics(),
+      );
+      await voice.setEnabled(true);
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: Align(
+            alignment: Alignment.bottomCenter,
+            child: ListenableBuilder(
+              listenable: voice,
+              builder: (_, _) => VoiceEntryPanel(
+                voice: voice,
+                describe: (_) => 'Alexandria Montgomery-Smith, ARCHIE',
+                onUndo: () {},
+              ),
+            ),
+          ),
+        ),
+      ));
+
+      fake.nextHeard = '1199';
+      final finger = await tester
+          .startGesture(tester.getCenter(find.text('Hold and Say Bib')));
+      await tester.pump();
+      await finger.up();
+      await tester.pumpAndSettle();
+
+      // A RenderFlex overflow fails the test.
+      expect(find.text('1199'), findsOneWidget);
+      voice.dispose();
+    });
+  }
 
   testWidgets('warns about the download while the model loads',
       (tester) async {
