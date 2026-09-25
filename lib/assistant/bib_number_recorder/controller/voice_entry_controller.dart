@@ -8,6 +8,7 @@ import 'package:xceleration/core/services/haptic_feedback_service.dart';
 import 'package:xceleration/core/utils/logger.dart';
 
 import '../services/i_voice_recognition_service.dart';
+import '../services/model_download_service.dart';
 import '../services/voice_recognition_service.dart';
 
 /// Where voice entry is up to.
@@ -35,20 +36,33 @@ enum VoiceEntryState {
 /// the bib is added as the next runner.
 ///
 /// The choice to use voice is remembered on the phone. The speech model is
-/// only loaded once voice is turned on, so volunteers who type never
-/// download it.
+/// downloaded as soon as the Bib Recorder opens, so it is on the phone
+/// before the race even if voice is only turned on then; it is loaded into
+/// memory only once voice is on.
 class VoiceEntryController extends ChangeNotifier {
   VoiceEntryController({
     required this.onBibHeard,
     IVoiceRecognitionService Function()? createService,
     IHapticFeedback? haptics,
     Future<SharedPreferences> Function()? prefs,
+    Future<void> Function()? fetchModel,
   })  : _createService = createService ?? VoiceRecognitionService.create,
         _haptics = haptics ?? HapticFeedbackService(),
-        _prefs = prefs ?? SharedPreferences.getInstance;
+        _prefs = prefs ?? SharedPreferences.getInstance,
+        _fetchModel = fetchModel ?? _downloadModel;
 
   /// The preference that remembers voice entry is on.
   static const prefKey = 'bib_recorder_voice_entry';
+
+  /// Set while the speech model loads. Still set when the Bib Recorder next
+  /// opens means the app closed part way through, most likely because
+  /// loading voice crashed it; voice is then left off rather than crashing
+  /// the app again each time the Bib Recorder opens.
+  static const loadingKey = 'bib_recorder_voice_loading';
+
+  static Future<void> _downloadModel() async {
+    await ModelDownloadService().ensureModelReady();
+  }
 
   /// Adds a heard bib to the list.
   final Future<void> Function(String bib) onBibHeard;
@@ -56,6 +70,7 @@ class VoiceEntryController extends ChangeNotifier {
   final IVoiceRecognitionService Function() _createService;
   final IHapticFeedback _haptics;
   final Future<SharedPreferences> Function() _prefs;
+  final Future<void> Function() _fetchModel;
 
   IVoiceRecognitionService? _service;
   StreamSubscription<String?>? _bibSub;
@@ -79,11 +94,30 @@ class VoiceEntryController extends ChangeNotifier {
   bool _missed = false;
   bool get missed => _missed;
 
-  /// Turns voice on if the volunteer chose it last time.
+  /// Turns voice on if the volunteer chose it last time, and otherwise
+  /// fetches the speech model in the background so it is ready if they do.
   Future<void> restore() async {
     try {
       final prefs = await _prefs();
-      if (prefs.getBool(prefKey) ?? false) await _prepare();
+      if (prefs.getBool(loadingKey) ?? false) {
+        await prefs.setBool(loadingKey, false);
+        await prefs.setBool(prefKey, false);
+        _error = const AppError(
+          // The panel adds "Use the keypad, or try again."
+          userMessage: 'Voice entry closed the app last time it started, so '
+              'it was turned off.',
+        );
+        _set(VoiceEntryState.failed);
+        return;
+      }
+      if (prefs.getBool(prefKey) ?? false) {
+        await _prepare();
+      } else {
+        unawaited(_fetchModel().catchError((Object e) {
+          // Tried again when voice is turned on.
+          Logger.d('[VoiceEntryController] Model not fetched early: $e');
+        }));
+      }
     } catch (e) {
       Logger.e('[VoiceEntryController.restore] $e');
     }
@@ -118,7 +152,9 @@ class VoiceEntryController extends ChangeNotifier {
     final service = _createService();
     _service = service;
     _bibSub = service.bibNumbers.listen(_onBib);
+    await _markLoading(true);
     final result = await service.initialize();
+    await _markLoading(false);
     if (_disposed || _service != service) return;
     switch (result) {
       case Success():
@@ -128,6 +164,14 @@ class VoiceEntryController extends ChangeNotifier {
         _error = error;
         await _release();
         _set(VoiceEntryState.failed);
+    }
+  }
+
+  Future<void> _markLoading(bool loading) async {
+    try {
+      await (await _prefs()).setBool(loadingKey, loading);
+    } catch (e) {
+      Logger.e('[VoiceEntryController._markLoading] $e');
     }
   }
 

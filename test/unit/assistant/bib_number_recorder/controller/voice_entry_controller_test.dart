@@ -71,6 +71,7 @@ void main() {
   late _FakeVoice voice;
   late _Haptics haptics;
   late int created;
+  late int fetched;
 
   VoiceEntryController build({Result<void> init = const Success(null)}) {
     return VoiceEntryController(
@@ -80,6 +81,7 @@ void main() {
         return voice = _FakeVoice(initResult: init);
       },
       haptics: haptics,
+      fetchModel: () async => fetched++,
     );
   }
 
@@ -88,14 +90,49 @@ void main() {
     added = [];
     haptics = _Haptics();
     created = 0;
+    fetched = 0;
   });
 
-  test('is off until turned on, and loads nothing meanwhile', () async {
+  test('is off until turned on, but fetches the model ahead of the race',
+      () async {
     final c = build();
     await c.restore();
 
     expect(c.state, VoiceEntryState.off);
     expect(created, 0, reason: 'volunteers who type never load the model');
+    expect(fetched, 1,
+        reason: 'downloaded when the Bib Recorder opens, not mid-race');
+    c.dispose();
+  });
+
+  test('clears its loading mark once the model is loaded', () async {
+    final c = build();
+    await c.setEnabled(true);
+
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool(VoiceEntryController.loadingKey), isFalse);
+    c.dispose();
+  });
+
+  test('stays off, and says why, if loading voice closed the app last time',
+      () async {
+    SharedPreferences.setMockInitialValues({
+      VoiceEntryController.prefKey: true,
+      VoiceEntryController.loadingKey: true,
+    });
+    final c = build();
+    await c.restore();
+
+    expect(created, 0, reason: 'not loaded again, to crash again');
+    expect(c.state, VoiceEntryState.failed);
+    expect(c.error?.userMessage, contains('closed the app'));
+    final prefs = await SharedPreferences.getInstance();
+    expect(prefs.getBool(VoiceEntryController.prefKey), isFalse);
+    expect(prefs.getBool(VoiceEntryController.loadingKey), isFalse);
+
+    // Trying again is the volunteer's choice.
+    await c.retry();
+    expect(c.state, VoiceEntryState.ready);
     c.dispose();
   });
 

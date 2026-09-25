@@ -27,8 +27,6 @@ void main() {
 
   const assets = ModelAssets(
     modelDir: '/model',
-    hotwordsPath: '/model/hotwords.txt',
-    bpeVocabPath: '/model/bpe.vocab',
   );
 
   setUp(() {

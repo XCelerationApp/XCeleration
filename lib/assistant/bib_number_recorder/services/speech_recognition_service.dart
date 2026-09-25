@@ -16,8 +16,6 @@ void _inferenceIsolateEntry(({
   String decoder,
   String joiner,
   String tokens,
-  String hotwordsFile,
-  String bpeVocab,
   SendPort mainSendPort,
 }) args) {
   sherpa.initBindings();
@@ -30,19 +28,11 @@ void _inferenceIsolateEntry(({
         joiner: args.joiner,
       ),
       tokens: args.tokens,
-      // The hotwords are plain words, split with this vocabulary.
-      modelingUnit: 'bpe',
-      bpeVocab: args.bpeVocab,
       numThreads: 2,
       debug: false,
     ),
     decodingMethod: 'modified_beam_search',
     maxActivePaths: 8,
-    hotwordsFile: args.hotwordsFile,
-    // A light nudge. Once the hotwords loaded at all, 10 made the model
-    // repeat them ("EIGHT EIGHT EIGHT"); on noisy test clips 1.0 heard the
-    // most bibs right and the fewest wrong, and 1.5 or more got worse.
-    hotwordsScore: 1.0,
   );
 
   final recognizer = sherpa.OfflineRecognizer(config);
@@ -145,8 +135,6 @@ class SpeechRecognitionService implements ISpeechRecognitionService {
         decoder: p.join(assets.modelDir, 'decoder-epoch-99-avg-1.int8.onnx'),
         joiner: p.join(assets.modelDir, 'joiner-epoch-99-avg-1.int8.onnx'),
         tokens: p.join(assets.modelDir, 'tokens.txt'),
-        hotwordsFile: assets.hotwordsPath,
-        bpeVocab: assets.bpeVocabPath,
         mainSendPort: ready.sendPort,
       ),
     );
