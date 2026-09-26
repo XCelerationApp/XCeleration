@@ -9,21 +9,11 @@ class RunnerSearchBar extends StatefulWidget {
   const RunnerSearchBar({
     super.key,
     required this.controller,
-    required this.searchAttribute,
     required this.onSearchChanged,
-    required this.onAttributeChanged,
-    this.onDeleteAll,
-    this.isViewMode = false,
   });
 
   final TextEditingController controller;
-  final String searchAttribute;
   final VoidCallback onSearchChanged;
-  final ValueChanged<String?> onAttributeChanged;
-
-  /// Kept for API compatibility; no longer rendered in the UI.
-  final VoidCallback? onDeleteAll;
-  final bool isViewMode;
 
   @override
   State<RunnerSearchBar> createState() => _RunnerSearchBarState();
@@ -57,16 +47,9 @@ class _RunnerSearchBarState extends State<RunnerSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(child: _SearchField(this)),
-        const SizedBox(width: AppSpacing.sm),
-        _AttributeDropdown(
-          value: widget.searchAttribute,
-          onChanged: widget.onAttributeChanged,
-        ),
-      ],
-    );
+    // Searches names, bibs, grades and teams at once, so there is no menu
+    // to pick which.
+    return _SearchField(this);
   }
 }
 
@@ -97,11 +80,14 @@ class _SearchField extends StatelessWidget {
             child: TextField(
               controller: state.widget.controller,
               onChanged: (_) => state.widget.onSearchChanged(),
+              // Names and bibs, not words to correct.
+              autocorrect: false,
+              enableSuggestions: false,
               style: AppTypography.smallBodyRegular.copyWith(
                 color: AppColors.darkColor,
               ),
               decoration: InputDecoration(
-                hintText: 'Search runners…',
+                hintText: 'Search name, bib or team',
                 hintStyle: AppTypography.smallBodyRegular.copyWith(
                   color: AppColors.mediumColor.withValues(alpha: 0.7),
                 ),
@@ -131,56 +117,6 @@ class _SearchField extends StatelessWidget {
                 : const SizedBox(width: AppSpacing.xl),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AttributeDropdown extends StatelessWidget {
-  const _AttributeDropdown({required this.value, required this.onChanged});
-
-  final String value;
-  final ValueChanged<String?> onChanged;
-
-  static const _options = ['All', 'Bib Number', 'Name', 'Grade', 'Team'];
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 44,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceColor,
-        borderRadius: BorderRadius.circular(AppBorderRadius.md),
-        border: Border.all(color: AppColors.borderColor),
-      ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          onChanged: onChanged,
-          focusColor: Colors.transparent,
-          icon: Icon(
-            Icons.keyboard_arrow_down,
-            size: 18,
-            color: AppColors.primaryColor,
-          ),
-          style: AppTypography.smallBodyRegular.copyWith(
-            color: AppColors.darkColor,
-          ),
-          items: _options
-              .map(
-                (opt) => DropdownMenuItem(
-                  value: opt,
-                  child: Text(
-                    opt,
-                    style: AppTypography.smallBodyRegular.copyWith(
-                      color: AppColors.darkColor,
-                    ),
-                  ),
-                ),
-              )
-              .toList(),
-        ),
       ),
     );
   }

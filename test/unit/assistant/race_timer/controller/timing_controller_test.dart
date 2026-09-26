@@ -546,6 +546,34 @@ void main() {
         expect(controller.currentChunk.timingData, isEmpty);
         expect(controller.currentRace, equals(newRace));
       });
+
+      RaceRecord practice(DateTime startedAt) => RaceRecord(
+            raceId: -1,
+            date: DateTime(2024, 6, 1),
+            name: 'Demo Race',
+            type: DeviceName.raceTimer.toString(),
+            startedAt: startedAt,
+            stopped: true,
+          );
+
+      test('starts a practice race from another day fresh', () async {
+        // Left from yesterday, its clock read 13 hours.
+        await controller.loadOtherRace(practice(
+            DateTime.now().subtract(const Duration(hours: 13))));
+
+        expect(controller.startTime, isNull);
+        expect(controller.raceStopped, isTrue);
+        verify(mockStorage.deleteChunks(-1)).called(1);
+        verify(mockStorage.updateRaceStartTime(-1, any, null)).called(1);
+      });
+
+      test('keeps a practice race just being tried', () async {
+        final started = DateTime.now().subtract(const Duration(minutes: 20));
+        await controller.loadOtherRace(practice(started));
+
+        expect(controller.startTime, started);
+        verifyNever(mockStorage.deleteChunks(-1));
+      });
     });
 
     group('executeDeleteRecord', () {

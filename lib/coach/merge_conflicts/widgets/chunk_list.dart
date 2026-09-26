@@ -8,6 +8,8 @@ import 'runner_time_record.dart';
 import 'header_widgets.dart';
 import 'resolve_conflict_button.dart';
 import 'undo_button.dart';
+import '../utils/timing_suggestions.dart';
+import '../../../core/utils/time_formatter.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 
 class ChunkList extends StatelessWidget {
@@ -18,6 +20,9 @@ class ChunkList extends StatelessWidget {
     return Consumer<MergeConflictsController>(
       builder: (context, controller, _) {
         final chunks = controller.uiChunks;
+        final firstOpen = chunks.indexWhere((c) =>
+            c.conflict.type == ConflictType.extraTime ||
+            c.conflict.type == ConflictType.missingTime);
         return ListView.builder(
           shrinkWrap: true,
           // Nested in the screen's scroll view: no safe-area inset of its own.
@@ -29,6 +34,7 @@ class ChunkList extends StatelessWidget {
             index: index,
             chunk: chunks[index],
             controller: controller,
+            isFirstOpen: index == firstOpen,
           ),
         );
       },
@@ -42,10 +48,17 @@ class ChunkItem extends StatefulWidget {
     required this.index,
     required this.chunk,
     required this.controller,
+    this.isFirstOpen = false,
   });
   final int index;
   final UIChunk chunk;
   final MergeConflictsController controller;
+
+  /// Whether this is the first conflict still to resolve. It is scrolled
+  /// into view, on opening and after the one before it is resolved: the
+  /// page used to open on the first group of confirmed times, with the
+  /// conflict somewhere below.
+  final bool isFirstOpen;
 
   @override
   State<ChunkItem> createState() => _ChunkItemState();
@@ -53,11 +66,81 @@ class ChunkItem extends StatefulWidget {
 
 class _ChunkItemState extends State<ChunkItem> {
   @override
+  void initState() {
+    super.initState();
+    if (widget.isFirstOpen) _scrollIntoView();
+  }
+
+  @override
+  void didUpdateWidget(ChunkItem oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isFirstOpen && !oldWidget.isFirstOpen) _scrollIntoView();
+  }
+
+  void _scrollIntoView() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      Scrollable.ensureVisible(
+        context,
+        duration: AppAnimations.standard,
+        curve: Curves.easeOut,
+        alignment: 0.02,
+      );
+    });
+  }
+
+  int? get _firstPlace {
+    for (final r in widget.chunk.records) {
+      if (r.place != null) return r.place;
+    }
+    return null;
+  }
+
+  int? get _lastPlace {
+    for (final r in widget.chunk.records.reversed) {
+      if (r.place != null) return r.place;
+    }
+    return null;
+  }
+
+  /// Where a stray tap most likely is, in a coach's words.
+  String? _suggestionText(TimingSpot? spot) {
+    if (spot == null || widget.chunk.isResolvedLocally) return null;
+    final records = widget.chunk.records;
+    final gap = describeGap(spot.gap);
+    if (widget.chunk.conflict.type == ConflictType.extraTime) {
+      if (spot.row >= records.length) return null;
+      final time = records[spot.row].time;
+      return spot.clear
+          ? '$time is only $gap after the time before it, like a double '
+              'tap. Check it first.'
+          : 'No time stands out: the closest two are $gap apart. Ask the '
+              'runners around this stretch.';
+    }
+    return null;
+  }
+
+  /// For a missing time in the last batch: the Timer has no later time the
+  /// missed runner must come before, so they may have finished after all of
+  /// them. The app points nowhere else: a missed runner could be anywhere.
+  String? get _openEndedNote {
+    final chunk = widget.chunk;
+    if (chunk.conflict.type != ConflictType.missingTime ||
+        chunk.isResolvedLocally ||
+        TimeFormatter.isDuration(chunk.endTime)) {
+      return null;
+    }
+    return 'The missed runner may also have finished after the last time. '
+        'If so, leave the empty box at the bottom and type their time there.';
+  }
+
+  @override
   Widget build(BuildContext context) {
     final chunkType = widget.chunk.conflict.type;
     final previousChunkEndTime =
         widget.controller.previousEndTimeFor(widget.chunk.chunkId);
     final undoLabel = widget.controller.undoLabel(widget.chunk.chunkId);
+    final spot = widget.controller.suggestionFor(widget.chunk.chunkId);
 
     return Padding(
         padding: const EdgeInsets.only(bottom: 24),
@@ -73,6 +156,9 @@ class _ChunkItemState extends State<ChunkItem> {
                 offBy: widget.chunk.conflict.offBy,
                 removedCount: widget.chunk.removedCount,
                 enteredCount: widget.chunk.enteredCount,
+                firstPlace: _firstPlace,
+                lastPlace: _lastPlace,
+                suggestion: _suggestionText(spot) ?? _openEndedNote,
               ),
             if (chunkType == ConflictType.confirmRunner)
               ConfirmHeader(confirmTime: widget.chunk.endTime),

@@ -20,6 +20,7 @@ void showNearbySheet(
   required String conflictBib,
   String? conflictTime,
   String conflictLabel = 'Unknown runner',
+  List<NearbyFinisher> allFinishers = const [],
 }) {
   FocusManager.instance.primaryFocus?.unfocus();
   showModalBottomSheet<void>(
@@ -50,8 +51,9 @@ void showNearbySheet(
                 ),
               ),
               Flexible(
-                child: NearbyFinishersSheet(
-                  entries: entries,
+                child: _NearbyOrAll(
+                  nearby: entries,
+                  all: allFinishers,
                   conflictPosition: conflictPosition,
                   conflictBib: conflictBib,
                   conflictTime: conflictTime,
@@ -66,6 +68,61 @@ void showNearbySheet(
   ).then((_) => FocusManager.instance.primaryFocus?.unfocus());
 }
 
+/// The finishers around the conflict, with "Show all finishers" for the
+/// whole finish list when a few either side are not enough.
+class _NearbyOrAll extends StatefulWidget {
+  const _NearbyOrAll({
+    required this.nearby,
+    required this.all,
+    required this.conflictPosition,
+    required this.conflictBib,
+    required this.conflictTime,
+    required this.conflictLabel,
+  });
+
+  final List<NearbyFinisher> nearby;
+  final List<NearbyFinisher> all;
+  final int conflictPosition;
+  final String conflictBib;
+  final String? conflictTime;
+  final String conflictLabel;
+
+  @override
+  State<_NearbyOrAll> createState() => _NearbyOrAllState();
+}
+
+class _NearbyOrAllState extends State<_NearbyOrAll> {
+  bool _showAll = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final canShowMore = widget.all.length > widget.nearby.length;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: NearbyFinishersSheet(
+            key: ValueKey(_showAll),
+            entries: _showAll ? widget.all : widget.nearby,
+            conflictPosition: widget.conflictPosition,
+            conflictBib: widget.conflictBib,
+            conflictTime: widget.conflictTime,
+            conflictLabel: widget.conflictLabel,
+            windowSize: _showAll ? null : NearbyFinishersSheet.nearbyWindow,
+          ),
+        ),
+        if (canShowMore)
+          TextButton(
+            onPressed: () => setState(() => _showAll = !_showAll),
+            child: Text(_showAll
+                ? 'Show only nearby finishers'
+                : 'Show all ${widget.all.length} finishers'),
+          ),
+      ],
+    );
+  }
+}
+
 /// Scrollable list of finishers surrounding a conflict position.
 /// The conflict's own row is highlighted with a full-width salmon background.
 class NearbyFinishersSheet extends StatelessWidget {
@@ -76,9 +133,15 @@ class NearbyFinishersSheet extends StatelessWidget {
     required this.conflictBib,
     this.conflictTime,
     this.conflictLabel = 'Unknown runner',
+    this.windowSize = nearbyWindow,
   });
 
   final List<NearbyFinisher> entries;
+
+  /// How many either side to show, or null for every entry.
+  final int? windowSize;
+
+  static const nearbyWindow = 4;
   final int conflictPosition;
   final String conflictBib;
 
@@ -88,20 +151,19 @@ class NearbyFinishersSheet extends StatelessWidget {
   /// What the disputed row says in place of a runner's name.
   final String conflictLabel;
 
-  static const _windowSize = 4;
-
   @override
   Widget build(BuildContext context) {
     // Take the 4 closest entries above and 4 closest below the conflict position.
+    final window = windowSize ?? entries.length;
     final above = (entries.where((e) => e.place < conflictPosition).toList()
           ..sort((a, b) => b.place.compareTo(a.place)))
-        .take(_windowSize)
+        .take(window)
         .toList()
         .reversed
         .toList();
     final below = (entries.where((e) => e.place > conflictPosition).toList()
           ..sort((a, b) => a.place.compareTo(b.place)))
-        .take(_windowSize)
+        .take(window)
         .toList();
 
     final allRows = <(int, Widget)>[

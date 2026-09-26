@@ -5,7 +5,6 @@ import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import '../../../core/theme/typography.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/components/instruction_card.dart';
 import '../widgets/chunk_list.dart';
 import 'package:provider/provider.dart';
 
@@ -97,18 +96,8 @@ class InstructionsAndList extends StatelessWidget {
           padding: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           child: Column(
             children: [
-              InstructionCard(
-                title: 'Review Race Results',
-                instructions: [
-                  InstructionItem(
-                      number: '1',
-                      text: 'Find the runners with the unknown times (orange)'),
-                  InstructionItem(number: '2', text: 'Update times as needed'),
-                  InstructionItem(
-                      number: '3', text: 'Save when all results are confirmed'),
-                ],
-              ),
-              SizedBox(height: 16),
+              // Each conflict explains itself, with what to do and how to
+              // decide; a general list of steps above them said little.
               ChunkList(),
               SizedBox(height: 24),
             ],

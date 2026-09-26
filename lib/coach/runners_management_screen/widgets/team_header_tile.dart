@@ -56,21 +56,21 @@ class TeamHeaderTile extends StatelessWidget {
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
-            // Team name + runner count
+            // Team name over its runner count, so a name like "Archie
+            // Williams - Girls" is not cut short beside the + Runner chip.
             Expanded(
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Flexible(
-                    child: Text(
-                      team.name ?? '',
-                      style: AppTypography.smallBodySemibold.copyWith(
-                        color: teamColor,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                      maxLines: 1,
+                  Text(
+                    team.name ?? '',
+                    style: AppTypography.smallBodySemibold.copyWith(
+                      color: teamColor,
                     ),
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 2,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
                   Text(
                     '$runnerCount ${runnerCount == 1 ? 'runner' : 'runners'}',
                     style: AppTypography.smallCaption.copyWith(
@@ -152,6 +152,8 @@ class _TeamMenuButton extends StatelessWidget {
       onSelected: (value) {
         if (value == 'edit') {
           controller.showEditTeamSheet(context, team);
+        } else if (value == 'update') {
+          controller.updateTeamFromSpreadsheet(context, team);
         } else if (value == 'delete') {
           controller.confirmAndDeleteTeam(context, team);
         }
@@ -164,6 +166,17 @@ class _TeamMenuButton extends StatelessWidget {
               Icon(Icons.edit, size: 18, color: AppColors.statusPreRace),
               const SizedBox(width: AppSpacing.sm),
               Text('Edit team', style: AppTypography.smallBodyRegular),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: 'update',
+          child: Row(
+            children: [
+              Icon(Icons.sync, size: 18, color: AppColors.statusPreRace),
+              const SizedBox(width: AppSpacing.sm),
+              Text('Update from spreadsheet',
+                  style: AppTypography.smallBodyRegular),
             ],
           ),
         ),

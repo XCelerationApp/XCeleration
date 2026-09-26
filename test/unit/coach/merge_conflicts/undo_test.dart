@@ -181,6 +181,30 @@ void main() {
           reason: 'undo puts the slot back without losing what was typed');
     });
 
+    test('a typed missing time can still be moved to another runner', () {
+      // The coach typed the missing time into the slot the app offered, then
+      // saw it was the first runner who was missed, not the second.
+      final c = _controller(
+        [_chunk(0, [10], ConflictType.missingTime, end: 14)],
+        _runners(2),
+      );
+      c.updateMissingTimeRecord(0, 1, _t(12));
+      expect(_ui(c, 0).shouldShowPlusButton(0), isTrue,
+          reason: 'the + stays, so the slot can still be moved');
+
+      c.insertTbdAt(0, 0);
+
+      expect(_times(c, 0), ['TBD', _t(10)],
+          reason: 'the slot moves, and the time typed for the wrong runner '
+              'is cleared');
+      expect(c.canUndo(0), isTrue);
+
+      c.undo(0);
+
+      expect(_times(c, 0), [_t(10), _t(12)],
+          reason: 'undo brings back the slot and what was typed in it');
+    });
+
     test('a typed time is not itself undone', () {
       // Typing is its own correction — the coach can retype. Undo is for the
       // + and X buttons, which move other rows around.

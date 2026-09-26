@@ -43,21 +43,27 @@ class LoadResultsWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Read devices inside the builder so resetDevices() reassignments
-              // are never stale.
-              DeviceConnectionWidget(
-                devices: controller.devices,
-                callback: () => controller.processReceivedData(context),
-                inSheet: closeWhenDone,
-              ),
+              // The phones' connection only until the results are in. After
+              // that it was just noise: the page shows the result, Next and
+              // Reload Results (which brings the connection back).
+              if (!controller.resultsLoaded) ...[
+                // Read devices inside the builder so resetDevices()
+                // reassignments are never stale.
+                DeviceConnectionWidget(
+                  devices: controller.devices,
+                  callback: () => controller.processReceivedData(context),
+                  inSheet: closeWhenDone,
+                ),
 
-              // Test tools: in debug and profile builds, never in the store build.
-              if (!kReleaseMode) ...[
-                const SizedBox(height: 12),
-                SimulateResultsButton(controller: controller),
+                // Test tools: in debug and profile builds, never in the store
+                // build.
+                if (!kReleaseMode) ...[
+                  const SizedBox(height: 12),
+                  SimulateResultsButton(controller: controller),
+                ],
+
+                const SizedBox(height: 24),
               ],
-
-              const SizedBox(height: 24),
 
               // Why the last load failed. Without this a failed load just
               // looked like nothing happened.
@@ -83,9 +89,9 @@ class LoadResultsWidget extends StatelessWidget {
                         controller.hasTimingConflicts)
                       ConflictButton(
                         title: 'Some Results Need Checking',
-                        description: 'Tap Next and the app walks you '
+                        description: 'Tap Start and the app walks you '
                             'through each one: bib numbers first, then '
-                            'times.',
+                            'times. Next opens once they are done.',
                         buttonText: 'Start',
                         onPressed: () {
                           debugPrint(

@@ -4,6 +4,7 @@ import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
+import 'package:xceleration/shared/models/timing_records/time_shift.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../utils/timing_data_converter.dart';
@@ -139,6 +140,7 @@ class TimingData with ChangeNotifier {
     }
     _currentRace = race;
     _anchorRaceTime = null;
+    _timeShift = Duration.zero;
     raceInfoSignal.value++;
     notifyListeners();
   }
@@ -369,6 +371,53 @@ class TimingData with ChangeNotifier {
     notifyListeners();
   }
 
+  /// How far the times have been moved since this race was opened, for a
+  /// Timer who pressed Start late (positive) or early (negative).
+  Duration get timeShift => _timeShift;
+  Duration _timeShift = Duration.zero;
+
+  /// For a Timer who pressed Start [by] after the gun (or before it, when
+  /// negative): moves the start back by that much, so the clock and every
+  /// time already recorded read from the gun, and the coach gets the right
+  /// times. Returns why nothing moved, if refused.
+  String? shiftAllTimes(Duration by) {
+    final race = _currentRace;
+    final start = _startTime;
+    if (race == null || start == null) return 'Start the race first.';
+    if ((raceElapsed + by).isNegative) {
+      return 'The clock has not reached ${_seconds(-by)} seconds yet.';
+    }
+
+    final chunks = [..._chunkCacher.cachedTimingChunks, currentChunk];
+    final refused = shiftTimes(chunks, by);
+    if (refused != null) return refused;
+
+    // Rebuilt from the moved times: the cache keeps each chunk encoded.
+    _chunkCacher.clear();
+    for (final chunk in chunks.take(chunks.length - 1)) {
+      _chunkCacher.cacheChunk(chunk);
+    }
+    for (final chunk in chunks) {
+      final snapshot = _copyChunk(chunk);
+      enqueueWrite(() => _storage.saveChunk(race.raceId, snapshot),
+          'save moved chunk ${snapshot.id}');
+    }
+
+    startTime = start.subtract(by);
+    final duration = _raceDuration;
+    if (duration != null) raceDuration = duration + by;
+    _timeShift += by;
+
+    _cachedUiRecords = null;
+    recordsSignal.value++;
+    raceStateSignal.value++;
+    notifyListeners();
+    return null;
+  }
+
+  static String _seconds(Duration d) =>
+      (d.inMilliseconds / 1000).toStringAsFixed(1);
+
   /// Returns the number of runners that have been assigned a finishing place,
   /// or null if no runners have finished yet.
   ///
@@ -479,6 +528,7 @@ class TimingData with ChangeNotifier {
     _startTime = null;
     _anchorRaceTime = null;
     _raceDuration = null;
+    _timeShift = Duration.zero;
     _cachedUiRecords = null;
     raceStateSignal.value++;
     recordsSignal.value++;

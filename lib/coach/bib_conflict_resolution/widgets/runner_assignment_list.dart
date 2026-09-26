@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/grade_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../controller/conflict_resolution_controller.dart';
+import '../utils/runner_search.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
@@ -9,15 +11,21 @@ import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 
-/// Shared resolution list used by both DuplicateStep2Card and UnknownBibCard.
-/// Shows unassigned runners with school filter pills, team-grouped rows,
-/// and an expand-then-confirm interaction.
+/// Find Runner: the list used by both DuplicateStep2Card and UnknownBibCard
+/// to say who really finished at a place.
+///
+/// With nothing typed it lists the free runners, nearest bib first, by team.
+/// Typing searches them by name, forgiving typos, or by bib. The list ends
+/// with "Create new runner" (named from what was typed) for a runner who is
+/// not on the roster at all. Tapping a runner selects them, and tapping again
+/// unselects.
 class RunnerAssignmentList extends StatefulWidget {
   const RunnerAssignmentList({
     super.key,
     required this.targetBib,
     this.forbiddenBib,
     this.onAssign,
+    this.onCreateNew,
   });
 
   /// The bib being resolved: the list starts with the nearest bib numbers,
@@ -30,13 +38,26 @@ class RunnerAssignmentList extends StatefulWidget {
   /// different controller method (e.g. [prepareAssignForDuplicate]).
   final void Function(RaceRunner runner, String label)? onAssign;
 
+  /// Offered at the end of the list when the runner is not on the roster,
+  /// with the name typed so far ('' if none).
+  final void Function(String typedName)? onCreateNew;
+
   @override
   State<RunnerAssignmentList> createState() => _RunnerAssignmentListState();
 }
 
 class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
+  final _search = TextEditingController();
   String? _activeTeam; // null = "All"
   RaceRunner? _selectedRunner;
+
+  String get _query => _search.text.trim();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
 
   List<RaceRunner> _filter(List<RaceRunner> runners) {
     if (_activeTeam == null) return runners;
@@ -51,68 +72,126 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
     return map;
   }
 
+  bool _isSelected(RaceRunner runner) =>
+      _selectedRunner?.runner.bibNumber == runner.runner.bibNumber;
+
+  void _toggle(RaceRunner runner) => setState(
+      () => _selectedRunner = _isSelected(runner) ? null : runner);
+
   @override
   Widget build(BuildContext context) {
     final controller = context.watch<ConflictResolutionController>();
-    final nearbyRunners = controller.runnersNearBib(widget.targetBib);
-    final teams = controller.teams;
-    final filtered = _filter(nearbyRunners);
-    final grouped = _groupByTeam(filtered);
+    final candidates = controller.runnersNearBib(widget.targetBib);
+    final searching = _query.isNotEmpty;
 
-    // Build a flat list of typed item descriptors so ListView.builder can
-    // lazily construct only the widgets currently in view.
-    var rowIndex = 0;
     final items = <_ListItem>[];
-    for (final team in grouped.keys) {
-      items.add(_SectionHeader(team: team, count: grouped[team]!.length));
-      for (final runner in grouped[team]!) {
-        items.add(_RunnerRow(runner: runner, animIndex: rowIndex++));
+    if (searching) {
+      for (final runner in searchRunners<RaceRunner>(
+        candidates,
+        _query,
+        nameOf: (r) => r.runner.name ?? '',
+        bibOf: (r) => r.runner.bibNumber,
+      )) {
+        items.add(_RunnerRow(runner: runner));
+      }
+    } else {
+      final grouped = _groupByTeam(_filter(candidates));
+      for (final team in grouped.keys) {
+        items.add(_SectionHeader(team: team, count: grouped[team]!.length));
+        for (final runner in grouped[team]!) {
+          items.add(_RunnerRow(runner: runner));
+        }
       }
     }
+    // A name typed that is not a bib number names the new runner.
+    final typedName = RegExp(r'^\d+$').hasMatch(_query) ? '' : _query;
+    if (widget.onCreateNew != null) items.add(_CreateRow(name: typedName));
+
+    final noMatches = items.every((i) => i is! _RunnerRow);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _SchoolFilterPills(
-          teams: teams,
-          activeTeam: _activeTeam,
-          onChanged: (t) => setState(() {
-            _activeTeam = t;
-            _selectedRunner = null;
-          }),
+        TextField(
+          key: const ValueKey('find_runner_search'),
+          controller: _search,
+          autofocus: true,
+          textCapitalization: TextCapitalization.words,
+          // Names are searched loosely already; iOS "correcting" a typed
+          // name ("avry" to "Avery") changed the search under the coach,
+          // and its suggestion bubble covered the first result.
+          autocorrect: false,
+          enableSuggestions: false,
+          textInputAction: TextInputAction.search,
+          onChanged: (_) => setState(() => _selectedRunner = null),
+          decoration: InputDecoration(
+            hintText: 'Search by name or bib',
+            prefixIcon: const Icon(Icons.search, color: AppColors.mediumColor),
+            suffixIcon: searching
+                ? IconButton(
+                    tooltip: 'Clear search',
+                    icon: const Icon(Icons.close, color: AppColors.mediumColor),
+                    onPressed: () => setState(() {
+                      _search.clear();
+                      _selectedRunner = null;
+                    }),
+                  )
+                : null,
+            filled: true,
+            fillColor: AppColors.lightColor.withValues(alpha: AppOpacity.medium),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.md, vertical: AppSpacing.md),
+          ),
         ),
-        const SizedBox(height: AppSpacing.md),
-        // Scrollable runner list — bounded so the CTA below stays visible.
+        if (!searching) ...[
+          const SizedBox(height: AppSpacing.md),
+          _SchoolFilterPills(
+            teams: controller.teams,
+            activeTeam: _activeTeam,
+            onChanged: (t) => setState(() {
+              _activeTeam = t;
+              _selectedRunner = null;
+            }),
+          ),
+        ],
+        const SizedBox(height: AppSpacing.sm),
+        if (noMatches)
+          _EmptyState(
+              message: searching
+                  ? 'No runner on the roster matches "$_query".'
+                  : candidates.isEmpty
+                      ? 'Every runner already has a finish.'
+                      : 'No runners from this school.'),
+        // Scrollable list, bounded so the button below stays visible.
         ConstrainedBox(
-          constraints: const BoxConstraints(maxHeight: 440),
-          child: nearbyRunners.isEmpty
-              ? _EmptyState(message: 'No unassigned runners — create a new one.')
-              : filtered.isEmpty
-                  ? const _EmptyState(message: 'No runners from this school.')
-                  : ListView.builder(
-                      itemCount: items.length,
-                      itemBuilder: (_, i) {
-                        final item = items[i];
-                        return switch (item) {
-                          _SectionHeader(:final team, :final count) =>
-                            _TeamSection(team: team, count: count),
-                          _RunnerRow(:final runner, :final animIndex) =>
-                            _AnimatedRunnerRow(
-                              key: ValueKey(runner.runner.bibNumber),
-                              index: animIndex,
-                              runner: runner,
-                              isSelected: _selectedRunner?.runner.bibNumber ==
-                                  runner.runner.bibNumber,
-                              onSelect: () =>
-                                  setState(() => _selectedRunner = runner),
-                            ),
-                        };
-                      },
-                    ),
+          constraints: const BoxConstraints(maxHeight: 400),
+          child: ListView.builder(
+            shrinkWrap: true,
+            padding: EdgeInsets.zero,
+            itemCount: items.length,
+            itemBuilder: (_, i) => switch (items[i]) {
+              _SectionHeader(:final team, :final count) =>
+                _TeamSection(team: team, count: count),
+              _RunnerRow(:final runner) => _RunnerTile(
+                  key: ValueKey(runner.runner.bibNumber),
+                  runner: runner,
+                  isSelected: _isSelected(runner),
+                  onTap: () => _toggle(runner),
+                ),
+              _CreateRow(:final name) => _CreateTile(
+                  name: name,
+                  onTap: () => widget.onCreateNew!(name),
+                ),
+            },
+          ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        // CTA lives outside the scroll so it stays visible when a runner is selected.
+        // Outside the scroll so it stays visible once a runner is chosen.
         AnimatedSwitcher(
           duration: AppAnimations.standard,
           child: _selectedRunner == null
@@ -120,6 +199,7 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
               : _AssignCta(
                   key: ValueKey(_selectedRunner!.runner.bibNumber),
                   runnerName: _selectedRunner!.runner.name ?? '',
+                  onClear: () => setState(() => _selectedRunner = null),
                   onAssign: () {
                     final label = 'Bib #${widget.targetBib}';
                     if (widget.onAssign != null) {
@@ -148,9 +228,13 @@ final class _SectionHeader extends _ListItem {
 }
 
 final class _RunnerRow extends _ListItem {
-  _RunnerRow({required this.runner, required this.animIndex});
+  _RunnerRow({required this.runner});
   final RaceRunner runner;
-  final int animIndex;
+}
+
+final class _CreateRow extends _ListItem {
+  _CreateRow({required this.name});
+  final String name;
 }
 
 // ---------------------------------------------------------------------------
@@ -241,129 +325,73 @@ class _TeamSection extends StatelessWidget {
 
 // ---------------------------------------------------------------------------
 
-class _AnimatedRunnerRow extends StatefulWidget {
-  const _AnimatedRunnerRow({
+class _RunnerTile extends StatelessWidget {
+  const _RunnerTile({
     super.key,
-    required this.index,
     required this.runner,
     required this.isSelected,
-    required this.onSelect,
+    required this.onTap,
   });
 
-  final int index;
   final RaceRunner runner;
   final bool isSelected;
-  final VoidCallback onSelect;
-
-  @override
-  State<_AnimatedRunnerRow> createState() => _AnimatedRunnerRowState();
-}
-
-class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
-  bool _expanded = false;
-
-  static const _revealMs = 350; // AppAnimations.reveal
-  static const _staggerMs = 40;
-
-  @override
-  void initState() {
-    super.initState();
-    final delayMs = widget.index * _staggerMs;
-    final totalMs = delayMs + _revealMs;
-    _controller = AnimationController(
-      vsync: this,
-      duration: Duration(milliseconds: totalMs),
-    );
-    _opacity = CurvedAnimation(
-      parent: _controller,
-      curve: Interval(
-        totalMs > 0 ? delayMs / totalMs : 0.0,
-        1.0,
-        curve: AppAnimations.enter,
-      ),
-    );
-    _controller.forward();
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacity,
+    final grade = runner.runner.grade;
+    return Semantics(
+      button: true,
+      selected: isSelected,
       child: GestureDetector(
-        onTap: () {
-          if (_expanded && !widget.isSelected) {
-            widget.onSelect();
-          } else {
-            setState(() => _expanded = !_expanded);
-          }
-        },
+        onTap: onTap,
         child: AnimatedContainer(
-          duration: AppAnimations.standard,
+          duration: AppAnimations.fast,
           margin: const EdgeInsets.only(bottom: AppSpacing.xs),
           padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg,
+            horizontal: AppSpacing.md,
             vertical: AppSpacing.md,
           ),
           decoration: BoxDecoration(
-            color: widget.isSelected ? AppColors.selectedRoleColor : Colors.white,
+            color: isSelected ? AppColors.selectedRoleColor : Colors.white,
             borderRadius: BorderRadius.circular(AppBorderRadius.md),
             border: Border.all(
-              color: widget.isSelected ? AppColors.primaryColor : AppColors.lightColor,
+              color: isSelected ? AppColors.primaryColor : AppColors.lightColor,
+              width: isSelected ? 1.5 : 1,
             ),
           ),
-          child: Column(
+          child: Row(
             children: [
-              Row(
-                children: [
-                  _BibAvatar(
-                    bibNumber: widget.runner.runner.bibNumber ?? '',
-                    isSelected: widget.isSelected,
-                  ),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(widget.runner.runner.name ?? '', style: AppTypography.smallBodySemibold),
-                        Text(
-                          widget.runner.team.name ?? '',
-                          style: AppTypography.caption.copyWith(
-                            color: AppColors.mediumColor,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  AnimatedRotation(
-                    turns: _expanded ? 0.5 : 0,
-                    duration: AppAnimations.fast,
-                    child: const Icon(
-                      Icons.keyboard_arrow_down,
-                      color: AppColors.mediumColor,
-                      size: 20,
-                    ),
-                  ),
-                ],
+              _BibAvatar(
+                bibNumber: runner.runner.bibNumber ?? '',
+                isSelected: isSelected,
               ),
-              AnimatedSize(
-                duration: AppAnimations.standard,
-                curve: AppAnimations.spring,
-                child: _expanded
-                    ? _ExpandedDetail(
-                        runner: widget.runner,
-                        onSelect: widget.onSelect,
-                        isSelected: widget.isSelected,
-                      )
-                    : const SizedBox.shrink(),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(runner.runner.name ?? '',
+                        style: AppTypography.smallBodySemibold),
+                    Text(
+                      [
+                        runner.team.name ?? '',
+                        if (grade != null) gradeLabel(grade),
+                      ].where((s) => s.isNotEmpty).join(' · '),
+                      style: AppTypography.caption
+                          .copyWith(color: AppColors.mediumColor),
+                    ),
+                  ],
+                ),
+              ),
+              // A clear chosen / not chosen mark; tapping again unselects.
+              Icon(
+                isSelected
+                    ? Icons.check_circle
+                    : Icons.radio_button_unchecked,
+                color: isSelected
+                    ? AppColors.primaryColor
+                    : AppColors.mediumColor,
               ),
             ],
           ),
@@ -373,93 +401,44 @@ class _AnimatedRunnerRowState extends State<_AnimatedRunnerRow>
   }
 }
 
-// ---------------------------------------------------------------------------
+class _CreateTile extends StatelessWidget {
+  const _CreateTile({required this.name, required this.onTap});
 
-class _ExpandedDetail extends StatelessWidget {
-  const _ExpandedDetail({
-    required this.runner,
-    required this.onSelect,
-    required this.isSelected,
-  });
-
-  final RaceRunner runner;
-  final VoidCallback onSelect;
-  final bool isSelected;
+  /// What was typed, or '' for a runner not yet named.
+  final String name;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: AppSpacing.sm),
-      child: Row(
-        children: [
-          // Wrap rather than a fixed row, so large text drops the second
-          // chip onto its own line instead of pushing Select off the edge.
-          Expanded(
-            child: Wrap(
-              spacing: AppSpacing.xs,
-              runSpacing: AppSpacing.xs,
-              children: [
-                _chip('Grade ${runner.runner.grade ?? '—'}'),
-                _chip('Bib #${runner.runner.bibNumber ?? '—'}'),
-              ],
-            ),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          // Says it has been chosen once it has, rather than still "Select".
-          ElevatedButton(
-            onPressed: isSelected ? null : onSelect,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryColor,
-              foregroundColor: Colors.white,
-              disabledBackgroundColor: Colors.white,
-              disabledForegroundColor: AppColors.primaryColor,
-              side: isSelected
-                  ? const BorderSide(color: AppColors.primaryColor)
-                  : null,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg,
-                vertical: AppSpacing.xs,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(top: AppSpacing.xs),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.md,
+        ),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(AppBorderRadius.md),
+          border: Border.all(color: AppColors.primaryColor),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.person_add_outlined,
+                color: AppColors.primaryColor),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Text(
+                name.isEmpty
+                    ? 'Not on the roster? Create a new runner'
+                    : 'Create new runner "$name"',
+                style: AppTypography.smallBodySemibold
+                    .copyWith(color: AppColors.primaryColor),
               ),
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                if (isSelected) ...[
-                  const Icon(Icons.check,
-                      size: 18, color: AppColors.primaryColor),
-                  const SizedBox(width: AppSpacing.xs),
-                ],
-                Text(
-                  isSelected ? 'Selected' : 'Select',
-                  style: AppTypography.smallBodySemibold.copyWith(
-                      color:
-                          isSelected ? AppColors.primaryColor : Colors.white),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _chip(String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.sm,
-        vertical: AppSpacing.xs,
-      ),
-      decoration: BoxDecoration(
-        color: AppColors.lightColor.withValues(alpha: AppOpacity.medium),
-        borderRadius: BorderRadius.circular(AppBorderRadius.xs),
-      ),
-      child: Text(
-        label,
-        style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+            const Icon(Icons.chevron_right, color: AppColors.primaryColor),
+          ],
+        ),
       ),
     );
   }
@@ -503,29 +482,45 @@ class _BibAvatar extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 class _AssignCta extends StatelessWidget {
-  const _AssignCta({super.key, required this.runnerName, required this.onAssign});
+  const _AssignCta({
+    super.key,
+    required this.runnerName,
+    required this.onAssign,
+    required this.onClear,
+  });
 
   final String runnerName;
   final VoidCallback onAssign;
+  final VoidCallback onClear;
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onAssign,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [AppColors.primaryColor, Color(0xFFFF7043)],
+    return Row(
+      children: [
+        TextButton(onPressed: onClear, child: const Text('Clear')),
+        const SizedBox(width: AppSpacing.sm),
+        Expanded(
+          child: GestureDetector(
+            onTap: onAssign,
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [AppColors.primaryColor, Color(0xFFFF7043)],
+                ),
+                borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                'Assign $runnerName →',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.bodySemibold.copyWith(color: Colors.white),
+              ),
+            ),
           ),
-          borderRadius: BorderRadius.circular(AppBorderRadius.lg),
         ),
-        alignment: Alignment.center,
-        child: Text(
-          'Assign $runnerName →',
-          style: AppTypography.bodySemibold.copyWith(color: Colors.white),
-        ),
-      ),
+      ],
     );
   }
 }

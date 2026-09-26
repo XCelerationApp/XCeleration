@@ -80,10 +80,27 @@ class TeamRepository implements ITeamRepository {
   @override
   Future<void> updateTeam(Team team) async {
     if (!team.isValid) throw Exception('Team is not valid');
-    if (await getTeam(team.teamId!) == null) {
+    final current = await getTeam(team.teamId!);
+    if (current == null) {
       throw Exception('Team with id ${team.teamId} not found');
     }
     final db = await _db;
+    // Each race the team was added to kept a copy of its colour, and races
+    // show that copy: a changed colour never showed anywhere. The team's
+    // colour is the same in every race, so drop the copies.
+    if (team.color != null &&
+        team.color!.toARGB32() != current.color?.toARGB32()) {
+      await db.update(
+        'race_team_participation',
+        {
+          'team_color_override': null,
+          'updated_at': SyncTimestamp.now(),
+          'is_dirty': 1,
+        },
+        where: 'team_id = ? AND team_color_override IS NOT NULL',
+        whereArgs: [team.teamId],
+      );
+    }
     final updates = <String, dynamic>{};
     if (team.name != null) updates['name'] = team.name;
     if (team.abbreviation != null) updates['abbreviation'] = team.abbreviation;

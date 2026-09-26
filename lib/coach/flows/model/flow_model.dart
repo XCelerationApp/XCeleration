@@ -4,11 +4,12 @@ import 'dart:async';
 typedef StepChangedCallback = void Function(int currentIndex);
 
 /// Thrown from [FlowStep.onNext] to keep the flow on the current step, for
-/// example when saving failed. [message] is shown to the user.
+/// example when saving failed. [message], if any, is shown to the user;
+/// without one the step stays quietly, as when the coach chose to wait.
 class FlowStepBlocked implements Exception {
-  const FlowStepBlocked(this.message);
+  const FlowStepBlocked([this.message]);
 
-  final String message;
+  final String? message;
 
   @override
   String toString() => 'FlowStepBlocked: $message';

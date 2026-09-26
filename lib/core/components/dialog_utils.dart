@@ -62,11 +62,7 @@ class BasicAlertDialog extends StatelessWidget {
               ),
               if (content.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.sm),
-                Text(
-                  content,
-                  style: AppTypography.bodyRegular
-                      .copyWith(color: AppColors.mediumColor),
-                ),
+                _DialogContent(content),
               ],
               if (extra != null) ...[
                 const SizedBox(height: AppSpacing.lg),
@@ -112,8 +108,15 @@ class DialogButton extends StatelessWidget {
     final shape = WidgetStatePropertyAll(RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppBorderRadius.md)));
     const minSize = WidgetStatePropertyAll(Size(0, 48));
-    final label = Text(text,
-        textAlign: TextAlign.center, style: AppTypography.bodySemibold);
+    // One line, shrunk to fit if need be: "Collect Results" wrapped onto two
+    // lines in a half-width button.
+    final label = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Text(text,
+          maxLines: 1,
+          textAlign: TextAlign.center,
+          style: AppTypography.bodySemibold),
+    );
     if (primary) {
       return FilledButton(
         onPressed: onPressed,
@@ -433,12 +436,15 @@ class DialogUtils {
       ),
     );
 
-    // Show the custom toast at the top of the screen
+    // Show the custom toast at the top of the screen. Taps go through it:
+    // it sat over the back button and whatever else was up there, and
+    // blocked them until it faded.
     fToast.showToast(
       child: toastWidget,
       gravity: ToastGravity.TOP,
       toastDuration: duration,
       fadeDuration: AppAnimations.fast,
+      ignorePointer: true,
     );
   }
 }
@@ -568,6 +574,43 @@ class LoadingDialog extends StatelessWidget {
         cancelButtonText: cancelButtonText,
         onCancel: onCancel,
       ),
+    );
+  }
+}
+
+/// A dialog's message. Lines starting "• " are laid out as bullets, so a
+/// point that wraps lines up under its own first word, not under the bullet.
+class _DialogContent extends StatelessWidget {
+  const _DialogContent(this.content);
+
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
+    final style =
+        AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor);
+    final lines = content.split('\n');
+    if (!lines.any((l) => l.startsWith('• '))) {
+      return Text(content, style: style);
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        for (final line in lines)
+          if (line.startsWith('• '))
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('•  ', style: style),
+                  Expanded(child: Text(line.substring(2), style: style)),
+                ],
+              ),
+            )
+          else
+            Text(line, style: style),
+      ],
     );
   }
 }

@@ -32,10 +32,21 @@ class RecordListItem extends StatelessWidget {
     final hasPlace = uiRecord.place != null;
     final displayText = _getDisplayText();
 
+    // Red rows said nothing about why they were red: an extra tap now says
+    // so where its place would be, and a missed runner says so for its time.
+    final isExtra = uiRecord.type == RecordType.extraTime;
     return Row(
-      mainAxisAlignment:
-          hasPlace ? MainAxisAlignment.spaceBetween : MainAxisAlignment.end,
+      mainAxisAlignment: hasPlace || isExtra
+          ? MainAxisAlignment.spaceBetween
+          : MainAxisAlignment.end,
       children: [
+        if (isExtra)
+          Text(
+            'Extra tap',
+            style: AppTypography.bodySemibold.copyWith(
+              color: uiRecord.textColor,
+            ),
+          ),
         if (hasPlace)
           Text(
             uiRecord.place.toString(),
@@ -48,6 +59,8 @@ class RecordListItem extends StatelessWidget {
           style: AppTypography.headerSemibold.copyWith(
             color: uiRecord.textColor,
             fontFeatures: const [FontFeature.tabularFigures()],
+            // Not a runner's time: the coach removes it.
+            decoration: isExtra ? TextDecoration.lineThrough : null,
           ),
         ),
       ],
@@ -58,6 +71,8 @@ class RecordListItem extends StatelessWidget {
     switch (uiRecord.type) {
       case RecordType.confirmRunner:
         return 'Confirmed: ${uiRecord.time}';
+      case RecordType.missingTime:
+        return 'Missed runner';
       default:
         return uiRecord.time;
     }

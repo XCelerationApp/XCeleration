@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:geocoding/geocoding.dart' as geocoding;
-import 'package:geolocator/geolocator.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/races_screen/controller/races_controller.dart';
@@ -11,7 +9,6 @@ import 'package:xceleration/core/services/auth_service.dart';
 import 'package:xceleration/core/services/color_picker_dialog_service.dart';
 import 'package:xceleration/core/services/date_picker_service.dart';
 import 'package:xceleration/core/services/event_bus.dart';
-import 'package:xceleration/core/services/geo_location_service.dart';
 import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/services/tutorial_manager.dart';
@@ -21,7 +18,6 @@ import 'package:xceleration/shared/models/database/race.dart';
   IRacesService,
   IAuthService,
   IEventBus,
-  IGeoLocationService,
   IPostFrameCallbackScheduler,
   TutorialManager,
   IDatePickerService,
@@ -37,7 +33,6 @@ RacesController _buildController({
   required MockIRacesService racesService,
   required MockIAuthService authService,
   required MockIEventBus eventBus,
-  required MockIGeoLocationService geoService,
   required MockIPostFrameCallbackScheduler postFrameScheduler,
   required MockTutorialManager tutorialManager,
   required MockIDatePickerService datePickerService,
@@ -48,7 +43,6 @@ RacesController _buildController({
     racesService: racesService,
     authService: authService,
     eventBus: eventBus,
-    geoLocationService: geoService,
     postFrameCallbackScheduler: postFrameScheduler,
     tutorialManager: tutorialManager,
     datePickerService: datePickerService,
@@ -74,7 +68,6 @@ void main() {
   late MockIRacesService mockRacesService;
   late MockIAuthService mockAuthService;
   late MockIEventBus mockEventBus;
-  late MockIGeoLocationService mockGeoService;
   late MockIPostFrameCallbackScheduler mockPostFrameScheduler;
   late MockTutorialManager mockTutorialManager;
   late MockIDatePickerService mockDatePickerService;
@@ -85,7 +78,6 @@ void main() {
     mockRacesService = MockIRacesService();
     mockAuthService = MockIAuthService();
     mockEventBus = MockIEventBus();
-    mockGeoService = MockIGeoLocationService();
     mockPostFrameScheduler = MockIPostFrameCallbackScheduler();
     mockTutorialManager = MockTutorialManager();
     mockDatePickerService = MockIDatePickerService();
@@ -99,7 +91,6 @@ void main() {
       racesService: mockRacesService,
       authService: mockAuthService,
       eventBus: mockEventBus,
-      geoService: mockGeoService,
       postFrameScheduler: mockPostFrameScheduler,
       tutorialManager: mockTutorialManager,
       datePickerService: mockDatePickerService,
@@ -300,25 +291,6 @@ void main() {
       });
     });
 
-    group('updateLocationButtonVisibility', () {
-      test('is false when location matches userlocation', () {
-        controller.locationController.text = '123 Main St';
-        controller.userLocationController.text = '123 Main St';
-
-        controller.updateLocationButtonVisibility();
-
-        expect(controller.isLocationButtonVisible, isFalse);
-      });
-
-      test('is true when location differs from userlocation', () {
-        controller.locationController.text = 'Custom Location';
-        controller.userLocationController.text = '123 Main St';
-
-        controller.updateLocationButtonVisibility();
-
-        expect(controller.isLocationButtonVisible, isTrue);
-      });
-    });
 
     group('resetControllers', () {
       test('clears all text fields and errors', () {
@@ -496,85 +468,6 @@ void main() {
       });
     });
 
-    group('getCurrentLocation', () {
-      testWidgets('shows error when permission is permanently denied',
-          (tester) async {
-        final context = await _buildContext(tester);
-        when(mockGeoService.checkPermission())
-            .thenAnswer((_) async => LocationPermission.deniedForever);
-
-        await controller.getCurrentLocation(context);
-        await tester.pump(const Duration(seconds: 4));
-
-        expect(controller.locationController.text, isEmpty);
-      });
-
-      testWidgets('shows error when permission is denied after request',
-          (tester) async {
-        final context = await _buildContext(tester);
-        when(mockGeoService.checkPermission())
-            .thenAnswer((_) async => LocationPermission.denied);
-        when(mockGeoService.requestPermission())
-            .thenAnswer((_) async => LocationPermission.denied);
-
-        await controller.getCurrentLocation(context);
-        await tester.pump(const Duration(seconds: 4));
-
-        expect(controller.locationController.text, isEmpty);
-      });
-
-      testWidgets('shows error when location services are disabled',
-          (tester) async {
-        final context = await _buildContext(tester);
-        when(mockGeoService.checkPermission())
-            .thenAnswer((_) async => LocationPermission.whileInUse);
-        when(mockGeoService.isLocationServiceEnabled())
-            .thenAnswer((_) async => false);
-
-        await controller.getCurrentLocation(context);
-        await tester.pump(const Duration(seconds: 4));
-
-        expect(controller.locationController.text, isEmpty);
-      });
-
-      testWidgets('updates locationController on success', (tester) async {
-        final context = await _buildContext(tester);
-        final position = Position(
-          latitude: 37.7749,
-          longitude: -122.4194,
-          timestamp: DateTime(2024, 1, 1),
-          accuracy: 1.0,
-          altitude: 0.0,
-          altitudeAccuracy: 0.0,
-          heading: 0.0,
-          headingAccuracy: 0.0,
-          speed: 0.0,
-          speedAccuracy: 0.0,
-        );
-        const placemark = geocoding.Placemark(
-          subThoroughfare: '100',
-          thoroughfare: 'Main St',
-          locality: 'San Francisco',
-          administrativeArea: 'CA',
-          postalCode: '94102',
-        );
-        when(mockGeoService.checkPermission())
-            .thenAnswer((_) async => LocationPermission.whileInUse);
-        when(mockGeoService.isLocationServiceEnabled())
-            .thenAnswer((_) async => true);
-        when(mockGeoService.getCurrentPosition())
-            .thenAnswer((_) async => position);
-        when(mockGeoService.placemarkFromCoordinates(
-                position.latitude, position.longitude))
-            .thenAnswer((_) async => [placemark]);
-
-        await controller.getCurrentLocation(context);
-
-        expect(controller.locationController.text,
-            '100 Main St, San Francisco, CA 94102');
-        expect(controller.locationError, isNull);
-      });
-    });
 
     group('sync stream', () {
       testWidgets('reloads races when syncEvents emits an event containing races',
@@ -585,7 +478,6 @@ void main() {
           racesService: mockRacesService,
           authService: mockAuthService,
           eventBus: mockEventBus,
-          geoLocationService: mockGeoService,
           postFrameCallbackScheduler: mockPostFrameScheduler,
           tutorialManager: mockTutorialManager,
           datePickerService: mockDatePickerService,
@@ -626,7 +518,6 @@ void main() {
           racesService: mockRacesService,
           authService: mockAuthService,
           eventBus: mockEventBus,
-          geoLocationService: mockGeoService,
           postFrameCallbackScheduler: mockPostFrameScheduler,
           tutorialManager: mockTutorialManager,
           datePickerService: mockDatePickerService,
@@ -663,7 +554,6 @@ void main() {
           racesService: mockRacesService,
           authService: mockAuthService,
           eventBus: mockEventBus,
-          geoLocationService: mockGeoService,
           postFrameCallbackScheduler: mockPostFrameScheduler,
           tutorialManager: mockTutorialManager,
           datePickerService: mockDatePickerService,
@@ -716,8 +606,7 @@ void main() {
           racesService: mockRacesService,
           authService: mockAuthService,
           eventBus: mockEventBus,
-          geoService: mockGeoService,
-          postFrameScheduler: mockPostFrameScheduler,
+              postFrameScheduler: mockPostFrameScheduler,
           tutorialManager: mockTutorialManager,
           datePickerService: mockDatePickerService,
           colorPickerService: mockColorPickerService,
@@ -758,8 +647,7 @@ void main() {
           racesService: mockRacesService,
           authService: mockAuthService,
           eventBus: mockEventBus,
-          geoService: mockGeoService,
-          postFrameScheduler: mockPostFrameScheduler,
+              postFrameScheduler: mockPostFrameScheduler,
           tutorialManager: mockTutorialManager,
           datePickerService: mockDatePickerService,
           colorPickerService: mockColorPickerService,

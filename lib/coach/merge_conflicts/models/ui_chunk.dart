@@ -155,11 +155,11 @@ class UIChunk {
 
   /// Check if the current position should show a plus button
   bool shouldShowPlusButton(int recordIndex) {
-    // Show plus button if:
-    // 1. This position didn't originally start as TBD (confirmed times can have plus buttons)
-    // 2. There are still unused TBDs available (time == 'TBD')
+    // On every recorded time, while the batch has a missing-time slot to move
+    // there, typed into or not. Once the slot was typed into it used to have
+    // nowhere to go, so a time typed for the wrong runner could not be moved.
     return !records[recordIndex].isOriginallyTBD &&
-        records.any((record) => record.isUnfilled);
+        records.any((record) => record.isOriginallyTBD);
   }
 
   /// Get the number of times removed for extra time conflicts

@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:xceleration/coach/flows/post_race_flow/steps/load_results/utils/time_shift.dart';
+import 'package:xceleration/shared/models/timing_records/time_shift.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';

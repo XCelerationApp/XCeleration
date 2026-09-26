@@ -280,5 +280,37 @@ void main() {
       expect(RosterImporter.abbreviate('Eagles'), 'EAG');
       expect(RosterImporter.abbreviate('Al'), 'AL');
     });
+
+    test('tells a boys\' team from a girls\' team', () {
+      expect(RosterImporter.abbreviate('Archie Williams - Boys'), 'AWB');
+      expect(RosterImporter.abbreviate('Archie Williams - Girls'), 'AWG');
+      expect(RosterImporter.abbreviate('Drake Boys'), 'DRB');
+    });
+
+    test('a dash is not a word', () {
+      expect(RosterImporter.abbreviate('Tam - Novato'), 'TN');
+    });
+  });
+
+  group('splitTeamsByGender', () {
+    test('puts boys and girls of a team on separate teams', () {
+      final rows = RosterImporter.splitTeamsByGender([
+        {'name': 'Ann', 'team': 'Archie Williams', 'gender': 'F'},
+        {'name': 'Bo', 'team': 'Archie Williams', 'gender': 'M'},
+      ]);
+
+      expect(rows.map((r) => r['team']),
+          ['Archie Williams - Girls', 'Archie Williams - Boys']);
+    });
+
+    test('leaves a runner with no gender, or no team, where they were', () {
+      final rows = RosterImporter.splitTeamsByGender([
+        {'name': 'Cy', 'team': 'Drake'},
+        {'name': 'Di', 'gender': 'F'},
+      ]);
+
+      expect(rows[0]['team'], 'Drake');
+      expect(rows[1]['team'], isNull);
+    });
   });
 }

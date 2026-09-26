@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Xceleration</string>
+	<string>XCeleration</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>Xceleration</string>
+	<string>XCeleration</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -65,15 +65,11 @@
 		<string>_wirelessconn._tcp</string>
 	</array>
 	<key>NSCameraUsageDescription</key>
-	<string>Xceleration uses the camera to scan the QR code on a teammate&apos;s phone, so you can pass a race, finish times or bib numbers between your phones.</string>
+	<string>XCeleration uses the camera to scan the QR code on a teammate&apos;s phone, so you can pass a race, finish times or bib numbers between your phones.</string>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>Lets Xceleration find your coach&apos;s and teammates&apos; phones nearby, to send races, finish times and bib numbers between them without the internet.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>When you tap the location button on a race, Xceleration uses where you are to fill in the race&apos;s address for you. It is used only then, and you can always type the address instead.</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>When you tap the location button on a race, Xceleration uses where you are to fill in the race&apos;s address for you. It is used only then, and you can always type the address instead.</string>
+	<string>Lets XCeleration find your coach&apos;s and teammates&apos; phones nearby, to send races, finish times and bib numbers between them without the internet.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Lets you choose a file to import, such as a roster spreadsheet. Xceleration never looks through or uploads your photos.</string>
+	<string>Lets you choose a file to import, such as a roster spreadsheet. XCeleration never looks through or uploads your photos.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Lets you say bib numbers out loud in the Bib Recorder instead of typing them. What you say is turned into a number on your phone and is never kept or sent anywhere.</string>
 	<key>UIApplicationSceneManifest</key>

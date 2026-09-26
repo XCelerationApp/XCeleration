@@ -101,8 +101,12 @@ void main() {
       expect(c.hasChanges, isFalse);
     });
 
-    test('a tie with a neighbour is allowed', () {
-      expect(make().changeTime(1, _t(10)), isNull);
+    test('the same time as a neighbour is refused', () {
+      // Times go to the hundredth: two finishers never share one.
+      final c = make();
+      expect(c.changeTime(1, _t(10)), contains('after 1st place'));
+      expect(c.changeTime(1, _t(30)), contains('before 3rd place'));
+      expect(c.hasChanges, isFalse);
     });
   });
 

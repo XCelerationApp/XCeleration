@@ -1,3 +1,4 @@
+import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 
 /// The finish time for each place the Timer is not still unsure about, keyed
@@ -31,3 +32,33 @@ Map<int, String> settledTimesByPlace(List<TimingChunk> chunks) {
 
   return times;
 }
+
+/// Rough times for the places in stretches the Timer flagged, where which
+/// time is whose is still in question: the Timer's time at the same spot in
+/// the stretch, or the nearest one to it, to the whole second ("15:41"). A
+/// missed or extra tap shifts times by a place or so, so they are only a
+/// guide to roughly when that finisher came in.
+Map<int, String> approximateTimesByPlace(List<TimingChunk> chunks) {
+  final times = <int, String>{};
+  var place = 1;
+  for (final chunk in chunks) {
+    final finishers = chunk.recordCount < 0 ? 0 : chunk.recordCount;
+    final settled = finishers == chunk.timingData.length &&
+        chunk.timingData.every((datum) => datum.time != 'TBD');
+    final real = [
+      for (final d in chunk.timingData)
+        ?TimeFormatter.loadDurationFromString(d.time),
+    ];
+    if (!settled && real.isNotEmpty) {
+      for (var i = 0; i < finishers; i++) {
+        final t = real[i < real.length ? i : real.length - 1];
+        final minutes = t.inMinutes;
+        final seconds = (t.inSeconds % 60).toString().padLeft(2, '0');
+        times[place + i] = '$minutes:$seconds';
+      }
+    }
+    place += finishers;
+  }
+  return times;
+}
+

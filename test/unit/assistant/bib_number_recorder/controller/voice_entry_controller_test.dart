@@ -93,8 +93,19 @@ void main() {
     fetched = 0;
   });
 
-  test('is off until turned on, but fetches the model ahead of the race',
+  test('is on the first time the Bib Recorder opens', () async {
+    final c = build();
+    await c.restore();
+
+    expect(c.state, VoiceEntryState.ready);
+    c.dispose();
+  });
+
+  test('once turned off, stays off but fetches the model ahead of the race',
       () async {
+    SharedPreferences.setMockInitialValues({
+      VoiceEntryController.prefKey: false,
+    });
     final c = build();
     await c.restore();
 
@@ -165,6 +176,32 @@ void main() {
     expect(haptics.releases, 0);
     await c.stopListening();
     expect(haptics.releases, 1);
+    c.dispose();
+  });
+
+  test('taps only once the mic is recording, a moment after the press',
+      () async {
+    final c = build();
+    await c.setEnabled(true);
+
+    final pressing = c.startListening();
+    expect(haptics.presses, 0, reason: 'not on the press itself');
+    await pressing;
+    expect(haptics.presses, 1, reason: 'felt once the mic is live');
+    await c.stopListening();
+    c.dispose();
+  });
+
+  test('no press tap if the mic is let go before it is recording', () async {
+    final c = build();
+    await c.setEnabled(true);
+
+    voice.nextHeard = null;
+    final pressing = c.startListening();
+    await c.stopListening();
+    await pressing;
+
+    expect(haptics.presses, 0);
     c.dispose();
   });
 

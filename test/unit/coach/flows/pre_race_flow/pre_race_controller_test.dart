@@ -3,8 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/flows/pre_race_flow/controller/pre_race_controller.dart';
-import 'package:xceleration/coach/flows/pre_race_flow/steps/flow_complete/pre_race_flow_complete_step.dart';
-import 'package:xceleration/coach/flows/pre_race_flow/steps/review_runners/review_runners_step.dart';
 import 'package:xceleration/coach/flows/pre_race_flow/steps/share_race/share_race_step.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
 import 'package:xceleration/core/services/device_connection_service.dart';
@@ -67,27 +65,26 @@ void main() {
   group('PreRaceController', () {
     // -----------------------------------------------------------------------
     group('_initializeSteps', () {
-      test('builds three steps in the correct order', () {
+      test('is just the send page: the coach confirmed they were ready',
+          () {
         final controller =
             _buildController(mockMasterRace, devices: devices);
 
         final steps = controller.buildSteps();
 
-        expect(steps.length, 3);
-        expect(steps[0], isA<ReviewRunnersStep>());
-        expect(steps[1], isA<ShareRaceStep>());
-        expect(steps[2], isA<PreRaceFlowCompleteStep>());
+        expect(steps.single, isA<ShareRaceStep>());
       });
     });
 
     // -----------------------------------------------------------------------
     group('showPreRaceFlow', () {
-      testWidgets('reopening at the share step sends the roster as it is now',
+      testWidgets('sends the roster as it is each time it opens',
           (tester) async {
-        // Closed at the share step, a runner added, then reopened there: the
-        // assistants must get the roster with that runner.
+        // Closed, a runner added, then opened again: the assistants must get
+        // the roster with that runner.
         var roster = 'roster-before';
-        Future<bool> closeAtShareStep({
+        final starts = <int>[];
+        Future<bool> close({
           required BuildContext context,
           required List<FlowStep> steps,
           bool showProgressIndicator = true,
@@ -95,7 +92,8 @@ void main() {
           StepChangedCallback? onStepChanged,
           void Function(int lastIndex)? onDismiss,
         }) async {
-          onDismiss?.call(1);
+          starts.add(initialIndex);
+          onDismiss?.call(0);
           return false;
         }
 
@@ -104,7 +102,7 @@ void main() {
           devices: devices,
           encodeRaceData: (_) async => 'race',
           encodeBibData: (_) async => roster,
-          showFlowFn: closeAtShareStep,
+          showFlowFn: close,
         );
         BuildContext? ctx;
         await tester.pumpWidget(MaterialApp(
@@ -114,51 +112,13 @@ void main() {
           }),
         ));
         await controller.showPreRaceFlow(ctx!, false);
+        expect(devices.bibRecorder!.data, 'race---roster-before');
 
         roster = 'roster-after';
         await controller.showPreRaceFlow(ctx!, false);
 
         expect(devices.bibRecorder!.data, 'race---roster-after');
-      });
-
-      testWidgets('starts at index 0 on first call and resumes at persisted index on next call',
-          (tester) async {
-        final capturedIndices = <int>[];
-
-        Future<bool> fakeShowFlow({
-          required BuildContext context,
-          required List<FlowStep> steps,
-          bool showProgressIndicator = true,
-          int initialIndex = 0,
-          StepChangedCallback? onStepChanged,
-          void Function(int lastIndex)? onDismiss,
-        }) async {
-          capturedIndices.add(initialIndex);
-          onDismiss?.call(1);
-          return false;
-        }
-
-        final controller = _buildController(
-          mockMasterRace,
-          devices: devices,
-          encodeRaceData: (_) async => 'race',
-          encodeBibData: (_) async => 'roster',
-          showFlowFn: fakeShowFlow,
-        );
-
-        BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            ctx = context;
-            return const SizedBox();
-          }),
-        ));
-
-        await controller.showPreRaceFlow(ctx!, false);
-        await controller.showPreRaceFlow(ctx!, false);
-
-        expect(capturedIndices[0], 0);
-        expect(capturedIndices[1], 1);
+        expect(starts, [0, 0]);
       });
 
       testWidgets('forwards showProgressIndicator correctly', (tester) async {
@@ -180,6 +140,8 @@ void main() {
         final controller = _buildController(
           mockMasterRace,
           devices: devices,
+          encodeRaceData: (_) async => 'race',
+          encodeBibData: (_) async => 'roster',
           showFlowFn: fakeShowFlow,
         );
 
@@ -217,6 +179,8 @@ void main() {
         final controller = _buildController(
           mockMasterRace,
           devices: devices,
+          encodeRaceData: (_) async => 'race',
+          encodeBibData: (_) async => 'roster',
           showFlowFn: fakeShowFlow,
         );
 
@@ -231,65 +195,78 @@ void main() {
         await controller.showPreRaceFlow(ctx!, false);
 
         expect(capturedSteps, isNotNull);
-        expect(capturedSteps!.length, 3);
-        expect(capturedSteps![0], isA<ReviewRunnersStep>());
-        expect(capturedSteps![1], isA<ShareRaceStep>());
-        expect(capturedSteps![2], isA<PreRaceFlowCompleteStep>());
+        expect(capturedSteps!.single, isA<ShareRaceStep>());
       });
     });
 
     // -----------------------------------------------------------------------
-    group('ReviewRunnersStep.onNext', () {
-      test('assigns encoded race and bib data to devices on success', () async {
-        const raceEncoded = 'encoded_race';
-        const bibEncoded = 'encoded_bib';
+    group('preparing what is sent', () {
+      Future<bool> noFlow({
+        required BuildContext context,
+        required List<FlowStep> steps,
+        bool showProgressIndicator = true,
+        int initialIndex = 0,
+        StepChangedCallback? onStepChanged,
+        void Function(int lastIndex)? onDismiss,
+      }) async =>
+          false;
 
+      Future<void> open(WidgetTester tester, PreRaceController controller) async {
+        BuildContext? ctx;
+        await tester.pumpWidget(MaterialApp(
+          home: Builder(builder: (context) {
+            ctx = context;
+            return const SizedBox();
+          }),
+        ));
+        await controller.showPreRaceFlow(ctx!, false);
+      }
+
+      testWidgets('gives each device the race, and the Bib Recorder the roster',
+          (tester) async {
         final controller = _buildController(
           mockMasterRace,
           devices: devices,
-          encodeRaceData: (_) async => raceEncoded,
-          encodeBibData: (_) async => bibEncoded,
+          encodeRaceData: (_) async => 'encoded_race',
+          encodeBibData: (_) async => 'encoded_bib',
+          showFlowFn: noFlow,
         );
 
-        final onNext = controller.buildSteps()[0].onNext!;
-        await onNext();
+        await open(tester, controller);
 
-        expect(devices.raceTimer!.data, raceEncoded);
-        expect(
-            devices.bibRecorder!.data, '$raceEncoded---$bibEncoded');
+        expect(devices.raceTimer!.data, 'encoded_race');
+        expect(devices.bibRecorder!.data, 'encoded_race---encoded_bib');
       });
 
-      test('returns early without setting device data when race encoding is empty',
-          () async {
+      testWidgets('sends nothing when the race cannot be encoded',
+          (tester) async {
         final controller = _buildController(
           mockMasterRace,
           devices: devices,
           encodeRaceData: (_) async => '',
           encodeBibData: (_) async => 'encoded_bib',
+          showFlowFn: noFlow,
         );
 
-        final onNext = controller.buildSteps()[0].onNext!;
-        await onNext();
+        await open(tester, controller);
 
         expect(devices.raceTimer!.data, '');
         expect(devices.bibRecorder!.data, '');
       });
 
-      test('returns early without setting bib data when bib encoding is empty',
-          () async {
-        const raceEncoded = 'encoded_race';
-
+      testWidgets('gives the Bib Recorder nothing when the roster cannot be '
+          'encoded', (tester) async {
         final controller = _buildController(
           mockMasterRace,
           devices: devices,
-          encodeRaceData: (_) async => raceEncoded,
+          encodeRaceData: (_) async => 'encoded_race',
           encodeBibData: (_) async => '',
+          showFlowFn: noFlow,
         );
 
-        final onNext = controller.buildSteps()[0].onNext!;
-        await onNext();
+        await open(tester, controller);
 
-        expect(devices.raceTimer!.data, raceEncoded);
+        expect(devices.raceTimer!.data, 'encoded_race');
         expect(devices.bibRecorder!.data, '');
       });
     });

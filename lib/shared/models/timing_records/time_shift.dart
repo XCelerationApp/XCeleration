@@ -1,6 +1,6 @@
-import '../../../../../../core/utils/time_formatter.dart';
-import '../../../../../../shared/models/timing_records/timing_chunk.dart';
-import '../../../../../../shared/models/timing_records/timing_datum.dart';
+import '../../../core/utils/time_formatter.dart';
+import 'timing_chunk.dart';
+import 'timing_datum.dart';
 
 /// Moves every recorded time in [chunks] by [by], in place.
 ///

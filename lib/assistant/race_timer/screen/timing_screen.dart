@@ -87,7 +87,7 @@ class _TimingScreenState extends State<TimingScreen>
                   SizedBox(height: MediaQuery.paddingOf(context).top)
                 else
                   AppHeader(
-                    title: 'Race Timer',
+                    title: 'Timer',
                     currentRole: Role.timer,
                     tutorialManager: tutorialManager,
                     onRoleTap: () => RoleSelectorSheet.showRoleSelection(
@@ -198,6 +198,8 @@ class _TimingScreenState extends State<TimingScreen>
                     message: error.userMessage);
               }
             },
+            onAdjustStart: () => _controller.showAdjustStartSheet(context),
+            canAdjustStart: () => _controller.startTime != null,
             clearRecordsLabel: 'Clear Times',
             canClearRecords: () =>
                 _controller.raceStopped && _controller.hasTimingData,

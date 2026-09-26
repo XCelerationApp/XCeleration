@@ -214,18 +214,54 @@ class RosterImporter {
   }
 
   /// A short form of a team name: the first letter of up to three words,
-  /// or the first three letters of a one-word name.
+  /// or the first three letters of a one-word name. A boys' or girls' team
+  /// ends in B or G, so "Archie Williams - Boys" and "- Girls" differ (AWB,
+  /// AWG). Dashes and the like are not words.
   static String abbreviate(String name) {
     final words = name
         .trim()
         .split(RegExp(r'\s+'))
-        .where((w) => w.isNotEmpty)
+        .where((w) => RegExp(r'^[A-Za-z0-9]').hasMatch(w))
         .toList();
     if (words.isEmpty) return '';
+    final last = words.last.toLowerCase();
+    final side = switch (last) {
+      'boys' || 'boy' => 'B',
+      'girls' || 'girl' => 'G',
+      _ => null,
+    };
+    if (side != null && words.length > 1) {
+      final base = words.sublist(0, words.length - 1);
+      final start = base.length == 1
+          ? base.first.substring(0, base.first.length < 2 ? 1 : 2)
+          : base.take(2).map((w) => w[0]).join();
+      return (start + side).toUpperCase();
+    }
     if (words.length == 1) {
       final w = words.first;
       return (w.length <= 3 ? w : w.substring(0, 3)).toUpperCase();
     }
     return words.take(3).map((w) => w[0].toUpperCase()).join();
+  }
+
+  /// [rows] with each runner's team split into a boys' and a girls' team,
+  /// such as "Archie Williams - Boys", by the spreadsheet's gender column.
+  /// A runner with no gender or no team stays on the team as it is.
+  static List<Map<String, dynamic>> splitTeamsByGender(
+      List<Map<String, dynamic>> rows) {
+    return [
+      for (final row in rows)
+        () {
+          final team = (row['team'] as String?)?.trim() ?? '';
+          final gender = (row['gender'] as String?)?.toUpperCase() ?? '';
+          final side = switch (gender) {
+            'M' => 'Boys',
+            'F' => 'Girls',
+            _ => null,
+          };
+          if (team.isEmpty || side == null) return row;
+          return {...row, 'team': '$team - $side'};
+        }(),
+    ];
   }
 }

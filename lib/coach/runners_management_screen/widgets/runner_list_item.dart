@@ -112,15 +112,6 @@ class _RunnerListItemState extends State<RunnerListItem> {
                       maxLines: 1,
                     ),
                   ),
-                  // Swipe hint chevron
-                  if (!widget.isViewMode) ...[
-                    const SizedBox(width: AppSpacing.sm),
-                    Icon(
-                      Icons.chevron_left,
-                      size: 14,
-                      color: AppColors.lightColor,
-                    ),
-                  ],
                 ],
               ),
             ),

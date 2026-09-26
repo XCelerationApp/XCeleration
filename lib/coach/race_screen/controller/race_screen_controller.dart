@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'race_form_state.dart';
-import 'race_geo_controller.dart';
 import '../../../shared/models/database/race_runner.dart';
 import '../../../shared/models/database/team.dart';
 import '../../../core/utils/enums.dart' hide EventTypes;
@@ -15,7 +14,6 @@ import 'package:intl/intl.dart';
 import '../../races_screen/controller/i_parent_race_controller.dart';
 import '../services/i_race_service.dart';
 import '../../../core/services/service_locator.dart';
-import '../../../core/services/geo_location_service.dart';
 import '../../../core/services/date_picker_service.dart';
 import '../../../core/components/dialog_utils.dart';
 
@@ -72,6 +70,13 @@ class RaceScreenController with ChangeNotifier {
   /// Whether this coach may correct the results once the race is finished.
   bool get canEditResults => parentController.canEdit;
 
+  /// Deletes this race, after asking, and closes its sheet. The only way
+  /// used to be swiping its card on the races list, with nothing to say so.
+  Future<void> deleteRace(BuildContext context) async {
+    final deleted = await parentController.deleteRace(race, context);
+    if (deleted && context.mounted) Navigator.of(context).pop();
+  }
+
   bool get canEdit {
     if (_isInitialLoading) {
       throw StateError('CanEdit not loaded yet - check isLoading first');
@@ -112,17 +117,13 @@ class RaceScreenController with ChangeNotifier {
   final IDeviceConnectionFactory _devicesFactory;
   late final IRaceService _raceService;
 
-  late final RaceGeoController _geoController;
-
   RaceScreenController({
     required this.masterRace,
     required this.parentController,
-    IGeoLocationService? geoLocationService,
     IDatePickerService? datePickerService,
     MasterFlowController? flowController,
     IEventBus? eventBus,
     IDeviceConnectionFactory? devicesFactory,
-    RaceGeoController? geoController,
     IRaceService? raceService,
   })  : _datePickerService = datePickerService ?? DatePickerService(),
         _eventBus = eventBus ?? EventBus.instance,
@@ -130,12 +131,6 @@ class RaceScreenController with ChangeNotifier {
     _raceService = raceService ?? ServiceLocator.get<IRaceService>();
     this.flowController =
         flowController ?? MasterFlowController(raceController: this);
-    _geoController = geoController ??
-        RaceGeoController(
-          geoLocationService: geoLocationService ?? GeoLocationService(),
-          form: form,
-        );
-    _geoController.addListener(notifyListeners);
     form.addListener(notifyListeners);
     _masterRaceListener = () {
       if (_isRefreshing || _isInitialLoading) return;
@@ -147,8 +142,6 @@ class RaceScreenController with ChangeNotifier {
   @override
   void dispose() {
     masterRace.removeListener(_masterRaceListener);
-    _geoController.removeListener(notifyListeners);
-    _geoController.dispose();
     form.removeListener(notifyListeners);
     form.dispose();
     super.dispose();
@@ -253,30 +246,23 @@ class RaceScreenController with ChangeNotifier {
     );
     notifyListeners();
 
-    // Pass already-loaded race and teams — avoids two extra DB reads.
-    final race = _race;
-    if (race == null) return;
-    final setupComplete = await _raceService.checkSetupComplete(
-      race: race,
-      teams: _teams ?? [],
-      masterRace: masterRace,
-      name: raceName,
-      location: location,
-      date: dateText,
-      distance: distanceText,
-    );
-    if (setupComplete && context.mounted) {
-      await updateRaceFlowState(context, Race.FLOW_SETUP_COMPLETED);
-    }
+    // Setup is only marked done by the coach tapping Finish Setup. Doing it
+    // here, as soon as every detail was filled in, moved the race on to
+    // Send to Volunteers the moment the last runner was added.
   }
 
   Future<void> handleFieldFocusLoss(
       BuildContext context, RaceField field) async {
     trackFieldChange(field);
-    if (!_isSetupFlow() && form.hasUnsavedChanges && context.mounted) {
+    if (form.hasUnsavedChanges && shouldAutosave && context.mounted) {
       await saveAllChanges(context);
     }
   }
+
+  /// Changes save as soon as a field is left, except, during setup, a change
+  /// to a detail already set, which waits for Save Changes (or Revert).
+  /// Filling in a new race's details the first time saves as it goes.
+  bool get shouldAutosave => !_isSetupFlow() || form.onlyFillsBlanks;
 
   bool _isSetupFlow() {
     final flowState = _race?.flowState;
@@ -447,15 +433,4 @@ class RaceScreenController with ChangeNotifier {
       data: data,
     );
   }
-
-  // ---------------------------------------------------------------------------
-  // Geolocation — delegates to RaceGeoController
-
-  bool get isLocationButtonVisible => _geoController.isLocationButtonVisible;
-
-  Future<void> getCurrentLocation(BuildContext context) =>
-      _geoController.getCurrentLocation(context);
-
-  void updateLocationButtonVisibility() =>
-      _geoController.updateLocationButtonVisibility();
 }

@@ -8,7 +8,7 @@ import 'package:xceleration/shared/models/database/race_result.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
 import 'package:xceleration/shared/models/database/team.dart';
 
-import 'load_results_step_test.mocks.dart';
+import 'post_race_controller_test.mocks.dart';
 
 // The last page of collecting results shows what will be saved, and saves
 // only when the coach says so.

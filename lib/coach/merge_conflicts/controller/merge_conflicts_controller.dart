@@ -1,6 +1,7 @@
 import 'package:xceleration/coach/merge_conflicts/models/conflict_time.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_record.dart';
+import 'package:xceleration/coach/merge_conflicts/utils/timing_suggestions.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/merge_conflicts_utils.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart' show CoachTimingDataConverter;
 import 'package:xceleration/core/app_error.dart';
@@ -326,26 +327,33 @@ class MergeConflictsController with ChangeNotifier {
     final records = uiChunk.records;
     if (recordIndex < 0 || recordIndex >= records.length) return;
 
-    int? from;
-    for (int i = recordIndex + 1; i < records.length; i++) {
-      if (records[i].isUnfilled) {
-        from = i;
-        break;
+    // An empty slot first; failing that, one the coach has typed into: the
+    // time typed there belonged to the wrong runner.
+    int? nearest(bool Function(UIRecord) usable) {
+      for (int i = recordIndex + 1; i < records.length; i++) {
+        if (usable(records[i])) return i;
       }
-    }
-    if (from == null) {
       for (int i = recordIndex - 1; i >= 0; i--) {
-        if (records[i].isUnfilled) {
-          from = i;
-          break;
-        }
+        if (usable(records[i])) return i;
       }
+      return null;
     }
+
+    final from = nearest((r) => r.isUnfilled) ??
+        nearest((r) => r.isOriginallyTBD);
     if (from == null) return;
+    final clearsTypedTime = !records[from].isUnfilled;
     // Removing a slot before the target shifts the target left by one.
     final to = from < recordIndex ? recordIndex - 1 : recordIndex;
     _recordEdit(chunkId, 'moving the missing time');
+    _placeSlot(uiChunk, from, to, fill: clearsTypedTime ? 'TBD' : null);
+  }
 
+  /// Moves the missing-time slot at [from] to [to] (indexes of the rows, [to]
+  /// counted with the slot taken out). [fill] replaces what the slot holds:
+  /// "TBD" to empty it; null keeps it.
+  void _placeSlot(UIChunk uiChunk, int from, int to, {String? fill}) {
+    final records = uiChunk.records;
     // The text field holds what the coach typed; it can differ from
     // conflictTime until the value is submitted.
     final contents = records
@@ -355,7 +363,12 @@ class MergeConflictsController with ChangeNotifier {
               validationError: r.validationError,
             ))
         .toList();
-    contents.insert(to, contents.removeAt(from));
+    final moved = contents.removeAt(from);
+    contents.insert(
+        to,
+        fill == null
+            ? moved
+            : ConflictTime(time: fill, isOriginallyTBD: moved.isOriginallyTBD));
     for (int i = 0; i < records.length; i++) {
       final old = records[i];
       records[i] = UIRecord(
@@ -374,11 +387,34 @@ class MergeConflictsController with ChangeNotifier {
             _validateTimeInChunk(uiChunk, i, record.time);
       }
     }
-    uiChunk.lastInsertedIndex = to;
+    uiChunk.lastInsertedIndex = fill == null || fill == 'TBD' ? to : null;
     // Keep the moved slot with the chunk, not only in the rows, so a rebuild
     // cannot lose it and undo has something to put back.
     _syncEnteredTimes(uiChunk);
     notifyListeners();
+  }
+
+  /// A time in the batch with [chunkId] that looks like a stray tap: the
+  /// second of the two closest, since a stray tap usually lands right after
+  /// a real one (though not always). Only for extra times: a missed runner
+  /// could be anywhere, so the app points nowhere for those.
+  TimingSpot? suggestionFor(int chunkId) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return null;
+    if (uiChunk.conflict.type != ConflictType.extraTime ||
+        uiChunk.conflict.offBy < 1) {
+      return null;
+    }
+    return likelyExtraTime(uiChunk.records.map((r) => r.time).toList(),
+        start: previousEndTimeFor(chunkId));
+  }
+
+  /// The gap before each row's time in the batch with [chunkId].
+  List<Duration?> gapsFor(int chunkId) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return const [];
+    return gapsBefore(uiChunk.records.map((r) => r.time).toList(),
+        start: previousEndTimeFor(chunkId));
   }
 
   UIChunk? _getUIChunk(int chunkId) {
@@ -394,7 +430,7 @@ class MergeConflictsController with ChangeNotifier {
     if (newValue.isNotEmpty &&
         newValue != 'TBD' &&
         TimeFormatter.loadDurationFromString(newValue) == null) {
-      return 'Invalid Time';
+      return 'Type it like 15:20.26';
     }
     final contextTimes =
         uiChunk.records.map((r) => r.timeController.text).toList();
@@ -407,7 +443,7 @@ class MergeConflictsController with ChangeNotifier {
     final entered = TimeFormatter.loadDurationFromString(newValue);
     final previous = _previousFinishTime(uiChunk.chunkId);
     if (entered != null && previous != null && entered <= previous) {
-      return 'Invalid Time';
+      return 'Must be after ${TimeFormatter.formatDuration(previous)}';
     }
     return null;
   }
@@ -628,6 +664,14 @@ class MergeConflictsController with ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// How many chunks still have an unresolved missing- or extra-time
+  /// conflict.
+  int get openConflictCount => timingChunks
+      .where((chunk) =>
+          chunk.hasConflict &&
+          chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner)
+      .length;
 
   /// Whether any chunk still has an unresolved missing- or extra-time
   /// conflict. Confirmed chunks and chunks with no conflict are resolved,
