@@ -219,6 +219,58 @@ void main() {
     });
   });
 
+  group('best guess, when nobody remembers', () {
+    test('puts a missing time halfway across the biggest gap', () {
+      final c = _controller(
+        [_chunk(0, [10, 11, 30], ConflictType.missingTime, end: 32)],
+        _runners(4),
+      );
+      expect(_times(c, 0), [_t(10), _t(11), _t(30), 'TBD']);
+      expect(c.suggestionFor(0)!.row, 2, reason: 'the 11 → 30 gap');
+
+      c.bestGuess(0);
+
+      expect(_times(c, 0), [_t(10), _t(11), '20.50', _t(30)]);
+      expect(_ui(c, 0).isResolvedLocally, isTrue);
+
+      c.undo(0);
+      expect(_times(c, 0), [_t(10), _t(11), _t(30), 'TBD']);
+    });
+
+    test('removes the second of the two closest times', () {
+      // A double tap: 15.00 then 15.40, the second a stray.
+      final c = _controller(
+        [
+          TimingChunk(
+            id: 0,
+            timingData: [
+              for (final t in ['0:10.00', '0:15.00', '0:15.40', '0:20.00'])
+                TimingDatum(time: t),
+            ],
+            conflictRecord: TimingDatum(
+              time: _t(25),
+              conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+            ),
+          ),
+        ],
+        _runners(3),
+      );
+      expect(c.suggestionFor(0)!.row, 2);
+
+      c.bestGuess(0);
+
+      expect(_times(c, 0), ['0:10.00', '0:15.00', '0:20.00']);
+    });
+
+    test('makes no guess with more than one time to sort out', () {
+      final c = _controller(
+        [_chunk(0, [10], ConflictType.missingTime, offBy: 2, end: 14)],
+        _runners(3),
+      );
+      expect(c.suggestionFor(0), isNull);
+    });
+  });
+
   group('what undo does not reach', () {
     test('resolving the batch clears its history', () async {
       final c = _controller(

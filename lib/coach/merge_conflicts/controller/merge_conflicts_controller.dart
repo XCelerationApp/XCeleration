@@ -1,6 +1,7 @@
 import 'package:xceleration/coach/merge_conflicts/models/conflict_time.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_record.dart';
+import 'package:xceleration/coach/merge_conflicts/utils/timing_suggestions.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/merge_conflicts_utils.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart' show CoachTimingDataConverter;
 import 'package:xceleration/core/app_error.dart';
@@ -345,7 +346,14 @@ class MergeConflictsController with ChangeNotifier {
     // Removing a slot before the target shifts the target left by one.
     final to = from < recordIndex ? recordIndex - 1 : recordIndex;
     _recordEdit(chunkId, 'moving the missing time');
+    _placeSlot(uiChunk, from, to, fill: clearsTypedTime ? 'TBD' : null);
+  }
 
+  /// Moves the missing-time slot at [from] to [to] (indexes of the rows, [to]
+  /// counted with the slot taken out). [fill] replaces what the slot holds:
+  /// "TBD" to empty it, or a time for a best guess; null keeps it.
+  void _placeSlot(UIChunk uiChunk, int from, int to, {String? fill}) {
+    final records = uiChunk.records;
     // The text field holds what the coach typed; it can differ from
     // conflictTime until the value is submitted.
     final contents = records
@@ -358,9 +366,9 @@ class MergeConflictsController with ChangeNotifier {
     final moved = contents.removeAt(from);
     contents.insert(
         to,
-        clearsTypedTime
-            ? ConflictTime(time: 'TBD', isOriginallyTBD: moved.isOriginallyTBD)
-            : moved);
+        fill == null
+            ? moved
+            : ConflictTime(time: fill, isOriginallyTBD: moved.isOriginallyTBD));
     for (int i = 0; i < records.length; i++) {
       final old = records[i];
       records[i] = UIRecord(
@@ -379,11 +387,79 @@ class MergeConflictsController with ChangeNotifier {
             _validateTimeInChunk(uiChunk, i, record.time);
       }
     }
-    uiChunk.lastInsertedIndex = to;
+    uiChunk.lastInsertedIndex = fill == null || fill == 'TBD' ? to : null;
     // Keep the moved slot with the chunk, not only in the rows, so a rebuild
     // cannot lose it and undo has something to put back.
     _syncEnteredTimes(uiChunk);
     notifyListeners();
+  }
+
+  /// The row the app thinks the problem is at in the batch with [chunkId]:
+  /// for a missing time, the biggest gap between times; for an extra one,
+  /// the second of the two closest. Only while one time is still to sort
+  /// out: with several, the gaps say less, and the coach decides.
+  TimingSpot? suggestionFor(int chunkId) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return null;
+    final times = uiChunk.records.map((r) => r.time).toList();
+    final start = previousEndTimeFor(chunkId);
+    switch (uiChunk.conflict.type) {
+      case ConflictType.missingTime:
+        final open = uiChunk.records.where((r) => r.isUnfilled).length;
+        if (open != 1 || uiChunk.conflict.offBy != 1) return null;
+        return likelyMissingSpot(times, start: start, end: uiChunk.endTime);
+      case ConflictType.extraTime:
+        if (uiChunk.conflict.offBy != 1) return null;
+        return likelyExtraTime(times, start: start);
+      case ConflictType.confirmRunner:
+        return null;
+    }
+  }
+
+  /// The gap before each row's time in the batch with [chunkId].
+  List<Duration?> gapsFor(int chunkId) {
+    final uiChunk = _getUIChunk(chunkId);
+    if (uiChunk == null) return const [];
+    return gapsBefore(uiChunk.records.map((r) => r.time).toList(),
+        start: previousEndTimeFor(chunkId));
+  }
+
+  /// Applies [suggestionFor]: for a missing time, moves the empty slot into
+  /// the biggest gap and fills in the time halfway across it; for an extra
+  /// time, removes the second of the two closest. The coach still checks it
+  /// and presses Resolve; Undo takes it back. For when nobody remembers:
+  /// places stay right and times are off by at most half the gap.
+  void bestGuess(int chunkId) {
+    final uiChunk = _getUIChunk(chunkId);
+    final spot = suggestionFor(chunkId);
+    if (uiChunk == null || spot == null) return;
+    if (uiChunk.conflict.type == ConflictType.extraTime) {
+      removeExtraTimeRecord(chunkId, spot.row);
+      return;
+    }
+    final records = uiChunk.records;
+    final from = records.indexWhere((r) => r.isUnfilled);
+    if (from == -1) return;
+    final to = from < spot.row ? spot.row - 1 : spot.row;
+    // The known times either side of where the slot lands.
+    final others = [
+      for (var i = 0; i < records.length; i++)
+        if (i != from) records[i].time,
+    ];
+    String? known(Iterable<String> times) {
+      for (final t in times) {
+        if (t != 'TBD' && t.isNotEmpty) return t;
+      }
+      return null;
+    }
+
+    final after =
+        known(others.take(to).toList().reversed) ?? previousEndTimeFor(chunkId);
+    final before = known(others.skip(to)) ?? uiChunk.endTime;
+    final fill = midpointTime(after, before);
+    if (fill == null) return;
+    _recordEdit(chunkId, 'the best guess');
+    _placeSlot(uiChunk, from, to, fill: fill);
   }
 
   UIChunk? _getUIChunk(int chunkId) {

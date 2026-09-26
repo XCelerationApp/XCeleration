@@ -16,7 +16,9 @@ class _TwoOccurrenceStep1 extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Bib #${conflict.bibNumber} was recorded ${conflict.occurrences.length} times. Select the finish time that belongs to this runner.',
+          'Bib #${conflict.bibNumber} was typed at two finishes. Which one '
+          'was ${conflict.runner.runner.name ?? 'this runner'}? The other '
+          'was a typo for someone else.',
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -44,6 +46,10 @@ class _TwoOccurrenceStep1 extends StatelessWidget {
         ),
         const SizedBox(height: AppSpacing.md),
         _TipBanner(),
+        const HowToDecide(
+          tips: ConflictTips.duplicateWhichIsTheirs,
+          lastResort: ConflictTips.bibLastResort,
+        ),
       ],
     );
   }
@@ -304,6 +310,10 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
                 size: ButtonSize.fullWidth,
                 onPressed: () => _openFindSheet(context),
               ),
+        const HowToDecide(
+          tips: ConflictTips.whoWasIt,
+          lastResort: ConflictTips.bibLastResort,
+        ),
       ],
     );
   }

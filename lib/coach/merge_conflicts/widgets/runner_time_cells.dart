@@ -36,16 +36,18 @@ class CellActionIcon extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
+  final Color? color;
   const CellActionIcon({
     super.key,
     required this.icon,
     required this.tooltip,
     this.onPressed,
+    this.color,
   });
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      icon: Icon(icon),
+      icon: Icon(icon, color: color),
       tooltip: tooltip,
       onPressed: onPressed,
     );
@@ -71,15 +73,56 @@ class ConfirmedRunnerTimeCell extends StatelessWidget {
   }
 }
 
+/// A time with the gap since the one before under it ("+3.2 s"), picked
+/// out in orange where the app thinks the problem is.
+class TimeWithNote extends StatelessWidget {
+  const TimeWithNote({
+    super.key,
+    required this.time,
+    this.note,
+    this.highlight = false,
+    this.color = AppColors.darkColor,
+  });
+
+  final String time;
+  final String? note;
+  final bool highlight;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TimeDisplay(time: time, color: color),
+        if (note != null)
+          Text(
+            note!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.caption.copyWith(
+              color: highlight ? AppColors.primaryColor : AppColors.mediumColor,
+              fontWeight: highlight ? FontWeight.w700 : FontWeight.w400,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class ExtraTimeCell extends StatelessWidget {
   final String time;
   /// Null once every extra time is removed: the rest belong to runners.
   final void Function()? onRemoveExtraTime;
+  final String? note;
+  final bool highlight;
 
   const ExtraTimeCell({
     super.key,
     required this.time,
     required this.onRemoveExtraTime,
+    this.note,
+    this.highlight = false,
   });
 
   @override
@@ -88,13 +131,14 @@ class ExtraTimeCell extends StatelessWidget {
       children: [
         const SizedBox(width: 2),
         Expanded(
-          child: TimeDisplay(time: time),
+          child: TimeWithNote(time: time, note: note, highlight: highlight),
         ),
         if (onRemoveExtraTime != null)
           CellActionIcon(
             icon: Icons.close,
             tooltip: 'Remove extra time',
             onPressed: onRemoveExtraTime,
+            color: highlight ? AppColors.primaryColor : null,
           ),
       ],
     );
@@ -111,6 +155,8 @@ class MissingTimeCell extends StatefulWidget {
   final bool autofocus;
   final bool isOriginallyTBD;
   final UIRecord record;
+  final String? note;
+  final bool highlight;
 
   const MissingTimeCell({
     super.key,
@@ -123,6 +169,8 @@ class MissingTimeCell extends StatefulWidget {
     this.autofocus = false,
     this.isOriginallyTBD = false,
     required this.record,
+    this.note,
+    this.highlight = false,
   });
 
   @override
@@ -257,8 +305,10 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                         children: [
                           Expanded(
                             child: Center(
-                              child: TimeDisplay(
+                              child: TimeWithNote(
                                 time: widget.controller.text,
+                                note: widget.note,
+                                highlight: widget.highlight,
                                 color:
                                     hasError ? Colors.red : AppColors.darkColor,
                               ),
@@ -267,9 +317,13 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                           // Only as wide as the icon: sharing the cell half
                           // and half wrapped times onto two lines.
                           CellActionIcon(
-                            icon: Icons.add_circle_outline,
+                            icon: widget.highlight
+                                ? Icons.add_circle
+                                : Icons.add_circle_outline,
                             tooltip: 'The missing runner finished here',
                             onPressed: widget.onAddTime,
+                            color:
+                                widget.highlight ? AppColors.primaryColor : null,
                           ),
                         ],
                       ),

@@ -5,6 +5,8 @@ import '../../../core/theme/typography.dart';
 import '../../../core/utils/enums.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
+import '../../bib_conflict_resolution/utils/ordinal.dart';
+import '../../../core/components/how_to_decide.dart';
 
 class ConflictHeader extends StatelessWidget {
   const ConflictHeader({
@@ -15,6 +17,10 @@ class ConflictHeader extends StatelessWidget {
     this.offBy,
     this.removedCount = 0,
     this.enteredCount = 0,
+    this.firstPlace,
+    this.lastPlace,
+    this.suggestion,
+    this.onBestGuess,
   });
   final ConflictType type;
   final String startTime;
@@ -23,18 +29,40 @@ class ConflictHeader extends StatelessWidget {
   final int removedCount;
   final int enteredCount;
 
+  /// The places the batch covers, to say where in the race it is.
+  final int? firstPlace;
+  final int? lastPlace;
+
+  /// Where the app thinks the problem is, e.g. "Most likely just before 10th
+  /// place, where there is a 12.3 s gap."
+  final String? suggestion;
+
+  /// Applies the suggestion, for when nobody remembers.
+  final VoidCallback? onBestGuess;
+
   @override
   Widget build(BuildContext context) {
+    final several = offBy != null && offBy! > 1;
+    final where = firstPlace != null && lastPlace != null
+        ? ' between ${ordinal(firstPlace!)} and ${ordinal(lastPlace!)} place'
+        : '';
     final String title = type == ConflictType.extraTime
-        ? 'Extra Time${(offBy != null && offBy! > 1) ? 's' : ''} Detected'
-        : 'Missing Time${(offBy != null && offBy! > 1) ? 's' : ''} Detected';
+        ? '${several ? '$offBy extra times' : 'An extra time'}$where'
+        : '${several ? '$offBy times are' : 'A time is'} missing$where';
+    final range = TimeFormatter.isDuration(startTime) &&
+            TimeFormatter.isDuration(endTime)
+        ? 'Times $startTime to $endTime'
+        : TimeFormatter.isDuration(endTime)
+            ? 'Times up to $endTime'
+            : null;
     final String description = type == ConflictType.extraTime
-        ? 'There are more times than runners. Tap X on a time that was not a '
-            'runner: the times below it move up a place.'
-        : 'There are more runners than times. Tap + on the runner whose time '
-            'is missing: the times below move down a place, leaving a box to '
-            'type the missing time into.';
+        ? 'The Timer has more times than runners here. Tap ✕ on the time '
+            'that was not a runner; the times below move up a place.'
+        : 'The Timer missed a runner here. Tap + on the runner whose time is '
+            'missing; the times below move down a place, and you type the '
+            'missing time into the box.';
 
+    final accent = ColorUtils.withOpacity(AppColors.primaryColor, 0.8);
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -49,18 +77,67 @@ class ConflictHeader extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            // A missing time found by counting has no end time.
-            TimeFormatter.isDuration(endTime) ? '$title at $endTime' : title,
+            title,
             style: AppTypography.bodySemibold.copyWith(
               color: AppColors.primaryColor,
             ),
           ),
+          if (range != null)
+            Text(
+              range,
+              style: AppTypography.caption.copyWith(color: accent),
+            ),
           const SizedBox(height: 4),
           Text(
             description,
-            style: AppTypography.smallBodyRegular.copyWith(
-              color: ColorUtils.withOpacity(AppColors.primaryColor, 0.8),
+            style: AppTypography.smallBodyRegular.copyWith(color: accent),
+          ),
+          if (suggestion != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.lightbulb_outline,
+                    size: 16, color: AppColors.primaryColor),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    suggestion!,
+                    style: AppTypography.smallBodySemibold
+                        .copyWith(color: AppColors.primaryColor),
+                  ),
+                ),
+              ],
             ),
+          ],
+          const SizedBox(height: 8),
+          // Wraps onto two lines with large text or on a narrow phone.
+          Wrap(
+            spacing: 12,
+            runSpacing: 4,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              if (onBestGuess != null) ...[
+                OutlinedButton.icon(
+                  key: const ValueKey('best_guess'),
+                  onPressed: onBestGuess,
+                  icon: const Icon(Icons.auto_fix_high, size: 18),
+                  label: const Text('Best Guess'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.primaryColor,
+                    side: const BorderSide(color: AppColors.primaryColor),
+                    visualDensity: VisualDensity.compact,
+                  ),
+                ),
+              ],
+              // What Best Guess does, and when to use it, is in here.
+              HowToDecide(
+                tips: type == ConflictType.extraTime
+                    ? ConflictTips.extraTime
+                    : ConflictTips.missingTime,
+                lastResort: ConflictTips.timeLastResort,
+              ),
+            ],
           ),
         ],
       ),

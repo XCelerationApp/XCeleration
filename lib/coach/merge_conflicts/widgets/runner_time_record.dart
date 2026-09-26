@@ -7,6 +7,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/utils/color_utils.dart';
 import 'runner_info_widgets.dart';
 import 'runner_time_cells.dart';
+import '../utils/timing_suggestions.dart';
 
 class RunnerTimeRecord extends StatelessWidget {
   final UIRecord record;
@@ -32,6 +33,24 @@ class RunnerTimeRecord extends StatelessWidget {
 
     final Color conflictColor =
         isResolved ? Colors.green : AppColors.primaryColor;
+
+    // Under each time in a conflict, the gap since the one before; where
+    // the app thinks the problem is, picked out in orange.
+    String? note;
+    var highlight = false;
+    if (!isResolved) {
+      final gaps = controller.gapsFor(chunk.chunkId);
+      final gap = chunkIndex < gaps.length ? gaps[chunkIndex] : null;
+      final spot = controller.suggestionFor(chunk.chunkId);
+      // Only where one spot clearly stands out; otherwise every row is a
+      // similar guess and highlighting one would mislead.
+      highlight = spot != null && spot.clear && spot.row == chunkIndex;
+      if (gap != null) {
+        // Highlighted in bold orange with a filled + or ✕; the header says
+        // why, as the time column has no room for it.
+        note = '+${describeGap(gap)}';
+      }
+    }
     final Color bgColor = ColorUtils.withOpacity(conflictColor, 0.05);
     final Color borderColor = ColorUtils.withOpacity(conflictColor, 0.5);
 
@@ -92,6 +111,8 @@ class RunnerTimeRecord extends StatelessWidget {
                   child: (chunk.conflict.type == ConflictType.extraTime
                       ? ExtraTimeCell(
                           time: record.time,
+                          note: note,
+                          highlight: highlight,
                           // No confirmation: Undo takes it back.
                           onRemoveExtraTime: chunk.conflict.offBy <= 0
                               ? null
@@ -126,6 +147,8 @@ class RunnerTimeRecord extends StatelessWidget {
                               autofocus: shouldAutofocus,
                               isOriginallyTBD: record.isOriginallyTBD,
                               record: record,
+                              note: note,
+                              highlight: highlight,
                             );
                           },
                         )),

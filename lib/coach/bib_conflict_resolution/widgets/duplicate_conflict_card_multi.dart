@@ -66,7 +66,7 @@ class _KnownRunnerCard extends StatelessWidget {
                     [
                       conflict.runner.team.name,
                       if (conflict.runner.runner.grade != null)
-                        'Grade ${conflict.runner.runner.grade}',
+                        gradeLabel(conflict.runner.runner.grade),
                     ].whereType<String>().join(' · '),
                     style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
                   ),
@@ -106,7 +106,10 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Bib #${widget.conflict.bibNumber} was recorded ${widget.conflict.occurrences.length} times. Select the finish time that belongs to this runner.',
+          'Bib #${widget.conflict.bibNumber} was typed at '
+          '${widget.conflict.occurrences.length} finishes. Which one was '
+          '${widget.conflict.runner.runner.name ?? 'this runner'}? The others '
+          'were typos for other runners.',
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
         const SizedBox(height: AppSpacing.md),

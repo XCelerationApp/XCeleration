@@ -8,6 +8,8 @@ import 'runner_time_record.dart';
 import 'header_widgets.dart';
 import 'resolve_conflict_button.dart';
 import 'undo_button.dart';
+import '../utils/timing_suggestions.dart';
+import '../../bib_conflict_resolution/utils/ordinal.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 
 class ChunkList extends StatelessWidget {
@@ -87,12 +89,52 @@ class _ChunkItemState extends State<ChunkItem> {
     });
   }
 
+  int? get _firstPlace {
+    for (final r in widget.chunk.records) {
+      if (r.place != null) return r.place;
+    }
+    return null;
+  }
+
+  int? get _lastPlace {
+    for (final r in widget.chunk.records.reversed) {
+      if (r.place != null) return r.place;
+    }
+    return null;
+  }
+
+  /// Where the app thinks the problem is, in a coach's words.
+  String? _suggestionText(TimingSpot? spot) {
+    if (spot == null || widget.chunk.isResolvedLocally) return null;
+    final records = widget.chunk.records;
+    final gap = describeGap(spot.gap);
+    if (widget.chunk.conflict.type == ConflictType.extraTime) {
+      if (spot.row >= records.length) return null;
+      final time = records[spot.row].time;
+      return spot.clear
+          ? '$time is only $gap after the time before it, like a double '
+              'tap. Check it first.'
+          : 'No time stands out: the closest two are $gap apart. Ask the '
+              'runners around this stretch.';
+    }
+    final place = spot.row < records.length ? records[spot.row].place : null;
+    final where = place != null
+        ? 'just before ${ordinal(place)} place'
+        : 'after the last time';
+    return spot.clear
+        ? 'Biggest gap: $gap, $where. A missed runner is often there, '
+            'especially two finishing together.'
+        : 'No gap stands out (the biggest is $gap, $where). Ask the runners '
+            'in this stretch.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final chunkType = widget.chunk.conflict.type;
     final previousChunkEndTime =
         widget.controller.previousEndTimeFor(widget.chunk.chunkId);
     final undoLabel = widget.controller.undoLabel(widget.chunk.chunkId);
+    final spot = widget.controller.suggestionFor(widget.chunk.chunkId);
 
     return Padding(
         padding: const EdgeInsets.only(bottom: 24),
@@ -108,6 +150,12 @@ class _ChunkItemState extends State<ChunkItem> {
                 offBy: widget.chunk.conflict.offBy,
                 removedCount: widget.chunk.removedCount,
                 enteredCount: widget.chunk.enteredCount,
+                firstPlace: _firstPlace,
+                lastPlace: _lastPlace,
+                suggestion: _suggestionText(spot),
+                onBestGuess: spot == null || widget.chunk.isResolvedLocally
+                    ? null
+                    : () => widget.controller.bestGuess(widget.chunk.chunkId),
               ),
             if (chunkType == ConflictType.confirmRunner)
               ConfirmHeader(confirmTime: widget.chunk.endTime),
