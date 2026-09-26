@@ -196,14 +196,45 @@ class RunnersManagementController with ChangeNotifier {
             await handleRunnerSubmission(context, raceRunner);
           },
           submitButtonText: raceRunner == null ? 'Create' : 'Save',
-          useSheetLayout: true,
+          useSheetLayout: false,
           showBibField: true,
+          onRemove: raceRunner == null
+              ? null
+              : () => _confirmRemove(context, raceRunner),
         ),
         title: title,
       );
     } catch (e) {
       Logger.e('Error showing runner sheet: $e');
     }
+  }
+
+  /// Asks, then takes [raceRunner] out of this race and closes their sheet.
+  /// They stay on their team, with any past results.
+  Future<void> _confirmRemove(
+      BuildContext context, RaceRunner raceRunner) async {
+    final name = raceRunner.runner.name ?? 'this runner';
+    final confirmed = await DialogUtils.showConfirmationDialog(
+      context,
+      title: 'Remove $name?',
+      content: 'They come off this race only. They stay on '
+          '${raceRunner.team.name ?? 'their team'}, and past results are kept.',
+      confirmText: 'Remove',
+      cancelText: 'Cancel',
+      destructive: true,
+    );
+    if (!confirmed || !context.mounted) return;
+    try {
+      await deleteRaceRunner(raceRunner);
+      await forceRefresh();
+    } catch (e) {
+      if (context.mounted) {
+        DialogUtils.showErrorDialog(context,
+            message: 'Could not remove the runner. Please try again.');
+      }
+      return;
+    }
+    if (context.mounted) Navigator.of(context).pop();
   }
 
   Future<void> handleRunnerSubmission(

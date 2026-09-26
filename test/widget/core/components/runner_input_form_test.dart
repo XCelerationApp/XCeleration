@@ -14,7 +14,9 @@ void main() {
   const alice = Runner(runnerId: 1, name: 'Alice', bibNumber: '101', grade: 10);
   const bob = Runner(runnerId: 2, name: 'Bob Smith', bibNumber: '102', grade: 11);
 
-  Future<void> editAlice(WidgetTester tester) async {
+  Future<void> editAlice(WidgetTester tester,
+      {Future<void> Function()? onRemove,
+      void Function(RaceRunner)? onSubmit}) async {
     await tester.pumpWidget(MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(
@@ -24,7 +26,9 @@ void main() {
             initialRaceRunner:
                 RaceRunner(raceId: 1, runner: alice, team: _eagles),
             submitButtonText: 'Save',
-            onSubmit: (_) async {},
+            onSubmit: (r) async => onSubmit?.call(r),
+            onRemove: onRemove,
+            useSheetLayout: false,
             getRunnerByBib: (bib) async => switch (bib) {
               '101' => alice,
               '102' => bob,
@@ -56,5 +60,41 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('Saving replaces'), findsNothing);
+  });
+
+  testWidgets('has the same fields, in the same order, as Add Runner',
+      (tester) async {
+    await editAlice(tester);
+
+    double top(String label) => tester.getTopLeft(find.text(label)).dy;
+    expect(top('Name') < top('Bib #'), isTrue);
+    expect(top('Bib #') < top('Grade'), isTrue);
+    expect(top('Grade') < top('Team'), isTrue);
+    // The grade as the four buttons, not a number box.
+    for (final label in ['Fr', 'So', 'Jr', 'Sr']) {
+      expect(find.text(label), findsOneWidget);
+    }
+  });
+
+  testWidgets('changes the grade with its buttons', (tester) async {
+    RaceRunner? saved;
+    await editAlice(tester, onSubmit: (r) => saved = r);
+
+    await tester.tap(find.text('Sr'));
+    await tester.pump();
+    await tester.tap(find.text('Save'));
+    await tester.pumpAndSettle();
+
+    expect(saved?.runner.grade, 12);
+  });
+
+  testWidgets('can remove the runner from the race', (tester) async {
+    var removed = false;
+    await editAlice(tester, onRemove: () async => removed = true);
+
+    await tester.tap(find.byKey(const ValueKey('remove_runner_from_race')));
+    await tester.pump();
+
+    expect(removed, isTrue);
   });
 }
