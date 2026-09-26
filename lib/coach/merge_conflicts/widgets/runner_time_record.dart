@@ -34,17 +34,20 @@ class RunnerTimeRecord extends StatelessWidget {
     final Color conflictColor =
         isResolved ? Colors.green : AppColors.primaryColor;
 
-    // Under each time in a conflict, the gap since the one before; where
-    // the app thinks the problem is, picked out in orange.
+    // Under each time in a conflict, the gap since the one before; a time
+    // that looks like a stray tap is picked out in orange.
     String? note;
     var highlight = false;
     if (!isResolved) {
       final gaps = controller.gapsFor(chunk.chunkId);
       final gap = chunkIndex < gaps.length ? gaps[chunkIndex] : null;
       final spot = controller.suggestionFor(chunk.chunkId);
-      // Only where one spot clearly stands out; otherwise every row is a
-      // similar guess and highlighting one would mislead.
-      highlight = spot != null && spot.clear && spot.row == chunkIndex;
+      // Only a stray tap, and only where it clearly stands out: a missed
+      // runner could be anywhere, so no + is picked out as the likely spot.
+      highlight = chunk.conflict.type == ConflictType.extraTime &&
+          spot != null &&
+          spot.clear &&
+          spot.row == chunkIndex;
       if (gap != null) {
         // Highlighted in bold orange with a filled + or ✕; the header says
         // why, as the time column has no room for it.

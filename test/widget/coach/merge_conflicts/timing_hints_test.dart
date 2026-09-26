@@ -13,8 +13,8 @@ import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
-// The hints on a timing conflict: the gap under each time, where the app
-// thinks the problem is (only when it clearly stands out), and Best Guess.
+// The hints on a timing conflict: the gap under each time, where Best Guess
+// would put a missing time and why, and Best Guess itself.
 
 class _NoopScheduler implements IPostFrameCallbackScheduler {
   @override
@@ -70,13 +70,15 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('points to a gap that clearly stands out, and Best Guess '
-      'fills it', (tester) async {
-    // 10, 11, then nothing until 30: the missed runner came in the 19 s gap.
+  testWidgets('says where Best Guess would put the missing time, and '
+      'Best Guess fills it', (tester) async {
     final controller = build([10, 11, 30], 32, 4);
     await pumpList(tester, controller);
 
-    expect(find.textContaining('Biggest gap: 19.0 s, just before 3rd place'),
+    expect(
+        find.textContaining('Best Guess puts it in the biggest gap (19.0 s, '
+            'just before 3rd place), where a guess changes the results the '
+            'least'),
         findsOneWidget);
     expect(find.text('+19.0 s'), findsOneWidget);
     expect(find.text('+1.0 s'), findsOneWidget);
@@ -89,11 +91,69 @@ void main() {
     expect(find.text('Undo'), findsOneWidget);
   });
 
-  testWidgets('says so when no gap stands out', (tester) async {
-    final controller = build([5, 10, 15], 20, 4);
+  testWidgets('never picks out a + as where the missed runner was',
+      (tester) async {
+    // However much one gap stands out, the runner could be anywhere.
+    final controller = build([10, 11, 30], 32, 4);
     await pumpList(tester, controller);
 
-    expect(find.textContaining('No gap stands out'), findsOneWidget);
-    expect(find.textContaining('Biggest gap'), findsNothing);
+    expect(find.byIcon(Icons.add_circle_outline), findsNWidgets(3));
+    expect(find.byIcon(Icons.add_circle), findsNothing);
+  });
+
+  testWidgets('with two missing, Best Guess fills them one at a time',
+      (tester) async {
+    final controller = MergeConflictsController(
+      masterRace: MasterRace.getInstance(1),
+      timingChunks: [
+        TimingChunk(
+          id: 0,
+          timingData: [for (final s in [10, 30]) TimingDatum(time: _t(s))],
+          conflictRecord: TimingDatum(
+            time: _t(40),
+            conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
+          ),
+        )
+      ],
+      raceRunners: [for (var i = 1; i <= 4; i++) _runner(i)],
+      scheduler: _NoopScheduler(),
+    );
+    await pumpList(tester, controller);
+    expect(find.textContaining('Best Guess puts one in the biggest gap'),
+        findsOneWidget);
+
+    await tester.tap(find.text('Best Guess'));
+    await tester.pumpAndSettle();
+    expect(controller.uiChunks.single.records.map((r) => r.time),
+        [_t(10), '20.00', _t(30), 'TBD']);
+
+    await tester.tap(find.text('Best Guess'));
+    await tester.pumpAndSettle();
+    expect(controller.uiChunks.single.records.where((r) => r.isUnfilled),
+        isEmpty);
+    expect(controller.uiChunks.single.isResolvedLocally, isTrue);
+  });
+
+  testWidgets('in the last batch, says the runner may have come after the '
+      'last time', (tester) async {
+    final controller = MergeConflictsController(
+      masterRace: MasterRace.getInstance(1),
+      timingChunks: [
+        TimingChunk(
+          id: 0,
+          timingData: [for (final s in [10, 11, 30]) TimingDatum(time: _t(s))],
+          conflictRecord: TimingDatum(
+            time: 'MISSING_TIMES',
+            conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
+          ),
+        )
+      ],
+      raceRunners: [for (var i = 1; i <= 4; i++) _runner(i)],
+      scheduler: _NoopScheduler(),
+    );
+    await pumpList(tester, controller);
+
+    expect(find.textContaining('may also have finished after the last time'),
+        findsOneWidget);
   });
 }

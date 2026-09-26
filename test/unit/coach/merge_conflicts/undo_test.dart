@@ -262,12 +262,32 @@ void main() {
       expect(_times(c, 0), ['0:10.00', '0:15.00', '0:20.00']);
     });
 
-    test('makes no guess with more than one time to sort out', () {
+    test('with two extra times, removes one at a time', () {
+      // Two double taps: 15.00/15.30 and 20.00/20.20.
       final c = _controller(
-        [_chunk(0, [10], ConflictType.missingTime, offBy: 2, end: 14)],
+        [
+          TimingChunk(
+            id: 0,
+            timingData: [
+              for (final t in [
+                '0:10.00', '0:15.00', '0:15.30', '0:20.00', '0:20.20'
+              ])
+                TimingDatum(time: t),
+            ],
+            conflictRecord: TimingDatum(
+              time: _t(25),
+              conflict: Conflict(type: ConflictType.extraTime, offBy: 2),
+            ),
+          ),
+        ],
         _runners(3),
       );
-      expect(c.suggestionFor(0), isNull);
+
+      c.bestGuess(0);
+      expect(_times(c, 0), ['0:10.00', '0:15.00', '0:15.30', '0:20.00']);
+      c.bestGuess(0);
+      expect(_times(c, 0), ['0:10.00', '0:15.00', '0:20.00']);
+      expect(c.suggestionFor(0), isNull, reason: 'nothing left to remove');
     });
   });
 

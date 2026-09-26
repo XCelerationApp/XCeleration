@@ -99,14 +99,15 @@ abstract final class ConflictTips {
   ];
 
   static const bibLastResort = 'Still not sure? Pick the most likely runner. '
-      'You can change any result later with Edit on the Results tab.';
+      'It is easiest to get right now, while people remember; if something '
+      'turns up later, you can still fix it with Edit on the Results tab.';
 
   static const missingTime = [
-    'The missed runner is often in the biggest gap between times (the gap '
-        'is under each time). Timers often miss one of two runners finishing '
-        'together.',
-    'Ask the runners in this stretch who finished close together, and how '
-        'the finish went. A parent\'s video helps too.',
+    'A missed runner could be anywhere in this stretch. The gap under each '
+        'time helps you and the runners picture the finish: who came in '
+        'together, and who came in alone.',
+    'Ask the runners in this stretch how the finish went, and who finished '
+        'right around them. A parent\'s video helps too.',
     'If someone has a backup watch or video, type the time from it.',
   ];
 
@@ -117,9 +118,11 @@ abstract final class ConflictTips {
   ];
 
   static const timeLastResort = 'Nobody remembers? Tap Best Guess. For a '
-      'missing time it puts the time halfway across the biggest gap; for an '
-      'extra one it removes the time closest to the one before. Everyone '
-      'keeps the right place, and times are off by a second or two at most. '
-      'Check it, then Resolve. You can change any result later with Edit on '
+      'missing time it puts the time halfway across the biggest gap: not '
+      'because the runner was most likely there, but because a guess there '
+      'changes the results the least. For an extra time it removes the time '
+      'closest to the one before. Everyone keeps the right place, and a time '
+      'is off by no more than the gaps around it. Check it, then Resolve. It is '
+      'easiest to get right now; you can still fix it later with Edit on '
       'the Results tab.';
 }

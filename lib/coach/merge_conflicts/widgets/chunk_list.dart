@@ -10,6 +10,7 @@ import 'resolve_conflict_button.dart';
 import 'undo_button.dart';
 import '../utils/timing_suggestions.dart';
 import '../../bib_conflict_resolution/utils/ordinal.dart';
+import '../../../core/utils/time_formatter.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 
 class ChunkList extends StatelessWidget {
@@ -103,7 +104,7 @@ class _ChunkItemState extends State<ChunkItem> {
     return null;
   }
 
-  /// Where the app thinks the problem is, in a coach's words.
+  /// What the app can say about where the problem is, in a coach's words.
   String? _suggestionText(TimingSpot? spot) {
     if (spot == null || widget.chunk.isResolvedLocally) return null;
     final records = widget.chunk.records;
@@ -117,15 +118,21 @@ class _ChunkItemState extends State<ChunkItem> {
           : 'No time stands out: the closest two are $gap apart. Ask the '
               'runners around this stretch.';
     }
+    // A missed runner could be anywhere in the batch, so this says only
+    // where Best Guess would put them, and why there.
     final place = spot.row < records.length ? records[spot.row].place : null;
     final where = place != null
         ? 'just before ${ordinal(place)} place'
         : 'after the last time';
-    return spot.clear
-        ? 'Biggest gap: $gap, $where. A missed runner is often there, '
-            'especially two finishing together.'
-        : 'No gap stands out (the biggest is $gap, $where). Ask the runners '
-            'in this stretch.';
+    final several = records.where((r) => r.isUnfilled).length > 1;
+    // The last batch has no time the missed runner must come before: they
+    // may have finished after every time the Timer has.
+    final openEnded = !TimeFormatter.isDuration(widget.chunk.endTime);
+    return 'Nobody remembers? Best Guess puts ${several ? 'one' : 'it'} in '
+        'the biggest gap ($gap, $where), where a guess changes the results '
+        'the least.'
+        '${openEnded ? ' The runner may also have finished after the last '
+            'time; Best Guess can\'t guess a time there.' : ''}';
   }
 
   @override

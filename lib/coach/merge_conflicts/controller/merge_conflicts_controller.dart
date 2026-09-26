@@ -394,10 +394,12 @@ class MergeConflictsController with ChangeNotifier {
     notifyListeners();
   }
 
-  /// The row the app thinks the problem is at in the batch with [chunkId]:
-  /// for a missing time, the biggest gap between times; for an extra one,
-  /// the second of the two closest. Only while one time is still to sort
-  /// out: with several, the gaps say less, and the coach decides.
+  /// Where Best Guess would act in the batch with [chunkId]: for a missing
+  /// time, the biggest gap between times (not where the runner most likely
+  /// is, which could be anywhere, but where a guess changes the results the
+  /// least); for an extra one, the second of the two closest, as a stray tap
+  /// usually lands right after a real one. With several to sort out, one at
+  /// a time: each guess changes the gaps for the next.
   TimingSpot? suggestionFor(int chunkId) {
     final uiChunk = _getUIChunk(chunkId);
     if (uiChunk == null) return null;
@@ -405,11 +407,10 @@ class MergeConflictsController with ChangeNotifier {
     final start = previousEndTimeFor(chunkId);
     switch (uiChunk.conflict.type) {
       case ConflictType.missingTime:
-        final open = uiChunk.records.where((r) => r.isUnfilled).length;
-        if (open != 1 || uiChunk.conflict.offBy != 1) return null;
+        if (!uiChunk.records.any((r) => r.isUnfilled)) return null;
         return likelyMissingSpot(times, start: start, end: uiChunk.endTime);
       case ConflictType.extraTime:
-        if (uiChunk.conflict.offBy != 1) return null;
+        if (uiChunk.conflict.offBy < 1) return null;
         return likelyExtraTime(times, start: start);
       case ConflictType.confirmRunner:
         return null;
@@ -424,11 +425,12 @@ class MergeConflictsController with ChangeNotifier {
         start: previousEndTimeFor(chunkId));
   }
 
-  /// Applies [suggestionFor]: for a missing time, moves the empty slot into
+  /// Applies [suggestionFor]: for a missing time, moves an empty slot into
   /// the biggest gap and fills in the time halfway across it; for an extra
-  /// time, removes the second of the two closest. The coach still checks it
-  /// and presses Resolve; Undo takes it back. For when nobody remembers:
-  /// places stay right and times are off by at most half the gap.
+  /// time, removes the second of the two closest. One at a time when there
+  /// are several. The coach still checks it and presses Resolve; Undo takes
+  /// it back. For when nobody remembers: places stay right and times are off
+  /// by at most half the gap.
   void bestGuess(int chunkId) {
     final uiChunk = _getUIChunk(chunkId);
     final spot = suggestionFor(chunkId);
