@@ -447,7 +447,10 @@ class BibNumberController extends BibNumberDataController {
     );
   }
 
-  /// Deletes the current race
+  /// Deletes the current race, then opens the one the phone would open on
+  /// starting: another race still on it, or the practice race, made again if
+  /// none is left. It used to leave no race open, with only Get Race from
+  /// Coach on the screen.
   Future<void> deleteCurrentRace() async {
     if (currentRace == null) return;
 
@@ -460,7 +463,10 @@ class BibNumberController extends BibNumberDataController {
     }
     setCurrentRace(null);
     clearBibRecords();
+    // Loading, not "No race yet", while the next race opens.
+    _loadingRace = true;
     notifyListeners();
+    await _loadLastRace();
   }
 
   void showShareBibNumbersSheet(BuildContext context, String encodedData) {

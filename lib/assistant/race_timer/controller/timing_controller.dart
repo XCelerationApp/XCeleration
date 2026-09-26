@@ -666,12 +666,13 @@ class TimingController extends TimingData {
       // Reset race state
       raceStopped = false;
 
-      // Clear the current race
+      // Clear the current race, then open the next: another race on this
+      // phone, or the practice race, made again if none is left. Loading,
+      // not "No race yet", shows meanwhile.
       currentRace = null;
-
-      _loadLastRace();
-
+      _loadingRace = true;
       notifyListeners();
+      await _loadLastRace();
       return null;
     } catch (e) {
       Logger.e('Error deleting race: $e');

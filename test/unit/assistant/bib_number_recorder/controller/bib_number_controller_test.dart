@@ -266,6 +266,32 @@ void main() {
         controller.dispose();
       });
 
+      // It used to leave no race open, with only Get Race from Coach on the
+      // screen. Now it opens the race the phone would open on starting.
+      test('then opens another race still on the phone', () async {
+        final practice = RaceRecord(
+          raceId: -1,
+          date: DateTime(2026, 9, 1),
+          name: 'Demo Race',
+          type: DeviceName.bibRecorder.toString(),
+        );
+        final controller = buildController();
+        await Future<void>.delayed(Duration.zero);
+        controller.setCurrentRace(testRace);
+        when(mockStorage.getRaces(any))
+            .thenAnswer((_) async => Success([practice]));
+
+        await controller.deleteCurrentRace();
+
+        verify(mockDemoRaceGenerator
+                .ensureDemoRaceExists(DeviceName.bibRecorder.toString()))
+            .called(greaterThan(1));
+        expect(controller.currentRace?.name, 'Demo Race');
+        expect(controller.loadingRace, isFalse);
+
+        controller.dispose();
+      });
+
       test('does nothing when no race is loaded', () async {
         final controller = buildController();
 
