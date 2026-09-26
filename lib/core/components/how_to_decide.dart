@@ -106,14 +106,20 @@ abstract final class ConflictTips {
       'It is easiest to get right now, while people remember; if something '
       'turns up later, you can still fix it with Edit on the Results tab.';
 
-  static const missingTime = [
-    'A missed runner could be anywhere in this stretch. The gap under each '
-        'time helps you and the runners picture the finish: who came in '
-        'together, and who came in alone.',
-    'Ask the runners in this stretch how the finish went, and who finished '
-        'right around them. A parent\'s video helps too.',
-    'If someone has a backup watch or video, type the time from it.',
-  ];
+  /// For a missing time, with the places the batch covers, e.g. "14th to
+  /// 20th".
+  static List<String> missingTime(String places) => [
+        'Ask the runners from $places who finished right in front of them. '
+            '"Was anyone right in front of you, within a second or so?" is '
+            'easy to answer. If a runner remembers someone right in front of '
+            'them but the times show a big gap there, you\'ve found where the '
+            'times don\'t match the finish.',
+        'Don\'t go by the gaps alone. A missed runner could be anywhere in '
+            'these places, not only in a big gap or a close pair.',
+        'A parent\'s finish-line video, a backup watch, or someone else\'s '
+            'times for these places settles it, and gives you the time to '
+            'type in.',
+      ];
 
   /// For an extra time, with the places the batch covers, e.g. "14th to
   /// 20th".
@@ -130,11 +136,11 @@ abstract final class ConflictTips {
   static const extraLastResort = 'Nobody can tell? Remove the second of the '
       'two closest times, the most common stray tap. Everyone keeps the right '
       'place; if it was the wrong one, only the runners between it and the '
-      'real stray tap get a neighbour\'s time. It is easiest to get right '
+      'real stray tap get a neighbour\'s time. It\'s easiest to get right '
       'now, but you can still fix it later with Edit on the Results tab.';
 
   static const missingLastResort = 'Nobody remembers? Put the missing time '
       'where it seems most likely, and type a time between the runners either '
-      'side. Everyone keeps the right place. It is easiest to get right now, '
+      'side. Everyone keeps the right place. It\'s easiest to get right now, '
       'but you can still fix it later with Edit on the Results tab.';
 }

@@ -82,6 +82,14 @@ void main() {
     expect(find.byIcon(Icons.add_circle), findsNothing);
     expect(find.textContaining('biggest gap'), findsNothing);
     expect(find.text('Best Guess'), findsNothing);
+
+    await tester.tap(find.text('How to decide'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Ask the runners from 1st to 4th who finished '
+        'right in front of them'), findsOneWidget);
+    expect(find.textContaining("Don't go by the gaps alone"), findsOneWidget);
+    expect(find.textContaining('Put the missing time where it seems most '
+        'likely'), findsOneWidget);
   });
 
   testWidgets('in the last batch, says the runner may have come after the '

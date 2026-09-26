@@ -58,6 +58,9 @@ class ConflictHeader extends StatelessWidget {
             'missing; the times below move down a place, and you type the '
             'missing time into the box.';
 
+    final places = firstPlace != null && lastPlace != null
+        ? '${ordinal(firstPlace!)} to ${ordinal(lastPlace!)}'
+        : 'these places';
     final accent = ColorUtils.withOpacity(AppColors.primaryColor, 0.8);
     return Container(
       padding: const EdgeInsets.all(16),
@@ -109,10 +112,8 @@ class ConflictHeader extends StatelessWidget {
           const SizedBox(height: 4),
           HowToDecide(
             tips: type == ConflictType.extraTime
-                ? ConflictTips.extraTime(firstPlace != null && lastPlace != null
-                    ? '${ordinal(firstPlace!)} to ${ordinal(lastPlace!)}'
-                    : 'these places')
-                : ConflictTips.missingTime,
+                ? ConflictTips.extraTime(places)
+                : ConflictTips.missingTime(places),
             lastResort: type == ConflictType.extraTime
                 ? ConflictTips.extraLastResort
                 : ConflictTips.missingLastResort,
