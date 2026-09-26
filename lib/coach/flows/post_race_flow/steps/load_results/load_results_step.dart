@@ -21,21 +21,6 @@ class LoadResultsStep extends FlowStep {
           nextLabel: 'Next',
           // Initialize with a placeholder
           content: SizedBox.shrink(),
-          // Next walks the coach through any conflicts, bibs then times, and
-          // stays here if some are left. Saving happens on the next page,
-          // once the coach has seen the results.
-          beforeNext: (context) async {
-            if (controller.hasBibConflicts) {
-              // Moves on to the timing conflicts itself once bibs are done.
-              await controller.showBibConflictsSheet(context);
-            } else if (controller.hasTimingConflicts) {
-              await controller.showTimingConflictsSheet(context);
-            }
-            if (controller.hasBibConflicts || controller.hasTimingConflicts) {
-              throw const FlowStepBlocked(
-                  'Some conflicts still need sorting out. Tap Next to carry on.');
-            }
-          },
         ) {
     // Listen to controller changes and notify the flow system
     controller.addListener(_onControllerUpdate);
@@ -55,11 +40,20 @@ class LoadResultsStep extends FlowStep {
   @override
   Widget get content => _content;
 
-  @override
-  bool Function()? get canProceed => () => controller.resultsLoaded;
+  /// Next stays greyed out until every conflict is resolved: the conflicts
+  /// are opened from the card's Start button, not by Next. Saving happens on
+  /// the next page, once the coach has seen the results.
+  bool get _hasConflicts =>
+      controller.hasBibConflicts || controller.hasTimingConflicts;
 
   @override
-  String? Function()? get blockedReason => () => controller.resultsLoaded
-      ? null
-      : 'Waiting for the times and bibs from your volunteers.';
+  bool Function()? get canProceed =>
+      () => controller.resultsLoaded && !_hasConflicts;
+
+  @override
+  String? Function()? get blockedReason => () => !controller.resultsLoaded
+      ? 'Waiting for the times and bibs from your volunteers.'
+      : _hasConflicts
+          ? 'Resolve the conflicts first: tap Start above.'
+          : null;
 }
