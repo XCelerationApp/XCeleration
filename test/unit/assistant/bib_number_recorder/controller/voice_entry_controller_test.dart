@@ -93,8 +93,19 @@ void main() {
     fetched = 0;
   });
 
-  test('is off until turned on, but fetches the model ahead of the race',
+  test('is on the first time the Bib Recorder opens', () async {
+    final c = build();
+    await c.restore();
+
+    expect(c.state, VoiceEntryState.ready);
+    c.dispose();
+  });
+
+  test('once turned off, stays off but fetches the model ahead of the race',
       () async {
+    SharedPreferences.setMockInitialValues({
+      VoiceEntryController.prefKey: false,
+    });
     final c = build();
     await c.restore();
 

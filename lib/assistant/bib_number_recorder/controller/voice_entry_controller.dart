@@ -59,7 +59,8 @@ class VoiceEntryController extends ChangeNotifier {
   /// thumb went down, before the mic was live, used to be lost.
   final Duration liveTapDelay;
 
-  /// The preference that remembers voice entry is on.
+  /// The preference that remembers whether voice entry is on. Unset means
+  /// on.
   static const prefKey = 'bib_recorder_voice_entry';
 
   /// Set while the speech model loads. Still set when the Bib Recorder next
@@ -111,8 +112,10 @@ class VoiceEntryController extends ChangeNotifier {
   final Stopwatch _held = Stopwatch();
   static const _slip = Duration(milliseconds: 400);
 
-  /// Turns voice on if the volunteer chose it last time, and otherwise
-  /// fetches the speech model in the background so it is ready if they do.
+  /// Turns voice on, unless the volunteer turned it off last time: voice is
+  /// the default, as saying a bib is quicker than typing it at a busy
+  /// finish. Otherwise fetches the speech model in the background so it is
+  /// ready if they turn it back on.
   Future<void> restore() async {
     try {
       final prefs = await _prefs();
@@ -127,7 +130,7 @@ class VoiceEntryController extends ChangeNotifier {
         _set(VoiceEntryState.failed);
         return;
       }
-      if (prefs.getBool(prefKey) ?? false) {
+      if (prefs.getBool(prefKey) ?? true) {
         await _prepare();
       } else {
         unawaited(_fetchModel().catchError((Object e) {
