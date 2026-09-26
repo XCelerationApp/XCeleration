@@ -30,6 +30,36 @@ class _ExistingTeamsBrowserSheetState
   late final List<Team> _teams;
   late final Map<int, List<Runner>> _teamRunners;
 
+  /// Teams opened to show their runners. All start closed: every team the
+  /// coach ever had used to be listed open, so reaching the next team meant
+  /// scrolling past the whole of the last one.
+  final Set<int> _expanded = {};
+  final _search = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  bool _runnerMatches(Runner r) =>
+      (r.name ?? '').toLowerCase().contains(_query) ||
+      (r.bibNumber ?? '').contains(_query);
+
+  /// The teams to list, and for each the runners to show: every team and
+  /// runner without a search; with one, teams whose name matches (with all
+  /// their runners) or that have a matching runner (with just those).
+  List<(Team, List<Runner>)> get _visible => [
+        for (final team in _teams)
+          if (_query.isEmpty ||
+              (team.name ?? '').toLowerCase().contains(_query))
+            (team, _teamRunners[team.teamId!] ?? const [])
+          else if ((_teamRunners[team.teamId!] ?? const [])
+              .any(_runnerMatches))
+            (team, _teamRunners[team.teamId!]!.where(_runnerMatches).toList()),
+      ];
+
   @override
   void initState() {
     super.initState();
@@ -113,18 +143,46 @@ class _ExistingTeamsBrowserSheetState
       );
     }
 
+    final visible = _visible;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
+        TextField(
+          key: const ValueKey('import_team_search'),
+          controller: _search,
+          autocorrect: false,
+          onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+          decoration: InputDecoration(
+            hintText: 'Search teams, runners or bibs',
+            prefixIcon: const Icon(Icons.search, color: AppColors.mediumColor),
+            filled: true,
+            fillColor: AppColors.surfaceColor,
+            isDense: true,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppBorderRadius.md),
+              borderSide: BorderSide.none,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        if (visible.isEmpty)
+          Padding(
+            padding: const EdgeInsets.all(AppSpacing.lg),
+            child: Text(
+              'No team or runner matches "${_search.text.trim()}".',
+              style: AppTypography.bodyRegular
+                  .copyWith(color: AppColors.mediumColor),
+              textAlign: TextAlign.center,
+            ),
+          ),
         Flexible(
           child: ListView.builder(
             shrinkWrap: true,
             physics: const BouncingScrollPhysics(),
-            itemCount: _teams.length,
+            itemCount: visible.length,
             itemBuilder: (context, index) {
-              final team = _teams[index];
+              final (team, runners) = visible[index];
               final teamId = team.teamId!;
-              final runners = _teamRunners[teamId] ?? [];
               final selState = _teamSelectionState(teamId);
 
               return Padding(
@@ -132,6 +190,14 @@ class _ExistingTeamsBrowserSheetState
                 child: _TeamCard(
                   team: team,
                   runners: runners,
+                  runnerCount: _teamRunners[teamId]?.length ?? 0,
+                  // A search for a runner opens their team to show them.
+                  expanded: _expanded.contains(teamId) ||
+                      (_query.isNotEmpty &&
+                          !(team.name ?? '').toLowerCase().contains(_query)),
+                  onToggleExpanded: () => setState(() {
+                    if (!_expanded.remove(teamId)) _expanded.add(teamId);
+                  }),
                   selectionState: selState,
                   selectedRunnerIds: _selectedRunners[teamId] ?? {},
                   onToggleTeam: () => _toggleTeam(teamId),
@@ -167,6 +233,9 @@ class _TeamCard extends StatelessWidget {
   const _TeamCard({
     required this.team,
     required this.runners,
+    required this.runnerCount,
+    required this.expanded,
+    required this.onToggleExpanded,
     required this.selectionState,
     required this.selectedRunnerIds,
     required this.onToggleTeam,
@@ -174,7 +243,14 @@ class _TeamCard extends StatelessWidget {
   });
 
   final Team team;
+
+  /// The runners shown, which a search can narrow.
   final List<Runner> runners;
+
+  /// How many runners the whole team has.
+  final int runnerCount;
+  final bool expanded;
+  final VoidCallback onToggleExpanded;
   final _SelectionState selectionState;
   final Set<int> selectedRunnerIds;
   final VoidCallback onToggleTeam;
@@ -205,12 +281,14 @@ class _TeamCard extends StatelessWidget {
           // Team header row
           _TeamHeader(
             team: team,
-            runners: runners,
+            runnerCount: runnerCount,
+            expanded: expanded,
             selectionState: selectionState,
             onToggle: onToggleTeam,
+            onToggleExpanded: onToggleExpanded,
           ),
           // Runner rows
-          if (runners.isNotEmpty) ...[
+          if (expanded && runners.isNotEmpty) ...[
             Divider(height: 1, thickness: 1, color: AppColors.lightColor),
             ...runners.map((runner) {
               final rid = runner.runnerId!;
@@ -232,35 +310,47 @@ class _TeamCard extends StatelessWidget {
 class _TeamHeader extends StatelessWidget {
   const _TeamHeader({
     required this.team,
-    required this.runners,
+    required this.runnerCount,
+    required this.expanded,
     required this.selectionState,
     required this.onToggle,
+    required this.onToggleExpanded,
   });
 
   final Team team;
-  final List<Runner> runners;
+  final int runnerCount;
+  final bool expanded;
   final _SelectionState selectionState;
+
+  /// Picks or clears the whole team, from its checkbox.
   final VoidCallback onToggle;
+
+  /// Opens or closes the team's runners, from the rest of the row.
+  final VoidCallback onToggleExpanded;
 
   @override
   Widget build(BuildContext context) {
     final teamColor = team.color ?? AppColors.primaryColor;
-    final runnerCount = runners.length;
 
     return InkWell(
-      onTap: onToggle,
+      onTap: onToggleExpanded,
       borderRadius: const BorderRadius.vertical(
         top: Radius.circular(AppBorderRadius.lg),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
-        ),
+        padding: const EdgeInsets.only(right: AppSpacing.md),
         child: Row(
           children: [
-            _TeamCheckbox(state: selectionState, color: teamColor),
-            const SizedBox(width: AppSpacing.sm),
+            // Its own, larger tap target, so picking the whole team doesn't
+            // open it and opening it doesn't pick it.
+            InkWell(
+              key: ValueKey('import_team_${team.teamId}'),
+              onTap: onToggle,
+              child: Padding(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                child: _TeamCheckbox(state: selectionState, color: teamColor),
+              ),
+            ),
             Container(
               width: 10,
               height: 10,
@@ -285,6 +375,12 @@ class _TeamHeader extends StatelessWidget {
               style: AppTypography.smallCaption.copyWith(
                 color: AppColors.mediumColor,
               ),
+            ),
+            const SizedBox(width: AppSpacing.xs),
+            Icon(
+              expanded ? Icons.expand_less : Icons.expand_more,
+              color: AppColors.mediumColor,
+              size: 20,
             ),
           ],
         ),
