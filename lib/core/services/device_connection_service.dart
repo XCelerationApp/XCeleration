@@ -535,9 +535,8 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
       // Cancel any existing subscription
       await deviceMonitorSubscription?.cancel();
 
-      final otherDeviceNames = _devicesManager.otherDevices
-          .map((device) => getDeviceNameString(device.name))
-          .toList();
+      final otherDeviceNames =
+          _devicesManager.otherDevices.map((device) => device.name).toSet();
 
       // Start rescan timer, will be cancelled if we get a device connection
       _delayedRescan(token);
@@ -564,9 +563,11 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
         for (var device in devicesList) {
           if (_shouldCancel(token)) return;
 
-          // Skip if device not in target list
-          if (!otherDeviceNames.contains(device.deviceName)) {
-            continue; // Skip devices not in our target list
+          // Skip devices not in our target list. The name is read the same
+          // way it is below, so a phone that passes here is always matched.
+          final deviceName = tryDeviceNameFromString(device.deviceName);
+          if (deviceName == null || !otherDeviceNames.contains(deviceName)) {
+            continue;
           }
 
           currentDevices[device.deviceId] = device;
@@ -580,7 +581,6 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
           // Update our tracking map
           _deviceStateMap[device.deviceId] = device;
 
-          final deviceName = getDeviceNameFromString(device.deviceName);
           final connectedDevice = _devicesManager.getDevice(deviceName);
 
           if (connectedDevice == null ||

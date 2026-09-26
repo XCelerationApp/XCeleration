@@ -156,6 +156,47 @@ void main() {
     });
   });
 
+  // A coach imports boys and girls together but races only the girls. The
+  // boys' team is saved for another race, not added to this one.
+  group('a team left out of this race', () {
+    test('is saved with its runners, but neither joins the race', () async {
+      final result = await importer.importRows([
+        _row('Ann Lee', 10, '101', team: 'Eagles - Girls'),
+        {..._row('Bo Park', 11, '102', team: 'Eagles - Boys'), 'inRace': false},
+        {..._row('Cy Diaz', 12, '103', team: 'Eagles - Boys'), 'inRace': false},
+      ]);
+
+      expect(await inRace(), ['101 Ann Lee Eagles - Girls']);
+      expect(await raceTeams(), ['Eagles - Girls']);
+      final boys = await teams.getTeamByName('Eagles - Boys');
+      expect(
+          (await runners.getTeamRunners(boys!.teamId!)).map((r) => r.name),
+          unorderedEquals(['Bo Park', 'Cy Diaz']));
+      expect(result.added, 1);
+      expect(result.savedOnly, 2);
+      expect(result.teamsSavedOnly, ['Eagles - Boys']);
+      expect(result.teamsAdded, ['Eagles - Girls']);
+    });
+
+    test('a runner the app already has goes on the team, not in the race',
+        () async {
+      await runners.createRunner(
+          const Runner(name: 'Bo Park', bibNumber: '102', grade: 11));
+
+      final result = await importer.importRows([
+        {..._row('Bo Park', 11, '102', team: 'Eagles - Boys'), 'inRace': false},
+      ]);
+
+      expect(await inRace(), isEmpty);
+      final boys = await teams.getTeamByName('Eagles - Boys');
+      expect(
+          (await runners.getTeamRunners(boys!.teamId!)).map((r) => r.name),
+          ['Bo Park']);
+      expect(result.alreadyKnown, 0);
+      expect(result.savedOnly, 1);
+    });
+  });
+
   group('rows without a team', () {
     test('go on the team the import was started from', () async {
       final id = await makeTeam('Owls', 'OWL');

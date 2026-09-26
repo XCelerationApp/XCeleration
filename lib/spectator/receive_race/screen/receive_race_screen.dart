@@ -128,7 +128,7 @@ class _ReceiveRaceScreenState extends State<ReceiveRaceScreen> {
                 final svc = DeviceConnectionService(
                   devices,
                   'wirelessconn',
-                  getDeviceNameString(devices.currentDeviceName),
+                  getDeviceWireName(devices.currentDeviceName),
                   devices.currentDeviceType,
                   NearbyConnections(),
                 );
@@ -177,7 +177,7 @@ class ReceiveRacePreviewSheet extends StatelessWidget {
             final svc = DeviceConnectionService(
               devices,
               'wirelessconn',
-              getDeviceNameString(devices.currentDeviceName),
+              getDeviceWireName(devices.currentDeviceName),
               devices.currentDeviceType,
               NearbyConnections(),
             );
