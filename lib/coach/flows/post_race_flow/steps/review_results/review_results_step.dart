@@ -16,9 +16,11 @@ class ReviewResultsStep extends FlowStep {
   ReviewResultsStep({required this.controller})
       : super(
           title: 'Check the Results',
+          // Loading again throws away every correction made so far, so the
+          // way to fix one result is Edit, once saved.
           description: 'This is the finish order and times that will be '
-              'saved. If something looks wrong, go back and load the '
-              'results again.',
+              'saved. If one result is wrong, save anyway and tap Edit on '
+              'the Results tab to fix it.',
           content: const SizedBox.shrink(),
           canScroll: false,
           nextLabel: 'Save Results',
