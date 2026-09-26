@@ -18,11 +18,16 @@ class WirelessConnectionWidget extends StatefulWidget {
 }
 
 class _WirelessConnectionState extends State<WirelessConnectionWidget> {
+  /// The controller this list started with. A new one handed in on a redraw
+  /// is not used: the list would show it, never started, while the first
+  /// went on unseen.
+  late final WirelessConnectionController _controller = widget.controller;
+
   @override
   void initState() {
     super.initState();
-    widget.controller.addListener(_rebuild);
-    widget.controller.initialize();
+    _controller.addListener(_rebuild);
+    _controller.initialize();
   }
 
   void _rebuild() {
@@ -31,14 +36,14 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
 
   @override
   void dispose() {
-    widget.controller.removeListener(_rebuild);
-    widget.controller.dispose();
+    _controller.removeListener(_rebuild);
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final controller = widget.controller;
+    final controller = _controller;
 
     if (controller.wirelessConnectionError != null) {
       return Column(
@@ -65,7 +70,13 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
             padding: const EdgeInsets.only(bottom: AppSpacing.lg),
             child: controller.isLoading
                 ? WirelessConnectionButton(device: device).skeleton
-                : WirelessConnectionButton(device: device),
+                : WirelessConnectionButton(
+                    device: device,
+                    // Shown only if transfers with this phone kept failing.
+                    errorMessage: 'The transfer did not finish. Tap Retry '
+                        'to look for the phone again.',
+                    onRetry: controller.retry,
+                  ),
           ),
       ],
     );

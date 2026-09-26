@@ -172,6 +172,12 @@ class MockDeviceConnectionService extends _i1.Mock
           as _i4.Future<void>);
 
   @override
+  void stop() => super.noSuchMethod(
+    Invocation.method(#stop, []),
+    returnValueForMissingStub: null,
+  );
+
+  @override
   _i4.Future<bool> inviteDevice(_i7.Device? device) =>
       (super.noSuchMethod(
             Invocation.method(#inviteDevice, [device]),
@@ -373,6 +379,12 @@ class MockProtocol extends _i1.Mock implements _i9.Protocol {
   @override
   void resetDeviceState(String? deviceId) => super.noSuchMethod(
     Invocation.method(#resetDeviceState, [deviceId]),
+    returnValueForMissingStub: null,
+  );
+
+  @override
+  void restart() => super.noSuchMethod(
+    Invocation.method(#restart, []),
     returnValueForMissingStub: null,
   );
 

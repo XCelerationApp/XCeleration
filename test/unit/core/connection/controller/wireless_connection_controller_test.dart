@@ -316,7 +316,10 @@ void main() {
         expect(callbackFired, isTrue);
       });
 
-      test('sets device status to error on transfer failure', () async {
+      // A failed transfer used to leave the phone on an error with no way to
+      // retry but closing the screen. Now it drops the connection and looks
+      // again, and shows the error only after several failures in a row.
+      test('a failed transfer drops the connection and looks again', () async {
         when(mockProtocol.handleDataTransfer(
           deviceId: anyNamed('deviceId'),
           isReceiving: anyNamed('isReceiving'),
@@ -326,12 +329,32 @@ void main() {
               userMessage: 'Transfer failed',
               originalException: null,
             )));
+        when(mockService.disconnectDevice(any)).thenAnswer((_) async => true);
 
         final controller = buildController();
         await controller.initialize();
-        await capturedConnectedCallback(Device('coach-id', 'Coach', 2));
+        final coach = Device('coach-id', 'Coach', 2);
+        await capturedConnectedCallback(coach);
 
+        expect(connectedDevice.status, ConnectionStatus.searching);
+        verify(mockService.disconnectDevice(coach)).called(1);
+
+        for (var i = 1; i < WirelessConnectionController.maxFailedTransfers;
+            i++) {
+          await capturedConnectedCallback(coach);
+        }
         expect(connectedDevice.status, ConnectionStatus.error);
+      });
+
+      test('Try again starts the service and protocol again', () async {
+        final controller = buildController();
+        await controller.initialize();
+
+        await controller.retry();
+
+        verify(mockService.stop()).called(1);
+        verify(mockProtocol.restart()).called(1);
+        verify(mockService.checkIfNearbyConnectionsWorks()).called(2);
       });
     });
   });
