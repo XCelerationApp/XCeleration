@@ -85,9 +85,6 @@ class _EditResultsBody extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
         appBar: AppBar(
-          backgroundColor: AppColors.backgroundColor,
-          // The app's AppBar theme is white-on-orange; this one is light.
-          foregroundColor: AppColors.darkColor,
           title: Text('Edit Results',
               style: AppTypography.titleSemibold
                   .copyWith(color: AppColors.darkColor)),

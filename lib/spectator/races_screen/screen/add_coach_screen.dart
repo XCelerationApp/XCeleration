@@ -52,8 +52,6 @@ class _AddCoachScreenState extends State<AddCoachScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primaryColor,
-        foregroundColor: Colors.white,
         leading: const BackButton(),
         title: const Text('Add Coach'),
       ),

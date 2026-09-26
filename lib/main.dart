@@ -148,11 +148,16 @@ class MyApp extends StatelessWidget {
         selectionColor: Colors.grey[300],
         selectionHandleColor: AppColors.mediumColor,
       ),
+      // Light, like the rest of the app: the few screens with a top bar
+      // (Settings, Spectator's coaches) were the only orange ones.
       appBarTheme: AppBarTheme(
-        backgroundColor: AppColors.navBarColor,
-        foregroundColor: AppColors.navBarTextColor,
+        backgroundColor: AppColors.backgroundColor,
+        foregroundColor: AppColors.darkColor,
+        surfaceTintColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
         titleTextStyle:
-            const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
       ),
       tabBarTheme: TabBarThemeData(
         labelColor: AppColors.navBarTextColor,
