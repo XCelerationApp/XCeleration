@@ -146,7 +146,7 @@ void main() {
     expect(find.text('Start Resolving'), findsOneWidget);
   });
 
-  testWidgets('back from the summary leaves without submitting',
+  testWidgets('back from the summary with nothing done hands back nothing',
       (tester) async {
     await open(tester);
 
@@ -155,6 +155,40 @@ void main() {
 
     expect(didPop, isTrue);
     expect(popped, isNull);
+  });
+
+  testWidgets('leaving part way keeps the conflicts already resolved',
+      (tester) async {
+    await open(tester);
+    // The unknown bib done; the repeated bib only half done.
+    controller.openConflict(1);
+    controller.prepareAssign(_nico, '17th');
+    await controller.commitPending();
+    controller.openConflict(0);
+    controller.chooseDuplicateOccurrence(21);
+    controller.goBack();
+    controller.goBack();
+    await tester.pumpAndSettle();
+    expect(controller.isOnSummary, isTrue);
+
+    await tester.tap(find.text('Back'));
+    await tester.pumpAndSettle();
+
+    expect(didPop, isTrue);
+    // Not 21: Quinn's finish is kept only once someone has the other one.
+    expect(popped, {17: _nico});
+  });
+
+  testWidgets('the phone\'s back button steps back a card, not out',
+      (tester) async {
+    await open(tester);
+    await start(tester);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(didPop, isFalse);
+    expect(find.text('Start Resolving'), findsOneWidget);
   });
 
   testWidgets('a repeated bib asks which finish, then who the other was',

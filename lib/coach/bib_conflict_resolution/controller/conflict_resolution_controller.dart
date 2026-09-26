@@ -265,6 +265,17 @@ class ConflictResolutionController extends ChangeNotifier {
         for (final entry in _settled.entries) entry.key: entry.value.raceRunner,
       };
 
+  /// Who finished at each place of the conflicts fully resolved, kept when
+  /// the coach leaves part way: leaving used to throw every answer away. A
+  /// repeated bib half done is left out, as its runner would otherwise be
+  /// in the results twice.
+  Map<int, RaceRunner> get finishedByPlace => {
+        for (var i = 0; i < _conflicts.length; i++)
+          if (isResolved(i))
+            for (final place in placesOf(_conflicts[i]))
+              place: _settled[place]!.raceRunner,
+      };
+
   // --- Navigation ---------------------------------------------------------
 
   /// Opens the first conflict still open, or the review if there is none.

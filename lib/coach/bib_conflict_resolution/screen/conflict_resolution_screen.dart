@@ -10,8 +10,8 @@ import '../../../core/theme/app_animations.dart';
 
 /// Resolving the bib conflicts in a race's finish order.
 ///
-/// Pops with who finished at each place the coach settled, or null if they
-/// left without submitting.
+/// Pops with who finished at each place the coach settled, including when
+/// they leave part way, or null if they settled nothing.
 class ConflictResolutionScreen extends StatelessWidget {
   const ConflictResolutionScreen({super.key, required this.create});
 
@@ -46,6 +46,25 @@ class _ScreenContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final controller = context.watch<ConflictResolutionController>();
 
+    // Back, the Android back button and the summary's way out all come here.
+    // From a conflict it steps back a card; from the summary it leaves with
+    // the conflicts already resolved, so none of that work is lost.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (controller.isOnConflict) {
+          controller.goBack();
+          return;
+        }
+        final finished = controller.finishedByPlace;
+        Navigator.of(context).pop(finished.isEmpty ? null : finished);
+      },
+      child: _scaffold(controller),
+    );
+  }
+
+  Widget _scaffold(ConflictResolutionController controller) {
     return Scaffold(
       backgroundColor: AppColors.backgroundColor,
       body: SafeArea(
