@@ -237,8 +237,11 @@ class RunnersManagementController with ChangeNotifier {
     if (context.mounted) Navigator.of(context).pop();
   }
 
+  /// Saves [raceRunner], then closes their sheet unless [close] is false (the
+  /// Add Runner sheet closes itself, or stays open for Add & Next).
   Future<void> handleRunnerSubmission(
-      BuildContext context, RaceRunner raceRunner) async {
+      BuildContext context, RaceRunner raceRunner,
+      {bool close = true}) async {
     try {
       final int targetTeamId = raceRunner.team.teamId!;
       final existingRunner =
@@ -251,7 +254,8 @@ class RunnersManagementController with ChangeNotifier {
       if (existingRunner != null &&
           existingRunner.runnerId != raceRunner.runner.runnerId) {
         await _handleBibConflict(
-            context, raceRunner, existingRunner, targetTeamId);
+            context, raceRunner, existingRunner, targetTeamId,
+            close: close);
         return;
       }
 
@@ -266,7 +270,7 @@ class RunnersManagementController with ChangeNotifier {
       await forceRefresh();
 
       // Close the sheet
-      if (context.mounted) {
+      if (close && context.mounted) {
         Navigator.of(context).pop();
       }
     } on DataInUseException {
@@ -281,8 +285,9 @@ class RunnersManagementController with ChangeNotifier {
     BuildContext context,
     RaceRunner raceRunner,
     Runner existingRunner,
-    int targetTeamId,
-  ) async {
+    int targetTeamId, {
+    bool close = true,
+  }) async {
     final int? oldRunnerId = raceRunner.runner.runnerId;
 
     // This merge deletes the edited runner at the end. Check before changing
@@ -329,7 +334,7 @@ class RunnersManagementController with ChangeNotifier {
 
     // Force refresh and close
     await forceRefresh();
-    if (context.mounted) {
+    if (close && context.mounted) {
       Navigator.of(context).pop();
     }
   }
@@ -590,7 +595,7 @@ class RunnersManagementController with ChangeNotifier {
         raceId: masterRace.raceId,
         getRunnerByBib: _runners.getRunnerByBib,
         onSubmit: (raceRunner) async {
-          await handleRunnerSubmission(context, raceRunner);
+          await handleRunnerSubmission(context, raceRunner, close: false);
         },
       ),
     );
