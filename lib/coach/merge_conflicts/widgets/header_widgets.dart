@@ -20,7 +20,6 @@ class ConflictHeader extends StatelessWidget {
     this.firstPlace,
     this.lastPlace,
     this.suggestion,
-    this.onBestGuess,
   });
   final ConflictType type;
   final String startTime;
@@ -33,12 +32,9 @@ class ConflictHeader extends StatelessWidget {
   final int? firstPlace;
   final int? lastPlace;
 
-  /// Where the app thinks the problem is, e.g. "Most likely just before 10th
-  /// place, where there is a 12.3 s gap."
+  /// What the app can point out, e.g. a time right after another, like a
+  /// double tap.
   final String? suggestion;
-
-  /// Applies the suggestion, for when nobody remembers.
-  final VoidCallback? onBestGuess;
 
   @override
   Widget build(BuildContext context) {
@@ -110,34 +106,16 @@ class ConflictHeader extends StatelessWidget {
               ],
             ),
           ],
-          const SizedBox(height: 8),
-          // Wraps onto two lines with large text or on a narrow phone.
-          Wrap(
-            spacing: 12,
-            runSpacing: 4,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              if (onBestGuess != null) ...[
-                OutlinedButton.icon(
-                  key: const ValueKey('best_guess'),
-                  onPressed: onBestGuess,
-                  icon: const Icon(Icons.auto_fix_high, size: 18),
-                  label: const Text('Best Guess'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.primaryColor,
-                    side: const BorderSide(color: AppColors.primaryColor),
-                    visualDensity: VisualDensity.compact,
-                  ),
-                ),
-              ],
-              // What Best Guess does, and when to use it, is in here.
-              HowToDecide(
-                tips: type == ConflictType.extraTime
-                    ? ConflictTips.extraTime
-                    : ConflictTips.missingTime,
-                lastResort: ConflictTips.timeLastResort,
-              ),
-            ],
+          const SizedBox(height: 4),
+          HowToDecide(
+            tips: type == ConflictType.extraTime
+                ? ConflictTips.extraTime(firstPlace != null && lastPlace != null
+                    ? '${ordinal(firstPlace!)} to ${ordinal(lastPlace!)}'
+                    : 'these places')
+                : ConflictTips.missingTime,
+            lastResort: type == ConflictType.extraTime
+                ? ConflictTips.extraLastResort
+                : ConflictTips.missingLastResort,
           ),
         ],
       ),

@@ -9,7 +9,6 @@ import 'header_widgets.dart';
 import 'resolve_conflict_button.dart';
 import 'undo_button.dart';
 import '../utils/timing_suggestions.dart';
-import '../../bib_conflict_resolution/utils/ordinal.dart';
 import '../../../core/utils/time_formatter.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 
@@ -104,7 +103,7 @@ class _ChunkItemState extends State<ChunkItem> {
     return null;
   }
 
-  /// What the app can say about where the problem is, in a coach's words.
+  /// Where a stray tap most likely is, in a coach's words.
   String? _suggestionText(TimingSpot? spot) {
     if (spot == null || widget.chunk.isResolvedLocally) return null;
     final records = widget.chunk.records;
@@ -118,21 +117,21 @@ class _ChunkItemState extends State<ChunkItem> {
           : 'No time stands out: the closest two are $gap apart. Ask the '
               'runners around this stretch.';
     }
-    // A missed runner could be anywhere in the batch, so this says only
-    // where Best Guess would put them, and why there.
-    final place = spot.row < records.length ? records[spot.row].place : null;
-    final where = place != null
-        ? 'just before ${ordinal(place)} place'
-        : 'after the last time';
-    final several = records.where((r) => r.isUnfilled).length > 1;
-    // The last batch has no time the missed runner must come before: they
-    // may have finished after every time the Timer has.
-    final openEnded = !TimeFormatter.isDuration(widget.chunk.endTime);
-    return 'Nobody remembers? Best Guess puts ${several ? 'one' : 'it'} in '
-        'the biggest gap ($gap, $where), where a guess changes the results '
-        'the least.'
-        '${openEnded ? ' The runner may also have finished after the last '
-            'time; Best Guess can\'t guess a time there.' : ''}';
+    return null;
+  }
+
+  /// For a missing time in the last batch: the Timer has no later time the
+  /// missed runner must come before, so they may have finished after all of
+  /// them. The app points nowhere else: a missed runner could be anywhere.
+  String? get _openEndedNote {
+    final chunk = widget.chunk;
+    if (chunk.conflict.type != ConflictType.missingTime ||
+        chunk.isResolvedLocally ||
+        TimeFormatter.isDuration(chunk.endTime)) {
+      return null;
+    }
+    return 'The missed runner may also have finished after the last time. '
+        'If so, leave the empty box at the bottom and type their time there.';
   }
 
   @override
@@ -159,10 +158,7 @@ class _ChunkItemState extends State<ChunkItem> {
                 enteredCount: widget.chunk.enteredCount,
                 firstPlace: _firstPlace,
                 lastPlace: _lastPlace,
-                suggestion: _suggestionText(spot),
-                onBestGuess: spot == null || widget.chunk.isResolvedLocally
-                    ? null
-                    : () => widget.controller.bestGuess(widget.chunk.chunkId),
+                suggestion: _suggestionText(spot) ?? _openEndedNote,
               ),
             if (chunkType == ConflictType.confirmRunner)
               ConfirmHeader(confirmTime: widget.chunk.endTime),

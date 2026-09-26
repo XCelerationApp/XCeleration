@@ -351,7 +351,7 @@ class MergeConflictsController with ChangeNotifier {
 
   /// Moves the missing-time slot at [from] to [to] (indexes of the rows, [to]
   /// counted with the slot taken out). [fill] replaces what the slot holds:
-  /// "TBD" to empty it, or a time for a best guess; null keeps it.
+  /// "TBD" to empty it; null keeps it.
   void _placeSlot(UIChunk uiChunk, int from, int to, {String? fill}) {
     final records = uiChunk.records;
     // The text field holds what the coach typed; it can differ from
@@ -394,27 +394,19 @@ class MergeConflictsController with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Where Best Guess would act in the batch with [chunkId]: for a missing
-  /// time, the biggest gap between times (not where the runner most likely
-  /// is, which could be anywhere, but where a guess changes the results the
-  /// least); for an extra one, the second of the two closest, as a stray tap
-  /// usually lands right after a real one. With several to sort out, one at
-  /// a time: each guess changes the gaps for the next.
+  /// A time in the batch with [chunkId] that looks like a stray tap: the
+  /// second of the two closest, since a stray tap usually lands right after
+  /// a real one (though not always). Only for extra times: a missed runner
+  /// could be anywhere, so the app points nowhere for those.
   TimingSpot? suggestionFor(int chunkId) {
     final uiChunk = _getUIChunk(chunkId);
     if (uiChunk == null) return null;
-    final times = uiChunk.records.map((r) => r.time).toList();
-    final start = previousEndTimeFor(chunkId);
-    switch (uiChunk.conflict.type) {
-      case ConflictType.missingTime:
-        if (!uiChunk.records.any((r) => r.isUnfilled)) return null;
-        return likelyMissingSpot(times, start: start, end: uiChunk.endTime);
-      case ConflictType.extraTime:
-        if (uiChunk.conflict.offBy < 1) return null;
-        return likelyExtraTime(times, start: start);
-      case ConflictType.confirmRunner:
-        return null;
+    if (uiChunk.conflict.type != ConflictType.extraTime ||
+        uiChunk.conflict.offBy < 1) {
+      return null;
     }
+    return likelyExtraTime(uiChunk.records.map((r) => r.time).toList(),
+        start: previousEndTimeFor(chunkId));
   }
 
   /// The gap before each row's time in the batch with [chunkId].
@@ -423,45 +415,6 @@ class MergeConflictsController with ChangeNotifier {
     if (uiChunk == null) return const [];
     return gapsBefore(uiChunk.records.map((r) => r.time).toList(),
         start: previousEndTimeFor(chunkId));
-  }
-
-  /// Applies [suggestionFor]: for a missing time, moves an empty slot into
-  /// the biggest gap and fills in the time halfway across it; for an extra
-  /// time, removes the second of the two closest. One at a time when there
-  /// are several. The coach still checks it and presses Resolve; Undo takes
-  /// it back. For when nobody remembers: places stay right and times are off
-  /// by at most half the gap.
-  void bestGuess(int chunkId) {
-    final uiChunk = _getUIChunk(chunkId);
-    final spot = suggestionFor(chunkId);
-    if (uiChunk == null || spot == null) return;
-    if (uiChunk.conflict.type == ConflictType.extraTime) {
-      removeExtraTimeRecord(chunkId, spot.row);
-      return;
-    }
-    final records = uiChunk.records;
-    final from = records.indexWhere((r) => r.isUnfilled);
-    if (from == -1) return;
-    final to = from < spot.row ? spot.row - 1 : spot.row;
-    // The known times either side of where the slot lands.
-    final others = [
-      for (var i = 0; i < records.length; i++)
-        if (i != from) records[i].time,
-    ];
-    String? known(Iterable<String> times) {
-      for (final t in times) {
-        if (t != 'TBD' && t.isNotEmpty) return t;
-      }
-      return null;
-    }
-
-    final after =
-        known(others.take(to).toList().reversed) ?? previousEndTimeFor(chunkId);
-    final before = known(others.skip(to)) ?? uiChunk.endTime;
-    final fill = midpointTime(after, before);
-    if (fill == null) return;
-    _recordEdit(chunkId, 'the best guess');
-    _placeSlot(uiChunk, from, to, fill: fill);
   }
 
   UIChunk? _getUIChunk(int chunkId) {

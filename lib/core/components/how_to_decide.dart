@@ -46,35 +46,39 @@ class _Tips extends StatelessWidget {
   Widget build(BuildContext context) {
     final style =
         AppTypography.bodyRegular.copyWith(color: AppColors.darkColor);
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        for (final tip in tips)
-          Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('•  ', style: style),
-                Expanded(child: Text(tip, style: style)),
-              ],
+    // Scrolls: on a small phone, or with large text, the tips are taller
+    // than the sheet.
+    return SingleChildScrollView(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (final tip in tips)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('•  ', style: style),
+                  Expanded(child: Text(tip, style: style)),
+                ],
+              ),
             ),
-          ),
-        if (lastResort != null)
-          Container(
-            margin: const EdgeInsets.only(top: AppSpacing.xs),
-            padding: const EdgeInsets.all(AppSpacing.md),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceColor,
-              borderRadius: BorderRadius.circular(8),
+          if (lastResort != null)
+            Container(
+              margin: const EdgeInsets.only(top: AppSpacing.xs),
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceColor,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(lastResort!,
+                  style: AppTypography.smallBodyRegular
+                      .copyWith(color: AppColors.mediumColor)),
             ),
-            child: Text(lastResort!,
-                style: AppTypography.smallBodyRegular
-                    .copyWith(color: AppColors.mediumColor)),
-          ),
-        const SizedBox(height: AppSpacing.lg),
-      ],
+          const SizedBox(height: AppSpacing.lg),
+        ],
+      ),
     );
   }
 }
@@ -111,18 +115,26 @@ abstract final class ConflictTips {
     'If someone has a backup watch or video, type the time from it.',
   ];
 
-  static const extraTime = [
-    'A stray tap is usually right after another time: look for a tiny gap '
-        'under a time.',
-    'Ask the runners around that time whether anyone finished right then.',
-  ];
+  /// For an extra time, with the places the batch covers, e.g. "14th to
+  /// 20th".
+  static List<String> extraTime(String places) => [
+        'Ask the runners from $places how close they finished to the runner '
+            'ahead. "Was anyone within half a second in front of you?" is '
+            'easy to answer.',
+        'Start with the times closest together. A stray tap usually comes '
+            'right after a real one, but not always.',
+        'A parent\'s finish-line video, or someone else\'s times for these '
+            'places, settles it.',
+      ];
 
-  static const timeLastResort = 'Nobody remembers? Tap Best Guess. For a '
-      'missing time it puts the time halfway across the biggest gap: not '
-      'because the runner was most likely there, but because a guess there '
-      'changes the results the least. For an extra time it removes the time '
-      'closest to the one before. Everyone keeps the right place, and a time '
-      'is off by no more than the gaps around it. Check it, then Resolve. It is '
-      'easiest to get right now; you can still fix it later with Edit on '
-      'the Results tab.';
+  static const extraLastResort = 'Nobody can tell? Remove the second of the '
+      'two closest times, the most common stray tap. Everyone keeps the right '
+      'place; if it was the wrong one, only the runners between it and the '
+      'real stray tap get a neighbour\'s time. It is easiest to get right '
+      'now, but you can still fix it later with Edit on the Results tab.';
+
+  static const missingLastResort = 'Nobody remembers? Put the missing time '
+      'where it seems most likely, and type a time between the runners either '
+      'side. Everyone keeps the right place. It is easiest to get right now, '
+      'but you can still fix it later with Edit on the Results tab.';
 }

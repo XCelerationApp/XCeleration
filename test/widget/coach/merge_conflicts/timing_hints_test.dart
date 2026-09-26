@@ -13,8 +13,8 @@ import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
-// The hints on a timing conflict: the gap under each time, where Best Guess
-// would put a missing time and why, and Best Guess itself.
+// The hints on a timing conflict: the gap under each time, a likely stray
+// tap for an extra time, and nothing pointing at where a missed runner was.
 
 class _NoopScheduler implements IPostFrameCallbackScheduler {
   @override
@@ -70,68 +70,18 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('says where Best Guess would put the missing time, and '
-      'Best Guess fills it', (tester) async {
-    final controller = build([10, 11, 30], 32, 4);
-    await pumpList(tester, controller);
-
-    expect(
-        find.textContaining('Best Guess puts it in the biggest gap (19.0 s, '
-            'just before 3rd place), where a guess changes the results the '
-            'least'),
-        findsOneWidget);
-    expect(find.text('+19.0 s'), findsOneWidget);
-    expect(find.text('+1.0 s'), findsOneWidget);
-
-    await tester.tap(find.text('Best Guess'));
-    await tester.pumpAndSettle();
-
-    expect(controller.uiChunks.single.records.map((r) => r.time),
-        [_t(10), _t(11), '20.50', _t(30)]);
-    expect(find.text('Undo'), findsOneWidget);
-  });
-
-  testWidgets('never picks out a + as where the missed runner was',
+  testWidgets('a missing time shows the gaps, and points nowhere',
       (tester) async {
     // However much one gap stands out, the runner could be anywhere.
     final controller = build([10, 11, 30], 32, 4);
     await pumpList(tester, controller);
 
+    expect(find.text('+19.0 s'), findsOneWidget);
+    expect(find.text('+1.0 s'), findsOneWidget);
     expect(find.byIcon(Icons.add_circle_outline), findsNWidgets(3));
     expect(find.byIcon(Icons.add_circle), findsNothing);
-  });
-
-  testWidgets('with two missing, Best Guess fills them one at a time',
-      (tester) async {
-    final controller = MergeConflictsController(
-      masterRace: MasterRace.getInstance(1),
-      timingChunks: [
-        TimingChunk(
-          id: 0,
-          timingData: [for (final s in [10, 30]) TimingDatum(time: _t(s))],
-          conflictRecord: TimingDatum(
-            time: _t(40),
-            conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
-          ),
-        )
-      ],
-      raceRunners: [for (var i = 1; i <= 4; i++) _runner(i)],
-      scheduler: _NoopScheduler(),
-    );
-    await pumpList(tester, controller);
-    expect(find.textContaining('Best Guess puts one in the biggest gap'),
-        findsOneWidget);
-
-    await tester.tap(find.text('Best Guess'));
-    await tester.pumpAndSettle();
-    expect(controller.uiChunks.single.records.map((r) => r.time),
-        [_t(10), '20.00', _t(30), 'TBD']);
-
-    await tester.tap(find.text('Best Guess'));
-    await tester.pumpAndSettle();
-    expect(controller.uiChunks.single.records.where((r) => r.isUnfilled),
-        isEmpty);
-    expect(controller.uiChunks.single.isResolvedLocally, isTrue);
+    expect(find.textContaining('biggest gap'), findsNothing);
+    expect(find.text('Best Guess'), findsNothing);
   });
 
   testWidgets('in the last batch, says the runner may have come after the '
@@ -155,5 +105,38 @@ void main() {
 
     expect(find.textContaining('may also have finished after the last time'),
         findsOneWidget);
+  });
+
+  testWidgets('an extra time points to a likely double tap, and How to '
+      'decide names the places to ask', (tester) async {
+    final controller = MergeConflictsController(
+      masterRace: MasterRace.getInstance(1),
+      timingChunks: [
+        TimingChunk(
+          id: 0,
+          timingData: [
+            for (final t in ['0:10.00', '0:15.00', '0:15.30', '0:20.00'])
+              TimingDatum(time: t)
+          ],
+          conflictRecord: TimingDatum(
+            time: _t(25),
+            conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+          ),
+        )
+      ],
+      raceRunners: [for (var i = 1; i <= 3; i++) _runner(i)],
+      scheduler: _NoopScheduler(),
+    );
+    await pumpList(tester, controller);
+
+    expect(find.textContaining('like a double tap'), findsOneWidget);
+
+    await tester.tap(find.text('How to decide'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('Ask the runners from 1st to 3rd'),
+        findsOneWidget);
+    expect(find.textContaining('Remove the second of the two closest'),
+        findsOneWidget);
+    expect(find.textContaining('Best Guess'), findsNothing);
   });
 }
