@@ -84,6 +84,52 @@ void main() {
         ['Archie Williams - Girls', 'Archie Williams - Boys']);
   });
 
+  // Split into boys and girls, the coach can race just one of them. Both
+  // teams are still imported; the other is marked to stay out of the race.
+  testWidgets('can leave the boys\' team out of this race', (tester) async {
+    List<Map<String, dynamic>>? added;
+    await tester.pumpWidget(MaterialApp(
+      home: Builder(
+        builder: (context) => Scaffold(
+          body: TextButton(
+            onPressed: () async {
+              added = await Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => const Scaffold(
+                  body: ImportedRunnersSelectionSheet(importedRunners: [
+                    {'name': 'Ann Lee', 'grade': 10, 'bib': '101',
+                      'team': 'Archie Williams', 'gender': 'F'},
+                    {'name': 'Bo Park', 'grade': 11, 'bib': '102',
+                      'team': 'Archie Williams', 'gender': 'M'},
+                  ]),
+                ),
+              ));
+            },
+            child: const Text('open'),
+          ),
+        ),
+      ),
+    ));
+    await tester.tap(find.text('open'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Add to this race'), findsNothing,
+        reason: 'one team, nothing to choose');
+    await tester.tap(find.byKey(const ValueKey('split_boys_girls')));
+    await tester.pumpAndSettle();
+    expect(find.text('Add to this race'), findsOneWidget);
+
+    await tester.tap(
+        find.byKey(const ValueKey('race_team_Archie Williams - Boys')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add Selected'));
+    await tester.pumpAndSettle();
+
+    expect(added!.map((r) => (r['team'], r['inRace'])), [
+      ('Archie Williams - Girls', null),
+      ('Archie Williams - Boys', false),
+    ]);
+  });
+
   testWidgets('offers no split when the rows name no teams', (tester) async {
     await tester.pumpWidget(const MaterialApp(
       home: Scaffold(
