@@ -194,9 +194,19 @@ class TimingController extends TimingData {
     }
   }
 
+  /// A practice race started longer ago than this is started fresh when it
+  /// opens: left from another day, its clock read 13 hours and new times
+  /// five and a half, which looked broken.
+  static const stalePractice = Duration(hours: 2);
+
   Future<void> _loadRace(RaceRecord raceRecord) async {
     // Let queued saves finish first, so what is read back is up to date.
     await pendingWrites;
+    if (DemoRaceGenerator.isDemoRace(raceRecord) &&
+        raceRecord.startedAt != null &&
+        clockNow.difference(raceRecord.startedAt!) > stalePractice) {
+      raceRecord = await _resetPractice(raceRecord);
+    }
     // Read the saved times first. If that fails the race must not open: new
     // times would be saved over the unread chunks, which start at the same ids.
     final chunksResult = await _storage.getChunks(raceRecord.raceId);
@@ -238,6 +248,23 @@ class TimingController extends TimingData {
     }
     invalidateRecordsCache();
     notifyListeners();
+  }
+
+  /// Clears the practice race's times and clock, so it starts again.
+  Future<RaceRecord> _resetPractice(RaceRecord race) async {
+    final id = race.raceId, type = race.type;
+    await _storage.deleteChunks(id);
+    await _storage.saveChunk(id, TimingChunk(id: 0, timingData: []));
+    await _storage.updateRaceStartTime(id, type, null);
+    await _storage.updateRaceDuration(id, type, null);
+    await _storage.updateRaceStatus(id, type, true);
+    return RaceRecord(
+      raceId: id,
+      date: race.date,
+      name: race.name,
+      type: type,
+      stopped: true,
+    );
   }
 
   /// Loads a previous race and its timing records
