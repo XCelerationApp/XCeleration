@@ -43,4 +43,15 @@ void main() {
     expect(step.canProceed!(), isTrue);
     expect(step.blockedReason!(), isNull);
   });
+
+  test('says what to do once the results are in', () {
+    expect(step.description, contains('tap Share Times or Share Bibs'));
+
+    controller.resultsLoaded = true;
+    controller.hasTimingConflicts = true;
+    expect(step.description, contains('A few need checking'));
+
+    controller.hasTimingConflicts = false;
+    expect(step.description, contains('Tap Next to look them over'));
+  });
 }

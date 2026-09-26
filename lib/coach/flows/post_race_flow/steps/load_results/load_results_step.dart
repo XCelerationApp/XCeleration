@@ -40,6 +40,17 @@ class LoadResultsStep extends FlowStep {
   @override
   Widget get content => _content;
 
+  /// What to do now: connect the phones, then, once the results are in,
+  /// sort out any conflicts and go on. It used to keep describing the
+  /// phones connecting after the results had loaded.
+  @override
+  String get description => !controller.resultsLoaded
+      ? super.description
+      : _hasConflicts
+          ? 'The results are in. A few need checking: tap Start below, then '
+              'Next.'
+          : 'The results are in. Tap Next to look them over before saving.';
+
   /// Next stays greyed out until every conflict is resolved: the conflicts
   /// are opened from the card's Start button, not by Next. Saving happens on
   /// the next page, once the coach has seen the results.

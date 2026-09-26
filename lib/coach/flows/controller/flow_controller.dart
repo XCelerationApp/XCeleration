@@ -450,11 +450,14 @@ Future<bool> showFlow({
                 );
               },
             ),
-          // Title + description: rebuilds only on step navigation
-          Selector<FlowController, int>(
-            selector: (_, c) => c.currentIndex,
-            builder: (_, index, _) {
-              final step = steps[index];
+          // Title + description: rebuilds on step navigation, and when a
+          // step's description changes with its content (Load Results says
+          // something different once the results are in).
+          Selector<FlowController, (int, String)>(
+            selector: (_, c) =>
+                (c.currentIndex, steps[c.currentIndex].description),
+            builder: (_, data, _) {
+              final step = steps[data.$1];
               return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                 child: Column(
