@@ -682,6 +682,35 @@ void main() {
       });
     });
 
+    // A coach's phone ignored a Timer on 1.1.1, which says 'Timer', and one
+    // on 1.1.0 or later sends 'Race Timer'. Both must be answered.
+    for (final name in ['Timer', 'Race Timer']) {
+      test('a coach answers a Timer that calls itself $name', () {
+        fakeAsync((fake) {
+          final timer = ConnectedDevice(DeviceName.raceTimer);
+          when(mockDevicesManager.otherDevices).thenReturn([timer]);
+          when(mockDevicesManager.getDevice(DeviceName.raceTimer))
+              .thenReturn(timer);
+          final found = <String>[];
+          deviceConnectionService.rescanBackoff = const Duration(seconds: 10);
+
+          deviceConnectionService.monitorDevicesConnectionStatus(
+            deviceFoundCallback: (device) async => found.add(device.deviceName),
+            timeout: const Duration(seconds: 5),
+          );
+          // Let it start listening before the phones are seen.
+          fake.elapse(const Duration(milliseconds: 10));
+          stateChangeController!.add([
+            Device('timer_id', name, SessionState.notConnected.index),
+            Device('other_id', "Sam's iPhone", SessionState.notConnected.index),
+          ]);
+          fake.elapse(const Duration(milliseconds: 350));
+
+          expect(found, [name]);
+        });
+      });
+    }
+
     test('monitorDevicesConnectionStatus handles timeout scenario', () {
       fakeAsync((fake) {
         // Track whether timeout was triggered

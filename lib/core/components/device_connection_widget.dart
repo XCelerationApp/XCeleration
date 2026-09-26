@@ -53,7 +53,7 @@ class DeviceConnectionWidget extends StatelessWidget {
             final svc = DeviceConnectionService(
               devices,
               'wirelessconn',
-              getDeviceNameString(devices.currentDeviceName),
+              getDeviceWireName(devices.currentDeviceName),
               devices.currentDeviceType,
               NearbyConnections(),
             );
