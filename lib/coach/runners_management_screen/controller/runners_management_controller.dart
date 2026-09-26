@@ -19,6 +19,7 @@ import '../../../shared/models/database/team.dart';
 import '../../../core/components/create_team_sheet.dart';
 import '../widgets/existing_teams_browser_sheet.dart';
 import '../widgets/edit_team_sheet.dart';
+import '../widgets/saved_bib_choices_sheet.dart';
 import '../../../shared/models/database/race_participant.dart';
 import '../widgets/add_runners_to_team_sheet.dart';
 import '../widgets/add_runner_choice_sheet.dart';
@@ -835,29 +836,27 @@ class RunnersManagementController with ChangeNotifier {
     DialogUtils.showSuccessDialog(context, message: _describe(result));
   }
 
-  /// Asks, for each bib already saved with other details, whose details to
-  /// keep.
+  /// Shows every bib already saved with other details in one list, and
+  /// takes the spreadsheet's details for the ones the coach picks. Closing
+  /// the list keeps every saved runner as it was.
   Future<void> _settleConflicts(
     BuildContext context,
     RosterImporter importer,
     List<RunnerDetailsConflict> conflicts,
   ) async {
-    for (final conflict in conflicts) {
-      if (!context.mounted) break;
-      final existing = conflict.existing;
-      final useSheet = await DialogUtils.showConfirmationDialog(
-        context,
-        title: 'Bib ${existing.bibNumber} Is Already Saved',
-        content: 'Saved: ${existing.name}, grade ${existing.grade}\n'
-            'Spreadsheet: ${conflict.name}, grade ${conflict.grade}\n\n'
-            'Use the spreadsheet\'s details? Either way, bib '
-            '${existing.bibNumber} is in this race.',
-        confirmText: 'Use Spreadsheet',
-        cancelText: 'Keep Saved',
-      );
-      if (useSheet) await importer.useSpreadsheetDetails(conflict);
+    if (conflicts.isEmpty) return;
+    final useSheet = await sheet(
+      context: context,
+      title: conflicts.length == 1
+          ? 'Bib ${conflicts.single.existing.bibNumber} Is Already Saved'
+          : '${conflicts.length} Bibs Are Already Saved',
+      body: SavedBibChoicesSheet(conflicts: conflicts),
+    ) as List<RunnerDetailsConflict>?;
+    if (useSheet == null || useSheet.isEmpty) return;
+    for (final conflict in useSheet) {
+      await importer.useSpreadsheetDetails(conflict);
     }
-    if (conflicts.isNotEmpty) await forceRefresh();
+    await forceRefresh();
   }
 
   /// Brings [team] in line with a newer copy of its roster spreadsheet,
