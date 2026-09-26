@@ -6,10 +6,10 @@
 import 'dart:async' as _i7;
 import 'dart:ui' as _i11;
 
-import 'package:flutter/material.dart' as _i14;
+import 'package:flutter/material.dart' as _i13;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/coach/flows/controller/flow_controller.dart'
-    as _i13;
+    as _i14;
 import 'package:xceleration/coach/flows/post_race_flow/controller/post_race_controller.dart'
     as _i6;
 import 'package:xceleration/coach/flows/pre_race_flow/controller/pre_race_controller.dart'
@@ -344,6 +344,14 @@ class MockMasterRace extends _i1.Mock implements _i9.MasterRace {
           as _i7.Future<int>);
 
   @override
+  _i7.Future<List<_i2.Runner>> getAllSavedRunners() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAllSavedRunners, []),
+            returnValue: _i7.Future<List<_i2.Runner>>.value(<_i2.Runner>[]),
+          )
+          as _i7.Future<List<_i2.Runner>>);
+
+  @override
   _i7.Future<void> addRunnerToTeam(int? teamId, int? runnerId) =>
       (super.noSuchMethod(
             Invocation.method(#addRunnerToTeam, [teamId, runnerId]),
@@ -413,13 +421,21 @@ class MockIParentRaceController extends _i1.Mock
             returnValueForMissingStub: _i7.Future<void>.value(),
           )
           as _i7.Future<void>);
+
+  @override
+  _i7.Future<bool> deleteRace(_i2.Race? race, _i13.BuildContext? context) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteRace, [race, context]),
+            returnValue: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
 }
 
 /// A class which mocks [MasterFlowController].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockMasterFlowController extends _i1.Mock
-    implements _i13.MasterFlowController {
+    implements _i14.MasterFlowController {
   MockMasterFlowController() {
     _i1.throwOnMissingStub(this);
   }
@@ -471,7 +487,7 @@ class MockMasterFlowController extends _i1.Mock
 
   @override
   _i7.Future<void> updateRaceFlowState(
-    _i14.BuildContext? context,
+    _i13.BuildContext? context,
     String? newState,
   ) =>
       (super.noSuchMethod(
@@ -482,7 +498,7 @@ class MockMasterFlowController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> markCurrentFlowCompleted(_i14.BuildContext? context) =>
+  _i7.Future<void> markCurrentFlowCompleted(_i13.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#markCurrentFlowCompleted, [context]),
             returnValue: _i7.Future<void>.value(),
@@ -491,7 +507,7 @@ class MockMasterFlowController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> beginNextFlow(_i14.BuildContext? context) =>
+  _i7.Future<void> beginNextFlow(_i13.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#beginNextFlow, [context]),
             returnValue: _i7.Future<void>.value(),
@@ -500,7 +516,7 @@ class MockMasterFlowController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> continueRaceFlow(_i14.BuildContext? context) =>
+  _i7.Future<void> continueRaceFlow(_i13.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#continueRaceFlow, [context]),
             returnValue: _i7.Future<void>.value(),
@@ -509,7 +525,7 @@ class MockMasterFlowController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  void closeRaceSheet(_i14.BuildContext? context, {String? message}) =>
+  void closeRaceSheet(_i13.BuildContext? context, {String? message}) =>
       super.noSuchMethod(
         Invocation.method(#closeRaceSheet, [context], {#message: message}),
         returnValueForMissingStub: null,
@@ -517,7 +533,7 @@ class MockMasterFlowController extends _i1.Mock
 
   @override
   _i7.Future<bool> handleFlowNavigation(
-    _i14.BuildContext? context,
+    _i13.BuildContext? context,
     String? flowState,
   ) =>
       (super.noSuchMethod(
@@ -538,7 +554,7 @@ class MockIDatePickerService extends _i1.Mock
 
   @override
   _i7.Future<DateTime?> pickDate(
-    _i14.BuildContext? context, {
+    _i13.BuildContext? context, {
     DateTime? initialDate,
     DateTime? firstDate,
     DateTime? lastDate,

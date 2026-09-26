@@ -140,7 +140,7 @@ class _RaceHeaderState extends State<RaceHeader> {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (canEdit)
+        if (canEdit) ...[
           IconButton(
             key: const ValueKey('edit_race_name'),
             tooltip: 'Rename race',
@@ -153,6 +153,31 @@ class _RaceHeaderState extends State<RaceHeader> {
               });
             },
           ),
+          PopupMenuButton<String>(
+            key: const ValueKey('race_menu'),
+            tooltip: 'More',
+            icon: const Icon(Icons.more_vert, color: AppColors.mediumColor),
+            color: Colors.white,
+            onSelected: (choice) {
+              if (choice == 'delete') widget.controller.deleteRace(context);
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_outline,
+                        color: AppColors.redColor, size: 20),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('Delete Race',
+                        style: AppTypography.bodyRegular
+                            .copyWith(color: AppColors.redColor)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }

@@ -249,7 +249,8 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     await _openRaceSheet(context, masterRace);
   }
 
-  Future<void> deleteRace(Race race, BuildContext context) async {
+  @override
+  Future<bool> deleteRace(Race race, BuildContext context) async {
     if (race.raceId == null) {
       throw Exception('Race ID is null');
     }
@@ -260,7 +261,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
         race.ownerUserId != currentUserId) {
       DialogUtils.showErrorDialog(context,
           message: 'Only the coach who created this race can delete it.');
-      return;
+      return false;
     }
     final confirmed = await DialogUtils.showConfirmationDialog(
       context,
@@ -269,13 +270,14 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
           'Are you sure you want to delete "${race.raceName}"? This action cannot be undone.',
       confirmText: 'Delete',
       cancelText: 'Cancel',
+      destructive: true,
     );
 
-    if (confirmed == true) {
-      await _racesService.deleteRace(race.raceId!);
-      MasterRace.clearInstance(race.raceId!);
-      await loadRaces();
-    }
+    if (confirmed != true) return false;
+    await _racesService.deleteRace(race.raceId!);
+    MasterRace.clearInstance(race.raceId!);
+    await loadRaces();
+    return true;
   }
 
   // Create a new race with minimal information

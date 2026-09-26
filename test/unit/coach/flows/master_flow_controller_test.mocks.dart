@@ -279,6 +279,15 @@ class MockRaceScreenController extends _i1.Mock
           as bool);
 
   @override
+  _i14.Future<void> deleteRace(_i2.BuildContext? context) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteRace, [context]),
+            returnValue: _i14.Future<void>.value(),
+            returnValueForMissingStub: _i14.Future<void>.value(),
+          )
+          as _i14.Future<void>);
+
+  @override
   void trackFieldChange(_i4.RaceField? field) => super.noSuchMethod(
     Invocation.method(#trackFieldChange, [field]),
     returnValueForMissingStub: null,
@@ -887,6 +896,14 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
             returnValue: _i14.Future<int>.value(0),
           )
           as _i14.Future<int>);
+
+  @override
+  _i14.Future<List<_i20.Runner>> getAllSavedRunners() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAllSavedRunners, []),
+            returnValue: _i14.Future<List<_i20.Runner>>.value(<_i20.Runner>[]),
+          )
+          as _i14.Future<List<_i20.Runner>>);
 
   @override
   _i14.Future<void> addRunnerToTeam(int? teamId, int? runnerId) =>

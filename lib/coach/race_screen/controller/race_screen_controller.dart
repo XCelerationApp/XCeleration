@@ -70,6 +70,13 @@ class RaceScreenController with ChangeNotifier {
   /// Whether this coach may correct the results once the race is finished.
   bool get canEditResults => parentController.canEdit;
 
+  /// Deletes this race, after asking, and closes its sheet. The only way
+  /// used to be swiping its card on the races list, with nothing to say so.
+  Future<void> deleteRace(BuildContext context) async {
+    final deleted = await parentController.deleteRace(race, context);
+    if (deleted && context.mounted) Navigator.of(context).pop();
+  }
+
   bool get canEdit {
     if (_isInitialLoading) {
       throw StateError('CanEdit not loaded yet - check isLoading first');

@@ -255,6 +255,44 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
+    group('deleteRace', () {
+      Future<(BuildContext, BuildContext)> openRaceSheet(
+          WidgetTester tester) async {
+        final home = await _buildContext(tester);
+        await controller.loadAllData(home);
+        BuildContext? sheetCtx;
+        Navigator.of(home).push(MaterialPageRoute<void>(builder: (context) {
+          sheetCtx = context;
+          return const Text('race sheet');
+        }));
+        await tester.pumpAndSettle();
+        return (home, sheetCtx!);
+      }
+
+      testWidgets('closes the race once it is deleted', (tester) async {
+        final (_, sheetCtx) = await openRaceSheet(tester);
+        when(mockParentController.deleteRace(any, any))
+            .thenAnswer((_) async => true);
+
+        await controller.deleteRace(sheetCtx);
+        await tester.pumpAndSettle();
+
+        verify(mockParentController.deleteRace(testRace, any)).called(1);
+        expect(find.text('race sheet'), findsNothing);
+      });
+
+      testWidgets('stays open when the coach says no', (tester) async {
+        final (_, sheetCtx) = await openRaceSheet(tester);
+        when(mockParentController.deleteRace(any, any))
+            .thenAnswer((_) async => false);
+
+        await controller.deleteRace(sheetCtx);
+        await tester.pumpAndSettle();
+
+        expect(find.text('race sheet'), findsOneWidget);
+      });
+    });
+
     group('loadAllData', () {
       testWidgets(
           'happy path: isLoading transitions true→false, race data is populated',
