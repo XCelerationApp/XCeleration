@@ -68,7 +68,12 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Ann Lee'), findsNothing);
-    expect(find.text('Import 2 Runners'), findsOneWidget);
+    await tester.tap(find.text('Import 2 Runners'));
+    await tester.pumpAndSettle();
+
+    final imported = popped as Map<Team, List<Runner>>;
+    expect(imported.keys, [_eagles]);
+    expect(imported[_eagles]!.map((r) => r.name), ['Ann Lee', 'Bo Park']);
   });
 
   testWidgets('a search finds a runner and opens their team', (tester) async {
