@@ -23,8 +23,10 @@ class NewRunner {
 /// Saves [newRunner] and enters them in the race, so they can be given the
 /// finish being resolved.
 ///
-/// A runner already in the database with that bib is reused rather than
-/// duplicated: they exist, they just were not entered in this race.
+/// A bib belongs to one saved runner at most. A runner already saved with
+/// this bib and name is reused rather than duplicated: they exist, they just
+/// were not entered in this race. With a different name the bib is someone
+/// else's, and nothing is saved: that used to give the finish to them.
 Future<Result<RaceRunner>> saveNewRunner(
   MasterRace masterRace,
   NewRunner newRunner,
@@ -45,12 +47,18 @@ Future<Result<RaceRunner>> saveNewRunner(
       grade: newRunner.grade,
     );
 
-    // The finish goes to whoever is saved with this bib, so that is who the
-    // coach is shown, even if a different name was typed.
     final existing = await masterRace.getRunnerByBib(newRunner.bibNumber);
     final Runner saved;
     if (existing?.runnerId != null) {
-      saved = existing!;
+      String plain(String? s) => (s ?? '').trim().toLowerCase();
+      if (plain(existing!.name) != plain(newRunner.name)) {
+        return Failure(AppError(
+          userMessage: 'Bib #${newRunner.bibNumber} is already '
+              '${existing.name ?? 'another runner'}\'s. Add them by name, '
+              'or give ${newRunner.name} a different bib.',
+        ));
+      }
+      saved = existing;
     } else {
       final runnerId = await masterRace.createRunner(runner);
       await masterRace.addRunnerToTeam(team.teamId!, runnerId);

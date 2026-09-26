@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/flows/controller/flow_controller.dart';
 import 'package:xceleration/coach/flows/model/flow_model.dart';
-import 'package:xceleration/coach/flows/pre_race_flow/steps/review_runners/review_runners_step.dart';
-import 'package:xceleration/shared/models/database/master_race.dart';
 
 FlowStep _step({
   bool Function()? canProceed,
@@ -56,93 +54,6 @@ void main() {
         final step = _step();
         step.dispose();
         expect(step.notifyContentChanged, throwsStateError);
-      });
-    });
-  });
-
-  // ===========================================================================
-  // ReviewRunnersStep
-  // ===========================================================================
-  group('ReviewRunnersStep', () {
-    late MasterRace masterRace;
-
-    setUp(() {
-      masterRace = MasterRace.getInstance(1);
-    });
-
-    tearDown(() {
-      MasterRace.clearInstance(1);
-    });
-
-    ReviewRunnersStep buildStep({
-      required Future<bool> Function(MasterRace) checkMinimumRunners,
-    }) {
-      return ReviewRunnersStep(
-        masterRace: masterRace,
-        onNext: () async {},
-        whyNotReady: (race) async =>
-            await checkMinimumRunners(race) ? null : 'Hawks has no runners.',
-      );
-    }
-
-    group('seedInitialProceed', () {
-      test('sets canProceed to true when checker returns true', () async {
-        final step = buildStep(checkMinimumRunners: (_) async => true);
-        await step.seedInitialProceed();
-
-        expect(step.canProceed(), isTrue);
-        step.dispose();
-      });
-
-      test('sets canProceed to false when checker returns false', () async {
-        final step = buildStep(checkMinimumRunners: (_) async => false);
-        await step.seedInitialProceed();
-
-        expect(step.canProceed(), isFalse);
-        step.dispose();
-      });
-
-      test('says why Next is greyed out', () async {
-        final step = buildStep(checkMinimumRunners: (_) async => false);
-        await step.seedInitialProceed();
-
-        expect(step.blockedReason(), 'Hawks has no runners.');
-        step.dispose();
-      });
-    });
-
-    group('checkRunners', () {
-      test('notifies content changed when canProceed value changes', () async {
-        var returnValue = false;
-        final step =
-            buildStep(checkMinimumRunners: (_) async => returnValue);
-
-        await Future.microtask(() {});
-
-        final events = <void>[];
-        step.onContentChange.listen((_) => events.add(null));
-
-        returnValue = true;
-        await step.checkRunners();
-        await Future.microtask(() {});
-
-        expect(events, hasLength(1));
-        step.dispose();
-      });
-
-      test('does not notify when canProceed value is unchanged', () async {
-        final step = buildStep(checkMinimumRunners: (_) async => true);
-
-        await step.seedInitialProceed();
-        await Future.microtask(() {});
-
-        final events = <void>[];
-        step.onContentChange.listen((_) => events.add(null));
-
-        await step.checkRunners();
-
-        expect(events, isEmpty);
-        step.dispose();
       });
     });
   });

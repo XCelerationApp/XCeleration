@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/typography.dart';
 import '../../../core/components/dialog_utils.dart';
 import '../../shared/widgets/race_day_controls.dart';
 import '../controller/timing_controller.dart';
 
 /// The two count checks above Log Finish. When there is a break in the
 /// runners, the Timer compares counts with the Bib Recorder and taps one.
-class BottomControlsWidget extends StatelessWidget {
+///
+/// "Counts differ?" swaps the row for its two answers in place, rather
+/// than a menu: a menu lay over Log Finish, and a tap on Log Finish while
+/// it was open only closed it, so a runner finishing then was never logged.
+class BottomControlsWidget extends StatefulWidget {
   final TimingController controller;
 
   const BottomControlsWidget({
@@ -17,12 +20,66 @@ class BottomControlsWidget extends StatelessWidget {
   });
 
   @override
+  State<BottomControlsWidget> createState() => _BottomControlsWidgetState();
+}
+
+class _BottomControlsWidgetState extends State<BottomControlsWidget> {
+  bool _choosing = false;
+
+  TimingController get controller => widget.controller;
+
+  @override
   Widget build(BuildContext context) {
+    if (_choosing) {
+      return Row(
+        children: [
+          Expanded(
+            child: RaceDayButton(
+              key: const ValueKey('timer_missed_runner'),
+              label: 'Missed one',
+              icon: Icons.add,
+              color: AppColors.darkColor,
+              onPressed: () {
+                setState(() => _choosing = false);
+                _handleAddMissingTime(context);
+              },
+            ),
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: RaceDayButton(
+              key: const ValueKey('timer_extra_tap'),
+              label: 'Extra tap',
+              icon: Icons.remove,
+              color: AppColors.darkColor,
+              onPressed: () {
+                setState(() => _choosing = false);
+                _handleRemoveExtraTime(context);
+              },
+            ),
+          ),
+          IconButton(
+            key: const ValueKey('timer_counts_cancel'),
+            tooltip: 'Cancel',
+            icon: const Icon(Icons.close, color: AppColors.mediumColor),
+            onPressed: () => setState(() => _choosing = false),
+          ),
+        ],
+      );
+    }
     return Row(
       children: [
         Expanded(child: _buildMainControlButton(context)),
         const SizedBox(width: AppSpacing.md),
-        Expanded(child: _buildAdjustTimesButton(context)),
+        Expanded(
+          child: RaceDayButton(
+            key: const ValueKey('timer_counts_differ'),
+            label: 'Counts differ?',
+            icon: Icons.unfold_more,
+            color: AppColors.darkColor,
+            onPressed: () => setState(() => _choosing = true),
+          ),
+        ),
       ],
     );
   }
@@ -43,38 +100,6 @@ class BottomControlsWidget extends StatelessWidget {
       icon: Icons.check,
       color: Colors.green.shade700,
       onPressed: () => _handleConfirmTimes(context),
-    );
-  }
-
-  Widget _buildAdjustTimesButton(BuildContext context) {
-    return PopupMenuButton<void>(
-      tooltip: 'Counts differ?',
-      position: PopupMenuPosition.over,
-      itemBuilder: (BuildContext context) => <PopupMenuEntry<void>>[
-        PopupMenuItem<void>(
-          onTap: () => _handleAddMissingTime(context),
-          child: Text(
-            'I missed a runner (add a time)',
-            style: AppTypography.bodySemibold,
-          ),
-        ),
-        PopupMenuItem<void>(
-          onTap: () => _handleRemoveExtraTime(context),
-          child: Text(
-            'I tapped an extra time (remove one)',
-            style: AppTypography.bodySemibold,
-          ),
-        ),
-      ],
-      // The menu opens on tap; the button only draws the outline.
-      child: const IgnorePointer(
-        child: RaceDayButton(
-          label: 'Counts differ?',
-          icon: Icons.unfold_more,
-          color: AppColors.darkColor,
-          onPressed: _noop,
-        ),
-      ),
     );
   }
 
@@ -125,4 +150,3 @@ class BottomControlsWidget extends StatelessWidget {
   }
 }
 
-void _noop() {}

@@ -510,6 +510,11 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   @override
   Future<int> createRunner(Runner runner) => _runnerRepo.createRunner(runner);
 
+  /// Every runner saved on this phone, in any race or none. A bib belongs to
+  /// one saved runner at most, so a runner being added needs a bib none of
+  /// them has, unless they are that runner.
+  Future<List<Runner>> getAllSavedRunners() => _runnerRepo.getAllRunners();
+
   @override
   Future<void> addRunnerToTeam(int teamId, int runnerId) =>
       _runnerRepo.addRunnerToTeam(teamId, runnerId);

@@ -5,7 +5,11 @@ class ConflictOccurrence {
   const ConflictOccurrence({
     required this.place,
     this.time,
+    this.after,
+    this.before,
+    this.approximate,
     this.nearby = const [],
+    this.allFinishers = const [],
   });
 
   /// Finish place, counting from 1.
@@ -15,11 +19,36 @@ class ConflictOccurrence {
   /// stretch it falls in and which time belongs to whom is still in dispute.
   final String? time;
 
+  /// While [time] is unknown, the nearest known times either side: the
+  /// finish came after [after] and before [before]. Either may be null.
+  final String? after;
+  final String? before;
+
+  /// While [time] is unknown, the Timer's time near this place, to the
+  /// second: only a guide, as a missed or extra tap shifts times a place.
+  final String? approximate;
+
+  /// [time], or where it must fall while it is still unknown, such as
+  /// "Between 15:28.46 and 15:33.00". Null when nothing is known.
+  String? get timeLabel {
+    if (time != null) return time;
+    if (approximate != null) return 'About $approximate';
+    if (after != null && before != null) return 'Between $after and $before';
+    if (after != null) return 'After $after';
+    if (before != null) return 'Before $before';
+    return null;
+  }
+
   /// Settled finishers around this place, up to [nearbyWindow] either side,
   /// in finish order. The card shows the nearest one each side and "See more"
   /// shows the rest. Each finish carries its own: choosing between two of them
   /// means knowing who each one sits between.
   final List<NearbyFinisher> nearby;
+
+  /// Every settled finisher in the race, in finish order, for "Show all
+  /// finishers" when the few either side are not enough to go on. One list
+  /// shared by every occurrence.
+  final List<NearbyFinisher> allFinishers;
 }
 
 /// A finisher near a conflict whose own bib is not in question, shown so the
@@ -95,6 +124,7 @@ class UnknownBibConflict extends BibConflict {
 Future<List<BibConflict>> detectBibConflicts({
   required List<dynamic> entries,
   required Map<int, String> timesByPlace,
+  Map<int, String> approximateTimes = const {},
   required Future<RaceRunner?> Function(String bibNumber) lookupBib,
 }) async {
   // Every place each bib was recorded at, in finish order.
@@ -158,10 +188,40 @@ Future<List<BibConflict>> detectBibConflicts({
     return [...ahead.reversed, ...behind];
   }
 
+  // Every settled finisher, for the whole finish list.
+  final allFinishers = <NearbyFinisher>[
+    for (var place = 1; place <= entries.length; place++)
+      if (!disputed.contains(place) && entries[place - 1] is RaceRunner)
+        NearbyFinisher(
+          place: place,
+          name: (entries[place - 1] as RaceRunner).runner.name ?? '',
+          team: (entries[place - 1] as RaceRunner).team.name ?? '',
+          bibNumber: (entries[place - 1] as RaceRunner).runner.bibNumber ?? '',
+          time: timesByPlace[place],
+        ),
+  ];
+
+  // The nearest known time before and after a place whose own time is not.
+  final knownPlaces = timesByPlace.keys.toList()..sort();
+  String? knownBefore(int place) {
+    final earlier = knownPlaces.where((p) => p < place);
+    return earlier.isEmpty ? null : timesByPlace[earlier.last];
+  }
+
+  String? knownAfter(int place) {
+    final later = knownPlaces.where((p) => p > place);
+    return later.isEmpty ? null : timesByPlace[later.first];
+  }
+
   ConflictOccurrence occurrenceAt(int place) => ConflictOccurrence(
         place: place,
         time: timesByPlace[place],
+        after: timesByPlace[place] == null ? knownBefore(place) : null,
+        before: timesByPlace[place] == null ? knownAfter(place) : null,
+        approximate:
+            timesByPlace[place] == null ? approximateTimes[place] : null,
         nearby: nearbyTo(place),
+        allFinishers: allFinishers,
       );
 
   final conflicts = <BibConflict>[];

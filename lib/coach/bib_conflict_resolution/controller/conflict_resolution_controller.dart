@@ -1,8 +1,10 @@
 import 'package:flutter/foundation.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../model/bib_conflict.dart';
+import '../utils/bib_suggestions.dart';
 import '../services/runner_creator.dart';
 
 enum _FlowStep { summary, conflict, completion }
@@ -59,14 +61,20 @@ class ConflictResolutionController extends ChangeNotifier {
   ConflictResolutionController({
     required List<BibConflict> conflicts,
     required List<RaceRunner> candidates,
+    List<RaceRunner> roster = const [],
     required Set<String> knownBibs,
+    Map<String, String> savedBibOwners = const {},
     required List<String> teams,
     required this.raceName,
     required Future<Result<RaceRunner>> Function(NewRunner) createRunner,
+    Future<void> Function(RaceRunner)? withdrawRunner,
     this.timingConflictsNext = 0,
-  })  : _conflicts = List.unmodifiable(conflicts),
+  })  : _withdrawRunner = withdrawRunner,
+        _conflicts = List.unmodifiable(conflicts),
         _candidates = List.unmodifiable(candidates),
+        _roster = List.unmodifiable(roster),
         _knownBibs = Set.unmodifiable(knownBibs),
+        _savedBibOwners = Map.unmodifiable(savedBibOwners),
         _teams = List.unmodifiable(teams),
         _createRunner = createRunner;
 
@@ -80,10 +88,23 @@ class ConflictResolutionController extends ChangeNotifier {
   /// who a mistyped bib might really have been.
   final List<RaceRunner> _candidates;
 
+  /// Everyone in the race, placed or not, for each team's block of bibs.
+  final List<RaceRunner> _roster;
+
   /// Bibs already taken, so an added runner cannot reuse one.
   final Set<String> _knownBibs;
+
+  /// Bibs held by runners saved on this phone who are not in this race, with
+  /// each one's name. A bib belongs to one saved runner at most, so a runner
+  /// added with one of these must be that runner.
+  final Map<String, String> _savedBibOwners;
+  Map<String, String> get savedBibOwners => _savedBibOwners;
   final List<String> _teams;
   final Future<Result<RaceRunner>> Function(NewRunner) _createRunner;
+
+  /// Takes a runner added here back out of the race, once the answer that
+  /// added them is taken back: they used to stay entered, with no finish.
+  final Future<void> Function(RaceRunner)? _withdrawRunner;
 
   /// Shown in the header, so the coach knows which race this is.
   final String raceName;
@@ -189,10 +210,7 @@ class ConflictResolutionController extends ChangeNotifier {
   /// a mistyped bib is usually a digit or two from the real one.
   List<RaceRunner> runnersNearBib(String bib) {
     final target = int.tryParse(bib);
-    final used = _usedBibs;
-    final free = _candidates
-        .where((r) => !used.contains(r.runner.bibNumber))
-        .toList();
+    final free = _freeRunners;
     if (target == null) return free;
     int distance(RaceRunner r) {
       final value = int.tryParse(r.runner.bibNumber ?? '');
@@ -201,6 +219,22 @@ class ConflictResolutionController extends ChangeNotifier {
 
     return free..sort((a, b) => distance(a).compareTo(distance(b)));
   }
+
+  List<RaceRunner> get _freeRunners {
+    final used = _usedBibs;
+    return _candidates
+        .where((r) => !used.contains(r.runner.bibNumber))
+        .toList();
+  }
+
+  /// Who [bib] was most likely meant to be, with why: runners not placed
+  /// yet whose bib is one slip away, then the team whose bibs it falls
+  /// among.
+  List<RunnerSuggestion> suggestionsFor(String bib) => suggestRunnersForBib(
+        bib,
+        free: _freeRunners,
+        roster: _roster.isEmpty ? _candidates : _roster,
+      );
 
   /// Every bib already taken, so an added runner gets one of their own.
   Set<String> get allKnownBibs => {
@@ -211,6 +245,22 @@ class ConflictResolutionController extends ChangeNotifier {
         ?_pending?.newRunner?.bibNumber,
       };
 
+  /// The next bib number nobody has, in this race or saved from another, for
+  /// a runner added in place of a bib that turned out to be someone else's.
+  String get nextFreeBib {
+    final taken = {...allKnownBibs, ..._savedBibOwners.keys};
+    var highest = 0;
+    for (final bib in taken) {
+      final value = int.tryParse(bib);
+      if (value != null && value > highest) highest = value;
+    }
+    var next = highest + 1;
+    while (taken.contains('$next')) {
+      next++;
+    }
+    return '$next';
+  }
+
   // --- Results ------------------------------------------------------------
 
   /// Every settled finish, in finish order, for the review screen.
@@ -220,6 +270,17 @@ class ConflictResolutionController extends ChangeNotifier {
   /// Who finished at each settled place — what goes back into the results.
   Map<int, RaceRunner> get resolvedByPlace => {
         for (final entry in _settled.entries) entry.key: entry.value.raceRunner,
+      };
+
+  /// Who finished at each place of the conflicts fully resolved, kept when
+  /// the coach leaves part way: leaving used to throw every answer away. A
+  /// repeated bib half done is left out, as its runner would otherwise be
+  /// in the results twice.
+  Map<int, RaceRunner> get finishedByPlace => {
+        for (var i = 0; i < _conflicts.length; i++)
+          if (isResolved(i))
+            for (final place in placesOf(_conflicts[i]))
+              place: _settled[place]!.raceRunner,
       };
 
   // --- Navigation ---------------------------------------------------------
@@ -385,6 +446,26 @@ class ConflictResolutionController extends ChangeNotifier {
 
   // --- Internals ----------------------------------------------------------
 
+  void _withdraw(RaceRunner runner) {
+    final withdraw = _withdrawRunner;
+    if (withdraw == null) return;
+    withdraw(runner).catchError((Object e) {
+      Logger.e('Could not take an added runner back out of the race: $e');
+    });
+  }
+
+  /// Takes back out of the race the runners added for conflicts left
+  /// unfinished, as leaving keeps only the finished ones. Call when leaving.
+  void withdrawUnfinished() {
+    for (var i = 0; i < _conflicts.length; i++) {
+      if (isResolved(i)) continue;
+      for (final place in placesOf(_conflicts[i])) {
+        final entry = _settled[place];
+        if (entry?.kind == ResolutionKind.created) _withdraw(entry!.raceRunner);
+      }
+    }
+  }
+
   void _stage(_Pending pending) {
     _isGoingBack = false;
     _error = null;
@@ -423,7 +504,8 @@ class ConflictResolutionController extends ChangeNotifier {
   /// Forgets everything settled for conflict [index], so it can be redone.
   void _clear(int index) {
     for (final place in placesOf(_conflicts[index])) {
-      _settled.remove(place);
+      final entry = _settled.remove(place);
+      if (entry?.kind == ResolutionKind.created) _withdraw(entry!.raceRunner);
     }
     _ownerPlace.remove(index);
     if (_pending != null &&

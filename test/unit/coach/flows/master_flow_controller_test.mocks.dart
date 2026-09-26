@@ -242,9 +242,9 @@ class MockRaceScreenController extends _i1.Mock
           as _i7.IParentRaceController);
 
   @override
-  bool get isLocationButtonVisible =>
+  bool get shouldAutosave =>
       (super.noSuchMethod(
-            Invocation.getter(#isLocationButtonVisible),
+            Invocation.getter(#shouldAutosave),
             returnValue: false,
           )
           as bool);
@@ -277,6 +277,15 @@ class MockRaceScreenController extends _i1.Mock
   bool get hasListeners =>
       (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
           as bool);
+
+  @override
+  _i14.Future<void> deleteRace(_i2.BuildContext? context) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteRace, [context]),
+            returnValue: _i14.Future<void>.value(),
+            returnValueForMissingStub: _i14.Future<void>.value(),
+          )
+          as _i14.Future<void>);
 
   @override
   void trackFieldChange(_i4.RaceField? field) => super.noSuchMethod(
@@ -471,21 +480,6 @@ class MockRaceScreenController extends _i1.Mock
             ),
           )
           as _i8.DevicesManager);
-
-  @override
-  _i14.Future<void> getCurrentLocation(_i2.BuildContext? context) =>
-      (super.noSuchMethod(
-            Invocation.method(#getCurrentLocation, [context]),
-            returnValue: _i14.Future<void>.value(),
-            returnValueForMissingStub: _i14.Future<void>.value(),
-          )
-          as _i14.Future<void>);
-
-  @override
-  void updateLocationButtonVisibility() => super.noSuchMethod(
-    Invocation.method(#updateLocationButtonVisibility, []),
-    returnValueForMissingStub: null,
-  );
 
   @override
   void addListener(_i16.VoidCallback? listener) => super.noSuchMethod(
@@ -902,6 +896,14 @@ class MockMasterRace extends _i1.Mock implements _i3.MasterRace {
             returnValue: _i14.Future<int>.value(0),
           )
           as _i14.Future<int>);
+
+  @override
+  _i14.Future<List<_i20.Runner>> getAllSavedRunners() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAllSavedRunners, []),
+            returnValue: _i14.Future<List<_i20.Runner>>.value(<_i20.Runner>[]),
+          )
+          as _i14.Future<List<_i20.Runner>>);
 
   @override
   _i14.Future<void> addRunnerToTeam(int? teamId, int? runnerId) =>

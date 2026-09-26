@@ -14,7 +14,6 @@ class RaceFormState extends ChangeNotifier {
   final TextEditingController dateController = TextEditingController();
   final TextEditingController distanceController = TextEditingController();
   final TextEditingController unitController = TextEditingController();
-  final TextEditingController userLocationController = TextEditingController();
 
   // Validation errors per field
   final Map<RaceField, String?> _errors = {};
@@ -72,6 +71,25 @@ class RaceFormState extends ChangeNotifier {
       };
     }
   }
+
+  /// Whether every unsaved change fills in a detail that was blank, as when
+  /// a new race's details are first entered. Those are saved at once; a
+  /// change to a detail already set waits for Save Changes during setup.
+  bool get onlyFillsBlanks =>
+      _changedFields.isNotEmpty &&
+      _changedFields.every((field) {
+        final original = _originalValues[field];
+        return switch (field) {
+          RaceField.name || RaceField.location => (original ?? '') == '',
+          RaceField.date => original == null,
+          RaceField.distance => (original ?? 0) == 0,
+          // Always set (mi by default), so only saved alongside a distance
+          // being filled in.
+          RaceField.unit =>
+            _changedFields.contains(RaceField.distance) &&
+                (_originalValues[RaceField.distance] ?? 0) == 0,
+        };
+      });
 
   void trackChange(RaceField field) {
     final ctrl = controllerFor(field);
@@ -219,7 +237,6 @@ class RaceFormState extends ChangeNotifier {
     dateController.dispose();
     distanceController.dispose();
     unitController.dispose();
-    userLocationController.dispose();
     super.dispose();
   }
 }

@@ -204,6 +204,30 @@ void main() {
         expect(updated!.abbreviation, 'EGL');
       });
 
+      test('a new colour shows in every race the team is in', () async {
+        // Adding a team to a race saved a copy of its colour there, and races
+        // show the copy, so a changed colour never appeared.
+        final id = await repo.createTeam(validTeam);
+        final db = await connProvider.database;
+        await db.insert('races', {'race_id': 1, 'name': 'Invitational'});
+        await db.insert('race_team_participation', {
+          'race_id': 1,
+          'team_id': id,
+          'team_color_override': 0xFF2196F3,
+        });
+
+        await repo.updateTeam(Team(
+          teamId: id,
+          name: 'Eagles',
+          abbreviation: 'EAG',
+          color: const Color(0xFFFF0000),
+        ));
+
+        final row = (await db.query('race_team_participation')).single;
+        expect(row['team_color_override'], isNull);
+        expect(row['is_dirty'], 1, reason: 'so the change syncs');
+      });
+
       test('throws when team does not exist', () async {
         const nonExistent = Team(
           teamId: 9999,

@@ -7,7 +7,6 @@ import '../../../core/services/tutorial_manager.dart';
 import '../../../core/components/coach_mark.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/services/event_bus.dart';
-import '../../../core/services/geo_location_service.dart';
 import '../../../core/services/post_frame_callback_scheduler.dart';
 import '../../../core/services/i_sync_service.dart';
 import '../controller/races_controller.dart';
@@ -26,7 +25,6 @@ class RacesScreen extends StatefulWidget {
   final IRacesService? racesService;
   final IAuthService? authService;
   final IEventBus? eventBus;
-  final IGeoLocationService? geoLocationService;
   final IPostFrameCallbackScheduler? postFrameCallbackScheduler;
   final TutorialManager? tutorialManager;
 
@@ -36,7 +34,6 @@ class RacesScreen extends StatefulWidget {
     this.racesService,
     this.authService,
     this.eventBus,
-    this.geoLocationService,
     this.postFrameCallbackScheduler,
     this.tutorialManager,
   });
@@ -55,7 +52,6 @@ class RacesScreenState extends State<RacesScreen> {
       racesService: widget.racesService ?? RacesService(),
       authService: widget.authService ?? AuthService.instance,
       eventBus: widget.eventBus ?? EventBus.instance,
-      geoLocationService: widget.geoLocationService ?? GeoLocationService(),
       postFrameCallbackScheduler:
           widget.postFrameCallbackScheduler ?? WidgetsBindingAdapter(),
       tutorialManager: widget.tutorialManager ?? TutorialManager(),

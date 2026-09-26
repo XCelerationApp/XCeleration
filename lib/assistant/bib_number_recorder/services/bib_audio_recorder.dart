@@ -63,7 +63,7 @@ class BibAudioRecorder implements IBibAudioRecorder {
     if (!await _micAllowed()) {
       return const Failure(AppError(
         userMessage: 'Voice needs the microphone. Turn on Microphone for '
-            'Xceleration in the Settings app.',
+            'XCeleration in the Settings app.',
       ));
     }
     try {

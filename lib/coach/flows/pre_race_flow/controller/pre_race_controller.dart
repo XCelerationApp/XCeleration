@@ -6,9 +6,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/utils/enums.dart';
 import '../../../../core/services/device_connection_service.dart';
 import '../../../../core/utils/encode_utils.dart';
-import '../steps/review_runners/review_runners_step.dart';
 import '../steps/share_race/share_race_step.dart';
-import '../steps/flow_complete/pre_race_flow_complete_step.dart';
 import '../../../../core/components/device_connection_widget.dart';
 import '../../../../core/components/dialog_utils.dart';
 import '../../../../core/theme/app_colors.dart';
@@ -34,10 +32,7 @@ class PreRaceController {
   final Future<String> Function(MasterRace) encodeBibData;
   final ShowFlowFn _showFlow;
 
-  late ReviewRunnersStep _reviewRunnersStep;
   late ShareRaceStep _shareRaceStep;
-  late PreRaceFlowCompleteStep _preRaceFlowCompleteStep;
-  int? _lastStepIndex;
 
   PreRaceController({
     required this.masterRace,
@@ -60,12 +55,7 @@ class PreRaceController {
   }
 
   void _initializeSteps() {
-    _reviewRunnersStep = ReviewRunnersStep(
-      masterRace: masterRace,
-      onNext: _prepareShareData,
-    );
     _shareRaceStep = ShareRaceStep(devices: devices);
-    _preRaceFlowCompleteStep = PreRaceFlowCompleteStep();
   }
 
   /// Encodes the race and its roster for the assistants to receive.
@@ -84,14 +74,13 @@ class PreRaceController {
     devices.bibRecorder!.data = '$encodedRaceData---$encodedBibData';
   }
 
+  /// Sends the race to the volunteers' phones. The coach has already said,
+  /// in the confirmation before this, that they are at the race with the
+  /// roster checked, so the flow is just the connection page and Done.
   Future<bool> showPreRaceFlow(
       BuildContext context, bool showProgressIndicator) async {
-    final int startIndex = _lastStepIndex ?? 0;
-    // Reopening past the review step skips the step that encodes the race,
-    // and the roster may have changed since the sheet was closed.
-    if (startIndex > 0) await _prepareShareData();
-    // Ensure initial proceed state is computed before rendering the sheet
-    await _reviewRunnersStep.seedInitialProceed();
+    // Encoded each time it opens: the roster may have changed since.
+    await _prepareShareData();
     if (!context.mounted) {
       return false;
     }
@@ -99,10 +88,8 @@ class PreRaceController {
       context: context,
       showProgressIndicator: showProgressIndicator,
       steps: _getSteps(),
-      initialIndex: startIndex,
-      onDismiss: (lastIndex) {
-        _lastStepIndex = lastIndex;
-      },
+      initialIndex: 0,
+      onDismiss: (_) {},
     );
   }
 
@@ -155,11 +142,7 @@ class PreRaceController {
       );
 
   List<FlowStep> _getSteps() {
-    return [
-      _reviewRunnersStep,
-      _shareRaceStep,
-      _preRaceFlowCompleteStep,
-    ];
+    return [_shareRaceStep];
   }
 
   @visibleForTesting

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:xceleration/core/components/button_components.dart';
+import '../../../../../../core/components/button_components.dart';
+import '../../../../../../core/components/dialog_utils.dart';
 
-/// A styled button for reloading race results
+/// Loads the results from the volunteers' phones again. Secondary to Next,
+/// and asks first: it throws away every fix made since they were loaded.
 class ReloadButton extends StatelessWidget {
   /// Function to call when the reload button is pressed
   final VoidCallback onPressed;
@@ -13,15 +15,21 @@ class ReloadButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FullWidthButton(
-      text: 'Reload Results',
-      icon: Icons.download_sharp,
-      iconSize: 18,
-      onPressed: onPressed,
-      borderRadius: 12, // Less round for a cleaner look
-      fontSize: 16,
-      fontWeight: FontWeight.w600,
-      elevation: 0.5, // Subtle shadow for modern look
+    return SecondaryButton(
+      text: 'Load Again',
+      icon: Icons.refresh,
+      size: ButtonSize.fullWidth,
+      onPressed: () async {
+        final again = await DialogUtils.showConfirmationDialog(
+          context,
+          title: 'Load the Results Again?',
+          content: 'This connects to the volunteers\' phones again. Any '
+              'bibs or times you fixed here are lost.',
+          confirmText: 'Load Again',
+          cancelText: 'Cancel',
+        );
+        if (again) onPressed();
+      },
     );
   }
 }

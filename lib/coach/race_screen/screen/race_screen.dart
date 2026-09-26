@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/theme/app_animations.dart';
 import 'package:xceleration/core/utils/enums.dart' hide EventTypes;
 import 'package:xceleration/shared/models/database/master_race.dart';
 import '../controller/race_screen_controller.dart';
@@ -183,7 +184,16 @@ class _RaceScreenContent extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 if (state.flowState != Race.FLOW_FINISHED) ...[
-                  RaceHeader(controller: controller),
+                  // Folded away on the runners page, which has its own bar
+                  // back to the race, so the list gets the room.
+                  AnimatedSize(
+                    duration: AppAnimations.standard,
+                    curve: AppAnimations.spring,
+                    alignment: Alignment.topCenter,
+                    child: state.showingRunners
+                        ? const SizedBox(width: double.infinity)
+                        : RaceHeader(controller: controller),
+                  ),
                   Expanded(
                     child: SlidingPageView(
                       showSecondPage: state.showingRunners,
@@ -204,6 +214,7 @@ class _RaceScreenContent extends StatelessWidget {
                             return TeamsAndRunnersManagementWidget(
                               masterRace: masterRace,
                               showHeader: true,
+                              backLabel: controller.race.raceName,
                               onBack: () => controller
                                   .navigateToRaceDetails(context)
                                   .catchError((e) => debugPrint('$e')),

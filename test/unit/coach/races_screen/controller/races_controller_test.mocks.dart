@@ -4,25 +4,22 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i3;
-import 'dart:ui' as _i13;
+import 'dart:ui' as _i10;
 
-import 'package:flutter/material.dart' as _i7;
-import 'package:geocoding/geocoding.dart' as _i11;
-import 'package:geolocator/geolocator.dart' as _i4;
+import 'package:flutter/material.dart' as _i6;
 import 'package:gotrue/gotrue.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/coach/races_screen/services/races_service.dart'
-    as _i5;
-import 'package:xceleration/core/services/auth_service.dart' as _i8;
+    as _i4;
+import 'package:xceleration/core/services/auth_service.dart' as _i7;
 import 'package:xceleration/core/services/color_picker_dialog_service.dart'
-    as _i16;
-import 'package:xceleration/core/services/date_picker_service.dart' as _i15;
-import 'package:xceleration/core/services/event_bus.dart' as _i9;
-import 'package:xceleration/core/services/geo_location_service.dart' as _i10;
+    as _i13;
+import 'package:xceleration/core/services/date_picker_service.dart' as _i12;
+import 'package:xceleration/core/services/event_bus.dart' as _i8;
 import 'package:xceleration/core/services/post_frame_callback_scheduler.dart'
-    as _i12;
-import 'package:xceleration/core/services/tutorial_manager.dart' as _i14;
-import 'package:xceleration/shared/models/database/race.dart' as _i6;
+    as _i9;
+import 'package:xceleration/core/services/tutorial_manager.dart' as _i11;
+import 'package:xceleration/shared/models/database/race.dart' as _i5;
 
 // ignore_for_file: type=lint
 // ignore_for_file: avoid_redundant_argument_values
@@ -50,29 +47,24 @@ class _FakeStreamSubscription_1<T1> extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakePosition_2 extends _i1.SmartFake implements _i4.Position {
-  _FakePosition_2(Object parent, Invocation parentInvocation)
-    : super(parent, parentInvocation);
-}
-
 /// A class which mocks [IRacesService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIRacesService extends _i1.Mock implements _i5.IRacesService {
+class MockIRacesService extends _i1.Mock implements _i4.IRacesService {
   MockIRacesService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  _i3.Future<List<_i6.Race>> loadRaces() =>
+  _i3.Future<List<_i5.Race>> loadRaces() =>
       (super.noSuchMethod(
             Invocation.method(#loadRaces, []),
-            returnValue: _i3.Future<List<_i6.Race>>.value(<_i6.Race>[]),
+            returnValue: _i3.Future<List<_i5.Race>>.value(<_i5.Race>[]),
           )
-          as _i3.Future<List<_i6.Race>>);
+          as _i3.Future<List<_i5.Race>>);
 
   @override
-  _i3.Future<int> createRace(_i6.Race? race) =>
+  _i3.Future<int> createRace(_i5.Race? race) =>
       (super.noSuchMethod(
             Invocation.method(#createRace, [race]),
             returnValue: _i3.Future<int>.value(0),
@@ -80,7 +72,7 @@ class MockIRacesService extends _i1.Mock implements _i5.IRacesService {
           as _i3.Future<int>);
 
   @override
-  _i3.Future<void> updateRace(_i6.Race? race) =>
+  _i3.Future<void> updateRace(_i5.Race? race) =>
       (super.noSuchMethod(
             Invocation.method(#updateRace, [race]),
             returnValue: _i3.Future<void>.value(),
@@ -120,11 +112,11 @@ class MockIRacesService extends _i1.Mock implements _i5.IRacesService {
 
   @override
   String? getFirstError({
-    required _i7.TextEditingController? nameController,
-    required _i7.TextEditingController? locationController,
-    required _i7.TextEditingController? dateController,
-    required _i7.TextEditingController? distanceController,
-    required List<_i7.TextEditingController>? teamControllers,
+    required _i6.TextEditingController? nameController,
+    required _i6.TextEditingController? locationController,
+    required _i6.TextEditingController? dateController,
+    required _i6.TextEditingController? distanceController,
+    required List<_i6.TextEditingController>? teamControllers,
   }) =>
       (super.noSuchMethod(
             Invocation.method(#getFirstError, [], {
@@ -141,7 +133,7 @@ class MockIRacesService extends _i1.Mock implements _i5.IRacesService {
 /// A class which mocks [IAuthService].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIAuthService extends _i1.Mock implements _i8.IAuthService {
+class MockIAuthService extends _i1.Mock implements _i7.IAuthService {
   MockIAuthService() {
     _i1.throwOnMissingStub(this);
   }
@@ -243,13 +235,13 @@ class MockIAuthService extends _i1.Mock implements _i8.IAuthService {
 /// A class which mocks [IEventBus].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIEventBus extends _i1.Mock implements _i9.IEventBus {
+class MockIEventBus extends _i1.Mock implements _i8.IEventBus {
   MockIEventBus() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  void publish(_i9.Event? event) => super.noSuchMethod(
+  void publish(_i8.Event? event) => super.noSuchMethod(
     Invocation.method(#publish, [event]),
     returnValueForMissingStub: null,
   );
@@ -261,92 +253,31 @@ class MockIEventBus extends _i1.Mock implements _i9.IEventBus {
   );
 
   @override
-  _i3.StreamSubscription<_i9.Event> on<T>(
+  _i3.StreamSubscription<_i8.Event> on<T>(
     String? eventType,
-    void Function(_i9.Event)? onData,
+    void Function(_i8.Event)? onData,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#on, [eventType, onData]),
-            returnValue: _FakeStreamSubscription_1<_i9.Event>(
+            returnValue: _FakeStreamSubscription_1<_i8.Event>(
               this,
               Invocation.method(#on, [eventType, onData]),
             ),
           )
-          as _i3.StreamSubscription<_i9.Event>);
-}
-
-/// A class which mocks [IGeoLocationService].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockIGeoLocationService extends _i1.Mock
-    implements _i10.IGeoLocationService {
-  MockIGeoLocationService() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  _i3.Future<_i4.LocationPermission> checkPermission() =>
-      (super.noSuchMethod(
-            Invocation.method(#checkPermission, []),
-            returnValue: _i3.Future<_i4.LocationPermission>.value(
-              _i4.LocationPermission.denied,
-            ),
-          )
-          as _i3.Future<_i4.LocationPermission>);
-
-  @override
-  _i3.Future<_i4.LocationPermission> requestPermission() =>
-      (super.noSuchMethod(
-            Invocation.method(#requestPermission, []),
-            returnValue: _i3.Future<_i4.LocationPermission>.value(
-              _i4.LocationPermission.denied,
-            ),
-          )
-          as _i3.Future<_i4.LocationPermission>);
-
-  @override
-  _i3.Future<bool> isLocationServiceEnabled() =>
-      (super.noSuchMethod(
-            Invocation.method(#isLocationServiceEnabled, []),
-            returnValue: _i3.Future<bool>.value(false),
-          )
-          as _i3.Future<bool>);
-
-  @override
-  _i3.Future<_i4.Position> getCurrentPosition() =>
-      (super.noSuchMethod(
-            Invocation.method(#getCurrentPosition, []),
-            returnValue: _i3.Future<_i4.Position>.value(
-              _FakePosition_2(this, Invocation.method(#getCurrentPosition, [])),
-            ),
-          )
-          as _i3.Future<_i4.Position>);
-
-  @override
-  _i3.Future<List<_i11.Placemark>> placemarkFromCoordinates(
-    double? lat,
-    double? lng,
-  ) =>
-      (super.noSuchMethod(
-            Invocation.method(#placemarkFromCoordinates, [lat, lng]),
-            returnValue: _i3.Future<List<_i11.Placemark>>.value(
-              <_i11.Placemark>[],
-            ),
-          )
-          as _i3.Future<List<_i11.Placemark>>);
+          as _i3.StreamSubscription<_i8.Event>);
 }
 
 /// A class which mocks [IPostFrameCallbackScheduler].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIPostFrameCallbackScheduler extends _i1.Mock
-    implements _i12.IPostFrameCallbackScheduler {
+    implements _i9.IPostFrameCallbackScheduler {
   MockIPostFrameCallbackScheduler() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  void addPostFrameCallback(_i13.VoidCallback? callback) => super.noSuchMethod(
+  void addPostFrameCallback(_i10.VoidCallback? callback) => super.noSuchMethod(
     Invocation.method(#addPostFrameCallback, [callback]),
     returnValueForMissingStub: null,
   );
@@ -355,7 +286,7 @@ class MockIPostFrameCallbackScheduler extends _i1.Mock
 /// A class which mocks [TutorialManager].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockTutorialManager extends _i1.Mock implements _i14.TutorialManager {
+class MockTutorialManager extends _i1.Mock implements _i11.TutorialManager {
   MockTutorialManager() {
     _i1.throwOnMissingStub(this);
   }
@@ -366,7 +297,7 @@ class MockTutorialManager extends _i1.Mock implements _i14.TutorialManager {
           as bool);
 
   @override
-  void setTargetRect(_i13.Rect? rect) => super.noSuchMethod(
+  void setTargetRect(_i10.Rect? rect) => super.noSuchMethod(
     Invocation.method(#setTargetRect, [rect]),
     returnValueForMissingStub: null,
   );
@@ -395,13 +326,13 @@ class MockTutorialManager extends _i1.Mock implements _i14.TutorialManager {
           as _i3.Future<bool>);
 
   @override
-  void addListener(_i13.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i10.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i13.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i10.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -423,14 +354,14 @@ class MockTutorialManager extends _i1.Mock implements _i14.TutorialManager {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIDatePickerService extends _i1.Mock
-    implements _i15.IDatePickerService {
+    implements _i12.IDatePickerService {
   MockIDatePickerService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
   _i3.Future<DateTime?> pickDate(
-    _i7.BuildContext? context, {
+    _i6.BuildContext? context, {
     DateTime? initialDate,
     DateTime? firstDate,
     DateTime? lastDate,
@@ -454,16 +385,16 @@ class MockIDatePickerService extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIColorPickerDialogService extends _i1.Mock
-    implements _i16.IColorPickerDialogService {
+    implements _i13.IColorPickerDialogService {
   MockIColorPickerDialogService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
   void showColorPicker(
-    _i7.BuildContext? context, {
-    required _i13.Color? currentColor,
-    required _i7.ValueChanged<_i13.Color>? onColorChanged,
+    _i6.BuildContext? context, {
+    required _i10.Color? currentColor,
+    required _i6.ValueChanged<_i10.Color>? onColorChanged,
   }) => super.noSuchMethod(
     Invocation.method(
       #showColorPicker,

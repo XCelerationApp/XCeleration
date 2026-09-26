@@ -33,5 +33,4 @@ export 'connection_interfaces.dart';
 export 'connectivity_utils.dart';
 
 // Permissions & Device
-export 'permissions_utils.dart';
 export 'platform_checker.dart';

@@ -118,7 +118,7 @@ class _HoldToTalk extends StatelessWidget {
           : processing
               ? 'Checking…'
               : 'Hold and Say Bib',
-      sublabel: listening ? 'Let go when you have said it' : null,
+      sublabel: listening ? 'Speak after the tap, then let go' : null,
       icon: Icons.mic,
       color: listening ? AppColors.darkPrimaryColor : AppColors.primaryColor,
       onTapDown: voice.startListening,
@@ -182,8 +182,12 @@ class _HintLine extends StatelessWidget {
       ),
       child: Text(
         missed
-            ? 'Didn\'t catch that. Hold the button and say it again.'
-            : 'Say each runner\'s bib as they finish, like "four one two".',
+            ? 'Didn\'t catch that. Hold the phone closer, and say it again '
+                'after the tap.'
+            // The phone near the mouth: the finish line is loud, and the
+            // mic picks up the crowd as much as a phone held at arm's length.
+            : 'Hold the phone near your mouth. Press, wait for the tap, then '
+                'say the bib, like "four one two".',
         style: AppTypography.bodySemibold.copyWith(
             color: missed ? AppColors.redColor : AppColors.mediumColor),
       ),

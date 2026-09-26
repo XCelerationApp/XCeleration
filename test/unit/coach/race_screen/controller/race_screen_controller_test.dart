@@ -4,7 +4,6 @@ import 'package:mockito/annotations.dart';
 import 'package:mockito/mockito.dart';
 import 'package:xceleration/coach/flows/controller/flow_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_form_state.dart';
-import 'package:xceleration/coach/race_screen/controller/race_geo_controller.dart';
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart';
 import 'package:xceleration/coach/race_screen/services/race_service.dart';
 import 'package:xceleration/coach/races_screen/controller/i_parent_race_controller.dart';
@@ -23,7 +22,6 @@ import 'package:xceleration/shared/models/database/race.dart';
   IDatePickerService,
   IEventBus,
   IDeviceConnectionFactory,
-  RaceGeoController,
 ])
 import 'race_screen_controller_test.mocks.dart';
 
@@ -54,7 +52,6 @@ void main() {
   late MockIDatePickerService mockDatePickerService;
   late MockIEventBus mockEventBus;
   late MockIDeviceConnectionFactory mockDevicesFactory;
-  late MockRaceGeoController mockGeoController;
   late RaceScreenController controller;
 
   // A fully-populated test race (flowState != FLOW_SETUP avoids the
@@ -76,7 +73,6 @@ void main() {
     mockDatePickerService = MockIDatePickerService();
     mockEventBus = MockIEventBus();
     mockDevicesFactory = MockIDeviceConnectionFactory();
-    mockGeoController = MockRaceGeoController();
 
     // Common stubs required on almost every code path
     when(mockMasterRace.raceId).thenReturn(1);
@@ -92,7 +88,6 @@ void main() {
     when(mockFlowController.markCurrentFlowCompleted(any))
         .thenAnswer((_) async {});
     when(mockFlowController.beginNextFlow(any)).thenAnswer((_) async {});
-    when(mockGeoController.isLocationButtonVisible).thenReturn(true);
 
     controller = RaceScreenController(
       masterRace: mockMasterRace,
@@ -101,7 +96,6 @@ void main() {
       flowController: mockFlowController,
       eventBus: mockEventBus,
       devicesFactory: mockDevicesFactory,
-      geoController: mockGeoController,
       raceService: RaceService(),
     );
   });
@@ -261,6 +255,44 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
+    group('deleteRace', () {
+      Future<(BuildContext, BuildContext)> openRaceSheet(
+          WidgetTester tester) async {
+        final home = await _buildContext(tester);
+        await controller.loadAllData(home);
+        BuildContext? sheetCtx;
+        Navigator.of(home).push(MaterialPageRoute<void>(builder: (context) {
+          sheetCtx = context;
+          return const Text('race sheet');
+        }));
+        await tester.pumpAndSettle();
+        return (home, sheetCtx!);
+      }
+
+      testWidgets('closes the race once it is deleted', (tester) async {
+        final (_, sheetCtx) = await openRaceSheet(tester);
+        when(mockParentController.deleteRace(any, any))
+            .thenAnswer((_) async => true);
+
+        await controller.deleteRace(sheetCtx);
+        await tester.pumpAndSettle();
+
+        verify(mockParentController.deleteRace(testRace, any)).called(1);
+        expect(find.text('race sheet'), findsNothing);
+      });
+
+      testWidgets('stays open when the coach says no', (tester) async {
+        final (_, sheetCtx) = await openRaceSheet(tester);
+        when(mockParentController.deleteRace(any, any))
+            .thenAnswer((_) async => false);
+
+        await controller.deleteRace(sheetCtx);
+        await tester.pumpAndSettle();
+
+        expect(find.text('race sheet'), findsOneWidget);
+      });
+    });
+
     group('loadAllData', () {
       testWidgets(
           'happy path: isLoading transitions true→false, race data is populated',
@@ -374,6 +406,51 @@ void main() {
         await controller.handleFieldFocusLoss(ctx, RaceField.name);
 
         verifyNever(mockMasterRace.updateRace(any));
+      });
+
+      testWidgets(
+          'in setup flow: filling in a blank detail saves it at once',
+          (tester) async {
+        final setupRace = Race(
+          raceId: 1,
+          raceName: 'Test',
+          location: '',
+          flowState: Race.FLOW_SETUP,
+        );
+        when(mockMasterRace.race).thenAnswer((_) async => setupRace);
+
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        controller.form.locationController.text = 'Crystal Springs';
+
+        await controller.handleFieldFocusLoss(ctx, RaceField.location);
+
+        verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
+        expect(controller.form.hasUnsavedChanges, isFalse);
+      });
+
+      testWidgets(
+          'in setup flow: a blank filled in beside a changed detail waits',
+          (tester) async {
+        final setupRace = Race(
+          raceId: 1,
+          raceName: 'Test',
+          location: '',
+          flowState: Race.FLOW_SETUP,
+        );
+        when(mockMasterRace.race).thenAnswer((_) async => setupRace);
+
+        final ctx = await _buildContext(tester);
+        await controller.loadAllData(ctx);
+
+        controller.form.nameController.text = 'Renamed';
+        await controller.handleFieldFocusLoss(ctx, RaceField.name);
+        controller.form.locationController.text = 'Crystal Springs';
+        await controller.handleFieldFocusLoss(ctx, RaceField.location);
+
+        verifyNever(mockMasterRace.updateRace(any));
+        expect(controller.form.hasUnsavedChanges, isTrue);
       });
 
       testWidgets(
@@ -717,28 +794,8 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
-    group('getCurrentLocation', () {
-      testWidgets('delegates to RaceGeoController.getCurrentLocation',
-          (tester) async {
-        final ctx = await _buildContext(tester);
-        when(mockGeoController.getCurrentLocation(any))
-            .thenAnswer((_) async {});
-
-        await controller.getCurrentLocation(ctx);
-
-        verify(mockGeoController.getCurrentLocation(ctx)).called(1);
-      });
-    });
 
     // -------------------------------------------------------------------------
-    group('isLocationButtonVisible', () {
-      test('delegates to RaceGeoController.isLocationButtonVisible', () {
-        when(mockGeoController.isLocationButtonVisible).thenReturn(false);
-
-        expect(controller.isLocationButtonVisible, isFalse);
-        verify(mockGeoController.isLocationButtonVisible).called(1);
-      });
-    });
 
     // -------------------------------------------------------------------------
     group('_masterRaceListener', () {
@@ -758,8 +815,7 @@ void main() {
           flowController: mockFlowController,
           eventBus: mockEventBus,
           devicesFactory: mockDevicesFactory,
-          geoController: mockGeoController,
-          raceService: RaceService(),
+              raceService: RaceService(),
         );
       });
 

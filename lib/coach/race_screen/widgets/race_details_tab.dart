@@ -10,7 +10,6 @@ import 'package:xceleration/core/components/textfield_utils.dart';
 import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 import 'inline_editable_field.dart';
-import 'dart:io';
 import '../../../shared/models/database/race.dart';
 
 class RaceDetailsTab extends StatelessWidget {
@@ -22,8 +21,8 @@ class RaceDetailsTab extends StatelessWidget {
   });
 
   Widget _buildLocationEditWidget(BuildContext context) {
-    final canLocate = controller.isLocationButtonVisible &&
-        (Platform.isIOS || Platform.isAndroid);
+    // Typed, like "Crystal Springs". A locate button used to fill in the
+    // phone's street address or coordinates, which coaches found confusing.
     return Focus(
       onFocusChange: (hasFocus) {
         if (!hasFocus) {
@@ -33,19 +32,10 @@ class RaceDetailsTab extends StatelessWidget {
       child: buildTextField(
         context: context,
         controller: controller.form.locationController,
-        hint: 'Where is the race?',
+        hint: 'Where is the race? e.g. Crystal Springs',
         error: controller.form.errorFor(RaceField.location),
         onChanged: (_) => controller.trackFieldChange(RaceField.location),
         keyboardType: TextInputType.text,
-        // Inside the field, so the field keeps the full width.
-        suffixIcon: canLocate
-            ? IconButton(
-                tooltip: 'Use my location',
-                icon: const Icon(Icons.my_location,
-                    color: AppColors.primaryColor),
-                onPressed: () => controller.getCurrentLocation(context),
-              )
-            : null,
       ),
     );
   }
@@ -115,6 +105,16 @@ class RaceDetailsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Rebuilt whenever the race or its form changes. The race screen above
+    // only rebuilds for a few things, so tapping a field's pencil marked it
+    // for editing without redrawing it, and the pencil seemed to do nothing.
+    return ListenableBuilder(
+      listenable: controller,
+      builder: (context, _) => _buildDetails(context),
+    );
+  }
+
+  Widget _buildDetails(BuildContext context) {
     final race = controller.race;
     final raceRunners = controller.raceRunners;
     final teams = controller.teams;

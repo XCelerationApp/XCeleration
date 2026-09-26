@@ -12,6 +12,7 @@ import '../model/timing_utils.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../../../core/utils/sheet_utils.dart';
+import '../../../core/components/adjust_times_form.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
@@ -132,8 +133,21 @@ class TimingController extends TimingData {
     );
     sheet(
       context: context,
-      title: 'Load Race',
-      body: DeviceConnectionWidget(
+      title: 'Get Race from Coach',
+      body: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(bottom: 16),
+            child: Text(
+              'On the coach\'s phone, open the race and tap Send to '
+              'Volunteers.',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 15, color: Color(0xFF606060)),
+            ),
+          ),
+          DeviceConnectionWidget(
         devices: devices,
         callback: () async {
           final data = devices.coach?.data;
@@ -142,6 +156,8 @@ class TimingController extends TimingData {
           }
           await loadRaceFromCoach(data);
         },
+      ),
+        ],
       ),
     );
   }
@@ -178,9 +194,19 @@ class TimingController extends TimingData {
     }
   }
 
+  /// A practice race started longer ago than this is started fresh when it
+  /// opens: left from another day, its clock read 13 hours and new times
+  /// five and a half, which looked broken.
+  static const stalePractice = Duration(hours: 2);
+
   Future<void> _loadRace(RaceRecord raceRecord) async {
     // Let queued saves finish first, so what is read back is up to date.
     await pendingWrites;
+    if (DemoRaceGenerator.isDemoRace(raceRecord) &&
+        raceRecord.startedAt != null &&
+        clockNow.difference(raceRecord.startedAt!) > stalePractice) {
+      raceRecord = await _resetPractice(raceRecord);
+    }
     // Read the saved times first. If that fails the race must not open: new
     // times would be saved over the unread chunks, which start at the same ids.
     final chunksResult = await _storage.getChunks(raceRecord.raceId);
@@ -222,6 +248,23 @@ class TimingController extends TimingData {
     }
     invalidateRecordsCache();
     notifyListeners();
+  }
+
+  /// Clears the practice race's times and clock, so it starts again.
+  Future<RaceRecord> _resetPractice(RaceRecord race) async {
+    final id = race.raceId, type = race.type;
+    await _storage.deleteChunks(id);
+    await _storage.saveChunk(id, TimingChunk(id: 0, timingData: []));
+    await _storage.updateRaceStartTime(id, type, null);
+    await _storage.updateRaceDuration(id, type, null);
+    await _storage.updateRaceStatus(id, type, true);
+    return RaceRecord(
+      raceId: id,
+      date: race.date,
+      name: race.name,
+      type: type,
+      stopped: true,
+    );
   }
 
   /// Loads a previous race and its timing records
@@ -562,6 +605,27 @@ class TimingController extends TimingData {
       default:
         return false;
     }
+  }
+
+  /// For a Timer who pressed Start before or after the gun: moves the clock
+  /// and every time by the seconds they say.
+  Future<void> showAdjustStartSheet(BuildContext context) async {
+    await sheet(
+      context: context,
+      title: 'Started Early or Late?',
+      body: AdjustTimesForm(
+        explanation: timeShift == Duration.zero
+            ? 'Pressed Start after the gun? Every time is short by the same '
+                'amount. Say how many seconds and the clock and every time '
+                'are corrected, so your coach gets times from the gun.'
+            : 'Times already moved ${describeShift(timeShift)}. Any change '
+                'here is added to that.',
+        onShift: (by) {
+          final refused = shiftAllTimes(by);
+          return refused == null ? null : AppError(userMessage: refused);
+        },
+      ),
+    );
   }
 
   Future<void> downloadRace(BuildContext context) async {

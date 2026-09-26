@@ -1,13 +1,14 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../../../core/app_error.dart';
+import '../../../core/components/dialog_utils.dart';
 import '../../../core/components/runner_form_validator.dart';
-import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/utils/grade_utils.dart';
+import '../../../core/components/grade_selector.dart';
 import '../../../shared/models/database/race_runner.dart';
 import '../../../shared/models/database/runner.dart';
 import '../../../shared/models/database/team.dart';
@@ -23,6 +24,9 @@ class AddRunnersToTeamSheet extends StatefulWidget {
 
   final Team team;
   final int raceId;
+
+  /// Saves the runner. Throwing leaves the form as it is; otherwise Add
+  /// Runner closes the sheet and Add & Next clears it for the next runner.
   final Future<void> Function(RaceRunner raceRunner) onSubmit;
   final Future<Runner?> Function(String bib) getRunnerByBib;
 
@@ -38,6 +42,12 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
   int? _selectedGrade;
   String? _bibError;
   bool _isSubmitting = false;
+  bool _triedSubmit = false;
+  bool _gradeMissing = false;
+
+  /// Who Add & Next last added, so the coach sees it worked.
+  String? _lastAdded;
+  final _nameFocus = FocusNode();
 
   Timer? _bibDebounce;
 
@@ -45,6 +55,7 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
   void dispose() {
     _nameController.dispose();
     _bibController.dispose();
+    _nameFocus.dispose();
     _bibDebounce?.cancel();
     super.dispose();
   }
@@ -67,25 +78,21 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
     });
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
-    if (_selectedGrade == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Please select a grade',
-            style: AppTypography.smallBodyRegular,
-          ),
-          backgroundColor: AppColors.redColor,
-        ),
-      );
-      return;
-    }
+  Future<void> _submit({bool addAnother = false}) async {
+    // Every problem at once. The grade used to be checked in a snackbar
+    // that appeared behind this sheet, so Add Runner seemed to do nothing.
+    final fieldsOk = _formKey.currentState!.validate();
+    setState(() {
+      _triedSubmit = true;
+      _gradeMissing = _selectedGrade == null;
+    });
+    if (!fieldsOk || _gradeMissing) return;
     if (_bibError != null) return;
 
     setState(() => _isSubmitting = true);
+    final RaceRunner raceRunner;
     try {
-      final raceRunner = RaceRunner(
+      raceRunner = RaceRunner(
         raceId: widget.raceId,
         runner: Runner(
           name: _nameController.text.trim(),
@@ -95,22 +102,71 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
         team: widget.team,
       );
       await widget.onSubmit(raceRunner);
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isSubmitting = false);
+        DialogUtils.showErrorDialog(
+          context,
+          message: e is DataInUseException
+              ? e.message
+              : 'Could not add the runner. Please try again.',
+        );
+      }
+      return;
     }
+    if (!mounted) return;
+    if (!addAnother) {
+      setState(() => _isSubmitting = false);
+      Navigator.of(context).maybePop();
+      return;
+    }
+    // Ready for the next runner on the team: the grade often repeats, so it
+    // stays picked.
+    setState(() {
+      _isSubmitting = false;
+      _triedSubmit = false;
+      _lastAdded = raceRunner.runner.name;
+      _nameController.clear();
+      _bibController.clear();
+      _bibError = null;
+    });
+    _nameFocus.requestFocus();
   }
 
   @override
   Widget build(BuildContext context) {
     return Form(
       key: _formKey,
+      // After a failed Add, errors clear as each field is fixed rather than
+      // staying until the next tap.
+      autovalidateMode: _triedSubmit
+          ? AutovalidateMode.onUserInteraction
+          : AutovalidateMode.disabled,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (_lastAdded != null) ...[
+            Row(
+              children: [
+                const Icon(Icons.check_circle,
+                    size: 18, color: AppColors.statusFinished),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    'Added $_lastAdded. Next runner:',
+                    key: const ValueKey('last_added'),
+                    style: AppTypography.smallBodySemibold
+                        .copyWith(color: AppColors.mediumColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.md),
+          ],
           const _FieldLabel('Name'),
           const SizedBox(height: AppSpacing.xs),
-          _NameField(controller: _nameController),
+          _NameField(controller: _nameController, focusNode: _nameFocus),
           const SizedBox(height: AppSpacing.md),
           const _FieldLabel('Bib #'),
           const SizedBox(height: AppSpacing.xs),
@@ -122,14 +178,46 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
           const SizedBox(height: AppSpacing.md),
           const _FieldLabel('Grade'),
           const SizedBox(height: AppSpacing.xs),
-          _GradeSelector(
+          GradeSelector(
             selected: _selectedGrade,
-            onSelected: (grade) => setState(() => _selectedGrade = grade),
+            onSelected: (grade) => setState(() {
+              _selectedGrade = grade;
+              _gradeMissing = false;
+            }),
           ),
+          if (_gradeMissing)
+            Padding(
+              padding: const EdgeInsets.only(
+                  top: AppSpacing.xs, left: AppSpacing.md),
+              child: Text(
+                'Please pick a grade',
+                style: AppTypography.caption
+                    .copyWith(color: AppColors.redColor),
+              ),
+            ),
           const SizedBox(height: AppSpacing.xl),
           _SubmitButton(
             isSubmitting: _isSubmitting,
             onPressed: _submit,
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          // Three taps per runner, and the sheet closed after each one:
+          // this keeps it open for the next.
+          OutlinedButton(
+            key: const ValueKey('add_and_next'),
+            onPressed:
+                _isSubmitting ? null : () => _submit(addAnother: true),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.primaryColor,
+              side: const BorderSide(color: AppColors.primaryColor),
+              minimumSize: const Size.fromHeight(48),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+              ),
+            ),
+            child: Text('Add & Next',
+                style: AppTypography.bodySemibold
+                    .copyWith(color: AppColors.primaryColor)),
           ),
         ],
       ),
@@ -154,14 +242,16 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _NameField extends StatelessWidget {
-  const _NameField({required this.controller});
+  const _NameField({required this.controller, this.focusNode});
 
   final TextEditingController controller;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       textCapitalization: TextCapitalization.words,
       decoration: InputDecoration(
         hintText: "Runner's full name",
@@ -257,81 +347,6 @@ class _BibField extends StatelessWidget {
         color: AppColors.darkColor,
       ),
       validator: (v) => RunnerFormValidator.validateBibFormat(v ?? ''),
-    );
-  }
-}
-
-class _GradeSelector extends StatelessWidget {
-  const _GradeSelector({
-    required this.selected,
-    required this.onSelected,
-  });
-
-  final int? selected;
-  final ValueChanged<int> onSelected;
-
-  static const _grades = [9, 10, 11, 12];
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: _grades.map((grade) {
-        final isSelected = selected == grade;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(
-              right: grade != 12 ? AppSpacing.sm : 0,
-            ),
-            child: _GradePill(
-              label: gradeLabel(grade),
-              isSelected: isSelected,
-              onTap: () => onSelected(grade),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-}
-
-class _GradePill extends StatelessWidget {
-  const _GradePill({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: AppAnimations.fast,
-        curve: AppAnimations.spring,
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
-              : AppColors.surfaceColor,
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          border: Border.all(
-            color: isSelected ? AppColors.primaryColor : AppColors.borderColor,
-            width: 1.5,
-          ),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: isSelected ? AppColors.primaryColor : AppColors.mediumColor,
-            ),
-          ),
-        ),
-      ),
     );
   }
 }

@@ -16,34 +16,44 @@ class _TwoOccurrenceStep1 extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Bib #${conflict.bibNumber} was recorded ${conflict.occurrences.length} times. Select the finish time that belongs to this runner.',
+          'Bib #${conflict.bibNumber} was typed at two finishes. Which one '
+          'was ${conflict.runner.runner.name ?? 'this runner'}? The other '
+          'was a typo for someone else.',
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
         const SizedBox(height: AppSpacing.md),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _OccurrenceTile(
-                occurrence: conflict.occurrences[0],
-                conflict: conflict,
-                onConfirm: () => controller
-                    .chooseDuplicateOccurrence(conflict.occurrences[0].place),
+        // The two the same height, whichever has a settled time: a smaller
+        // "About 17:56" box looked like the lesser choice.
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _OccurrenceTile(
+                  occurrence: conflict.occurrences[0],
+                  conflict: conflict,
+                  onConfirm: () => controller
+                      .chooseDuplicateOccurrence(conflict.occurrences[0].place),
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _OccurrenceTile(
-                occurrence: conflict.occurrences[1],
-                conflict: conflict,
-                onConfirm: () => controller
-                    .chooseDuplicateOccurrence(conflict.occurrences[1].place),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: _OccurrenceTile(
+                  occurrence: conflict.occurrences[1],
+                  conflict: conflict,
+                  onConfirm: () => controller
+                      .chooseDuplicateOccurrence(conflict.occurrences[1].place),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         _TipBanner(),
+        const HowToDecide(
+          tips: ConflictTips.duplicateWhichIsTheirs,
+          lastResort: ConflictTips.bibLastResort,
+        ),
       ],
     );
   }
@@ -120,6 +130,7 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
         ),
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
@@ -129,14 +140,16 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
               ),
             ),
             const SizedBox(height: AppSpacing.xs),
-            Text(
-              widget.occurrence.time ?? 'Time not settled',
-              style: widget.occurrence.time != null
-                  ? AppTypography.displaySmall
-                  : AppTypography.bodyRegular
-                      .copyWith(color: AppColors.mediumColor),
-              textAlign: TextAlign.center,
-            ),
+            // A range while the time itself is still in question.
+            if (widget.occurrence.timeLabel != null)
+              Text(
+                widget.occurrence.timeLabel!,
+                style: widget.occurrence.time != null
+                    ? AppTypography.displaySmall
+                    : AppTypography.bodyRegular
+                        .copyWith(color: AppColors.mediumColor),
+                textAlign: TextAlign.center,
+              ),
             const SizedBox(height: AppSpacing.sm),
             TextButton(
               style: TextButton.styleFrom(
@@ -147,6 +160,7 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
               onPressed: () => showNearbySheet(
                 context,
                 entries: widget.occurrence.nearby,
+                allFinishers: widget.occurrence.allFinishers,
                 conflictPosition: widget.occurrence.place,
                 conflictBib: widget.conflict.bibNumber,
                 conflictTime: widget.occurrence.time,
@@ -203,6 +217,9 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
   @override
   Widget build(BuildContext context) {
     final leftover = widget.leftoverOccurrence;
+    final suggestions = context
+        .watch<ConflictResolutionController>()
+        .suggestionsFor(widget.conflict.bibNumber);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,6 +279,7 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
           onPressed: () => showNearbySheet(
             context,
             entries: leftover.nearby,
+            allFinishers: leftover.allFinishers,
             conflictPosition: leftover.place,
             conflictBib: widget.conflict.bibNumber,
             conflictTime: leftover.time,
@@ -273,21 +291,46 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        _DupActionButtons(
-          onAssign: () => _openAssignSheet(context),
-          onCreate: () => _openCreateSheet(context),
+        // The bib was typed for someone else here: whose bib is one slip
+        // from it, or among the same team's bibs?
+        SuggestedRunners(
+          suggestions: suggestions,
+          onPick: (runner) => context
+              .read<ConflictResolutionController>()
+              .prepareAssignForDuplicate(runner, _conflictLabel),
+        ),
+        if (suggestions.isNotEmpty) const SizedBox(height: AppSpacing.sm),
+        // Find Runner: search the roster, or create the runner if they are
+        // not on it. The fallback once the app has made its best guesses.
+        suggestions.isEmpty
+            ? PrimaryButton(
+                text: 'Find Runner',
+                icon: Icons.search,
+                size: ButtonSize.fullWidth,
+                onPressed: () => _openFindSheet(context),
+              )
+            : SecondaryButton(
+                text: 'Find Someone Else',
+                icon: Icons.search,
+                size: ButtonSize.fullWidth,
+                onPressed: () => _openFindSheet(context),
+              ),
+        const HowToDecide(
+          tips: ConflictTips.whoWasIt,
+          lastResort: ConflictTips.bibLastResort,
         ),
       ],
     );
   }
 
-  Future<void> _openAssignSheet(BuildContext context) async {
+  Future<void> _openFindSheet(BuildContext context) async {
     final controller = context.read<ConflictResolutionController>();
     RaceRunner? pendingRunner;
+    String? newRunnerName;
 
     await sheet(
       context: context,
-      title: 'Assign Existing Runner',
+      title: 'Find Runner',
       body: ChangeNotifierProvider.value(
         value: controller,
         child: RunnerAssignmentList(
@@ -297,24 +340,35 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
             pendingRunner = runner;
             Navigator.of(context).pop();
           },
+          onCreateNew: (name) {
+            newRunnerName = name;
+            Navigator.of(context).pop();
+          },
         ),
       ),
     );
 
     if (pendingRunner != null) {
       controller.prepareAssignForDuplicate(pendingRunner!, _conflictLabel);
+    } else if (newRunnerName != null && context.mounted) {
+      await _openCreateSheet(context, name: newRunnerName!);
     }
   }
 
-  Future<void> _openCreateSheet(BuildContext context) async {
+  Future<void> _openCreateSheet(BuildContext context,
+      {required String name}) async {
     final controller = context.read<ConflictResolutionController>();
     await sheet(
       context: context,
       title: 'Add New Runner',
       body: CreateRunnerSheet(
         allKnownBibs: controller.allKnownBibs,
+        savedBibOwners: controller.savedBibOwners,
         teams: controller.teams,
         forbiddenBib: widget.conflict.bibNumber,
+        // The recorded bib is someone else's, so a free one, changeable.
+        autoBib: controller.nextFreeBib,
+        initialName: name,
         onCreated: (name, bib, team, grade) {
           controller.prepareCreateForDuplicate(
             name,
@@ -330,51 +384,4 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
   }
 }
 
-
-class _DupActionButtons extends StatelessWidget {
-  const _DupActionButtons({required this.onAssign, required this.onCreate});
-
-  final VoidCallback onAssign;
-  final VoidCallback onCreate;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        OutlinedButton.icon(
-          onPressed: onAssign,
-          icon: const Icon(Icons.person_outline, size: 18),
-          label: const Text('Assign Existing Runner'),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.primaryColor,
-            backgroundColor: AppColors.selectedRoleColor,
-            side: const BorderSide(color: AppColors.primaryColor),
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-            textStyle: AppTypography.bodySemibold,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.sm),
-        ElevatedButton.icon(
-          onPressed: onCreate,
-          icon: const Icon(Icons.add, size: 18),
-          label: const Text('Create New Runner'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryColor,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-            textStyle: AppTypography.bodySemibold,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
 

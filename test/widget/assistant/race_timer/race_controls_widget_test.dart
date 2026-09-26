@@ -119,6 +119,30 @@ void main() {
     expect(find.text('Counts differ?'), findsOneWidget);
   });
 
+  testWidgets('Counts differ? offers its two answers in place, and Log '
+      'Finish still works meanwhile', (tester) async {
+    // A menu used to cover Log Finish, and a tap there only closed it.
+    timing.startRace();
+    timing.logTime();
+    await pump(tester);
+
+    await tester.tap(find.text('Counts differ?'));
+    await tester.pump();
+    expect(find.text('Missed one'), findsOneWidget);
+    expect(find.text('Extra tap'), findsOneWidget);
+
+    await tester.tap(find.text('Log Finish'));
+    await tester.pump();
+    expect(timing.runnerCount, 2);
+
+    await tester.tap(find.text('Missed one'));
+    await tester.pumpAndSettle();
+    expect(find.text('Missed one'), findsNothing, reason: 'back to the row');
+    expect(find.text('Counts differ?'), findsOneWidget);
+    expect(find.text('Undo'), findsOneWidget,
+        reason: 'the mark just made can be taken back');
+  });
+
   testWidgets('offers Resume and Share Times once stopped', (tester) async {
     timing.startRace();
     timing.logTime();
@@ -128,6 +152,27 @@ void main() {
     expect(find.text('Resume'), findsOneWidget);
     expect(find.text('Share Times'), findsOneWidget);
     expect(find.text('Log Finish'), findsNothing);
+  });
+
+  testWidgets('the practice race offers the real race, not Share Times',
+      (tester) async {
+    // Share Times there looked ready, then refused.
+    timing.currentRace = RaceRecord(
+      raceId: -1,
+      date: DateTime(2026, 9, 26),
+      name: 'Demo Race',
+      type: DeviceName.raceTimer.toString(),
+      stopped: true,
+    );
+    timing.startRace();
+    timing.logTime();
+    timing.stopRace();
+    await pump(tester);
+
+    expect(find.text('Share Times'), findsNothing);
+    expect(find.text('Get Real Race'), findsOneWidget);
+    expect(find.textContaining("Practice times can't be shared"),
+        findsOneWidget);
   });
 
   testWidgets('fits a small phone at a large text size', (tester) async {

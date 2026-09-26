@@ -27,7 +27,7 @@ final _duplicate = DuplicateBibConflict(
   bibNumber: '959',
   runner: _quinn,
   occurrences: const [
-    ConflictOccurrence(place: 16, nearby: [
+    ConflictOccurrence(place: 16, after: '15:40.10', before: '15:44.00', nearby: [
       NearbyFinisher(place: 15, name: 'Finley Eagles', team: 'Eagles', bibNumber: '944'),
       NearbyFinisher(place: 18, name: 'Emery Eagles', team: 'Eagles', bibNumber: '945'),
     ]),
@@ -146,7 +146,7 @@ void main() {
     expect(find.text('Start Resolving'), findsOneWidget);
   });
 
-  testWidgets('back from the summary leaves without submitting',
+  testWidgets('back from the summary with nothing done hands back nothing',
       (tester) async {
     await open(tester);
 
@@ -155,6 +155,40 @@ void main() {
 
     expect(didPop, isTrue);
     expect(popped, isNull);
+  });
+
+  testWidgets('leaving part way keeps the conflicts already resolved',
+      (tester) async {
+    await open(tester);
+    // The unknown bib done; the repeated bib only half done.
+    controller.openConflict(1);
+    controller.prepareAssign(_nico, '17th');
+    await controller.commitPending();
+    controller.openConflict(0);
+    controller.chooseDuplicateOccurrence(21);
+    controller.goBack();
+    controller.goBack();
+    await tester.pumpAndSettle();
+    expect(controller.isOnSummary, isTrue);
+
+    await tester.tap(find.text('Back'));
+    await tester.pumpAndSettle();
+
+    expect(didPop, isTrue);
+    // Not 21: Quinn's finish is kept only once someone has the other one.
+    expect(popped, {17: _nico});
+  });
+
+  testWidgets('the phone\'s back button steps back a card, not out',
+      (tester) async {
+    await open(tester);
+    await start(tester);
+
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+
+    expect(didPop, isFalse);
+    expect(find.text('Start Resolving'), findsOneWidget);
   });
 
   testWidgets('a repeated bib asks which finish, then who the other was',
@@ -166,8 +200,8 @@ void main() {
     expect(find.text('Quinn Owls'), findsOneWidget);
     expect(find.text('16th place'), findsOneWidget);
     expect(find.text('21st place'), findsOneWidget);
-    // 16th has no settled time; it says so rather than guessing.
-    expect(find.text('Time not settled'), findsOneWidget);
+    // 16th has no settled time: it shows where the time must fall.
+    expect(find.text('Between 15:40.10 and 15:44.00'), findsOneWidget);
     expect(find.text('16:03.78'), findsOneWidget);
 
     await tester.tap(find.text('16th place'));
@@ -182,8 +216,46 @@ void main() {
     expect(find.text('20th'), findsOneWidget);
     expect(find.text('Morgan Hawks'), findsOneWidget);
     expect(find.text('Unknown runner'), findsOneWidget);
-    expect(find.text('Assign Existing Runner'), findsOneWidget);
-    expect(find.text('Create New Runner'), findsOneWidget);
+    expect(
+        find.byWidgetPredicate((w) =>
+            w is Text &&
+            (w.data == 'Find Runner' || w.data == 'Find Someone Else')),
+        findsOneWidget);
+  });
+
+  testWidgets('both finishes of a repeated bib are the same size',
+      (tester) async {
+    // 16th has only a range, 21st a settled time in large type.
+    await open(tester);
+    await start(tester);
+
+    Size box(String place) => tester.getSize(find
+        .ancestor(of: find.text(place), matching: find.byType(AnimatedContainer))
+        .first);
+    expect(box('16th place'), box('21st place'));
+  });
+
+  testWidgets('an unknown bib suggests who it most likely was, to assign in '
+      'one tap', (tester) async {
+    await open(tester);
+    await tester.tap(find.text('#9567'));
+    await tester.pumpAndSettle();
+
+    // 9567 is Nico's 956 with a digit too many; Gray's 949 is no slip away.
+    expect(find.text('MOST LIKELY'), findsOneWidget);
+    expect(find.byKey(const ValueKey('suggested_956')), findsOneWidget);
+    expect(find.byKey(const ValueKey('suggested_949')), findsNothing);
+    expect(find.textContaining('One digit too many'), findsOneWidget);
+    expect(find.text('Find Someone Else'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('suggested_956')));
+    await tester.tap(find.byKey(const ValueKey('suggested_956')));
+    await tester.pump();
+
+    expect(controller.hasPending, isTrue);
+    expect(controller.pendingLabel, 'Bib #9567');
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('submitting hands back who finished at each place',
