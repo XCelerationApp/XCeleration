@@ -554,7 +554,8 @@ class LoadResultsController with ChangeNotifier {
   Future<AppError?> _mergeBibDataWithTimingChunksAndSaveResults() async {
     final built = buildResults();
     if (built.error case final error?) {
-      Logger.e('LoadResultsController: cannot save: ${error.userMessage}');
+      // Shown to the coach, and can name a runner: not one for Sentry.
+      Logger.d('LoadResultsController: cannot save: ${error.userMessage}');
       return _saveFailed(error);
     }
     final merged = built.results;
