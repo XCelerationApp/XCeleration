@@ -992,15 +992,23 @@ class RunnersManagementController with ChangeNotifier {
       if (r.teamsAdded.length > 1) 'on ${r.teamsAdded.length} teams',
       if (r.teamsAdded.length == 1) 'to ${r.teamsAdded.first}',
     ];
-    var message = '${parts.join(' ')}.';
+    // Nothing added to the race when every team was left out of it.
+    var message =
+        r.total == 0 && r.savedOnly > 0 ? '' : '${parts.join(' ')}.';
     if (r.teamsCreated.isNotEmpty) {
       message += ' New team${r.teamsCreated.length == 1 ? '' : 's'}: '
           '${r.teamsCreated.join(', ')}.';
     }
+    if (r.teamsSavedOnly.isNotEmpty) {
+      message += ' Saved ${r.teamsSavedOnly.join(', ')} '
+          '(${r.savedOnly} runner${r.savedOnly == 1 ? '' : 's'}) without '
+          'adding ${r.teamsSavedOnly.length == 1 ? 'it' : 'them'} to this '
+          'race.';
+    }
     if (r.unplaced > 0) {
       message += ' ${r.unplaced} had no team and were left out.';
     }
-    return message;
+    return message.trim();
   }
 
   // ============================================================================

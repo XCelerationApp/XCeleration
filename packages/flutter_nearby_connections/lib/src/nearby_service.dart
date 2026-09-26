@@ -158,8 +158,10 @@ class NearbyService {
   }
 
   /// Sends a message encapsulated in a Data instance to nearby peers.
+  /// Returns false when it could not be sent, such as to a phone that is no
+  /// longer connected. XCeleration change: the result used to be dropped.
   FutureOr<dynamic> sendMessage(String deviceID, String message) async {
-    await _channel.invokeMethod(_sendMessage, <String, dynamic>{
+    return await _channel.invokeMethod(_sendMessage, <String, dynamic>{
       'deviceId': deviceID,
       if (_deviceName != null) 'senderDeviceId': _deviceName,
       'message': message,

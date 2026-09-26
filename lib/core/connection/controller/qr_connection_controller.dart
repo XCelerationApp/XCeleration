@@ -47,7 +47,7 @@ class QRConnectionController extends ChangeNotifier {
     final String rawData = _devices.getDevice(device)!.data!;
     Logger.d('Raw data: $rawData');
     final String qrData =
-        '${getDeviceNameString(_devices.currentDeviceName)}:$rawData';
+        '${getDeviceWireName(_devices.currentDeviceName)}:$rawData';
 
     final BuildContext sheetContext;
     final bool useRoot;

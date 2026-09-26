@@ -147,7 +147,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
             final svc = DeviceConnectionService(
               devices,
               'wirelessconn',
-              getDeviceNameString(devices.currentDeviceName),
+              getDeviceWireName(devices.currentDeviceName),
               devices.currentDeviceType,
               NearbyConnections(),
             );

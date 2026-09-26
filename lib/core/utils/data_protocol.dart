@@ -573,6 +573,25 @@ class Protocol implements ProtocolInterface {
     // In a more sophisticated implementation, we would track device-specific transmissions
   }
 
+  /// Makes a terminated protocol usable again, as Try again needs after a
+  /// time-out: terminating used to be for good, so Try again always failed.
+  /// Sends still waiting for an answer are ended first.
+  void restart() {
+    for (final state in _pendingTransmissions.values) {
+      state.retryTimer?.cancel();
+      if (!state.completer.isCompleted) {
+        state.completer
+            .completeError(ProtocolTerminatedException('Protocol restarted'));
+      }
+    }
+    _pendingTransmissions.clear();
+    _receivedPackages.clear();
+    _finishedDevices.clear();
+    _finishSequenceNumbers.clear();
+    connectedDevices.clear();
+    _isTerminated = false;
+  }
+
   void clear() {
     for (var state in _pendingTransmissions.values) {
       state.retryTimer?.cancel();

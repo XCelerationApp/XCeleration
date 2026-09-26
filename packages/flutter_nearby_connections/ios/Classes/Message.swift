@@ -21,8 +21,14 @@ extension Device {
         try self.session?.send(json.rawData(), toPeers: [self.peerID], with: .reliable)
     }
     
+    /// Sends [data] to this phone, or throws if it is not connected. It used
+    /// to do nothing and report success when there was no session.
     func send(data: Data) throws {
-        try self.session?.send(data, toPeers: [self.peerID], with: .reliable)
+        guard let session = self.session,
+              session.connectedPeers.contains(self.peerID) else {
+            throw DeviceSendError.notConnected
+        }
+        try session.send(data, toPeers: [self.peerID], with: .reliable)
     }
 }
 

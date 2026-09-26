@@ -171,7 +171,10 @@ class TimingController extends TimingData {
   Future<void> loadRaceFromCoach(String data) async {
     final RaceRecord sent;
     try {
-      sent = RaceRecord.fromEncodedString(data,
+      // The coach shows one QR code for both volunteers, the Bib Recorder's:
+      // the race, then '---' and the roster. The Timer needs only the race.
+      // Read whole, it failed to parse, so the Timer never got the race.
+      sent = RaceRecord.fromEncodedString(data.split('---').first,
           type: DeviceName.raceTimer.toString());
     } catch (e) {
       Logger.e('Error parsing race data: $e');

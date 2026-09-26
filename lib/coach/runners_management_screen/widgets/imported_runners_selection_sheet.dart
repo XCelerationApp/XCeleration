@@ -31,6 +31,10 @@ class _ImportedRunnersSelectionSheetState
   /// Whether each team becomes a boys' and a girls' team.
   bool _splitByGender = false;
 
+  /// Teams the coach unticked: saved with their runners, but not added to
+  /// this race.
+  final Set<String> _leftOutOfRace = {};
+
   /// Offered when the rows name their teams and have both boys and girls.
   late final bool _canSplit = widget.importedRunners.any(
           (r) => ((r['team'] as String?)?.trim() ?? '').isNotEmpty) &&
@@ -59,6 +63,74 @@ class _ImportedRunnersSelectionSheetState
     if (g == 'F') return _showGirls;
     // If gender missing, show in both
     return true;
+  }
+
+  /// The ticked rows, split into boys' and girls' teams when asked.
+  List<Map<String, dynamic>> _chosenRows() {
+    final selected = <Map<String, dynamic>>[];
+    for (int i = 0; i < widget.importedRunners.length; i++) {
+      if (_selected[i] && _rowMatchesGender(widget.importedRunners[i])) {
+        selected.add(widget.importedRunners[i]);
+      }
+    }
+    return _splitByGender
+        ? RosterImporter.splitTeamsByGender(selected)
+        : selected;
+  }
+
+  static String _teamOf(Map<String, dynamic> row) =>
+      (row['team'] as String?)?.trim() ?? '';
+
+  /// The teams the chosen rows go on, in the order they first appear.
+  List<String> _teams(List<Map<String, dynamic>> rows) => [
+        ...{
+          for (final row in rows)
+            if (_teamOf(row).isNotEmpty) _teamOf(row),
+        },
+      ];
+
+  /// Lets the coach add only some of the teams to this race, such as just
+  /// the girls. Every team is saved, ready for another race.
+  Widget _buildRaceTeams(List<String> teams) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 4),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Add to this race', style: AppTypography.bodySemibold),
+          const SizedBox(height: 2),
+          Text(
+            'Every team is saved. Only the ticked teams join this race.',
+            style: AppTypography.smallBodyRegular
+                .copyWith(color: AppColors.mediumColor),
+          ),
+          const SizedBox(height: 8),
+          // Many teams scroll here, so the runner list keeps its room.
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxHeight: 112),
+            child: SingleChildScrollView(
+              child: Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final team in teams)
+                    FilterChip(
+                      key: ValueKey('race_team_$team'),
+                      label: Text(team),
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      selected: !_leftOutOfRace.contains(team),
+                      onSelected: (inRace) => setState(() => inRace
+                          ? _leftOutOfRace.remove(team)
+                          : _leftOutOfRace.add(team)),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   List<int> _visibleIndices() {
@@ -106,6 +178,7 @@ class _ImportedRunnersSelectionSheetState
   @override
   Widget build(BuildContext context) {
     final visible = _visibleIndices();
+    final teams = _teams(_chosenRows());
     return SafeArea(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -149,12 +222,17 @@ class _ImportedRunnersSelectionSheetState
               contentPadding: EdgeInsets.zero,
               controlAffinity: ListTileControlAffinity.leading,
               value: _splitByGender,
-              onChanged: (v) => setState(() => _splitByGender = v ?? false),
+              onChanged: (v) => setState(() {
+                _splitByGender = v ?? false;
+                // The team names change, so start with every team ticked.
+                _leftOutOfRace.clear();
+              }),
               title: const Text('Separate boys\' and girls\' teams',
                   style: AppTypography.bodyMedium),
               subtitle: const Text('e.g. "Archie Williams - Boys" and '
                   '"Archie Williams - Girls"'),
             ),
+          if (teams.length > 1) _buildRaceTeams(teams),
           const SizedBox(height: 8),
           Flexible(
             child: ConstrainedBox(
@@ -205,16 +283,12 @@ class _ImportedRunnersSelectionSheetState
               Expanded(
                 child: ElevatedButton(
                   onPressed: () {
-                    final selected = <Map<String, dynamic>>[];
-                    for (int i = 0; i < widget.importedRunners.length; i++) {
-                      if (_selected[i] &&
-                          _rowMatchesGender(widget.importedRunners[i])) {
-                        selected.add(widget.importedRunners[i]);
-                      }
-                    }
-                    Navigator.of(context).pop(_splitByGender
-                        ? RosterImporter.splitTeamsByGender(selected)
-                        : selected);
+                    Navigator.of(context).pop([
+                      for (final row in _chosenRows())
+                        _leftOutOfRace.contains(_teamOf(row))
+                            ? {...row, 'inRace': false}
+                            : row,
+                    ]);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryColor,

@@ -7,6 +7,8 @@ import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/assistant_storage_service.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/haptic_feedback_service.dart';
+import 'package:xceleration/core/utils/encode_utils.dart';
+import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
@@ -60,6 +62,20 @@ void main() {
 
   test('opens a race the coach sent', () async {
     await timer.loadRaceFromCoach(invitational);
+
+    expect(timer.currentRace?.name, 'Invitational');
+  });
+
+  // The coach's QR code is the Bib Recorder's: the race, '---', the roster.
+  // Read whole it failed to parse, and the Timer never got the race.
+  test('opens a race from the coach\'s QR code, which carries the roster too',
+      () async {
+    final roster = await BibEncodeUtils.getEncodedBibData([
+      BibDatum(bib: '101', name: 'Ava Lee', teamAbbreviation: 'NHS', grade: '11'),
+      BibDatum(bib: '102', name: 'Mia Chen', teamAbbreviation: 'NHS', grade: '9'),
+    ]);
+
+    await timer.loadRaceFromCoach('$invitational---$roster');
 
     expect(timer.currentRace?.name, 'Invitational');
   });
