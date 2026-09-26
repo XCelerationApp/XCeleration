@@ -80,6 +80,26 @@ void main() {
     expect(timer.currentRace?.name, 'Invitational');
   });
 
+  // Deleting the open race opens the next one straight away: another race
+  // on the phone, or the practice race, never an empty screen.
+  test('deleting the open race opens the practice race', () async {
+    await timer.loadRaceFromCoach(invitational);
+
+    await timer.deleteCurrentRace();
+
+    expect(timer.currentRace?.name, 'Demo Race');
+    expect(timer.loadingRace, isFalse);
+  });
+
+  test('deleting the practice race, with nothing else, makes it again',
+      () async {
+    expect(timer.currentRace?.name, 'Demo Race');
+
+    await timer.deleteCurrentRace();
+
+    expect(timer.currentRace?.name, 'Demo Race');
+  });
+
   test('the same race sent again keeps its times', () async {
     await timer.loadRaceFromCoach(invitational);
     timer.addRunnerTimeRecord(TimingDatum(time: '5:01.00'));
