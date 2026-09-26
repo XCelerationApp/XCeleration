@@ -21,6 +21,19 @@ class WirelessConnectionController extends ChangeNotifier {
   Completer<void> _connectionCompleter = Completer<void>()..complete();
   bool _isDisposed = false;
 
+  /// Counts the connections made with each phone. A transfer from an older
+  /// connection that ends after a newer one began must not change what the
+  /// newer one shows.
+  final Map<DeviceName, int> _transferGeneration = {};
+
+  /// Transfers that failed in a row with each phone. It is looked for again
+  /// after each, until [maxFailedTransfers].
+  final Map<DeviceName, int> _failedTransfers = {};
+
+  /// Failed transfers in a row with one phone before it shows an error
+  /// instead of trying again.
+  static const maxFailedTransfers = 3;
+
   bool get isLoading => _isLoading;
   WirelessConnectionError? get wirelessConnectionError => _wirelessConnectionError;
   bool get hasError => _wirelessConnectionError != null;
@@ -100,9 +113,19 @@ class WirelessConnectionController extends ChangeNotifier {
     }
   }
 
+  /// Starts looking again after a time-out or error. The service and the
+  /// protocol are started again: they used to stay shut after a time-out,
+  /// so Try again always failed.
   Future<void> retry() async {
+    if (_isDisposed) return;
     _wirelessConnectionError = null;
     _isLoading = true;
+    _failedTransfers.clear();
+    _deviceConnectionService.stop();
+    _protocol.restart();
+    for (final device in _devices.otherDevices) {
+      if (!device.isFinished) device.status = ConnectionStatus.searching;
+    }
     notifyListeners();
     await initialize();
   }
@@ -126,8 +149,9 @@ class WirelessConnectionController extends ChangeNotifier {
           if (_isDisposed) return;
           if (_devices.allDevicesFinished()) return;
           _wirelessConnectionError = WirelessConnectionError.timeout;
-          _deviceConnectionService.dispose();
-          _protocol.dispose();
+          // Stopped, not disposed, so Try again can start them again.
+          _deviceConnectionService.stop();
+          _protocol.terminate();
           if (!_connectionCompleter.isCompleted) {
             _connectionCompleter.complete();
           }
@@ -185,6 +209,11 @@ class WirelessConnectionController extends ChangeNotifier {
       return;
     }
 
+    final generation = (_transferGeneration[deviceName] ?? 0) + 1;
+    _transferGeneration[deviceName] = generation;
+    bool isCurrent() =>
+        !_isDisposed && _transferGeneration[deviceName] == generation;
+
     try {
       _protocol.addDevice(device);
 
@@ -230,7 +259,7 @@ class WirelessConnectionController extends ChangeNotifier {
         // Check if we should continue the transfer based on device status
         shouldContinueTransfer: () {
           // Only continue if the device's status is still in receiving/sending state
-          if (_isDisposed) return false;
+          if (!isCurrent()) return false;
           final deviceStatus = _devices.getDevice(deviceName)?.status;
           final expectedStatus = isBrowserDevice
               ? ConnectionStatus.receiving
@@ -243,11 +272,13 @@ class WirelessConnectionController extends ChangeNotifier {
         },
       );
 
-      // Skip updating UI if we're disposed
-      if (_isDisposed || _connectionCompleter.isCompleted) return;
+      // Skip updating UI if we're disposed, or a newer connection with this
+      // phone has taken over.
+      if (!isCurrent() || _connectionCompleter.isCompleted) return;
 
       switch (transferResult) {
         case Success(:final value):
+          _failedTransfers.remove(deviceName);
           // Update device status and data if we're a browser device (and received data)
           if (isBrowserDevice && value != null) {
             connectedDevice.data = value;
@@ -287,16 +318,34 @@ class WirelessConnectionController extends ChangeNotifier {
 
         case Failure(:final error):
           Logger.e('[WirelessConnectionController] ${error.originalException}');
-          connectedDevice.status = ConnectionStatus.error;
+          await _recoverFromFailedTransfer(device, deviceName);
       }
 
       // Clean up device from protocol
-      _protocol.removeDevice(device.deviceId);
+      if (isCurrent()) _protocol.removeDevice(device.deviceId);
     } catch (e) {
       Logger.d('Error in connection: $e');
+      if (!isCurrent()) return;
       _protocol.removeDevice(device.deviceId);
-      _devices.getDevice(deviceName)?.status = ConnectionStatus.error;
+      await _recoverFromFailedTransfer(device, deviceName);
     }
+  }
+
+  /// After a transfer fails, drops the connection and looks for the phone
+  /// again, so the two phones try once more by themselves. It used to show
+  /// an error with no way to retry but closing the screen. After
+  /// [maxFailedTransfers] in a row it shows the error.
+  Future<void> _recoverFromFailedTransfer(
+      Device device, DeviceName deviceName) async {
+    final connectedDevice = _devices.getDevice(deviceName);
+    if (connectedDevice == null || connectedDevice.isFinished) return;
+    final failures = (_failedTransfers[deviceName] ?? 0) + 1;
+    _failedTransfers[deviceName] = failures;
+    await _deviceConnectionService.disconnectDevice(device);
+    if (_isDisposed) return;
+    connectedDevice.status = failures >= maxFailedTransfers
+        ? ConnectionStatus.error
+        : ConnectionStatus.searching;
   }
 
   @override
