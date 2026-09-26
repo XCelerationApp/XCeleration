@@ -422,6 +422,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
                 await _nearbyConnections.startAdvertisingPeer();
               }
 
+              nearbyConnectionsInitialized = true;
               if (!completer.isCompleted) {
                 completer.complete(true);
               }
@@ -456,50 +457,81 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     }
   }
 
-  /// Check if we should re-scan
+  /// Whether to start looking again from scratch. Only a phone that browses
+  /// does this, and only while it has found none of the phones it wants.
+  /// Restarting while a phone was found broke the invitation in progress,
+  /// and an advertiser restarting made every browser lose it.
   bool _shouldRescan(String token) {
     if (_shouldCancel(token)) return false;
-    if (_rescanAttempts >= maxReconnectionAttempts) {
-      return false;
-    }
-
-    // Don't rescan if any device is in an active state (not searching and not finished)
-    for (final device in _devicesManager.devices) {
-      // Skip devices that are finished
+    if (_deviceType != DeviceType.browserDevice) return false;
+    if (_rescanAttempts >= maxReconnectionAttempts) return false;
+    // A wanted phone is in sight, perhaps about to be invited.
+    if (_deviceStateMap.isNotEmpty) return false;
+    for (final device in _devicesManager.otherDevices) {
       if (device.isFinished) continue;
-
-      // If device is in any active state (not searching and not found), don't rescan
-      if (device.status != ConnectionStatus.searching &&
-          device.status != ConnectionStatus.found) {
-        Logger.d(
-            'Skipping rescan: device ${device.name} in state ${device.status}');
-        return false;
-      }
+      if (device.status != ConnectionStatus.searching) return false;
     }
-
     return !_devicesManager.allDevicesFinished();
   }
 
-  /// Delayed re-scan
-  Future<void> _delayedRescan(String token) async {
+  /// Looks again from scratch after [rescanBackoff], if nothing was found.
+  void _delayedRescan(String token) {
     _stagnationTimer?.cancel();
-
     _stagnationTimer = Timer(rescanBackoff, () async {
-      Logger.d('Rescan timer fired after ${rescanBackoff.inSeconds} seconds');
-      if (_shouldRescan(token)) {
-        _rescanAttempts++;
-        Logger.d('Rescan attempt $_rescanAttempts');
-        final tempRescanAttempts = _rescanAttempts;
-        await init();
-        _rescanAttempts = tempRescanAttempts;
-
-        // Restart monitoring after initialization
-        await monitorDevicesConnectionStatus();
-      }
+      if (!_shouldRescan(token)) return;
+      _rescanAttempts++;
+      Logger.d('Rescan attempt $_rescanAttempts');
+      final attempts = _rescanAttempts;
+      await init();
+      _rescanAttempts = attempts;
+      if (_isDisposed || _sessionDone.isCompleted) return;
+      await _monitor();
     });
   }
 
-  /// Monitor device connection status with improved state tracking
+  /// Completes when this search ends: it timed out, or was stopped or
+  /// disposed. A rescan does not end it.
+  Completer<void> _sessionDone = Completer<void>()..complete();
+  Timer? _sessionTimer;
+
+  /// How long a search may go on while a transfer is still running when the
+  /// time is up, before it is checked again.
+  static const _transferGrace = Duration(seconds: 30);
+
+  void _startSessionTimer(Duration after) {
+    _sessionTimer?.cancel();
+    if (after <= Duration.zero) return;
+    _sessionTimer = Timer(after, () {
+      if (_isDisposed || _sessionDone.isCompleted) return;
+      // Never cut off a transfer that is under way.
+      final busy = _devicesManager.otherDevices.any((d) =>
+          d.status == ConnectionStatus.connecting ||
+          d.status == ConnectionStatus.connected ||
+          d.status == ConnectionStatus.sending ||
+          d.status == ConnectionStatus.receiving);
+      if (busy) {
+        _startSessionTimer(_transferGrace);
+        return;
+      }
+      _endSession();
+      _timeoutCallback?.call();
+    });
+  }
+
+  void _endSession() {
+    _sessionTimer?.cancel();
+    _sessionTimer = null;
+    _stagnationTimer?.cancel();
+    for (final token in _cancellationCompleters.keys.toList()) {
+      if (token.startsWith('monitor_devices')) _cancelOperation(token);
+    }
+    if (!_sessionDone.isCompleted) _sessionDone.complete();
+  }
+
+  /// Watches for the other phones until the search ends: [timeout] passes
+  /// (then [timeoutCallback] is called), or the service is stopped or
+  /// disposed. It does not return at a rescan: it used to, and the caller
+  /// took that as the end and ignored every phone found afterwards.
   @override
   Future<void> monitorDevicesConnectionStatus({
     Future<void> Function(Device device)? deviceFoundCallback,
@@ -508,7 +540,6 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     Duration timeout = const Duration(seconds: 60),
     Future<void> Function()? timeoutCallback,
   }) async {
-    // Store callbacks at class level if provided
     if (deviceFoundCallback != null) _deviceFoundCallback = deviceFoundCallback;
     if (deviceConnectingCallback != null) {
       _deviceConnectingCallback = deviceConnectingCallback;
@@ -516,10 +547,19 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     if (deviceConnectedCallback != null) {
       _deviceConnectedCallback = deviceConnectedCallback;
     }
-    if (timeout.inMicroseconds > 0) _monitorTimeout = timeout;
+    _monitorTimeout = timeout;
     if (timeoutCallback != null) _timeoutCallback = timeoutCallback;
-    // Don't proceed if the service is disposed
     if (_isDisposed) return;
+
+    _sessionDone = Completer<void>();
+    _startSessionTimer(_monitorTimeout);
+    unawaited(_monitor());
+    await _sessionDone.future;
+  }
+
+  /// One stretch of watching, until a rescan or the end of the search.
+  Future<void> _monitor() async {
+    if (_isDisposed || _sessionDone.isCompleted) return;
     if (!nearbyConnectionsInitialized) {
       Logger.d('NearbyConnections is not initialized');
       await init();
@@ -530,142 +570,165 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     }
 
     final token = _createCancellationToken('monitor_devices');
+    _monitorToken = token;
 
     try {
-      // Cancel any existing subscription
-      await deviceMonitorSubscription?.cancel();
-
-      final otherDeviceNames = _devicesManager.otherDevices
-          .map((device) => getDeviceNameString(device.name))
-          .toList();
-
-      // Start rescan timer, will be cancelled if we get a device connection
-      _delayedRescan(token);
-
-      // Create a new subscription with improved state tracking
-      deviceMonitorSubscription = _nearbyConnections.stateChangedSubscription(
-          callback: (devicesList) async {
-        // Check if we've been cancelled
-        if (_shouldCancel(token)) return;
-
-        // Check if we should re-scan
-        final shouldRescan = _shouldRescan(token);
-        if (shouldRescan && _stagnationTimer?.isActive == false) {
-          await _delayedRescan(token);
-          return;
-        } else if (!shouldRescan) {
-          _stagnationTimer?.cancel();
-          _rescanAttempts = 0;
-        }
-
-        final Map<String, Device> currentDevices = {};
-
-        // First, process all devices in the new list and update their states
-        for (var device in devicesList) {
-          if (_shouldCancel(token)) return;
-
-          // Skip if device not in target list
-          if (!otherDeviceNames.contains(device.deviceName)) {
-            continue; // Skip devices not in our target list
-          }
-
-          currentDevices[device.deviceId] = device;
-
-          // Check if this is a new device or state has changed
-          final existingDevice = _deviceStateMap[device.deviceId];
-          final bool isNewDevice = existingDevice == null;
-          final bool stateChanged =
-              !isNewDevice && existingDevice.state != device.state;
-
-          // Update our tracking map
-          _deviceStateMap[device.deviceId] = device;
-
-          final deviceName = getDeviceNameFromString(device.deviceName);
-          final connectedDevice = _devicesManager.getDevice(deviceName);
-
-          if (connectedDevice == null ||
-              connectedDevice.isFinished ||
-              connectedDevice.status == ConnectionStatus.error) {
-            continue;
-          }
-
-          // Process different device states
-          if (device.state == SessionState.notConnected) {
-            // Handle device found state - new or state changed
-            if (isNewDevice || stateChanged) {
-              // Debounce the found callback to prevent UI flicker
-              _debounceCallback(device.deviceId, () async {
-                if (_shouldCancel(token)) return;
-                // Update ConnectedDevice if available
-                try {
-                  if (connectedDevice.status != ConnectionStatus.found) {
-                    connectedDevice.status = ConnectionStatus.found;
-                  }
-                } catch (e) {
-                  // Silently handle invalid device names
-                }
-                if (_deviceFoundCallback != null) {
-                  await _deviceFoundCallback!(device);
-                }
-              });
-            }
-          } else if (device.state == SessionState.connecting) {
-            if (_shouldCancel(token)) return;
-            try {
-              if (connectedDevice.status != ConnectionStatus.connecting) {
-                connectedDevice.status = ConnectionStatus.connecting;
-              }
-            } catch (e) {
-              // Silently handle invalid device names
-            }
-            if (_deviceConnectingCallback != null) {
-              await _deviceConnectingCallback!(device);
-            }
-          } else if (device.state == SessionState.connected) {
-            if ((isNewDevice || stateChanged) && !_shouldCancel(token)) {
-              // Reset reconnection attempts on successful connection
-              _reconnectionAttempts.remove(device.deviceId);
-
-              try {
-                if (connectedDevice.status != ConnectionStatus.connected) {
-                  connectedDevice.status = ConnectionStatus.connected;
-                }
-              } catch (e) {
-                // Silently handle invalid device names
-              }
-
-              if (_deviceConnectedCallback != null) {
-                await _deviceConnectedCallback!(device);
-              }
-            }
-          }
-        }
+      // One subscription for the whole search, kept through rescans: a phone
+      // reported while a rescan was starting up used to be missed.
+      deviceMonitorSubscription ??=
+          _nearbyConnections.stateChangedSubscription(callback: (devicesList) {
+        _lastDevices = devicesList;
+        final current = _monitorToken;
+        if (current != null) return _handleDevices(devicesList, current);
       });
 
-      // Set a timeout that will automatically cancel monitoring
-      if (_monitorTimeout.inMicroseconds > 0) {
-        Timer(_monitorTimeout, () {
-          if (!_shouldCancel(token)) {
-            _cancelOperation(token);
-            _timeoutCallback?.call();
-            _stagnationTimer?.cancel();
-          }
-        });
+      // Look again from scratch if nothing turns up.
+      _delayedRescan(token);
+
+      // The latest list, in case it came while no stretch was watching.
+      if (_lastDevices.isNotEmpty) {
+        await _handleDevices(_lastDevices, token);
       }
 
-      // Wait for cancellation
       while (!_shouldCancel(token)) {
         await Future.delayed(const Duration(milliseconds: 100));
       }
-
-      // Cleanup
-      await deviceMonitorSubscription?.cancel();
-      deviceMonitorSubscription = null;
     } catch (e) {
       Logger.e('Error monitoring device connections: $e');
     } finally {
+      if (_monitorToken == token) _monitorToken = null;
       _cleanupToken(token);
     }
+  }
+
+  /// The stretch of watching now running, whose token new lists are
+  /// handled under.
+  String? _monitorToken;
+
+  /// The last list of phones reported.
+  List<Device> _lastDevices = const [];
+
+  /// Updates each wanted phone's status from [devicesList], and invites or
+  /// sends through the callbacks.
+  Future<void> _handleDevices(List<Device> devicesList, String token) async {
+    final otherDeviceNames =
+        _devicesManager.otherDevices.map((device) => device.name).toSet();
+    if (_shouldCancel(token)) return;
+
+    // Every list is handled, even one that starts a rescan: a phone
+    // found in a skipped list was never invited.
+    if (_shouldRescan(token)) {
+      if (_stagnationTimer?.isActive != true) _delayedRescan(token);
+    } else if (_devicesManager.otherDevices
+        .any((d) => d.status != ConnectionStatus.searching)) {
+      _stagnationTimer?.cancel();
+      _rescanAttempts = 0;
+    }
+
+    final Map<String, Device> currentDevices = {};
+
+    for (var device in devicesList) {
+      if (_shouldCancel(token)) return;
+
+      // Skip devices not in our target list. The name is read the same
+      // way it is below, so a phone that passes here is always matched.
+      final deviceName = tryDeviceNameFromString(device.deviceName);
+      if (deviceName == null || !otherDeviceNames.contains(deviceName)) {
+        continue;
+      }
+
+      currentDevices[device.deviceId] = device;
+
+      final existingDevice = _deviceStateMap[device.deviceId];
+      final bool isNewDevice = existingDevice == null;
+      final bool stateChanged =
+          !isNewDevice && existingDevice.state != device.state;
+
+      _deviceStateMap[device.deviceId] = device;
+
+      final connectedDevice = _devicesManager.getDevice(deviceName);
+
+      if (connectedDevice == null ||
+          connectedDevice.isFinished ||
+          connectedDevice.status == ConnectionStatus.error) {
+        continue;
+      }
+
+      if (device.state == SessionState.notConnected) {
+        if (isNewDevice || stateChanged) {
+          // Debounced so a quick flicker does not show in the list.
+          _debounceCallback(device.deviceId, () async {
+            if (_shouldCancel(token)) return;
+            // It may have started connecting in the meantime: acting
+            // on the old state set it back to found mid-connection.
+            if (_deviceStateMap[device.deviceId]?.state !=
+                SessionState.notConnected) {
+              return;
+            }
+            if (connectedDevice.isFinished ||
+                connectedDevice.status == ConnectionStatus.error) {
+              return;
+            }
+            connectedDevice.status = ConnectionStatus.found;
+            if (_deviceFoundCallback != null) {
+              await _deviceFoundCallback!(device);
+            }
+          });
+        }
+      } else if (device.state == SessionState.connecting) {
+        if (connectedDevice.status != ConnectionStatus.connecting) {
+          connectedDevice.status = ConnectionStatus.connecting;
+        }
+        if (_deviceConnectingCallback != null) {
+          await _deviceConnectingCallback!(device);
+        }
+      } else if (device.state == SessionState.connected) {
+        if ((isNewDevice || stateChanged) && !_shouldCancel(token)) {
+          _reconnectionAttempts.remove(device.deviceId);
+          if (connectedDevice.status != ConnectionStatus.connected) {
+            connectedDevice.status = ConnectionStatus.connected;
+          }
+          if (_deviceConnectedCallback != null) {
+            await _deviceConnectedCallback!(device);
+          }
+        }
+      }
+    }
+
+    // A phone that dropped out of the list is looked for again. Kept
+    // in the map, it was not "new" when it came back, so it was never
+    // invited again.
+    for (final id in _deviceStateMap.keys.toList()) {
+      if (currentDevices.containsKey(id)) continue;
+      final gone = _deviceStateMap.remove(id)!;
+      _debounceTimers.remove(id)?.cancel();
+      final name = tryDeviceNameFromString(gone.deviceName);
+      final connectedDevice =
+          name == null ? null : _devicesManager.getDevice(name);
+      if (connectedDevice == null ||
+          connectedDevice.isFinished ||
+          connectedDevice.status == ConnectionStatus.error) {
+        continue;
+      }
+      connectedDevice.status = ConnectionStatus.searching;
+    }
+  }
+
+  /// Ends the search without disposing the service, so it can be started
+  /// again, as Try again does after a time-out.
+  void stop() {
+    _endSession();
+    _stopWatching();
+    _cleanupResources();
+    nearbyConnectionsInitialized = false;
+  }
+
+  /// Stops listening for the list of phones. A rescan keeps listening.
+  void _stopWatching() {
+    deviceMonitorSubscription?.cancel();
+    deviceMonitorSubscription = null;
+    _monitorToken = null;
+    _lastDevices = const [];
   }
 
   /// Invite a device to connect with improved error handling
@@ -768,7 +831,12 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
         return false;
       }
 
-      await _nearbyConnections.sendMessage(device.deviceId, package.toString());
+      final sent = await _nearbyConnections.sendMessage(
+          device.deviceId, package.toString());
+      if (sent == false) {
+        Logger.d('Could not send to ${device.deviceName}: not connected');
+        return false;
+      }
       Logger.d('Message sent successfully to ${device.deviceName}');
       return true;
     } catch (e) {
@@ -866,8 +934,6 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
   void _cleanupResources() {
     receivedDataSubscription?.cancel();
     receivedDataSubscription = null;
-    deviceMonitorSubscription?.cancel();
-    deviceMonitorSubscription = null;
     _messageCallbacks.clear();
 
     // Clean up stagnation detection
@@ -911,7 +977,8 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
     Logger.d('Disposing DeviceConnectionService');
     _isDisposed = true;
 
-    // Clean up resources
+    _endSession();
+    _stopWatching();
     _cleanupResources();
 
     // Clear all state

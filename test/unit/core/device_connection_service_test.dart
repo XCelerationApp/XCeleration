@@ -573,13 +573,14 @@ void main() {
       });
     });
 
-    test('rescan does not occur when device is in transfer process', () {
+    // A transfer under way is neither restarted nor cut off by the time
+    // limit: the time-out waits for it.
+    test('rescan does not occur, nor the time-out, during a transfer', () {
       fakeAsync((fake) {
         // Arrange
         clearInteractions(mockNearbyConnections);
         mockConnectedDevice.status = ConnectionStatus.sending;
 
-        // We need to verify that rescan logic doesn't execute through side effects
         bool timeoutCallbackCalled = false;
 
         // Act
@@ -589,13 +590,14 @@ void main() {
               timeoutCallbackCalled = true;
             });
 
-        // Simulate a state change to trigger _shouldRescan evaluation
         mockNearbyHelper.emitDeviceStateChange([mockDevice]);
-
-        // Allow time for the async operation to complete
         fake.elapse(const Duration(milliseconds: 200));
 
-        // Assert that the timeout was reached (no rescan occurred)
+        expect(timeoutCallbackCalled, isFalse);
+
+        // Once the transfer is over, the time-out comes.
+        mockConnectedDevice.status = ConnectionStatus.searching;
+        fake.elapse(const Duration(seconds: 31));
         expect(timeoutCallbackCalled, isTrue);
         verifyNever(mockNearbyConnections.init(
           serviceType: anyNamed('serviceType'),
@@ -679,6 +681,127 @@ void main() {
         expect(deviceFoundCallbackTriggered, isTrue,
             reason:
                 'deviceFoundCallback should be triggered for notConnected devices');
+      });
+    });
+
+    // A coach's phone ignored a Timer on 1.1.1, which says 'Timer', and one
+    // on 1.1.0 or later sends 'Race Timer'. Both must be answered.
+    for (final name in ['Timer', 'Race Timer']) {
+      test('a coach answers a Timer that calls itself $name', () {
+        fakeAsync((fake) {
+          final timer = ConnectedDevice(DeviceName.raceTimer);
+          when(mockDevicesManager.otherDevices).thenReturn([timer]);
+          when(mockDevicesManager.getDevice(DeviceName.raceTimer))
+              .thenReturn(timer);
+          final found = <String>[];
+          deviceConnectionService.rescanBackoff = const Duration(seconds: 10);
+
+          deviceConnectionService.monitorDevicesConnectionStatus(
+            deviceFoundCallback: (device) async => found.add(device.deviceName),
+            timeout: const Duration(seconds: 5),
+          );
+          // Let it start listening before the phones are seen.
+          fake.elapse(const Duration(milliseconds: 10));
+          stateChangeController!.add([
+            Device('timer_id', name, SessionState.notConnected.index),
+            Device('other_id', "Sam's iPhone", SessionState.notConnected.index),
+          ]);
+          fake.elapse(const Duration(milliseconds: 350));
+
+          expect(found, [name]);
+        });
+      });
+    }
+
+    // A rescan used to end the search as far as the caller could tell, and
+    // every phone found afterwards was ignored: two phones that did not meet
+    // in the first seconds never connected.
+    test('a phone found after a rescan is still reported', () {
+      fakeAsync((fake) {
+        final found = <String>[];
+        var ended = false;
+        deviceConnectionService
+            .monitorDevicesConnectionStatus(
+              deviceFoundCallback: (device) async => found.add(device.deviceId),
+              timeout: const Duration(minutes: 10),
+            )
+            .then((_) => ended = true);
+
+        // Several rescans pass with nothing found.
+        fake.elapse(const Duration(seconds: 1));
+        verify(mockNearbyConnections.init(
+          serviceType: anyNamed('serviceType'),
+          deviceName: anyNamed('deviceName'),
+          strategy: anyNamed('strategy'),
+          callback: anyNamed('callback'),
+        )).called(greaterThan(1));
+        expect(ended, isFalse, reason: 'a rescan does not end the search');
+
+        stateChangeController!.add([mockDevice]);
+        fake.elapse(const Duration(milliseconds: 350));
+
+        expect(found, [mockDevice.deviceId]);
+      });
+    });
+
+    test('rescans do not shorten the time limit', () {
+      fakeAsync((fake) {
+        var timedOut = false;
+        deviceConnectionService.monitorDevicesConnectionStatus(
+          timeout: const Duration(minutes: 10),
+          timeoutCallback: () async => timedOut = true,
+        );
+
+        fake.elapse(const Duration(minutes: 9));
+        expect(timedOut, isFalse);
+        fake.elapse(const Duration(minutes: 1, seconds: 1));
+        expect(timedOut, isTrue);
+      });
+    });
+
+    test('a phone that leaves the list and comes back is reported again', () {
+      fakeAsync((fake) {
+        deviceConnectionService.rescanBackoff = const Duration(minutes: 5);
+        final found = <String>[];
+        deviceConnectionService.monitorDevicesConnectionStatus(
+          deviceFoundCallback: (device) async => found.add(device.deviceId),
+          timeout: const Duration(minutes: 10),
+        );
+        fake.elapse(const Duration(milliseconds: 10));
+
+        stateChangeController!.add([mockDevice]);
+        fake.elapse(const Duration(milliseconds: 350));
+        stateChangeController!.add([]);
+        fake.elapse(const Duration(milliseconds: 10));
+        expect(mockConnectedDevice.status, ConnectionStatus.searching);
+
+        stateChangeController!.add([mockDevice]);
+        fake.elapse(const Duration(milliseconds: 350));
+
+        expect(found, [mockDevice.deviceId, mockDevice.deviceId]);
+      });
+    });
+
+    test('a phone that starts connecting is not set back to found', () {
+      fakeAsync((fake) {
+        deviceConnectionService.rescanBackoff = const Duration(minutes: 5);
+        final found = <String>[];
+        deviceConnectionService.monitorDevicesConnectionStatus(
+          deviceFoundCallback: (device) async => found.add(device.deviceId),
+          timeout: const Duration(minutes: 10),
+        );
+        fake.elapse(const Duration(milliseconds: 10));
+
+        stateChangeController!.add([mockDevice]);
+        fake.elapse(const Duration(milliseconds: 100));
+        stateChangeController!.add([
+          Device(mockDevice.deviceId, mockDevice.deviceName,
+              SessionState.connecting.index),
+        ]);
+        fake.elapse(const Duration(milliseconds: 350));
+
+        expect(mockConnectedDevice.status, ConnectionStatus.connecting);
+        expect(found, isEmpty);
       });
     });
 

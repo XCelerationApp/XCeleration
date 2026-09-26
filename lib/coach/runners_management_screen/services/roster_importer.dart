@@ -32,6 +32,8 @@ class RosterImportResult {
     required this.teamsAdded,
     required this.conflicts,
     required this.unplaced,
+    this.savedOnly = 0,
+    this.teamsSavedOnly = const [],
   });
 
   /// Runners created by the import.
@@ -51,6 +53,12 @@ class RosterImportResult {
 
   /// Rows left out because they named no team and none was given.
   final int unplaced;
+
+  /// Runners saved on a team the coach left out of this race.
+  final int savedOnly;
+
+  /// Teams saved with their runners but left out of this race.
+  final List<String> teamsSavedOnly;
 
   int get total => added + alreadyKnown;
 }
@@ -81,17 +89,23 @@ class RosterImporter {
 
   /// Imports [rows] (as [processSpreadsheetData] gives them). Rows without a
   /// team go to [intoTeam]; with neither they are counted as unplaced.
+  ///
+  /// A row marked `'inRace': false` is saved on its team, but neither the
+  /// runner nor the team joins this race: the coach may import boys and
+  /// girls together and race only one of them.
   Future<RosterImportResult> importRows(
     List<Map<String, dynamic>> rows, {
     Team? intoTeam,
   }) async {
     final created = <String>[];
     final inRace = <String>[];
+    final savedOnlyTeams = <String>[];
     final conflicts = <RunnerDetailsConflict>[];
     final teamsByKey = <String, Team>{};
     var added = 0;
     var known = 0;
     var unplaced = 0;
+    var savedOnly = 0;
 
     Future<Team> teamFor(String named) async {
       final key = named.trim().toLowerCase();
@@ -142,21 +156,36 @@ class RosterImporter {
         continue;
       }
       final teamId = team!.teamId!;
-      await ensureInRace(team);
+      final joinsRace = row['inRace'] != false;
+      if (joinsRace) {
+        await ensureInRace(team);
+      } else {
+        final named = team.name ?? '';
+        if (!savedOnlyTeams.contains(named)) savedOnlyTeams.add(named);
+      }
 
       final existing = await _runners.getRunnerByBib(bib);
       if (existing == null) {
         final runnerId = await _runners
             .createRunner(Runner(name: name, bibNumber: bib, grade: grade));
         await _runners.addRunnerToTeam(teamId, runnerId);
-        await _races.addRaceParticipant(RaceParticipant(
-            raceId: raceId, runnerId: runnerId, teamId: teamId));
-        added++;
+        if (joinsRace) {
+          await _races.addRaceParticipant(RaceParticipant(
+              raceId: raceId, runnerId: runnerId, teamId: teamId));
+          added++;
+        } else {
+          savedOnly++;
+        }
         continue;
       }
 
-      known++;
-      await _placeInRace(existing.runnerId!, bib, teamId);
+      if (joinsRace) {
+        known++;
+        await _placeInRace(existing.runnerId!, bib, teamId);
+      } else {
+        savedOnly++;
+        await _runners.addRunnerToTeam(teamId, existing.runnerId!);
+      }
       if (existing.name != name || (existing.grade ?? 0) != grade) {
         conflicts.add(
             RunnerDetailsConflict(existing: existing, name: name, grade: grade));
@@ -170,6 +199,11 @@ class RosterImporter {
       teamsAdded: inRace,
       conflicts: conflicts,
       unplaced: unplaced,
+      savedOnly: savedOnly,
+      teamsSavedOnly: [
+        for (final t in savedOnlyTeams)
+          if (!inRace.contains(t)) t,
+      ],
     );
   }
 
