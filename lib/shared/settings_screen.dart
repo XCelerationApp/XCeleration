@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'constants/app_constants.dart';
 import '../core/theme/app_colors.dart';
 import '../core/theme/typography.dart';
 import '../core/components/dialog_utils.dart';
@@ -62,9 +64,41 @@ class SettingsScreen extends StatelessWidget {
                   : 'XCeleration ${info.version} (${info.buildNumber})');
             },
           ),
+          // The App Store expects the privacy policy to be reachable from
+          // inside the app, not only from its listing.
+          _buildLinkItem(context, 'Privacy Policy', 'What the app keeps and why',
+              Icons.privacy_tip_outlined, AppConstants.privacyPolicyUrl),
+          _buildLinkItem(context, 'Terms of Service', 'The terms of using the app',
+              Icons.description_outlined, AppConstants.termsUrl),
+          _buildLinkItem(context, 'Help & Support', 'Questions, problems, ideas',
+              Icons.help_outline, AppConstants.supportUrl),
           const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+
+  Widget _buildLinkItem(BuildContext context, String title, String description,
+      IconData icon, String url) {
+    return _buildRoleItem(
+      context,
+      title,
+      description,
+      icon,
+      isSelected: false,
+      onTap: () async {
+        var opened = false;
+        try {
+          opened = await launchUrl(Uri.parse(url),
+              mode: LaunchMode.externalApplication);
+        } catch (e) {
+          Logger.e('Could not open $url: $e');
+        }
+        if (!opened && context.mounted) {
+          DialogUtils.showErrorDialog(context,
+              message: 'Could not open the page. It is at $url');
+        }
+      },
     );
   }
 
