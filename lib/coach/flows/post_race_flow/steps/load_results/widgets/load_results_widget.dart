@@ -89,9 +89,8 @@ class LoadResultsWidget extends StatelessWidget {
                         controller.hasTimingConflicts)
                       ConflictButton(
                         title: 'Some Results Need Checking',
-                        description: 'Tap Next and the app walks you '
-                            'through each one: bib numbers first, then '
-                            'times.',
+                        description: 'The app walks you through each '
+                            'one: bib numbers first, then times.',
                         buttonText: 'Start',
                         onPressed: () {
                           debugPrint(
