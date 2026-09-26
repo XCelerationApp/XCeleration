@@ -119,6 +119,30 @@ void main() {
     expect(find.text('Counts differ?'), findsOneWidget);
   });
 
+  testWidgets('Counts differ? offers its two answers in place, and Log '
+      'Finish still works meanwhile', (tester) async {
+    // A menu used to cover Log Finish, and a tap there only closed it.
+    timing.startRace();
+    timing.logTime();
+    await pump(tester);
+
+    await tester.tap(find.text('Counts differ?'));
+    await tester.pump();
+    expect(find.text('Missed one'), findsOneWidget);
+    expect(find.text('Extra tap'), findsOneWidget);
+
+    await tester.tap(find.text('Log Finish'));
+    await tester.pump();
+    expect(timing.runnerCount, 2);
+
+    await tester.tap(find.text('Missed one'));
+    await tester.pumpAndSettle();
+    expect(find.text('Missed one'), findsNothing, reason: 'back to the row');
+    expect(find.text('Counts differ?'), findsOneWidget);
+    expect(find.text('Undo'), findsOneWidget,
+        reason: 'the mark just made can be taken back');
+  });
+
   testWidgets('offers Resume and Share Times once stopped', (tester) async {
     timing.startRace();
     timing.logTime();
