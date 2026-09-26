@@ -47,11 +47,17 @@ class VoiceEntryController extends ChangeNotifier {
     Future<SharedPreferences> Function()? prefs,
     Future<void> Function()? fetchModel,
     bool Function(String bib)? isKnownBib,
+    this.liveTapDelay = const Duration(milliseconds: 150),
   })  : _createService = createService ??
             (() => VoiceRecognitionService.create(isKnownBib: isKnownBib)),
         _haptics = haptics ?? HapticFeedbackService(),
         _prefs = prefs ?? SharedPreferences.getInstance,
         _fetchModel = fetchModel ?? _downloadModel;
+
+  /// How long after the mic starts recording its tap comes. Felt a moment
+  /// after the press, the tap says "recording now": a word started as the
+  /// thumb went down, before the mic was live, used to be lost.
+  final Duration liveTapDelay;
 
   /// The preference that remembers voice entry is on.
   static const prefKey = 'bib_recorder_voice_entry';
@@ -190,14 +196,19 @@ class VoiceEntryController extends ChangeNotifier {
   Future<void> startListening() async {
     if (_state != VoiceEntryState.ready) return;
     _missed = false;
-    // A firm tap as the mic opens and a lighter one as it closes, so the
-    // volunteer feels both without looking.
-    _haptics.mediumImpact();
     _held
       ..reset()
       ..start();
     _set(VoiceEntryState.listening);
     await _service?.start();
+    // A firm tap once the mic is really recording, and a lighter one as it
+    // closes, so the volunteer feels both without looking. Not on the press
+    // itself: then the tap came before the mic was live, and the first word
+    // of a bib said at once was cut off.
+    if (liveTapDelay > Duration.zero) await Future.delayed(liveTapDelay);
+    if (!_disposed && _state == VoiceEntryState.listening) {
+      _haptics.mediumImpact();
+    }
   }
 
   /// The mic is let go: stop and make out the bib.

@@ -168,6 +168,32 @@ void main() {
     c.dispose();
   });
 
+  test('taps only once the mic is recording, a moment after the press',
+      () async {
+    final c = build();
+    await c.setEnabled(true);
+
+    final pressing = c.startListening();
+    expect(haptics.presses, 0, reason: 'not on the press itself');
+    await pressing;
+    expect(haptics.presses, 1, reason: 'felt once the mic is live');
+    await c.stopListening();
+    c.dispose();
+  });
+
+  test('no press tap if the mic is let go before it is recording', () async {
+    final c = build();
+    await c.setEnabled(true);
+
+    voice.nextHeard = null;
+    final pressing = c.startListening();
+    await c.stopListening();
+    await pressing;
+
+    expect(haptics.presses, 0);
+    c.dispose();
+  });
+
   test('lets a quick slip of the thumb go without a buzz', () async {
     final c = build();
     await c.setEnabled(true);
