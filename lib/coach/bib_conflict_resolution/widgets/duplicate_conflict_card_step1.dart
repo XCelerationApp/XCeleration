@@ -22,27 +22,31 @@ class _TwoOccurrenceStep1 extends StatelessWidget {
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
         const SizedBox(height: AppSpacing.md),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _OccurrenceTile(
-                occurrence: conflict.occurrences[0],
-                conflict: conflict,
-                onConfirm: () => controller
-                    .chooseDuplicateOccurrence(conflict.occurrences[0].place),
+        // The two the same height, whichever has a settled time: a smaller
+        // "About 17:56" box looked like the lesser choice.
+        IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: _OccurrenceTile(
+                  occurrence: conflict.occurrences[0],
+                  conflict: conflict,
+                  onConfirm: () => controller
+                      .chooseDuplicateOccurrence(conflict.occurrences[0].place),
+                ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: _OccurrenceTile(
-                occurrence: conflict.occurrences[1],
-                conflict: conflict,
-                onConfirm: () => controller
-                    .chooseDuplicateOccurrence(conflict.occurrences[1].place),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: _OccurrenceTile(
+                  occurrence: conflict.occurrences[1],
+                  conflict: conflict,
+                  onConfirm: () => controller
+                      .chooseDuplicateOccurrence(conflict.occurrences[1].place),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         _TipBanner(),
@@ -126,6 +130,7 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
         ),
         padding: const EdgeInsets.all(AppSpacing.lg),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(

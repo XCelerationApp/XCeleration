@@ -223,6 +223,18 @@ void main() {
         findsOneWidget);
   });
 
+  testWidgets('both finishes of a repeated bib are the same size',
+      (tester) async {
+    // 16th has only a range, 21st a settled time in large type.
+    await open(tester);
+    await start(tester);
+
+    Size box(String place) => tester.getSize(find
+        .ancestor(of: find.text(place), matching: find.byType(AnimatedContainer))
+        .first);
+    expect(box('16th place'), box('21st place'));
+  });
+
   testWidgets('an unknown bib suggests who it most likely was, to assign in '
       'one tap', (tester) async {
     await open(tester);
