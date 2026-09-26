@@ -32,11 +32,13 @@ List<RunnerSuggestion> suggestRunnersForBib(
   final blocks = teamBibBlocks(roster);
   String? blockOf(RaceRunner r) {
     final team = r.team.name;
-    final block = team == null ? null : blocks[team];
-    if (block == null || typedValue == null) return null;
-    final (low, high) = block;
-    if (typedValue < low || typedValue > high) return null;
-    return 'Among $team\'s bibs ($low–$high)';
+    if (team == null || typedValue == null) return null;
+    for (final (low, high) in blocks[team] ?? const <(int, int)>[]) {
+      if (typedValue >= low && typedValue <= high) {
+        return 'Among $team\'s bibs ($low–$high)';
+      }
+    }
+    return null;
   }
 
   final close = <(RunnerSuggestion, int)>[];
@@ -113,18 +115,42 @@ bool _dropsOne(String longer, String shorter) {
   return false;
 }
 
-/// Each team's lowest and highest numeric bib, by team name.
-Map<String, (int, int)> teamBibBlocks(List<RaceRunner> roster) {
-  final blocks = <String, (int, int)>{};
+/// Each team's runs of numeric bibs, lowest to highest, by team name.
+///
+/// A team's bibs usually run in one block, but a runner added late, or a
+/// bib from another meet, can sit far off from the rest. One range from the
+/// lowest to the highest then covered almost every bib ("100–950"), and
+/// every typo looked like that team's. A gap far wider than the team's usual
+/// spacing (and over [minBreak]) starts a new run.
+Map<String, List<(int, int)>> teamBibBlocks(List<RaceRunner> roster,
+    {int minBreak = 25}) {
+  final bibsByTeam = <String, List<int>>{};
   for (final r in roster) {
     final team = r.team.name;
     final value = int.tryParse(r.runner.bibNumber ?? '');
     if (team == null || value == null) continue;
-    final current = blocks[team];
-    blocks[team] = current == null
-        ? (value, value)
-        : (value < current.$1 ? value : current.$1,
-            value > current.$2 ? value : current.$2);
+    bibsByTeam.putIfAbsent(team, () => []).add(value);
   }
-  return blocks;
+  return {
+    for (final MapEntry(key: team, value: bibs) in bibsByTeam.entries)
+      team: _runs(bibs..sort(), minBreak),
+  };
+}
+
+List<(int, int)> _runs(List<int> sorted, int minBreak) {
+  final gaps = [
+    for (var i = 1; i < sorted.length; i++) sorted[i] - sorted[i - 1],
+  ]..sort();
+  final usual = gaps.isEmpty ? 0 : gaps[gaps.length ~/ 2];
+  final breakAt = usual * 5 > minBreak ? usual * 5 : minBreak;
+  final runs = <(int, int)>[];
+  var start = sorted.first;
+  for (var i = 1; i < sorted.length; i++) {
+    if (sorted[i] - sorted[i - 1] > breakAt) {
+      runs.add((start, sorted[i - 1]));
+      start = sorted[i];
+    }
+  }
+  runs.add((start, sorted.last));
+  return runs;
 }

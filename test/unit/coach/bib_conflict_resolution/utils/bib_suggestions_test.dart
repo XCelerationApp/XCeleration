@@ -72,6 +72,18 @@ void main() {
       expect(s.single.reasons.first, 'Among Hawks\'s bibs (1060–1080)');
     });
 
+    test('a stray bib far from the rest does not stretch the team\'s block',
+        () {
+      // Eagles run 1050–1057, plus one runner with bib 1950.
+      final stray = _r('Rio', '1950', _eagles);
+      final s = suggestRunnersForBib('1400',
+          free: [devon], roster: [...roster, stray]);
+      expect(s, isEmpty, reason: '1400 is nowhere near the Eagles');
+
+      expect(teamBibBlocks([...roster, stray])['Eagles'],
+          [(1052, 1057), (1950, 1950)]);
+    });
+
     test('only suggests runners not placed yet, and at most three', () {
       final many = [
         for (var i = 0; i < 9; i++) _r('R$i', '10${50 + i}', _eagles),
