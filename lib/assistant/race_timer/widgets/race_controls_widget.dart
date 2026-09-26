@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/device_connection_service.dart';
@@ -65,8 +66,11 @@ class RaceControlsWidget extends StatelessWidget {
       );
     }
 
-    // Stopped after starting.
-    return Row(
+    // Stopped after starting. The practice race's times can't be shared, so
+    // instead of a Share Times that looked ready and then refused, it offers
+    // what comes next: the real race.
+    final practice = DemoRaceGenerator.isDemoRace(controller.currentRace!);
+    final row = Row(
       children: [
         Expanded(
           child: RaceDayButton(
@@ -77,7 +81,20 @@ class RaceControlsWidget extends StatelessWidget {
             onPressed: controller.startRace,
           ),
         ),
-        if (controller.hasTimingData) ...[
+        if (practice) ...[
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: RaceDayButton(
+              key: const ValueKey('timer_get_real_race'),
+              label: 'Get Real Race',
+              icon: Icons.download_rounded,
+              color: AppColors.primaryColor,
+              filled: true,
+              height: 64,
+              onPressed: () => controller.showLoadRaceSheet(context),
+            ),
+          ),
+        ] else if (controller.hasTimingData) ...[
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: RaceDayButton(
@@ -90,6 +107,21 @@ class RaceControlsWidget extends StatelessWidget {
             ),
           ),
         ],
+      ],
+    );
+    if (!practice) return row;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        row,
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          'Practice times can\'t be shared. Get the real race from your '
+          'coach to time it.',
+          textAlign: TextAlign.center,
+          style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+        ),
       ],
     );
   }

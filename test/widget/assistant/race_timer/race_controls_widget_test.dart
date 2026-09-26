@@ -130,6 +130,27 @@ void main() {
     expect(find.text('Log Finish'), findsNothing);
   });
 
+  testWidgets('the practice race offers the real race, not Share Times',
+      (tester) async {
+    // Share Times there looked ready, then refused.
+    timing.currentRace = RaceRecord(
+      raceId: -1,
+      date: DateTime(2026, 9, 26),
+      name: 'Demo Race',
+      type: DeviceName.raceTimer.toString(),
+      stopped: true,
+    );
+    timing.startRace();
+    timing.logTime();
+    timing.stopRace();
+    await pump(tester);
+
+    expect(find.text('Share Times'), findsNothing);
+    expect(find.text('Get Real Race'), findsOneWidget);
+    expect(find.textContaining("Practice times can't be shared"),
+        findsOneWidget);
+  });
+
   testWidgets('fits a small phone at a large text size', (tester) async {
     tester.view.physicalSize = const Size(320, 568);
     tester.view.devicePixelRatio = 1.0;
