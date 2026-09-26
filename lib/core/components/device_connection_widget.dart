@@ -10,9 +10,10 @@ import '../connection/controller/wireless_connection_controller.dart';
 
 /// A widget that renders both wireless and QR connection options.
 ///
-/// Replaces the old [deviceConnectionWidget] factory function, keeping UI
-/// concerns inside a proper [StatelessWidget] class.
-class DeviceConnectionWidget extends StatelessWidget {
+/// It makes the wireless connection once and keeps it. Made in build, a new
+/// one was made at every redraw of the screen around it, and the list kept
+/// showing the first while the new one was never started.
+class DeviceConnectionWidget extends StatefulWidget {
   final DevicesManager devices;
   final Function? callback;
   final bool inSheet;
@@ -24,9 +25,35 @@ class DeviceConnectionWidget extends StatelessWidget {
     this.inSheet = true,
   });
 
+  @override
+  State<DeviceConnectionWidget> createState() => _DeviceConnectionWidgetState();
+}
+
+class _DeviceConnectionWidgetState extends State<DeviceConnectionWidget> {
+  late final WirelessConnectionController _wireless = () {
+    final devices = widget.devices;
+    final svc = DeviceConnectionService(
+      devices,
+      'wirelessconn',
+      getDeviceWireName(devices.currentDeviceName),
+      devices.currentDeviceType,
+      NearbyConnections(),
+    );
+    return WirelessConnectionController(
+      deviceConnectionService: svc,
+      protocol: Protocol(deviceConnectionService: svc),
+      devices: devices,
+      callback: () => _handleCallback(context),
+    );
+  }();
+
+  DevicesManager get devices => widget.devices;
+  bool get inSheet => widget.inSheet;
+
   void _handleCallback(BuildContext context) async {
+    final callback = widget.callback;
     if (callback != null) {
-      await callback!();
+      await callback();
     }
     try {
       final player = audio.AudioPlayer();
@@ -48,23 +75,7 @@ class DeviceConnectionWidget extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        WirelessConnectionWidget(
-          controller: () {
-            final svc = DeviceConnectionService(
-              devices,
-              'wirelessconn',
-              getDeviceWireName(devices.currentDeviceName),
-              devices.currentDeviceType,
-              NearbyConnections(),
-            );
-            return WirelessConnectionController(
-              deviceConnectionService: svc,
-              protocol: Protocol(deviceConnectionService: svc),
-              devices: devices,
-              callback: () => _handleCallback(context),
-            );
-          }(),
-        ),
+        WirelessConnectionWidget(controller: _wireless),
 
         // Separator
         const SizedBox(height: 16),
