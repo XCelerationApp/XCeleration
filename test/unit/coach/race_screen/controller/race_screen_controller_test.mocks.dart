@@ -4,9 +4,9 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i7;
-import 'dart:ui' as _i12;
+import 'dart:ui' as _i11;
 
-import 'package:flutter/material.dart' as _i15;
+import 'package:flutter/material.dart' as _i13;
 import 'package:mockito/mockito.dart' as _i1;
 import 'package:xceleration/coach/flows/controller/flow_controller.dart'
     as _i14;
@@ -14,24 +14,20 @@ import 'package:xceleration/coach/flows/post_race_flow/controller/post_race_cont
     as _i6;
 import 'package:xceleration/coach/flows/pre_race_flow/controller/pre_race_controller.dart'
     as _i5;
-import 'package:xceleration/coach/race_results/model/team_record.dart' as _i11;
-import 'package:xceleration/coach/race_screen/controller/race_form_state.dart'
-    as _i9;
-import 'package:xceleration/coach/race_screen/controller/race_geo_controller.dart'
-    as _i20;
+import 'package:xceleration/coach/race_results/model/team_record.dart' as _i10;
 import 'package:xceleration/coach/race_screen/controller/race_screen_controller.dart'
     as _i4;
 import 'package:xceleration/coach/races_screen/controller/i_parent_race_controller.dart'
-    as _i13;
-import 'package:xceleration/core/services/date_picker_service.dart' as _i16;
+    as _i12;
+import 'package:xceleration/core/services/date_picker_service.dart' as _i15;
 import 'package:xceleration/core/services/device_connection_service.dart'
     as _i8;
-import 'package:xceleration/core/services/event_bus.dart' as _i17;
+import 'package:xceleration/core/services/event_bus.dart' as _i16;
 import 'package:xceleration/core/services/i_device_connection_factory.dart'
-    as _i18;
-import 'package:xceleration/core/utils/enums.dart' as _i19;
+    as _i17;
+import 'package:xceleration/core/utils/enums.dart' as _i18;
 import 'package:xceleration/shared/models/database/base_models.dart' as _i2;
-import 'package:xceleration/shared/models/database/master_race.dart' as _i10;
+import 'package:xceleration/shared/models/database/master_race.dart' as _i9;
 import 'package:xceleration/shared/services/race_results_service.dart' as _i3;
 
 // ignore_for_file: type=lint
@@ -90,15 +86,10 @@ class _FakeDevicesManager_6 extends _i1.SmartFake
     : super(parent, parentInvocation);
 }
 
-class _FakeRaceFormState_7 extends _i1.SmartFake implements _i9.RaceFormState {
-  _FakeRaceFormState_7(Object parent, Invocation parentInvocation)
-    : super(parent, parentInvocation);
-}
-
 /// A class which mocks [MasterRace].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockMasterRace extends _i1.Mock implements _i10.MasterRace {
+class MockMasterRace extends _i1.Mock implements _i9.MasterRace {
   MockMasterRace() {
     _i1.throwOnMissingStub(this);
   }
@@ -176,14 +167,14 @@ class MockMasterRace extends _i1.Mock implements _i10.MasterRace {
           as _i7.Future<List<_i2.RaceResult>>);
 
   @override
-  _i7.Future<List<_i11.TeamRecord>> get teamStandings =>
+  _i7.Future<List<_i10.TeamRecord>> get teamStandings =>
       (super.noSuchMethod(
             Invocation.getter(#teamStandings),
-            returnValue: _i7.Future<List<_i11.TeamRecord>>.value(
-              <_i11.TeamRecord>[],
+            returnValue: _i7.Future<List<_i10.TeamRecord>>.value(
+              <_i10.TeamRecord>[],
             ),
           )
-          as _i7.Future<List<_i11.TeamRecord>>);
+          as _i7.Future<List<_i10.TeamRecord>>);
 
   @override
   _i7.Future<_i3.RaceResultsData> get raceResultsData =>
@@ -353,6 +344,14 @@ class MockMasterRace extends _i1.Mock implements _i10.MasterRace {
           as _i7.Future<int>);
 
   @override
+  _i7.Future<List<_i2.Runner>> getAllSavedRunners() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAllSavedRunners, []),
+            returnValue: _i7.Future<List<_i2.Runner>>.value(<_i2.Runner>[]),
+          )
+          as _i7.Future<List<_i2.Runner>>);
+
+  @override
   _i7.Future<void> addRunnerToTeam(int? teamId, int? runnerId) =>
       (super.noSuchMethod(
             Invocation.method(#addRunnerToTeam, [teamId, runnerId]),
@@ -376,13 +375,13 @@ class MockMasterRace extends _i1.Mock implements _i10.MasterRace {
   );
 
   @override
-  void addListener(_i12.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i11.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i12.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i11.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );
@@ -404,7 +403,7 @@ class MockMasterRace extends _i1.Mock implements _i10.MasterRace {
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIParentRaceController extends _i1.Mock
-    implements _i13.IParentRaceController {
+    implements _i12.IParentRaceController {
   MockIParentRaceController() {
     _i1.throwOnMissingStub(this);
   }
@@ -422,6 +421,14 @@ class MockIParentRaceController extends _i1.Mock
             returnValueForMissingStub: _i7.Future<void>.value(),
           )
           as _i7.Future<void>);
+
+  @override
+  _i7.Future<bool> deleteRace(_i2.Race? race, _i13.BuildContext? context) =>
+      (super.noSuchMethod(
+            Invocation.method(#deleteRace, [race, context]),
+            returnValue: _i7.Future<bool>.value(false),
+          )
+          as _i7.Future<bool>);
 }
 
 /// A class which mocks [MasterFlowController].
@@ -480,7 +487,7 @@ class MockMasterFlowController extends _i1.Mock
 
   @override
   _i7.Future<void> updateRaceFlowState(
-    _i15.BuildContext? context,
+    _i13.BuildContext? context,
     String? newState,
   ) =>
       (super.noSuchMethod(
@@ -491,7 +498,7 @@ class MockMasterFlowController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> markCurrentFlowCompleted(_i15.BuildContext? context) =>
+  _i7.Future<void> markCurrentFlowCompleted(_i13.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#markCurrentFlowCompleted, [context]),
             returnValue: _i7.Future<void>.value(),
@@ -500,7 +507,7 @@ class MockMasterFlowController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> beginNextFlow(_i15.BuildContext? context) =>
+  _i7.Future<void> beginNextFlow(_i13.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#beginNextFlow, [context]),
             returnValue: _i7.Future<void>.value(),
@@ -509,7 +516,7 @@ class MockMasterFlowController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
-  _i7.Future<void> continueRaceFlow(_i15.BuildContext? context) =>
+  _i7.Future<void> continueRaceFlow(_i13.BuildContext? context) =>
       (super.noSuchMethod(
             Invocation.method(#continueRaceFlow, [context]),
             returnValue: _i7.Future<void>.value(),
@@ -518,8 +525,15 @@ class MockMasterFlowController extends _i1.Mock
           as _i7.Future<void>);
 
   @override
+  void closeRaceSheet(_i13.BuildContext? context, {String? message}) =>
+      super.noSuchMethod(
+        Invocation.method(#closeRaceSheet, [context], {#message: message}),
+        returnValueForMissingStub: null,
+      );
+
+  @override
   _i7.Future<bool> handleFlowNavigation(
-    _i15.BuildContext? context,
+    _i13.BuildContext? context,
     String? flowState,
   ) =>
       (super.noSuchMethod(
@@ -533,14 +547,14 @@ class MockMasterFlowController extends _i1.Mock
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIDatePickerService extends _i1.Mock
-    implements _i16.IDatePickerService {
+    implements _i15.IDatePickerService {
   MockIDatePickerService() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
   _i7.Future<DateTime?> pickDate(
-    _i15.BuildContext? context, {
+    _i13.BuildContext? context, {
     DateTime? initialDate,
     DateTime? firstDate,
     DateTime? lastDate,
@@ -563,13 +577,13 @@ class MockIDatePickerService extends _i1.Mock
 /// A class which mocks [IEventBus].
 ///
 /// See the documentation for Mockito's code generation for more information.
-class MockIEventBus extends _i1.Mock implements _i17.IEventBus {
+class MockIEventBus extends _i1.Mock implements _i16.IEventBus {
   MockIEventBus() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
-  void publish(_i17.Event? event) => super.noSuchMethod(
+  void publish(_i16.Event? event) => super.noSuchMethod(
     Invocation.method(#publish, [event]),
     returnValueForMissingStub: null,
   );
@@ -581,33 +595,33 @@ class MockIEventBus extends _i1.Mock implements _i17.IEventBus {
   );
 
   @override
-  _i7.StreamSubscription<_i17.Event> on<T>(
+  _i7.StreamSubscription<_i16.Event> on<T>(
     String? eventType,
-    void Function(_i17.Event)? onData,
+    void Function(_i16.Event)? onData,
   ) =>
       (super.noSuchMethod(
             Invocation.method(#on, [eventType, onData]),
-            returnValue: _FakeStreamSubscription_5<_i17.Event>(
+            returnValue: _FakeStreamSubscription_5<_i16.Event>(
               this,
               Invocation.method(#on, [eventType, onData]),
             ),
           )
-          as _i7.StreamSubscription<_i17.Event>);
+          as _i7.StreamSubscription<_i16.Event>);
 }
 
 /// A class which mocks [IDeviceConnectionFactory].
 ///
 /// See the documentation for Mockito's code generation for more information.
 class MockIDeviceConnectionFactory extends _i1.Mock
-    implements _i18.IDeviceConnectionFactory {
+    implements _i17.IDeviceConnectionFactory {
   MockIDeviceConnectionFactory() {
     _i1.throwOnMissingStub(this);
   }
 
   @override
   _i8.DevicesManager createDevices(
-    _i19.DeviceName? deviceName,
-    _i19.DeviceType? deviceType, {
+    _i18.DeviceName? deviceName,
+    _i18.DeviceType? deviceType, {
     String? data,
     bool? toSpectator,
   }) =>
@@ -627,79 +641,4 @@ class MockIDeviceConnectionFactory extends _i1.Mock
             ),
           )
           as _i8.DevicesManager);
-}
-
-/// A class which mocks [RaceGeoController].
-///
-/// See the documentation for Mockito's code generation for more information.
-class MockRaceGeoController extends _i1.Mock implements _i20.RaceGeoController {
-  MockRaceGeoController() {
-    _i1.throwOnMissingStub(this);
-  }
-
-  @override
-  bool get isLocationButtonVisible =>
-      (super.noSuchMethod(
-            Invocation.getter(#isLocationButtonVisible),
-            returnValue: false,
-          )
-          as bool);
-
-  @override
-  _i9.RaceFormState get form =>
-      (super.noSuchMethod(
-            Invocation.getter(#form),
-            returnValue: _FakeRaceFormState_7(this, Invocation.getter(#form)),
-          )
-          as _i9.RaceFormState);
-
-  @override
-  set isLocationButtonVisible(bool? value) => super.noSuchMethod(
-    Invocation.setter(#isLocationButtonVisible, value),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  bool get hasListeners =>
-      (super.noSuchMethod(Invocation.getter(#hasListeners), returnValue: false)
-          as bool);
-
-  @override
-  _i7.Future<void> getCurrentLocation(_i15.BuildContext? context) =>
-      (super.noSuchMethod(
-            Invocation.method(#getCurrentLocation, [context]),
-            returnValue: _i7.Future<void>.value(),
-            returnValueForMissingStub: _i7.Future<void>.value(),
-          )
-          as _i7.Future<void>);
-
-  @override
-  void updateLocationButtonVisibility() => super.noSuchMethod(
-    Invocation.method(#updateLocationButtonVisibility, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void addListener(_i12.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#addListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void removeListener(_i12.VoidCallback? listener) => super.noSuchMethod(
-    Invocation.method(#removeListener, [listener]),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void dispose() => super.noSuchMethod(
-    Invocation.method(#dispose, []),
-    returnValueForMissingStub: null,
-  );
-
-  @override
-  void notifyListeners() => super.noSuchMethod(
-    Invocation.method(#notifyListeners, []),
-    returnValueForMissingStub: null,
-  );
 }

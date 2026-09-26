@@ -10,7 +10,6 @@ export 'event_bus.dart';
 export 'connectivity_service.dart';
 export 'device_connection_service.dart';
 export 'nearby_connections.dart';
-export 'permissions_service.dart';
 
 // Google Services
 export 'google_service.dart';

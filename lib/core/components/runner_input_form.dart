@@ -12,6 +12,7 @@ import '../theme/app_spacing.dart';
 import './textfield_utils.dart' as textfield_utils;
 import '../components/button_components.dart';
 import '../components/runner_form_validator.dart';
+import 'grade_selector.dart';
 import '../../shared/models/database/team.dart';
 import '../../shared/models/database/race_runner.dart';
 import '../../shared/models/database/runner.dart';
@@ -48,6 +49,11 @@ class RunnerInputForm extends StatefulWidget {
   /// Lookup function to find an existing runner by bib
   final Future<Runner?> Function(String bib) getRunnerByBib;
 
+  /// Takes the runner out of this race, for a Remove button under Save when
+  /// editing. Swiping the row was the only way before, with nothing to
+  /// say so.
+  final Future<void> Function()? onRemove;
+
   const RunnerInputForm({
     super.key,
     required this.raceId,
@@ -60,6 +66,7 @@ class RunnerInputForm extends StatefulWidget {
     this.useSheetLayout = true,
     this.showBibField = true,
     this.bibController,
+    this.onRemove,
   });
 
   @override
@@ -549,18 +556,17 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         inputWidget: inputWidget,
       );
     } else {
+      // Labels above, as in Add Runner.
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
+            style: AppTypography.captionBold.copyWith(
+              color: AppColors.mediumColor,
             ),
           ),
-          const SizedBox(height: AppSpacing.sm),
+          const SizedBox(height: AppSpacing.xs),
           inputWidget,
         ],
       );
@@ -569,51 +575,70 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
 
   @override
   Widget build(BuildContext context) {
+    // Name, bib, grade: the same fields in the same order as Add Runner,
+    // with the grade as the same four buttons.
     return SingleChildScrollView(
       child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: AppSpacing.sm),
           buildInputField(
             'Name',
             textfield_utils.buildTextField(
               context: context,
               controller: nameController,
-              hint: 'John Doe',
+              hint: "Runner's full name",
               error: nameError,
               onChanged: validateName,
-                  ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          buildInputField(
-            'Grade',
-            textfield_utils.buildTextField(
-              context: context,
-              controller: gradeController,
-              hint: '9',
-              keyboardType: TextInputType.number,
-              error: gradeError,
-              onChanged: validateGrade,
-                  ),
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          if (_isEditing)
-            buildInputField(
-              'Team',
-              _buildTeamField(),
             ),
+          ),
           if (widget.showBibField) ...[
-            const SizedBox(height: AppSpacing.lg),
+            const SizedBox(height: AppSpacing.md),
             buildInputField(
               'Bib #',
               textfield_utils.buildTextField(
                 context: context,
                 controller: bibController,
-                hint: '1234',
+                hint: 'e.g. 104',
+                keyboardType: TextInputType.number,
                 error: bibError,
                 warning: bibWarning,
                 onChanged: validateBib,
-                      ),
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.md),
+          buildInputField(
+            'Grade',
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                GradeSelector(
+                  selected: int.tryParse(gradeController.text),
+                  onSelected: (grade) => setState(() {
+                    gradeController.text = '$grade';
+                    gradeError = null;
+                  }),
+                ),
+                if (gradeError != null)
+                  Padding(
+                    padding: const EdgeInsets.only(
+                        top: AppSpacing.xs, left: AppSpacing.md),
+                    child: Text(
+                      gradeError!,
+                      style: AppTypography.caption
+                          .copyWith(color: AppColors.redColor),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          if (_isEditing) ...[
+            const SizedBox(height: AppSpacing.md),
+            buildInputField(
+              'Team',
+              _buildTeamField(),
             ),
           ],
           const SizedBox(height: AppSpacing.xl),
@@ -627,6 +652,19 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
                 (!_isEditing || _hasChanges()),
             onPressed: !_isSubmitting ? handleSubmit : null,
           ),
+          if (_isEditing && widget.onRemove != null) ...[
+            const SizedBox(height: AppSpacing.sm),
+            TextButton.icon(
+              key: const ValueKey('remove_runner_from_race'),
+              onPressed: _isSubmitting ? null : widget.onRemove,
+              icon: const Icon(Icons.person_remove_outlined, size: 18),
+              label: const Text('Remove from Race'),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.redColor,
+                textStyle: AppTypography.bodySemibold,
+              ),
+            ),
+          ],
         ],
       ),
     );

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/core/theme/typography.dart';
+import '../services/roster_importer.dart';
 
 class ImportedRunnersSelectionSheet extends StatefulWidget {
   final List<Map<String, dynamic>>
@@ -26,6 +27,15 @@ class _ImportedRunnersSelectionSheetState
   bool _selectAll = true;
   bool _showBoys = true;
   bool _showGirls = true;
+
+  /// Whether each team becomes a boys' and a girls' team.
+  bool _splitByGender = false;
+
+  /// Offered when the rows name their teams and have both boys and girls.
+  late final bool _canSplit = widget.importedRunners.any(
+          (r) => ((r['team'] as String?)?.trim() ?? '').isNotEmpty) &&
+      widget.importedRunners.any((r) => '${r['gender']}'.toUpperCase() == 'M') &&
+      widget.importedRunners.any((r) => '${r['gender']}'.toUpperCase() == 'F');
 
   @override
   void initState() {
@@ -133,6 +143,18 @@ class _ImportedRunnersSelectionSheetState
               const Text('Girls', style: AppTypography.bodyMedium),
             ],
           ),
+          if (_canSplit)
+            CheckboxListTile(
+              key: const ValueKey('split_boys_girls'),
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              value: _splitByGender,
+              onChanged: (v) => setState(() => _splitByGender = v ?? false),
+              title: const Text('Separate boys\' and girls\' teams',
+                  style: AppTypography.bodyMedium),
+              subtitle: const Text('e.g. "Archie Williams - Boys" and '
+                  '"Archie Williams - Girls"'),
+            ),
           const SizedBox(height: 8),
           Flexible(
             child: ConstrainedBox(
@@ -190,7 +212,9 @@ class _ImportedRunnersSelectionSheetState
                         selected.add(widget.importedRunners[i]);
                       }
                     }
-                    Navigator.of(context).pop(selected);
+                    Navigator.of(context).pop(_splitByGender
+                        ? RosterImporter.splitTeamsByGender(selected)
+                        : selected);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryColor,

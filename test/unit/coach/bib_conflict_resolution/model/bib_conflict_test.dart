@@ -101,6 +101,9 @@ void main() {
       final first = (conflicts.single as DuplicateBibConflict).occurrences[0];
       // Four ahead of 7th (3–6), four behind it (9–12), skipping disputed 8th.
       expect(first.nearby.map((f) => f.place), [3, 4, 5, 6, 9, 10, 11, 12]);
+      // "Show all finishers": the whole field, less the disputed places.
+      expect(first.allFinishers.map((f) => f.place),
+          [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14]);
     });
 
     test('pairs an unresolved entry with the runner that holds the bib',
@@ -129,6 +132,37 @@ void main() {
 
       final duplicate = conflicts.single as DuplicateBibConflict;
       expect(duplicate.occurrences.map((o) => o.time), ['15:00.00', null]);
+    });
+  });
+
+  group('a finish whose time is not settled yet', () {
+    // Not "time unknown": the coach sees where it must fall, between the
+    // known times on either side.
+    test('shows the range between the known times either side', () async {
+      final alice = _runner(1, '12', name: 'Alice');
+      final conflicts = await detectBibConflicts(
+        entries: [_runner(2, '10'), alice, _runner(3, '11'), alice, _runner(4, '13')],
+        timesByPlace: const {1: '15:00.00', 3: '15:05.00', 5: '15:09.00'},
+        lookupBib: _lookup({'12': alice}),
+      );
+
+      final places = (conflicts.single as DuplicateBibConflict).occurrences;
+      expect(places.map((o) => o.timeLabel), [
+        'Between 15:00.00 and 15:05.00',
+        'Between 15:05.00 and 15:09.00',
+      ]);
+    });
+
+    test('says only after or before at either end, or nothing', () {
+      expect(const ConflictOccurrence(place: 9, after: '15:00.00').timeLabel,
+          'After 15:00.00');
+      expect(const ConflictOccurrence(place: 1, before: '15:00.00').timeLabel,
+          'Before 15:00.00');
+      expect(const ConflictOccurrence(place: 1).timeLabel, isNull);
+      expect(
+          const ConflictOccurrence(place: 1, time: '15:01.00', after: 'x')
+              .timeLabel,
+          '15:01.00');
     });
   });
 

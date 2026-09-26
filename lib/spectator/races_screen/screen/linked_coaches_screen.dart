@@ -44,8 +44,6 @@ class _LinkedCoachesScreenState extends State<LinkedCoachesScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: AppColors.primaryColor,
-        foregroundColor: Colors.white,
         leading: const BackButton(),
         title: const Text('Linked Coaches'),
       ),

@@ -7,7 +7,6 @@ import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import '../../controller/flow_controller.dart';
 import '../steps/load_results/controller/load_results_controller.dart';
-import '../steps/reconnect/reconnect_step.dart';
 import '../steps/review_results/review_results_step.dart';
 
 /// Function type that matches the [showFlow] top-level function signature,
@@ -30,7 +29,6 @@ class PostRaceController {
   late final LoadResultsController _loadResultsController;
 
   // Flow steps
-  late final ReconnectStep _reconnectStep;
   late final LoadResultsStep _loadResultsStep;
   late final ReviewResultsStep _reviewResultsStep;
 
@@ -69,7 +67,6 @@ class PostRaceController {
     _loadResultsController.initialize();
 
     // Create steps with the controllers
-    _reconnectStep = ReconnectStep();
     _loadResultsStep = LoadResultsStep(
       controller: _loadResultsController,
     );
@@ -97,8 +94,9 @@ class PostRaceController {
 
   /// Get the flow steps
   List<FlowStep> _getSteps() {
+    // No instruction page first: the coach confirmed, before this opened,
+    // that every runner had finished and the volunteers were beside them.
     return [
-      _reconnectStep,
       _loadResultsStep,
       _reviewResultsStep,
     ];

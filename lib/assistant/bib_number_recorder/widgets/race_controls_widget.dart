@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/typography.dart';
 import '../../shared/widgets/race_day_controls.dart';
 import '../controller/bib_number_controller.dart';
 
@@ -42,7 +43,10 @@ class RaceControlsWidget extends StatelessWidget {
       );
     }
 
-    return Row(
+    // The practice race's bibs can't be shared, so instead of a Share Bibs
+    // that looked ready and then refused, it offers the real race.
+    final practice = controller.isCurrentRaceDemoRace();
+    final row = Row(
       children: [
         Expanded(
           child: RaceDayButton(
@@ -53,7 +57,20 @@ class RaceControlsWidget extends StatelessWidget {
             onPressed: () => controller.raceStopped = false,
           ),
         ),
-        if (controller.countNonEmptyBibNumbers() > 0) ...[
+        if (practice) ...[
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: RaceDayButton(
+              key: const ValueKey('bibs_get_real_race'),
+              label: 'Get Real Race',
+              icon: Icons.download_rounded,
+              color: AppColors.primaryColor,
+              filled: true,
+              height: 64,
+              onPressed: () => controller.showLoadRaceSheet(context),
+            ),
+          ),
+        ] else if (controller.countNonEmptyBibNumbers() > 0) ...[
           const SizedBox(width: AppSpacing.md),
           Expanded(
             child: RaceDayButton(
@@ -66,6 +83,21 @@ class RaceControlsWidget extends StatelessWidget {
             ),
           ),
         ],
+      ],
+    );
+    if (!practice) return row;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        row,
+        const SizedBox(height: AppSpacing.sm),
+        Text(
+          'Practice bibs can\'t be shared. Get the real race from your coach '
+          'to record it.',
+          textAlign: TextAlign.center,
+          style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+        ),
       ],
     );
   }

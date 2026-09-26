@@ -147,7 +147,7 @@ class _ConflictTypeCards extends StatelessWidget {
           ConflictButton(
             title: 'Unknown Bibs',
             subtitle:
-                '$unknownCount bib${unknownCount == 1 ? '' : 's'} not found in the database. '
+                '$unknownCount bib${unknownCount == 1 ? '' : 's'} not on your roster. '
                 'Assign to an existing runner or create a new one.',
             icon: Icons.help_outline,
             color: AppColors.primaryColor,

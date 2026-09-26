@@ -26,7 +26,14 @@ class TimingChunk {
       final offBy = conflictRecord!.conflict!.offBy;
 
       if (conflictType == ConflictType.missingTime) {
-        count += offBy; // Add missing timing events
+        // The Timer sends only the times it has and counts the missing ones
+        // in offBy. Once the coach edits the batch, the missing ones are
+        // "TBD" entries in the times as well, and offBy counts those same
+        // entries: counting both made the batch one finisher too many per
+        // open slot, so the last batch asked for an extra time that was not
+        // there. One per finisher, as the resolution screen shows them.
+        final tbd = timingData.where((d) => d.time == 'TBD').length;
+        count += (offBy > tbd ? offBy : tbd) - tbd;
       } else if (conflictType == ConflictType.extraTime) {
         count -= offBy; // Subtract extra timing events
       }

@@ -66,9 +66,12 @@ class AppConstants {
   static const String raceCreated = 'Race created successfully';
   static const String deviceConnected = 'Device connected successfully';
 
-  // URLs
-  static const String accountDeletionUrl =
-      'https://xceleration.app/delete-account';
+  // URLs. The app's website; xceleration.app does not resolve.
+  static const String privacyPolicyUrl =
+      'https://xceleration-app.github.io/privacy-policy.html';
+  static const String termsUrl = 'https://xceleration-app.github.io/terms.html';
+  static const String supportUrl =
+      'https://xceleration-app.github.io/support.html';
 }
 
 /// Event type constants for the EventBus

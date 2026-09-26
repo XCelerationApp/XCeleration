@@ -1,4 +1,4 @@
-import '../utils/time_shift.dart';
+import 'package:xceleration/shared/models/timing_records/time_shift.dart';
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
@@ -12,14 +12,13 @@ import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
-import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/controller/conflict_resolution_controller.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/model/bib_conflict.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/model/finish_order.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/screen/conflict_resolution_screen.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/services/runner_creator.dart';
-import 'package:xceleration/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
+import 'package:xceleration/coach/merge_conflicts/screen/timing_conflicts_page.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../core/utils/encode_utils.dart';
 import '../../../../../merge_conflicts/controller/merge_conflicts_controller.dart';
@@ -554,7 +553,8 @@ class LoadResultsController with ChangeNotifier {
   Future<AppError?> _mergeBibDataWithTimingChunksAndSaveResults() async {
     final built = buildResults();
     if (built.error case final error?) {
-      Logger.e('LoadResultsController: cannot save: ${error.userMessage}');
+      // Shown to the coach, and can name a runner: not one for Sentry.
+      Logger.d('LoadResultsController: cannot save: ${error.userMessage}');
       return _saveFailed(error);
     }
     final merged = built.results;
@@ -612,11 +612,13 @@ class LoadResultsController with ChangeNotifier {
         entries: entries,
         // Which finish the coach is being asked about, and when it happened.
         timesByPlace: settledTimesByPlace(timingChunks ?? const []),
+        approximateTimes: approximateTimesByPlace(timingChunks ?? const []),
         lookupBib: masterRace.getRaceRunnerByBib,
       );
       final inRace = await masterRace.raceRunners;
       final teams = await masterRace.teams;
       final race = await masterRace.race;
+      final savedBibOwners = await _savedBibOwnersOutside(inRace);
       final recordedBibs = {
         for (final entry in entries)
           if (entry is RaceRunner) ?entry.runner.bibNumber else if (entry is String) entry,
@@ -633,13 +635,16 @@ class LoadResultsController with ChangeNotifier {
             for (final runner in inRace)
               if (!recordedBibs.contains(runner.runner.bibNumber)) runner,
           ],
+          roster: inRace,
           knownBibs: {
             ...recordedBibs,
             for (final runner in inRace) ?runner.runner.bibNumber,
           },
+          savedBibOwners: savedBibOwners,
           teams: [for (final team in teams) ?team.name],
           raceName: race.raceName ?? '',
           createRunner: (newRunner) => saveNewRunner(masterRace, newRunner),
+          withdrawRunner: masterRace.removeRaceRunner,
           timingConflictsNext: timingConflictCount,
         ),
       );
@@ -669,6 +674,26 @@ class LoadResultsController with ChangeNotifier {
         context.mounted) {
       if (!context.mounted) return;
       await showTimingConflictsSheet(context);
+    }
+  }
+
+  /// Bibs held by runners saved on this phone who are not in this race, with
+  /// each one's name, so a runner added while resolving a bib is not
+  /// silently given someone else's. Empty if they can't be read: saving the
+  /// runner checks again.
+  Future<Map<String, String>> _savedBibOwnersOutside(
+      List<RaceRunner> inRace) async {
+    try {
+      final entered = {for (final r in inRace) r.runner.runnerId};
+      return {
+        for (final runner in await masterRace.getAllSavedRunners())
+          if (!entered.contains(runner.runnerId) &&
+              (runner.bibNumber ?? '').isNotEmpty)
+            runner.bibNumber!: runner.name ?? 'another runner',
+      };
+    } catch (e) {
+      Logger.e('Could not read saved runners: $e');
+      return const {};
     }
   }
 
@@ -731,13 +756,14 @@ class LoadResultsController with ChangeNotifier {
 
     final runners = raceRunners!.whereType<RaceRunner>().toList();
     try {
+      final raceName = (await masterRace.race).raceName ?? '';
+      if (!context.mounted) return;
       // Pass the full list in finish order. The controller edits it in place;
       // resolving a filtered copy and appending it back reordered the chunks,
       // so later times landed on the wrong runners.
-      await sheet(
-        context: context,
-        title: 'Resolve Timing Conflicts',
-        body: ChangeNotifierProvider(
+      await Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => ChangeNotifierProvider(
           create: (_) => MergeConflictsController(
             masterRace: masterRace,
             timingChunks: timingChunks!,
@@ -745,15 +771,15 @@ class LoadResultsController with ChangeNotifier {
             recordedTimes: _recordedTimes ??=
                 MergeConflictsController.recordedTimesOf(timingChunks!),
           ),
-          child: MergeConflictsScreen(
+          child: TimingConflictsPage(
             masterRace: masterRace,
             timingChunks: timingChunks!,
             raceRunners: runners,
+            raceName: raceName,
+            total: timingConflictCount,
           ),
         ),
-        useBottomPadding: false,
-        useRootNavigator: true,
-      );
+      ));
       Logger.d('Sheet function completed successfully');
       // Don't auto-save results - wait for user to click save/next
     } catch (e, stackTrace) {

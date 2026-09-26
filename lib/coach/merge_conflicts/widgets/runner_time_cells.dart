@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/typography.dart';
 import '../models/ui_record.dart';
@@ -35,16 +36,18 @@ class CellActionIcon extends StatelessWidget {
   final IconData icon;
   final String tooltip;
   final VoidCallback? onPressed;
+  final Color? color;
   const CellActionIcon({
     super.key,
     required this.icon,
     required this.tooltip,
     this.onPressed,
+    this.color,
   });
   @override
   Widget build(BuildContext context) {
     return IconButton(
-      icon: Icon(icon),
+      icon: Icon(icon, color: color),
       tooltip: tooltip,
       onPressed: onPressed,
     );
@@ -70,15 +73,56 @@ class ConfirmedRunnerTimeCell extends StatelessWidget {
   }
 }
 
+/// A time with the gap since the one before under it ("+3.2 s"), picked
+/// out in orange where the app thinks the problem is.
+class TimeWithNote extends StatelessWidget {
+  const TimeWithNote({
+    super.key,
+    required this.time,
+    this.note,
+    this.highlight = false,
+    this.color = AppColors.darkColor,
+  });
+
+  final String time;
+  final String? note;
+  final bool highlight;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        TimeDisplay(time: time, color: color),
+        if (note != null)
+          Text(
+            note!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTypography.caption.copyWith(
+              color: highlight ? AppColors.primaryColor : AppColors.mediumColor,
+              fontWeight: highlight ? FontWeight.w700 : FontWeight.w400,
+            ),
+          ),
+      ],
+    );
+  }
+}
+
 class ExtraTimeCell extends StatelessWidget {
   final String time;
   /// Null once every extra time is removed: the rest belong to runners.
   final void Function()? onRemoveExtraTime;
+  final String? note;
+  final bool highlight;
 
   const ExtraTimeCell({
     super.key,
     required this.time,
     required this.onRemoveExtraTime,
+    this.note,
+    this.highlight = false,
   });
 
   @override
@@ -87,13 +131,14 @@ class ExtraTimeCell extends StatelessWidget {
       children: [
         const SizedBox(width: 2),
         Expanded(
-          child: TimeDisplay(time: time),
+          child: TimeWithNote(time: time, note: note, highlight: highlight),
         ),
         if (onRemoveExtraTime != null)
           CellActionIcon(
             icon: Icons.close,
             tooltip: 'Remove extra time',
             onPressed: onRemoveExtraTime,
+            color: highlight ? AppColors.primaryColor : null,
           ),
       ],
     );
@@ -110,6 +155,8 @@ class MissingTimeCell extends StatefulWidget {
   final bool autofocus;
   final bool isOriginallyTBD;
   final UIRecord record;
+  final String? note;
+  final bool highlight;
 
   const MissingTimeCell({
     super.key,
@@ -122,6 +169,8 @@ class MissingTimeCell extends StatefulWidget {
     this.autofocus = false,
     this.isOriginallyTBD = false,
     required this.record,
+    this.note,
+    this.highlight = false,
   });
 
   @override
@@ -135,8 +184,17 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode();
+    _focusNode = FocusNode()..addListener(_clearPlaceholder);
     _shouldAutofocus = widget.autofocus;
+  }
+
+  /// An empty slot holds the text "TBD". Clear it whenever the box gets
+  /// focus: after tapping +, the box is focused without a tap, and typing
+  /// used to add to it ("TBD15:20.26"), which could never be a valid time.
+  void _clearPlaceholder() {
+    if (_focusNode.hasFocus && widget.controller.text == 'TBD') {
+      widget.controller.clear();
+    }
   }
 
   @override
@@ -177,10 +235,25 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                     focusNode: _focusNode,
                     autofocus: _shouldAutofocus,
                     textAlign: TextAlign.center,
+                    // Digits, colons and points only: a time like 15:20.26.
+                    keyboardType: TextInputType.datetime,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[0-9:.]')),
+                    ],
+                    autocorrect: false,
+                    enableSuggestions: false,
                     decoration: InputDecoration(
-                      hintText: 'Enter missing time',
-                      border: InputBorder.none,
-                      enabledBorder: InputBorder.none,
+                      // Short enough to fit the time column.
+                      hintText: 'mm:ss.00',
+                      // Outlined even when not focused, so a time the coach
+                      // typed reads as editable, not as one the Timer
+                      // recorded.
+                      border: const OutlineInputBorder(),
+                      enabledBorder: OutlineInputBorder(
+                        borderSide: BorderSide(
+                            color: AppColors.mediumColor
+                                .withValues(alpha: 0.4)),
+                      ),
                       focusedBorder: const OutlineInputBorder(),
                       errorBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.red, width: 1),
@@ -190,6 +263,9 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                       ),
                       errorText:
                           hasError ? widget.record.validationError : null,
+                      // The reason, such as "Must be after 15:28.46",
+                      // needs two lines in the narrow time column.
+                      errorMaxLines: 2,
                       contentPadding: const EdgeInsets.symmetric(
                         horizontal: 8, // Reduced horizontal padding
                         vertical: 0, // Increased vertical padding
@@ -229,21 +305,25 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                         children: [
                           Expanded(
                             child: Center(
-                              child: TimeDisplay(
+                              child: TimeWithNote(
                                 time: widget.controller.text,
+                                note: widget.note,
+                                highlight: widget.highlight,
                                 color:
                                     hasError ? Colors.red : AppColors.darkColor,
                               ),
                             ),
                           ),
-                          Expanded(
-                            child: Center(
-                              child: CellActionIcon(
-                                icon: Icons.add_circle_outline,
-                                tooltip: 'Insert new time slot',
-                                onPressed: widget.onAddTime,
-                              ),
-                            ),
+                          // Only as wide as the icon: sharing the cell half
+                          // and half wrapped times onto two lines.
+                          CellActionIcon(
+                            icon: widget.highlight
+                                ? Icons.add_circle
+                                : Icons.add_circle_outline,
+                            tooltip: 'The missing runner finished here',
+                            onPressed: widget.onAddTime,
+                            color:
+                                widget.highlight ? AppColors.primaryColor : null,
                           ),
                         ],
                       ),

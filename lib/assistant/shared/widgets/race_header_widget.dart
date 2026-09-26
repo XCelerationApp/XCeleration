@@ -31,6 +31,12 @@ class RaceHeaderWidget extends StatelessWidget {
   /// Whether there is anything to clear, checked when the menu opens.
   final bool Function()? canClearRecords;
 
+  /// For a Timer who pressed Start early or late: corrects every time.
+  final VoidCallback? onAdjustStart;
+
+  /// Whether the race has started, so there is anything to correct.
+  final bool Function()? canAdjustStart;
+
   /// While the race runs, the header shrinks to one slim line and the
   /// practice banner becomes a small tag, leaving the room for the race.
   final bool compact;
@@ -51,6 +57,8 @@ class RaceHeaderWidget extends StatelessWidget {
     this.onClearRecords,
     this.clearRecordsLabel = 'Clear',
     this.canClearRecords,
+    this.onAdjustStart,
+    this.canAdjustStart,
     this.compact = false,
     this.loading = false,
   });
@@ -284,6 +292,22 @@ class RaceHeaderWidget extends StatelessWidget {
                     );
                   }
 
+                  if (onAdjustStart != null &&
+                      (canAdjustStart?.call() ?? true)) {
+                    items.add(
+                      const PopupMenuItem<String>(
+                        value: 'adjust_start',
+                        child: Row(
+                          children: [
+                            Icon(Icons.more_time, size: 18),
+                            SizedBox(width: AppSpacing.sm),
+                            Text('Started Early or Late?'),
+                          ],
+                        ),
+                      ),
+                    );
+                  }
+
                   if (onClearRecords != null &&
                       (canClearRecords?.call() ?? true)) {
                     items.add(
@@ -341,6 +365,9 @@ class RaceHeaderWidget extends StatelessWidget {
         break;
       case 'download_race':
         onDownloadRace?.call();
+        break;
+      case 'adjust_start':
+        onAdjustStart?.call();
         break;
       case 'clear_records':
         onClearRecords?.call();

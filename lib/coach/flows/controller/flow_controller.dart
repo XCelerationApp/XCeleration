@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/button_components.dart';
 import '../model/flow_model.dart';
@@ -134,30 +135,89 @@ class MasterFlowController {
         context,
         Race.FLOW_SETUP_COMPLETED,
       );
+      if (!context.mounted) return;
+      // Nothing more to do until race day, so the sheet closes. The race
+      // screen explains what happens next ("Setup Complete").
+      closeRaceSheet(context);
       return;
     }
 
-    // Completed states: advance to the next active state.
-    // Track the resolved state locally so we can navigate without a second DB read.
-    String nextState = currentState;
-    if (currentState.contains(Race.FLOW_COMPLETED_SUFFIX)) {
-      if (currentState == Race.FLOW_SETUP_COMPLETED) {
-        nextState = Race.FLOW_PRE_RACE;
-      } else if (currentState == Race.FLOW_PRE_RACE_COMPLETED) {
-        nextState = Race.FLOW_POST_RACE;
-      } else {
-        return; // Unknown completed state
-      }
+    // Sending and collecting each start from a short check that everything
+    // is ready, then go straight to the page that does the work.
+    final sending = currentState == Race.FLOW_SETUP_COMPLETED ||
+        currentState == Race.FLOW_PRE_RACE;
+    final collecting = currentState == Race.FLOW_PRE_RACE_COMPLETED ||
+        currentState == Race.FLOW_POST_RACE;
+    if (!sending && !collecting) return;
+    if (!context.mounted) return;
 
+    final bool ready;
+    if (sending) {
+      ready = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Ready to Send the Race?',
+        content: '• You are at the race.\n'
+            '• Any last-minute roster changes are made.\n'
+            '• The Timer and Bib Recorder are next to you, with '
+            'XCeleration open.',
+        confirmText: 'Send Race',
+        cancelText: 'Not Yet',
+      );
+    } else {
+      ready = await DialogUtils.showConfirmationDialog(
+        context,
+        title: 'Ready to Collect Results?',
+        content: '• Every runner has finished.\n'
+            '• The Timer and Bib Recorder are next to you, with '
+            'XCeleration open.',
+        confirmText: 'Collect Results',
+        cancelText: 'Not Yet',
+      );
+    }
+    if (!ready || !context.mounted) return;
+
+    final nextState = sending ? Race.FLOW_PRE_RACE : Race.FLOW_POST_RACE;
+    if (currentState != nextState) {
       await raceController.updateRaceFlowState(context, nextState);
-
       if (!context.mounted) return;
     }
 
-    if (!context.mounted) return;
-
     // Navigate using the already-known state — eliminates a redundant DB read.
     await handleFlowNavigation(context, nextState);
+  }
+
+  /// Closes the race's sheet once a step is done, back to the races list,
+  /// with [message] saying what happens next.
+  void closeRaceSheet(BuildContext context, {String? message}) {
+    // A snack bar, not a toast: the app's messenger shows it on the races
+    // list once the sheet is gone. A toast is tied to the sheet it was
+    // opened from, and quietly never appeared once the sheet closed.
+    final messenger = ScaffoldMessenger.maybeOf(context);
+    Navigator.of(context).maybePop();
+    // Styled like the app's other messages (light, green tick), not the
+    // dark default that looked like it came from somewhere else.
+    if (message != null) {
+      messenger?.showSnackBar(SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Colors.green.shade700),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(message,
+                  style: AppTypography.bodyRegular
+                      .copyWith(color: Colors.green.shade700)),
+            ),
+          ],
+        ),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.lightColor,
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+        ),
+        duration: const Duration(seconds: 4),
+      ));
+    }
   }
 
   /// Navigate to the appropriate screen based on flow state
@@ -196,9 +256,10 @@ class MasterFlowController {
     // Use the navigator context which is more stable during transitions
     final contextToUse = context.mounted ? context : navigatorContext;
 
+    // One page, so no progress bar.
     final bool completed = await preRaceController.showPreRaceFlow(
       contextToUse,
-      true,
+      false,
     );
 
     // If not completed, just return
@@ -208,8 +269,11 @@ class MasterFlowController {
 
     // Mark as pre-race-completed instead of moving directly to post-race
     await updateRaceFlowState(context, Race.FLOW_PRE_RACE_COMPLETED);
-
-    // Return to race screen without starting the next flow automatically
+    if (context.mounted) {
+      closeRaceSheet(context,
+          message: 'Race sent. After the race, open it and tap Collect '
+              'Results.');
+    }
     return true;
   }
 
@@ -234,15 +298,10 @@ class MasterFlowController {
 
     // Set the race state directly to finished after post-race flow completes
     await updateRaceFlowState(context, Race.FLOW_FINISHED);
-
-    // Wait for the next frame so the UI reflects the new state before animating.
-    final frameReady = Completer<void>();
-    WidgetsBinding.instance.addPostFrameCallback((_) => frameReady.complete());
-    await frameReady.future;
-
-    // Return to race results tab
-    Logger.d('MasterFlowController: Navigating to results tab');
-    raceController.tabController.animateTo(1);
+    if (context.mounted) {
+      // A finished race opens on its results, so they are one tap away.
+      closeRaceSheet(context, message: 'Results saved. Open the race to see and share them.');
+    }
     return true;
   }
 
@@ -402,11 +461,14 @@ Future<bool> showFlow({
                 );
               },
             ),
-          // Title + description: rebuilds only on step navigation
-          Selector<FlowController, int>(
-            selector: (_, c) => c.currentIndex,
-            builder: (_, index, _) {
-              final step = steps[index];
+          // Title + description: rebuilds on step navigation, and when a
+          // step's description changes with its content (Load Results says
+          // something different once the results are in).
+          Selector<FlowController, (int, String)>(
+            selector: (_, c) =>
+                (c.currentIndex, steps[c.currentIndex].description),
+            builder: (_, data, _) {
+              final step = steps[data.$1];
               return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
                 child: Column(
@@ -502,10 +564,11 @@ Future<bool> showFlow({
                                 }
                               } on FlowStepBlocked catch (e) {
                                 // Stay on this step and say why.
-                                if (!ctx.mounted) return;
+                                final message = e.message;
+                                if (message == null || !ctx.mounted) return;
                                 DialogUtils.showErrorDialog(
                                   ctx,
-                                  message: e.message,
+                                  message: message,
                                 );
                               }
                             }

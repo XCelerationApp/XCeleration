@@ -2,9 +2,9 @@ import 'package:xceleration/coach/race_screen/widgets/runner_record.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
-/// Validates a single time entry against all other times in a chunk.
-/// Returns an error message string, or null if valid.
-/// [contextTimes] is the full list of times with [recordIndex] already updated to [endTime].
+/// Why a time typed into a chunk does not fit there, or null if it does.
+/// [contextTimes] is the full list of times with [recordIndex] already updated
+/// to the new value. Kept short: it shows under a narrow box.
 String? validateTimeInContext(
     List<String> contextTimes, int recordIndex, String endTime) {
   final currentTime = contextTimes[recordIndex];
@@ -15,25 +15,31 @@ String? validateTimeInContext(
   for (int i = 0; i < contextTimes.length; i++) {
     if (i != recordIndex && contextTimes[i] != 'TBD') {
       final other = TimeFormatter.loadDurationFromString(contextTimes[i]);
-      if (other != null && currentDuration == other) return 'Invalid Time';
+      if (other != null && currentDuration == other) {
+        return 'Another runner has this time';
+      }
     }
   }
 
   final prevIndex = getPreviousValidTimeIndex(contextTimes, recordIndex);
   if (prevIndex != null) {
     final prev = TimeFormatter.loadDurationFromString(contextTimes[prevIndex]);
-    if (prev != null && currentDuration <= prev) return 'Invalid Time';
+    if (prev != null && currentDuration <= prev) {
+      return 'Must be after ${contextTimes[prevIndex]}';
+    }
   }
 
   final nextIndex = getNextValidTimeIndex(contextTimes, recordIndex);
   if (nextIndex != null) {
     final next = TimeFormatter.loadDurationFromString(contextTimes[nextIndex]);
-    if (next != null && currentDuration >= next) return 'Invalid Time';
+    if (next != null && currentDuration >= next) {
+      return 'Must be before ${contextTimes[nextIndex]}';
+    }
   }
 
   final endDuration = TimeFormatter.loadDurationFromString(endTime);
   if (endDuration != null && currentDuration > endDuration) {
-    return 'Invalid Time';
+    return 'Must be before $endTime';
   }
 
   return null;

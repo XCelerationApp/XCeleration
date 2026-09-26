@@ -102,12 +102,14 @@ class EditResultsController extends ChangeNotifier {
   /// order and the times out of step.
   String? changeTime(int index, Duration time) {
     if (time <= Duration.zero) return 'Enter a time after the start.';
-    if (index > 0 && time < _finishes[index - 1].time) {
-      return 'Must be no earlier than ${ordinal(index)} place '
+    // Strictly between the places either side: times go to the hundredth,
+    // so two finishers never share one, as in the timing conflicts.
+    if (index > 0 && time <= _finishes[index - 1].time) {
+      return 'Must be after ${ordinal(index)} place '
           '(${TimeFormatter.formatDuration(_finishes[index - 1].time)}).';
     }
-    if (index < _finishes.length - 1 && time > _finishes[index + 1].time) {
-      return 'Must be no later than ${ordinal(index + 2)} place '
+    if (index < _finishes.length - 1 && time >= _finishes[index + 1].time) {
+      return 'Must be before ${ordinal(index + 2)} place '
           '(${TimeFormatter.formatDuration(_finishes[index + 1].time)}).';
     }
     if (time == _finishes[index].time) return null;

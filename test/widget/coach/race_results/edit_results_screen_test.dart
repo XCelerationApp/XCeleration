@@ -95,7 +95,7 @@ void main() {
     await tester.tap(find.text('Save Time'));
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('no later than 2nd place'), findsOneWidget);
+    expect(find.textContaining('before 2nd place'), findsOneWidget);
   });
 
   testWidgets('a finish can be taken out, and undone', (tester) async {

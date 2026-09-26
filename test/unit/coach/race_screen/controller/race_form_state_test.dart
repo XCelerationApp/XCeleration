@@ -158,6 +158,49 @@ void main() {
     });
 
     // -------------------------------------------------------------------------
+    // A new race's details save as they are first filled in; changing one
+    // already set waits for Save Changes during setup.
+    group('onlyFillsBlanks', () {
+      final blank = Race(raceId: 1, raceName: 'Invitational', distance: 0);
+
+      void change(RaceField field, String text) {
+        form.storeOriginalValue(field, blank);
+        form.controllerFor(field).text = text;
+        form.trackChange(field);
+      }
+
+      setUp(() => form.initializeFrom(blank));
+
+      test('is false with nothing changed', () {
+        expect(form.onlyFillsBlanks, isFalse);
+      });
+
+      test('is true when blank details are filled in', () {
+        change(RaceField.location, 'Crystal Springs');
+        change(RaceField.date, '2026-10-03');
+        change(RaceField.distance, '3');
+        expect(form.onlyFillsBlanks, isTrue);
+      });
+
+      test('the unit counts as filling in when the distance is too', () {
+        change(RaceField.distance, '5');
+        change(RaceField.unit, 'km');
+        expect(form.onlyFillsBlanks, isTrue);
+      });
+
+      test('is false when a detail already set changes', () {
+        change(RaceField.location, 'Crystal Springs');
+        change(RaceField.name, 'Invitational 2');
+        expect(form.onlyFillsBlanks, isFalse);
+      });
+
+      test('a unit change on its own is not filling in', () {
+        change(RaceField.unit, 'km');
+        expect(form.onlyFillsBlanks, isFalse);
+      });
+    });
+
+    // -------------------------------------------------------------------------
     group('revertField', () {
       test('restores controller text to the stored original value', () {
         final race =

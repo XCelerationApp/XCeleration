@@ -10,23 +10,6 @@ import '../../../shared/models/database/race.dart';
 import '../controller/race_screen_controller.dart';
 import '../controller/race_form_state.dart';
 
-Color _getStatusColor(String flowState) {
-  switch (flowState) {
-    case Race.FLOW_SETUP:
-      return AppColors.statusSetup;
-    case Race.FLOW_SETUP_COMPLETED:
-    case Race.FLOW_PRE_RACE:
-      return AppColors.statusPreRace;
-    case Race.FLOW_PRE_RACE_COMPLETED:
-    case Race.FLOW_POST_RACE:
-      return AppColors.statusPostRace;
-    case Race.FLOW_FINISHED:
-      return AppColors.statusFinished;
-    default:
-      return AppColors.lightColor;
-  }
-}
-
 class RaceHeader extends StatefulWidget {
   final RaceScreenController controller;
 
@@ -47,18 +30,11 @@ class _RaceHeaderState extends State<RaceHeader> {
     super.initState();
     _titleFocusNode = FocusNode();
     _titleFocusNode.addListener(() {
-      if (!_titleFocusNode.hasFocus &&
-          widget.controller.form.isEditing(RaceField.name)) {
-        if (!mounted) return;
-        if (!_isSetupFlow(widget.controller.flowState)) {
-          widget.controller.saveAllChanges(context);
-        }
+      // Also fires when Return closes the field, since it then loses focus.
+      if (!_titleFocusNode.hasFocus && mounted) {
+        widget.controller.handleFieldFocusLoss(context, RaceField.name);
       }
     });
-  }
-
-  bool _isSetupFlow(String? flowState) {
-    return flowState == Race.FLOW_SETUP || flowState == Race.FLOW_SETUP_COMPLETED;
   }
 
   @override
@@ -69,11 +45,21 @@ class _RaceHeaderState extends State<RaceHeader> {
 
   @override
   Widget build(BuildContext context) {
+    // The race screen above rebuilds only when the step changes, so without
+    // this the rename pencil marked the title for editing but never drew
+    // the text field.
+    return ListenableBuilder(
+      listenable: widget.controller,
+      builder: (context, _) => _buildHeader(context),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
     final race = widget.controller.race;
     final canEdit = widget.controller.canEdit;
     final flowState = race.flowState ?? Race.FLOW_SETUP;
-    final statusColor = _getStatusColor(flowState);
     final stage = RaceStage.of(flowState);
+    final statusColor = stage.color;
     final isFinished = stage.isFinished;
 
     return Padding(
@@ -95,7 +81,8 @@ class _RaceHeaderState extends State<RaceHeader> {
             ),
             // Once sent, a volunteer may still need it: a phone was missed,
             // swapped for a backup, or the roster changed.
-            if (stage.step == 3 && widget.controller.canEditResults)
+            if (RaceStage.canSendAgain(flowState) &&
+                widget.controller.canEditResults)
               Center(
                 child: TextButton.icon(
                   onPressed: () => widget.controller.sendRaceAgain(context),
@@ -137,27 +124,61 @@ class _RaceHeaderState extends State<RaceHeader> {
         onTapOutside: (_) => _titleFocusNode.unfocus(),
       );
     }
-    return GestureDetector(
-      onTap: canEdit
-          ? () {
+    // Renamed with the pencil, like the other fields. Tapping the title
+    // itself used to start editing, easy to do by accident.
+    final unnamed = race.raceName?.isEmpty ?? true;
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text(
+            unnamed ? 'Unnamed race' : race.raceName!,
+            style: AppTypography.titleLarge.copyWith(
+              color: unnamed ? AppColors.mediumColor : AppColors.darkColor,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+        if (canEdit) ...[
+          IconButton(
+            key: const ValueKey('edit_race_name'),
+            tooltip: 'Rename race',
+            icon: const Icon(Icons.edit,
+                color: AppColors.primaryColor, size: 20),
+            onPressed: () {
               widget.controller.form.startEditing(RaceField.name);
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 _titleFocusNode.requestFocus();
               });
-            }
-          : null,
-      child: Text(
-        race.raceName?.isEmpty == true
-            ? 'Tap to set race name'
-            : race.raceName ?? '',
-        style: AppTypography.titleLarge.copyWith(
-          color: (race.raceName?.isEmpty == true)
-              ? AppColors.lightColor
-              : AppColors.darkColor,
-        ),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-      ),
+            },
+          ),
+          PopupMenuButton<String>(
+            key: const ValueKey('race_menu'),
+            tooltip: 'More',
+            icon: const Icon(Icons.more_vert, color: AppColors.mediumColor),
+            color: Colors.white,
+            onSelected: (choice) {
+              if (choice == 'delete') widget.controller.deleteRace(context);
+            },
+            itemBuilder: (_) => [
+              PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    const Icon(Icons.delete_outline,
+                        color: AppColors.redColor, size: 20),
+                    const SizedBox(width: AppSpacing.sm),
+                    Text('Delete Race',
+                        style: AppTypography.bodyRegular
+                            .copyWith(color: AppColors.redColor)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ],
     );
   }
 }

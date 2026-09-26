@@ -16,22 +16,7 @@ class StatusBadge extends StatelessWidget {
 
   final String flowState;
 
-  static Color _colorFor(String flowState) {
-    switch (flowState) {
-      case Race.FLOW_SETUP:
-      case Race.FLOW_SETUP_COMPLETED:
-        return AppColors.statusSetup;
-      case Race.FLOW_PRE_RACE:
-      case Race.FLOW_PRE_RACE_COMPLETED:
-        return AppColors.statusPreRace;
-      case Race.FLOW_POST_RACE:
-        return AppColors.statusPostRace;
-      case Race.FLOW_FINISHED:
-        return AppColors.statusFinished;
-      default:
-        return AppColors.mediumColor;
-    }
-  }
+  static Color _colorFor(String flowState) => RaceStage.of(flowState).color;
 
   static IconData _iconFor(String flowState) {
     switch (flowState) {

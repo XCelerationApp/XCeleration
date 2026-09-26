@@ -306,11 +306,15 @@ void main() {
         expect(await repo.getRaceTeamParticipant(tp), isNull);
       });
 
-      test('throws when team is not in the race', () async {
+      test('does nothing, without throwing, for a team not in the race',
+          () async {
+        // A team half removed by an older version (unlinked, runners left)
+        // must still be removable.
         final raceId = await repo.createRace(validRace());
         final teamId = await insertTeam('Eagles');
         final tp = TeamParticipant(raceId: raceId, teamId: teamId);
-        expect(() => repo.removeTeamParticipantFromRace(tp), throwsException);
+        await repo.removeTeamParticipantFromRace(tp);
+        expect(await repo.getRaceTeamParticipant(tp), isNull);
       });
     });
 

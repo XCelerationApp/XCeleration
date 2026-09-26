@@ -699,4 +699,22 @@ class MockIHapticFeedback extends _i1.Mock implements _i11.IHapticFeedback {
             returnValueForMissingStub: _i3.Future<void>.value(),
           )
           as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> mediumImpact() =>
+      (super.noSuchMethod(
+            Invocation.method(#mediumImpact, []),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
+
+  @override
+  _i3.Future<void> selectionClick() =>
+      (super.noSuchMethod(
+            Invocation.method(#selectionClick, []),
+            returnValue: _i3.Future<void>.value(),
+            returnValueForMissingStub: _i3.Future<void>.value(),
+          )
+          as _i3.Future<void>);
 }

@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart'; // Selector, ChangeNotifierProvider
 import 'package:xceleration/core/services/i_sync_service.dart';
@@ -8,7 +7,6 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
-import '../../../core/utils/sheet_utils.dart';
 import '../../../shared/models/database/i_master_race_resolver.dart';
 import '../widgets/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
@@ -17,6 +15,9 @@ import '../widgets/runners_list.dart';
 class TeamsAndRunnersManagementWidget extends StatefulWidget {
   final IMasterRaceResolver masterRace;
   final VoidCallback? onBack;
+
+  /// Where [onBack] goes, shown beside the back chevron: the race's name.
+  final String? backLabel;
   final VoidCallback? onContentChanged;
   final bool? showHeader;
   final bool isViewMode;
@@ -26,6 +27,7 @@ class TeamsAndRunnersManagementWidget extends StatefulWidget {
     required this.masterRace,
     this.showHeader,
     this.onBack,
+    this.backLabel,
     this.onContentChanged,
     this.isViewMode = false,
   });
@@ -68,12 +70,11 @@ class _TeamsAndRunnersManagementWidgetState
       // controller independently, so it is placed outside the Selector —
       // search/filter notifications no longer cause a full-column rebuild.
       child: Selector<RunnersManagementController,
-          ({bool showHeader, bool isLoading, int totalRunnerCount, String searchAttribute})>(
+          ({bool showHeader, bool isLoading, int totalRunnerCount})>(
         selector: (_, c) => (
           showHeader: c.showHeader,
           isLoading: c.isLoading,
           totalRunnerCount: c.totalRunnerCount,
-          searchAttribute: c.searchAttribute,
         ),
         builder: (context, data, _) {
           return Material(
@@ -86,7 +87,7 @@ class _TeamsAndRunnersManagementWidgetState
                     color: AppColors.backgroundColor,
                     child: _buildHeader(_controller),
                   ),
-                if (!data.isLoading)
+                if (!data.isLoading && data.totalRunnerCount > 0)
                   ColoredBox(
                     color: AppColors.backgroundColor,
                     child: Padding(
@@ -111,60 +112,68 @@ class _TeamsAndRunnersManagementWidgetState
   }
 
   Widget _buildHeader(RunnersManagementController controller) {
+    final backLabel = widget.backLabel?.trim() ?? '';
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.lg,
         AppSpacing.sm,
         AppSpacing.lg,
-        AppSpacing.md,
+        AppSpacing.sm,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Says where it goes. A bare arrow beside the title read as a
+          // link to the runners, not back to the race.
+          if (widget.onBack != null)
+            TextButton.icon(
+              key: const ValueKey('runners_back'),
+              onPressed: widget.onBack,
+              icon: const Icon(Icons.chevron_left, size: 24),
+              label: Text(
+                backLabel.isEmpty ? 'Race' : backLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryColor,
+                textStyle: AppTypography.bodySemibold,
+                padding: const EdgeInsets.only(right: AppSpacing.sm),
+                minimumSize: const Size(0, 40),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                alignment: Alignment.centerLeft,
+              ),
+            ),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              if (widget.onBack != null)
-                createBackArrow(context, onBack: widget.onBack),
-              // Gives way to the buttons in a narrow sheet, which overflowed
-              // by a few pixels.
-              Flexible(
-                child: Text(
-                  'Runners',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTypography.titleMedium.copyWith(
-                    color: AppColors.darkColor,
-                  ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        'Teams & Runners',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.titleMedium.copyWith(
+                          color: AppColors.darkColor,
+                        ),
+                      ),
+                    ),
+                    if (controller.totalRunnerCount > 0) ...[
+                      const SizedBox(width: AppSpacing.sm),
+                      Text(
+                        '${controller.totalRunnerCount}',
+                        style: AppTypography.captionBold.copyWith(
+                          color: AppColors.mediumColor,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              if (controller.totalRunnerCount > 0) ...[
-                const SizedBox(width: AppSpacing.sm),
-                Text(
-                  '${controller.totalRunnerCount}',
-                  style: AppTypography.captionBold.copyWith(
-                    color: AppColors.mediumColor,
-                  ),
-                ),
-              ],
-              const Spacer(),
-              // Test tools: in debug and profile builds, never in the store build.
-              if (!kReleaseMode &&
-                  !controller.isViewMode &&
-                  controller.totalRunnerCount == 0)
-                IconButton(
-                  onPressed: _controller.addSampleRoster,
-                  icon: const Icon(Icons.science_outlined),
-                  tooltip: 'Add sample roster (debug)',
-                ),
-              if (controller.totalRunnerCount > 0)
-                IconButton(
-                  onPressed: () => _controller.exportRoster(context),
-                  icon: const Icon(Icons.ios_share),
-                  // Compact, so "Runners" fits beside it in a sheet.
-                  visualDensity: VisualDensity.compact,
-                  color: AppColors.mediumColor,
-                  tooltip: 'Export runners to a spreadsheet',
-                ),
+              const SizedBox(width: AppSpacing.sm),
               if (!controller.isViewMode)
                 _AddTeamButton(
                   onTap: () =>
@@ -180,13 +189,8 @@ class _TeamsAndRunnersManagementWidgetState
   Widget _buildSearchSection() {
     return RunnerSearchBar(
       controller: _controller.searchController,
-      searchAttribute: _controller.searchAttribute,
       onSearchChanged: () => _controller
           .filterRaceRunners(_controller.searchController.text.trim()),
-      onAttributeChanged: (value) {
-        _controller.setSearchAttribute(value!);
-      },
-      isViewMode: _controller.isViewMode,
     );
   }
 }

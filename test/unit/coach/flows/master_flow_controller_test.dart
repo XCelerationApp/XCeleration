@@ -26,11 +26,14 @@ import 'master_flow_controller_test.mocks.dart';
 /// Builds a minimal widget tree with a Navigator and returns a live [BuildContext].
 Future<BuildContext> _buildContext(WidgetTester tester) async {
   BuildContext? ctx;
+  // A Scaffold, as in the app, to show "what happens next" on.
   await tester.pumpWidget(MaterialApp(
-    home: Builder(builder: (context) {
-      ctx = context;
-      return const SizedBox();
-    }),
+    home: Scaffold(
+      body: Builder(builder: (context) {
+        ctx = context;
+        return const SizedBox();
+      }),
+    ),
   ));
   return ctx!;
 }
@@ -200,50 +203,105 @@ void main() {
         expect(find.text('Got it'), findsOneWidget);
       });
 
+      /// Runs continueRaceFlow, answering its confirmation with [answer].
+      Future<void> run(WidgetTester tester, BuildContext context,
+          {required String answer}) async {
+        final future = controller.continueRaceFlow(context);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(answer));
+        await tester.pumpAndSettle();
+        await future;
+        // Lets the "what happens next" toast run out.
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
+      }
+
       testWidgets(
-          'FLOW_SETUP_COMPLETED: advances to FLOW_PRE_RACE and delegates nav',
+          'FLOW_SETUP_COMPLETED: asks if ready, then sends (FLOW_PRE_RACE)',
           (tester) async {
         final context = await _buildContext(tester);
-        final completedRace = Race(
-          raceId: 1,
-          raceName: 'Test Race',
-          flowState: Race.FLOW_SETUP_COMPLETED,
-        );
-        when(mockMasterRace.race).thenAnswer((_) async => completedRace);
-        // handleFlowNavigation is now called with the locally-tracked FLOW_PRE_RACE
-        // (no second DB read) → dispatches to _preRaceFlow.
+        when(mockMasterRace.race).thenAnswer((_) async => Race(
+              raceId: 1,
+              raceName: 'Test Race',
+              flowState: Race.FLOW_SETUP_COMPLETED,
+            ));
         when(mockPreRaceController.showPreRaceFlow(any, any))
             .thenAnswer((_) async => false);
 
-        await controller.continueRaceFlow(context);
+        final future = controller.continueRaceFlow(context);
+        await tester.pumpAndSettle();
+        expect(find.text('Ready to Send the Race?'), findsOneWidget);
+        expect(find.textContaining('You are at the race'), findsOneWidget);
+        await tester.tap(find.text('Send Race'));
+        await tester.pumpAndSettle();
+        await future;
 
         verify(mockRaceController.updateRaceFlowState(any, Race.FLOW_PRE_RACE))
             .called(1);
         verify(mockPreRaceController.showPreRaceFlow(any, any)).called(1);
       });
 
-      testWidgets('FLOW_PRE_RACE: delegates to preRaceFlow', (tester) async {
+      testWidgets('Not Yet leaves the race where it was', (tester) async {
+        final context = await _buildContext(tester);
+        when(mockMasterRace.race).thenAnswer((_) async => Race(
+              raceId: 1,
+              raceName: 'Test Race',
+              flowState: Race.FLOW_SETUP_COMPLETED,
+            ));
+
+        await run(tester, context, answer: 'Not Yet');
+
+        verifyNever(mockRaceController.updateRaceFlowState(any, any));
+        verifyNever(mockPreRaceController.showPreRaceFlow(any, any));
+      });
+
+      testWidgets('FLOW_PRE_RACE: asks, then delegates to preRaceFlow',
+          (tester) async {
         final context = await _buildContext(tester);
         when(mockRaceController.flowState).thenReturn(Race.FLOW_PRE_RACE);
         when(mockMasterRace.race).thenAnswer((_) async => _testRace);
         when(mockPreRaceController.showPreRaceFlow(any, any))
             .thenAnswer((_) async => false);
 
-        await controller.continueRaceFlow(context);
+        await run(tester, context, answer: 'Send Race');
 
         verify(mockPreRaceController.showPreRaceFlow(any, any)).called(1);
         verifyNever(mockPostRaceController.showPostRaceFlow(any, any));
       });
 
-      testWidgets('FLOW_POST_RACE: delegates to postRaceFlow', (tester) async {
+      testWidgets('FLOW_PRE_RACE_COMPLETED: asks if every runner is in, then '
+          'collects (FLOW_POST_RACE)', (tester) async {
         final context = await _buildContext(tester);
-        final postRaceRace = Race(
-            raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_POST_RACE);
-        when(mockMasterRace.race).thenAnswer((_) async => postRaceRace);
+        when(mockMasterRace.race).thenAnswer((_) async => Race(
+              raceId: 1,
+              raceName: 'Test Race',
+              flowState: Race.FLOW_PRE_RACE_COMPLETED,
+            ));
         when(mockPostRaceController.showPostRaceFlow(any, any))
             .thenAnswer((_) async => false);
 
-        await controller.continueRaceFlow(context);
+        final future = controller.continueRaceFlow(context);
+        await tester.pumpAndSettle();
+        expect(find.text('Ready to Collect Results?'), findsOneWidget);
+        expect(find.textContaining('Every runner has finished'), findsOneWidget);
+        await tester.tap(find.text('Collect Results'));
+        await tester.pumpAndSettle();
+        await future;
+
+        verify(mockRaceController.updateRaceFlowState(any, Race.FLOW_POST_RACE))
+            .called(1);
+        verify(mockPostRaceController.showPostRaceFlow(any, any)).called(1);
+      });
+
+      testWidgets('FLOW_POST_RACE: asks, then delegates to postRaceFlow',
+          (tester) async {
+        final context = await _buildContext(tester);
+        when(mockMasterRace.race).thenAnswer((_) async => Race(
+            raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_POST_RACE));
+        when(mockPostRaceController.showPostRaceFlow(any, any))
+            .thenAnswer((_) async => false);
+
+        await run(tester, context, answer: 'Collect Results');
 
         verify(mockPostRaceController.showPostRaceFlow(any, any)).called(1);
         verifyNever(mockPreRaceController.showPreRaceFlow(any, any));
@@ -258,7 +316,7 @@ void main() {
         when(mockPreRaceController.showPreRaceFlow(any, any))
             .thenAnswer((_) async => true);
 
-        await controller.continueRaceFlow(context);
+        await run(tester, context, answer: 'Send Race');
 
         verify(mockRaceController.updateRaceFlowState(
                 any, Race.FLOW_PRE_RACE_COMPLETED))
@@ -269,44 +327,55 @@ void main() {
           '_postRaceFlow complete → updateRaceFlowState called with FLOW_FINISHED',
           (tester) async {
         final context = await _buildContext(tester);
-        final postRaceRace = Race(
-            raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_POST_RACE);
-        when(mockMasterRace.race).thenAnswer((_) async => postRaceRace);
+        when(mockMasterRace.race).thenAnswer((_) async => Race(
+            raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_POST_RACE));
         when(mockPostRaceController.showPostRaceFlow(any, any))
             .thenAnswer((_) async => true);
-        final tabController = TabController(length: 2, vsync: tester);
-        when(mockRaceController.tabController).thenReturn(tabController);
 
-        final future = controller.continueRaceFlow(context);
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 500));
-        await future;
+        await run(tester, context, answer: 'Collect Results');
 
         verify(mockRaceController.updateRaceFlowState(any, Race.FLOW_FINISHED))
             .called(1);
-        tabController.dispose();
       });
 
-      testWidgets('_postRaceFlow complete → tabController.animateTo(1) called',
-          (tester) async {
-        final context = await _buildContext(tester);
-        final postRaceRace = Race(
-            raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_POST_RACE);
-        when(mockMasterRace.race).thenAnswer((_) async => postRaceRace);
-        when(mockPostRaceController.showPostRaceFlow(any, any))
-            .thenAnswer((_) async => true);
-        final tabController =
-            TabController(length: 2, vsync: tester, initialIndex: 0);
-        when(mockRaceController.tabController).thenReturn(tabController);
-
-        final future = controller.continueRaceFlow(context);
-        await tester.pump();
-        await tester.pump(const Duration(milliseconds: 500));
-        await future;
+      testWidgets('closes the race sheet once a step is done, saying what is '
+          'next', (tester) async {
+        // The race sheet is a route over the races list.
+        BuildContext? raceSheet;
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: Builder(
+            builder: (listContext) => TextButton(
+              onPressed: () => Navigator.of(listContext).push(
+                MaterialPageRoute<void>(builder: (context) {
+                  raceSheet = context;
+                  return const Scaffold(body: Text('race sheet'));
+                }),
+              ),
+              child: const Text('open race'),
+            ),
+            ),
+          ),
+        ));
+        await tester.tap(find.text('open race'));
         await tester.pumpAndSettle();
+        when(mockRaceController.flowState).thenReturn(Race.FLOW_PRE_RACE);
+        when(mockMasterRace.race).thenAnswer((_) async => _testRace);
+        when(mockPreRaceController.showPreRaceFlow(any, any))
+            .thenAnswer((_) async => true);
 
-        expect(tabController.index, 1);
-        tabController.dispose();
+        final future = controller.continueRaceFlow(raceSheet!);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Send Race'));
+        await tester.pump();
+        await future;
+        await tester.pump();
+
+        expect(find.textContaining('Race sent'), findsOneWidget);
+        await tester.pumpAndSettle();
+        expect(find.text('race sheet'), findsNothing);
+        await tester.pump(const Duration(seconds: 5));
+        await tester.pumpAndSettle();
       });
     });
 

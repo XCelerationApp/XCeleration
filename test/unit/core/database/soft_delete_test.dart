@@ -299,6 +299,38 @@ void main() {
       expect(rows.first['is_dirty'], 1);
     });
 
+    test('takes the team\'s runners out of the race too, but not off the '
+        'team', () async {
+      // Left in the race, the runners kept showing the team, so Delete team
+      // seemed to do nothing.
+      final teamId = await addTeam();
+      final runnerId = await addRunner();
+      await runners.addRunnerToTeam(teamId, runnerId);
+      final raceId = await races.createRace(Race(
+        raceId: 0,
+        raceName: 'Invitational',
+        location: 'Park',
+        distance: 5,
+        distanceUnit: 'km',
+        flowState: Race.FLOW_SETUP,
+      ));
+      await races.addTeamParticipantToRace(
+          TeamParticipant(raceId: raceId, teamId: teamId));
+      await races.addRaceParticipant(RaceParticipant(
+          raceId: raceId, runnerId: runnerId, teamId: teamId));
+
+      await races.removeTeamParticipantFromRace(
+          TeamParticipant(raceId: raceId, teamId: teamId));
+
+      expect(await races.getRaceParticipants(raceId), isEmpty);
+      final db = await conn.database;
+      final row = (await db.query('race_participants')).single;
+      expect(row['deleted_at'], isNotNull, reason: 'tombstoned, so it syncs');
+      expect(row['is_dirty'], 1);
+      expect(await runners.getTeamRunners(teamId), hasLength(1),
+          reason: 'still on the team for other races');
+    });
+
     test('the team can be put back in the race', () async {
       final teamId = await addTeam();
       final raceId = await races.createRace(Race(

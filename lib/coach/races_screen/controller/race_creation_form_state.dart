@@ -11,7 +11,6 @@ class RaceCreationFormState extends ChangeNotifier {
   final TextEditingController dateController = TextEditingController();
   final TextEditingController distanceController = TextEditingController();
   final TextEditingController unitController = TextEditingController();
-  final TextEditingController userLocationController = TextEditingController();
 
   // Team state
   final List<TextEditingController> teamControllers = [];
@@ -22,7 +21,6 @@ class RaceCreationFormState extends ChangeNotifier {
   final locationErrorNotifier = ValueNotifier<String?>(null);
   final dateErrorNotifier = ValueNotifier<String?>(null);
   final distanceErrorNotifier = ValueNotifier<String?>(null);
-  final locationButtonVisibleNotifier = ValueNotifier<bool>(true);
 
   // Convenience getters/setters
   String? get nameError => nameErrorNotifier.value;
@@ -33,8 +31,6 @@ class RaceCreationFormState extends ChangeNotifier {
   set dateError(String? v) => dateErrorNotifier.value = v;
   String? get distanceError => distanceErrorNotifier.value;
   set distanceError(String? v) => distanceErrorNotifier.value = v;
-  bool get isLocationButtonVisible => locationButtonVisibleNotifier.value;
-  set isLocationButtonVisible(bool v) => locationButtonVisibleNotifier.value = v;
 
   RaceCreationFormState() {
     _initTeams();
@@ -54,18 +50,11 @@ class RaceCreationFormState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void updateLocationButtonVisibility() {
-    locationButtonVisibleNotifier.value =
-        locationController.text.trim() != userLocationController.text.trim();
-  }
-
   void reset() {
     nameController.text = '';
     locationController.text = '';
     dateController.text = '';
     distanceController.text = '';
-    userLocationController.text = '';
-    isLocationButtonVisible = true;
     for (final c in teamControllers) {
       c.dispose();
     }
@@ -80,7 +69,6 @@ class RaceCreationFormState extends ChangeNotifier {
     locationErrorNotifier.value = null;
     dateErrorNotifier.value = null;
     distanceErrorNotifier.value = null;
-    locationButtonVisibleNotifier.value = true;
     notifyListeners();
   }
 
@@ -102,7 +90,6 @@ class RaceCreationFormState extends ChangeNotifier {
     dateController.dispose();
     distanceController.dispose();
     unitController.dispose();
-    userLocationController.dispose();
     for (final c in teamControllers) {
       c.dispose();
     }
@@ -111,7 +98,6 @@ class RaceCreationFormState extends ChangeNotifier {
     locationErrorNotifier.dispose();
     dateErrorNotifier.dispose();
     distanceErrorNotifier.dispose();
-    locationButtonVisibleNotifier.dispose();
     super.dispose();
   }
 }

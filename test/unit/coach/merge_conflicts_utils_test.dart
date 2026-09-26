@@ -87,39 +87,46 @@ void main() {
 
     test('returns error when time duplicates another entry', () {
       final times = ['1:00.0', '1:00.0', '1:30.0'];
-      expect(validateTimeInContext(times, 1, endTime), equals('Invalid Time'));
+      expect(validateTimeInContext(times, 1, endTime),
+          equals('Another runner has this time'));
     });
 
     test('returns error when time is not greater than previous valid time', () {
       final times = ['1:30.0', '1:00.0'];
-      expect(validateTimeInContext(times, 1, endTime), equals('Invalid Time'));
+      expect(validateTimeInContext(times, 1, endTime),
+          equals('Must be after 1:30.0'));
     });
 
     test('returns error when time equals previous valid time', () {
       final times = ['1:00.0', '1:00.0'];
-      expect(validateTimeInContext(times, 1, endTime), equals('Invalid Time'));
+      expect(validateTimeInContext(times, 1, endTime),
+          equals('Another runner has this time'));
     });
 
     test('returns error when time is not less than next valid time', () {
       final times = ['1:30.0', '1:00.0'];
-      expect(validateTimeInContext(times, 0, endTime), equals('Invalid Time'));
+      expect(validateTimeInContext(times, 0, endTime),
+          equals('Must be before 1:00.0'));
     });
 
     test('skips TBD when comparing with previous valid time', () {
       final times = ['1:00.0', 'TBD', '0:59.0'];
       // 0:59.0 is less than 1:00.0 — invalid
-      expect(validateTimeInContext(times, 2, endTime), equals('Invalid Time'));
+      expect(validateTimeInContext(times, 2, endTime),
+          equals('Must be after 1:00.0'));
     });
 
     test('skips TBD when comparing with next valid time', () {
       final times = ['1:30.0', 'TBD', '1:00.0'];
       // 1:30.0 is greater than next valid 1:00.0 — invalid
-      expect(validateTimeInContext(times, 0, endTime), equals('Invalid Time'));
+      expect(validateTimeInContext(times, 0, endTime),
+          equals('Must be before 1:00.0'));
     });
 
     test('returns error when time exceeds endTime', () {
       final times = ['1:00.0', '2:30.0'];
-      expect(validateTimeInContext(times, 1, endTime), equals('Invalid Time'));
+      expect(validateTimeInContext(times, 1, endTime),
+          equals('Must be before $endTime'));
     });
 
     test(
