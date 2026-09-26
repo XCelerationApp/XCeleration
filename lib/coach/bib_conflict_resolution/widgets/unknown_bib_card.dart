@@ -133,6 +133,7 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
       title: 'Add New Runner',
       body: CreateRunnerSheet(
         allKnownBibs: controller.allKnownBibs,
+        savedBibOwners: controller.savedBibOwners,
         teams: controller.teams,
         autoBib: widget.conflict.bibNumber,
         initialName: name,

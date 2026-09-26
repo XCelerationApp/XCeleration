@@ -63,11 +63,13 @@ void main() {
   ConflictResolutionController make({
     List<BibConflict>? conflicts,
     List<RaceRunner>? candidates,
+    Map<String, String> savedBibOwners = const {},
   }) =>
       ConflictResolutionController(
         conflicts: conflicts ?? [_duplicate, _unknown],
         candidates: candidates ?? [_gray, _nico, _sage],
         knownBibs: {'959', '949', '956', '961'},
+        savedBibOwners: savedBibOwners,
         teams: const ['Eagles', 'Owls'],
         raceName: 'Invitational',
         createRunner: (newRunner) async {
@@ -252,6 +254,11 @@ void main() {
       expect(c.allKnownBibs, contains('977'));
       await c.commitPending();
       expect(c.allKnownBibs, contains('977'));
+    });
+
+    test('a new bib is free here and among runners saved elsewhere', () {
+      expect(make().nextFreeBib, '962');
+      expect(make(savedBibOwners: {'962': 'Sam Lee'}).nextFreeBib, '963');
     });
 
     test('a leftover finish can go to someone new', () async {

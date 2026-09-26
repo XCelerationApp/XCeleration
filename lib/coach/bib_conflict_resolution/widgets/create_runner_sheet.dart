@@ -18,6 +18,7 @@ class CreateRunnerSheet extends StatefulWidget {
     this.forbiddenBib,
     this.autoBib,
     this.initialName = '',
+    this.savedBibOwners = const {},
   });
 
   /// All bib numbers already in use — new bib must not be in this set.
@@ -40,6 +41,11 @@ class CreateRunnerSheet extends StatefulWidget {
   /// The name typed into Find Runner, so it need not be typed again.
   final String initialName;
 
+  /// Bibs held by runners saved on this phone who are not in this race, with
+  /// each one's name. A bib belongs to one saved runner at most, so one of
+  /// these can only go to that runner: adding them enters them in the race.
+  final Map<String, String> savedBibOwners;
+
   @override
   State<CreateRunnerSheet> createState() => _CreateRunnerSheetState();
 }
@@ -61,8 +67,26 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
   @override
   void initState() {
     super.initState();
-    _nameController.text = widget.initialName;
     _bibController.text = widget.autoBib ?? '';
+    // The recorded bib is a saved runner's: most likely it is them, just
+    // not entered in this race.
+    _nameController.text = widget.initialName.isEmpty
+        ? widget.savedBibOwners[widget.autoBib] ?? ''
+        : widget.initialName;
+  }
+
+  String get _bib =>
+      (_bibLocked ? widget.autoBib! : _bibController.text).trim();
+
+  /// Why the bib can't go to the name typed: it is already a saved runner's,
+  /// someone else's. Null when it is free, or it is that runner.
+  String? get _ownerError {
+    final owner = widget.savedBibOwners[_bib];
+    if (owner == null) return null;
+    String plain(String s) => s.trim().toLowerCase();
+    if (plain(owner) == plain(_nameController.text)) return null;
+    return 'Bib #$_bib is already $owner\'s, saved from another race. '
+        'Type $owner to add them, or change the bib.';
   }
 
   bool get _bibLocked => widget.autoBib != null && !_editingBib;
@@ -106,7 +130,11 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
     final nameOk = _nameController.text.trim().isNotEmpty && _nameError == null;
     final bibOk = _bibLocked ||
         (_bibController.text.trim().isNotEmpty && _bibError == null);
-    return nameOk && bibOk && _selectedTeam != null && _selectedGrade != null;
+    return nameOk &&
+        bibOk &&
+        _ownerError == null &&
+        _selectedTeam != null &&
+        _selectedGrade != null;
   }
 
   void _submit() {
@@ -158,6 +186,14 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
               onChanged: _validateBib,
               keyboardType: TextInputType.number,
             ),
+          if (_ownerError case final error?) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              error,
+              key: const ValueKey('bib_owner_error'),
+              style: AppTypography.caption.copyWith(color: AppColors.redColor),
+            ),
+          ],
           const SizedBox(height: AppSpacing.lg),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,

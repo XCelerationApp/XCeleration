@@ -62,6 +62,7 @@ class ConflictResolutionController extends ChangeNotifier {
     required List<RaceRunner> candidates,
     List<RaceRunner> roster = const [],
     required Set<String> knownBibs,
+    Map<String, String> savedBibOwners = const {},
     required List<String> teams,
     required this.raceName,
     required Future<Result<RaceRunner>> Function(NewRunner) createRunner,
@@ -70,6 +71,7 @@ class ConflictResolutionController extends ChangeNotifier {
         _candidates = List.unmodifiable(candidates),
         _roster = List.unmodifiable(roster),
         _knownBibs = Set.unmodifiable(knownBibs),
+        _savedBibOwners = Map.unmodifiable(savedBibOwners),
         _teams = List.unmodifiable(teams),
         _createRunner = createRunner;
 
@@ -88,6 +90,12 @@ class ConflictResolutionController extends ChangeNotifier {
 
   /// Bibs already taken, so an added runner cannot reuse one.
   final Set<String> _knownBibs;
+
+  /// Bibs held by runners saved on this phone who are not in this race, with
+  /// each one's name. A bib belongs to one saved runner at most, so a runner
+  /// added with one of these must be that runner.
+  final Map<String, String> _savedBibOwners;
+  Map<String, String> get savedBibOwners => _savedBibOwners;
   final List<String> _teams;
   final Future<Result<RaceRunner>> Function(NewRunner) _createRunner;
 
@@ -230,10 +238,10 @@ class ConflictResolutionController extends ChangeNotifier {
         ?_pending?.newRunner?.bibNumber,
       };
 
-  /// The next bib number nobody has, for a runner added in place of a bib
-  /// that turned out to be someone else's.
+  /// The next bib number nobody has, in this race or saved from another, for
+  /// a runner added in place of a bib that turned out to be someone else's.
   String get nextFreeBib {
-    final taken = allKnownBibs;
+    final taken = {...allKnownBibs, ..._savedBibOwners.keys};
     var highest = 0;
     for (final bib in taken) {
       final value = int.tryParse(bib);

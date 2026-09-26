@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/widgets/create_runner_sheet.dart';
+import 'package:xceleration/core/components/button_components.dart';
 import 'package:xceleration/core/utils/sheet_utils.dart';
 
 // Adding a runner happens with the keyboard up, which leaves the sheet less
@@ -83,5 +84,51 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Bib #101 is already in use'), findsOneWidget);
+  });
+
+  group('a bib already saved for another runner', () {
+    Future<void> openOwned(WidgetTester tester,
+        {String initialName = ''}) async {
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(
+          body: CreateRunnerSheet(
+            allKnownBibs: const {'101'},
+            teams: const ['Eagles'],
+            autoBib: '9217',
+            initialName: initialName,
+            savedBibOwners: const {'9217': 'Sam Lee'},
+            onCreated: (_, _, _, _) {},
+          ),
+        ),
+      ));
+    }
+
+    testWidgets('suggests that runner by name', (tester) async {
+      await openOwned(tester);
+
+      expect(find.text('Sam Lee'), findsOneWidget);
+      expect(find.byKey(const ValueKey('bib_owner_error')), findsNothing);
+    });
+
+    testWidgets('says whose it is when another name is typed',
+        (tester) async {
+      await openOwned(tester, initialName: 'Jane Doe');
+
+      expect(find.textContaining("Bib #9217 is already Sam Lee's"),
+          findsOneWidget);
+      final add = tester.widget<FullWidthButton>(find.byType(FullWidthButton));
+      expect(add.isEnabled, isFalse);
+    });
+
+    testWidgets('clears once the bib is changed', (tester) async {
+      await openOwned(tester, initialName: 'Jane Doe');
+
+      await tester.tap(find.byKey(const ValueKey('edit_new_runner_bib')));
+      await tester.pump();
+      await tester.enterText(find.widgetWithText(TextField, '9217'), '9300');
+      await tester.pump();
+
+      expect(find.byKey(const ValueKey('bib_owner_error')), findsNothing);
+    });
   });
 }

@@ -358,6 +358,7 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
       title: 'Add New Runner',
       body: CreateRunnerSheet(
         allKnownBibs: controller.allKnownBibs,
+        savedBibOwners: controller.savedBibOwners,
         teams: controller.teams,
         forbiddenBib: widget.conflict.bibNumber,
         // The recorded bib is someone else's, so a free one, changeable.
