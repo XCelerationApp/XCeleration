@@ -1,10 +1,10 @@
 source "https://rubygems.org"
 
-gem "fastlane", "~> 2.233"
+gem "fastlane", "~> 2.240"
 gem "dotenv"
 gem "cocoapods", "~> 1.16"
 
 # Security patches for transitive dependencies
 gem "aws-sdk-s3", ">= 1.208.0"
-gem "faraday", ">= 1.10.5"
+gem "faraday", ">= 2.7"
 gem "rexml", ">= 3.4.2"
