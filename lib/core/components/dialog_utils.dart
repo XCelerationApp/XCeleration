@@ -436,12 +436,15 @@ class DialogUtils {
       ),
     );
 
-    // Show the custom toast at the top of the screen
+    // Show the custom toast at the top of the screen. Taps go through it:
+    // it sat over the back button and whatever else was up there, and
+    // blocked them until it faded.
     fToast.showToast(
       child: toastWidget,
       gravity: ToastGravity.TOP,
       toastDuration: duration,
       fadeDuration: AppAnimations.fast,
+      ignorePointer: true,
     );
   }
 }

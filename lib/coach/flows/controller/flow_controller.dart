@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:xceleration/core/theme/app_border_radius.dart';
 import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/core/components/button_components.dart';
 import '../model/flow_model.dart';
@@ -193,17 +194,27 @@ class MasterFlowController {
     // opened from, and quietly never appeared once the sheet closed.
     final messenger = ScaffoldMessenger.maybeOf(context);
     Navigator.of(context).maybePop();
+    // Styled like the app's other messages (light, green tick), not the
+    // dark default that looked like it came from somewhere else.
     if (message != null) {
       messenger?.showSnackBar(SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.check_circle_outline, color: Colors.white),
+            Icon(Icons.check_circle_outline, color: Colors.green.shade700),
             const SizedBox(width: AppSpacing.sm),
-            Expanded(child: Text(message)),
+            Expanded(
+              child: Text(message,
+                  style: AppTypography.bodyRegular
+                      .copyWith(color: Colors.green.shade700)),
+            ),
           ],
         ),
         behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.darkColor,
+        backgroundColor: AppColors.lightColor,
+        elevation: 3,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+        ),
         duration: const Duration(seconds: 4),
       ));
     }
