@@ -612,6 +612,7 @@ class LoadResultsController with ChangeNotifier {
         entries: entries,
         // Which finish the coach is being asked about, and when it happened.
         timesByPlace: settledTimesByPlace(timingChunks ?? const []),
+        approximateTimes: approximateTimesByPlace(timingChunks ?? const []),
         lookupBib: masterRace.getRaceRunnerByBib,
       );
       final inRace = await masterRace.raceRunners;

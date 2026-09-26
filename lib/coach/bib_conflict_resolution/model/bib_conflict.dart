@@ -7,6 +7,7 @@ class ConflictOccurrence {
     this.time,
     this.after,
     this.before,
+    this.approximate,
     this.nearby = const [],
     this.allFinishers = const [],
   });
@@ -23,10 +24,15 @@ class ConflictOccurrence {
   final String? after;
   final String? before;
 
+  /// While [time] is unknown, the Timer's time near this place, to the
+  /// second: only a guide, as a missed or extra tap shifts times a place.
+  final String? approximate;
+
   /// [time], or where it must fall while it is still unknown, such as
   /// "Between 15:28.46 and 15:33.00". Null when nothing is known.
   String? get timeLabel {
     if (time != null) return time;
+    if (approximate != null) return 'About $approximate';
     if (after != null && before != null) return 'Between $after and $before';
     if (after != null) return 'After $after';
     if (before != null) return 'Before $before';
@@ -118,6 +124,7 @@ class UnknownBibConflict extends BibConflict {
 Future<List<BibConflict>> detectBibConflicts({
   required List<dynamic> entries,
   required Map<int, String> timesByPlace,
+  Map<int, String> approximateTimes = const {},
   required Future<RaceRunner?> Function(String bibNumber) lookupBib,
 }) async {
   // Every place each bib was recorded at, in finish order.
@@ -211,6 +218,8 @@ Future<List<BibConflict>> detectBibConflicts({
         time: timesByPlace[place],
         after: timesByPlace[place] == null ? knownBefore(place) : null,
         before: timesByPlace[place] == null ? knownAfter(place) : null,
+        approximate:
+            timesByPlace[place] == null ? approximateTimes[place] : null,
         nearby: nearbyTo(place),
         allFinishers: allFinishers,
       );

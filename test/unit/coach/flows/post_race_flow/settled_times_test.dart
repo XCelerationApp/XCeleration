@@ -124,4 +124,20 @@ void main() {
   test('has nothing to say about an empty race', () {
     expect(settledTimesByPlace([]), isEmpty);
   });
+
+  group('approximateTimesByPlace', () {
+    test('gives flagged places the Timer\'s time near them, to the second',
+        () {
+      final times = approximateTimesByPlace([
+        _chunk(0, [900, 905]),
+        // Three finishers, two times: a missed tap.
+        _chunk(1, [930, 941], type: ConflictType.missingTime, offBy: 1),
+      ]);
+
+      expect(times.containsKey(1), isFalse, reason: 'settled: no guess');
+      expect(times[3], '15:30');
+      expect(times[4], '15:41');
+      expect(times[5], '15:41', reason: 'past the last time: the nearest');
+    });
+  });
 }
