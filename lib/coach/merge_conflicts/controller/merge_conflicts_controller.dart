@@ -665,6 +665,14 @@ class MergeConflictsController with ChangeNotifier {
     }
   }
 
+  /// How many chunks still have an unresolved missing- or extra-time
+  /// conflict.
+  int get openConflictCount => timingChunks
+      .where((chunk) =>
+          chunk.hasConflict &&
+          chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner)
+      .length;
+
   /// Whether any chunk still has an unresolved missing- or extra-time
   /// conflict. Confirmed chunks and chunks with no conflict are resolved,
   /// however many of them there are.

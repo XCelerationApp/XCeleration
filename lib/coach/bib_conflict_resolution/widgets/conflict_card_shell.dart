@@ -10,6 +10,7 @@ import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import './duplicate_conflict_card.dart';
 import './undo_toast.dart';
+import '../../../core/components/conflict_page_header.dart';
 import './unknown_bib_card.dart';
 
 /// Wraps every conflict card with the v2 nav bar, gradient progress bar,
@@ -100,61 +101,18 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
 // Sub-widgets with scoped subscriptions
 // ---------------------------------------------------------------------------
 
-/// Nav bar — only needs `controller.goBack`, a stable method reference.
-/// Uses context.read so it never rebuilds on controller notifications.
+/// Back, the title and the race — only needs `controller.goBack`, a stable
+/// method reference, so it never rebuilds on controller notifications.
 class _NavBar extends StatelessWidget {
   const _NavBar();
 
   @override
   Widget build(BuildContext context) {
     final controller = context.read<ConflictResolutionController>();
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.lg,
-        vertical: AppSpacing.md,
-      ),
-      child: Row(
-        children: [
-          TextButton.icon(
-            onPressed: controller.goBack,
-            icon: const Icon(
-              Icons.arrow_back,
-              size: 16,
-              color: AppColors.primaryColor,
-            ),
-            label: Text(
-              'Back',
-              style: AppTypography.smallBodySemibold.copyWith(
-                color: AppColors.primaryColor,
-              ),
-            ),
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                Text(
-                  'Bib Conflicts',
-                  style: AppTypography.smallBodySemibold,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  controller.raceName,
-                  style: AppTypography.smallCaption.copyWith(
-                    color: AppColors.mediumColor,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 52),
-        ],
-      ),
+    return ConflictNavBar(
+      title: 'Bib Conflicts',
+      raceName: controller.raceName,
+      onBack: controller.goBack,
     );
   }
 }
@@ -169,72 +127,7 @@ class _ProgressSection extends StatelessWidget {
         context.select<ConflictResolutionController, (int, int)>(
       (c) => (c.resolvedCount, c.totalConflicts),
     );
-    final fraction = total > 0 ? resolved / total : 0.0;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.lg,
-        0,
-        AppSpacing.lg,
-        AppSpacing.sm,
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'CONFLICTS',
-                style: AppTypography.extraSmall.copyWith(
-                  color: AppColors.primaryColor,
-                  letterSpacing: 0.5,
-                ),
-              ),
-              Text(
-                '$resolved / $total resolved',
-                style: AppTypography.extraSmall.copyWith(
-                  color: AppColors.mediumColor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(AppBorderRadius.full),
-            child: SizedBox(
-              height: 5,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  const ColoredBox(color: AppColors.lightColor),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: TweenAnimationBuilder<double>(
-                      tween: Tween(begin: 0, end: fraction),
-                      duration: AppAnimations.standard,
-                      curve: AppAnimations.spring,
-                      builder: (context, value, _) => FractionallySizedBox(
-                        widthFactor: value,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                AppColors.primaryColor,
-                                AppColors.primaryGradientEnd,
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    return ConflictProgress(resolved: resolved, total: total);
   }
 }
 

@@ -12,14 +12,13 @@ import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import 'package:xceleration/shared/models/timing_records/conflict.dart';
-import 'package:xceleration/core/utils/sheet_utils.dart';
 import 'package:xceleration/core/utils/time_formatter.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/controller/conflict_resolution_controller.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/model/bib_conflict.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/model/finish_order.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/screen/conflict_resolution_screen.dart';
 import 'package:xceleration/coach/bib_conflict_resolution/services/runner_creator.dart';
-import 'package:xceleration/coach/merge_conflicts/screen/merge_conflicts_screen.dart';
+import 'package:xceleration/coach/merge_conflicts/screen/timing_conflicts_page.dart';
 import 'package:provider/provider.dart';
 import '../../../../../../core/utils/encode_utils.dart';
 import '../../../../../merge_conflicts/controller/merge_conflicts_controller.dart';
@@ -757,13 +756,14 @@ class LoadResultsController with ChangeNotifier {
 
     final runners = raceRunners!.whereType<RaceRunner>().toList();
     try {
+      final raceName = (await masterRace.race).raceName ?? '';
+      if (!context.mounted) return;
       // Pass the full list in finish order. The controller edits it in place;
       // resolving a filtered copy and appending it back reordered the chunks,
       // so later times landed on the wrong runners.
-      await sheet(
-        context: context,
-        title: 'Resolve Timing Conflicts',
-        body: ChangeNotifierProvider(
+      await Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (_) => ChangeNotifierProvider(
           create: (_) => MergeConflictsController(
             masterRace: masterRace,
             timingChunks: timingChunks!,
@@ -771,15 +771,15 @@ class LoadResultsController with ChangeNotifier {
             recordedTimes: _recordedTimes ??=
                 MergeConflictsController.recordedTimesOf(timingChunks!),
           ),
-          child: MergeConflictsScreen(
+          child: TimingConflictsPage(
             masterRace: masterRace,
             timingChunks: timingChunks!,
             raceRunners: runners,
+            raceName: raceName,
+            total: timingConflictCount,
           ),
         ),
-        useBottomPadding: false,
-        useRootNavigator: true,
-      );
+      ));
       Logger.d('Sheet function completed successfully');
       // Don't auto-save results - wait for user to click save/next
     } catch (e, stackTrace) {
