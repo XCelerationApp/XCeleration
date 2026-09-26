@@ -48,13 +48,14 @@ void main() {
     expect(RaceStage.of(null).step, 1);
   });
 
-  test('the race can be sent again only once sent, before collecting', () {
+  test('the race can be sent again once sent, until results are saved', () {
     expect(RaceStage.canSendAgain(Race.FLOW_PRE_RACE_COMPLETED), isTrue);
+    expect(RaceStage.canSendAgain(Race.FLOW_POST_RACE), isTrue,
+        reason: 'Collect Results may have been tapped early');
     for (final state in [
       Race.FLOW_SETUP,
       Race.FLOW_SETUP_COMPLETED,
       Race.FLOW_PRE_RACE,
-      Race.FLOW_POST_RACE,
       Race.FLOW_FINISHED,
     ]) {
       expect(RaceStage.canSendAgain(state), isFalse, reason: state);

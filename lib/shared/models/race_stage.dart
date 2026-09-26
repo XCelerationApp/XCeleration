@@ -44,9 +44,12 @@ class RaceStage {
   bool get isFinished => step > steps.length;
 
   /// Whether the race can be sent to the volunteers again: once sent and
-  /// until results are collected, for a phone that was missed or swapped.
+  /// until the results are saved, for a phone that was missed or swapped.
+  /// That includes while collecting: Collect Results tapped early used to
+  /// leave no way to send it.
   static bool canSendAgain(String? flowState) =>
-      flowState == Race.FLOW_PRE_RACE_COMPLETED;
+      flowState == Race.FLOW_PRE_RACE_COMPLETED ||
+      flowState == Race.FLOW_POST_RACE;
 
   static RaceStage of(String? flowState) => switch (flowState) {
         Race.FLOW_SETUP => _settingUp,
