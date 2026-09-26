@@ -645,6 +645,7 @@ class LoadResultsController with ChangeNotifier {
           teams: [for (final team in teams) ?team.name],
           raceName: race.raceName ?? '',
           createRunner: (newRunner) => saveNewRunner(masterRace, newRunner),
+          withdrawRunner: masterRace.removeRaceRunner,
           timingConflictsNext: timingConflictCount,
         ),
       );

@@ -64,8 +64,12 @@ void main() {
     List<BibConflict>? conflicts,
     List<RaceRunner>? candidates,
     Map<String, String> savedBibOwners = const {},
+    List<RaceRunner>? withdrawn,
   }) =>
       ConflictResolutionController(
+        withdrawRunner: withdrawn == null
+            ? null
+            : (runner) async => withdrawn.add(runner),
         conflicts: conflicts ?? [_duplicate, _unknown],
         candidates: candidates ?? [_gray, _nico, _sage],
         knownBibs: {'959', '949', '956', '961'},
@@ -259,6 +263,31 @@ void main() {
     test('a new bib is free here and among runners saved elsewhere', () {
       expect(make().nextFreeBib, '962');
       expect(make(savedBibOwners: {'962': 'Sam Lee'}).nextFreeBib, '963');
+    });
+
+    test('redoing the answer takes the added runner back out of the race',
+        () async {
+      final withdrawn = <RaceRunner>[];
+      final c = make(withdrawn: withdrawn)..openConflict(1);
+      c.prepareCreate('Avery Stone', '9567', 'Eagles', 11, 'Bib #9567');
+      await c.commitPending();
+      expect(withdrawn, isEmpty);
+
+      c.openConflict(1);
+
+      expect(withdrawn.single.runner.name, 'Avery Stone');
+    });
+
+    test('leaving takes out runners added for unfinished conflicts only',
+        () async {
+      final withdrawn = <RaceRunner>[];
+      final c = make(withdrawn: withdrawn)..startResolving();
+      c.chooseDuplicateOccurrence(16);
+      c.prepareCreateForDuplicate('Avery Stone', '977', 'Eagles', 11, '21st');
+      await c.commitPending();
+
+      c.withdrawUnfinished();
+      expect(withdrawn, isEmpty, reason: 'the repeated bib is finished');
     });
 
     test('a leftover finish can go to someone new', () async {

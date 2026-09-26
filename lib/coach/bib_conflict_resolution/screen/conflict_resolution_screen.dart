@@ -58,6 +58,7 @@ class _ScreenContent extends StatelessWidget {
           return;
         }
         final finished = controller.finishedByPlace;
+        controller.withdrawUnfinished();
         Navigator.of(context).pop(finished.isEmpty ? null : finished);
       },
       child: _scaffold(controller),

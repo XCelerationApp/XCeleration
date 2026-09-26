@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
+import 'package:xceleration/core/utils/logger.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../model/bib_conflict.dart';
 import '../utils/bib_suggestions.dart';
@@ -66,8 +67,10 @@ class ConflictResolutionController extends ChangeNotifier {
     required List<String> teams,
     required this.raceName,
     required Future<Result<RaceRunner>> Function(NewRunner) createRunner,
+    Future<void> Function(RaceRunner)? withdrawRunner,
     this.timingConflictsNext = 0,
-  })  : _conflicts = List.unmodifiable(conflicts),
+  })  : _withdrawRunner = withdrawRunner,
+        _conflicts = List.unmodifiable(conflicts),
         _candidates = List.unmodifiable(candidates),
         _roster = List.unmodifiable(roster),
         _knownBibs = Set.unmodifiable(knownBibs),
@@ -98,6 +101,10 @@ class ConflictResolutionController extends ChangeNotifier {
   Map<String, String> get savedBibOwners => _savedBibOwners;
   final List<String> _teams;
   final Future<Result<RaceRunner>> Function(NewRunner) _createRunner;
+
+  /// Takes a runner added here back out of the race, once the answer that
+  /// added them is taken back: they used to stay entered, with no finish.
+  final Future<void> Function(RaceRunner)? _withdrawRunner;
 
   /// Shown in the header, so the coach knows which race this is.
   final String raceName;
@@ -439,6 +446,26 @@ class ConflictResolutionController extends ChangeNotifier {
 
   // --- Internals ----------------------------------------------------------
 
+  void _withdraw(RaceRunner runner) {
+    final withdraw = _withdrawRunner;
+    if (withdraw == null) return;
+    withdraw(runner).catchError((Object e) {
+      Logger.e('Could not take an added runner back out of the race: $e');
+    });
+  }
+
+  /// Takes back out of the race the runners added for conflicts left
+  /// unfinished, as leaving keeps only the finished ones. Call when leaving.
+  void withdrawUnfinished() {
+    for (var i = 0; i < _conflicts.length; i++) {
+      if (isResolved(i)) continue;
+      for (final place in placesOf(_conflicts[i])) {
+        final entry = _settled[place];
+        if (entry?.kind == ResolutionKind.created) _withdraw(entry!.raceRunner);
+      }
+    }
+  }
+
   void _stage(_Pending pending) {
     _isGoingBack = false;
     _error = null;
@@ -477,7 +504,8 @@ class ConflictResolutionController extends ChangeNotifier {
   /// Forgets everything settled for conflict [index], so it can be redone.
   void _clear(int index) {
     for (final place in placesOf(_conflicts[index])) {
-      _settled.remove(place);
+      final entry = _settled.remove(place);
+      if (entry?.kind == ResolutionKind.created) _withdraw(entry!.raceRunner);
     }
     _ownerPlace.remove(index);
     if (_pending != null &&
