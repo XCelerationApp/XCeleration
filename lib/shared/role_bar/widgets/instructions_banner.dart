@@ -76,8 +76,9 @@ class InstructionsBanner extends StatelessWidget {
   static String _getInstructions(Role role) {
     switch (role) {
       case Role.bibRecorder:
-        return 'You type each runner\'s bib number as they finish, in the '
-            'order they cross the line.\n\nBefore the race, tap Get Race from '
+        return 'You record each runner\'s bib number as they finish, in the '
+            'order they cross the line: hold the button and say it, or type '
+            'it.\n\nBefore the race, tap Get Race from '
             'Coach so your list knows the runners. When there is a break in '
             'the runners, tell the Timer how many bibs you have.';
       case Role.timer:
@@ -89,9 +90,20 @@ class InstructionsBanner extends StatelessWidget {
             'they are the same, tap Counts match. If not, tap Counts differ? '
             'and choose what happened.';
       case Role.coach:
-        return 'You create and manage the races. You will oversee your assistants and will compile and share the race results.';
+        return 'Each race has three steps, shown at the top of it:\n\n'
+            '1. Set up: tap + to create the race, then add its teams and '
+            'runners.\n'
+            '2. Send to volunteers: on race day, send the race to the Timer '
+            'and Bib Recorder phones.\n'
+            '3. Collect results: after the race, collect their times and '
+            'bibs, sort out anything that doesn\'t match, and save.\n\n'
+            'Then tap Share Results on the Results tab: as text, a Google '
+            'Sheet or a PDF, or to spectators nearby.';
       case Role.spectator:
-        return 'As a spectator, you can connect with a nearby coach to load races and view the results.';
+        return 'You see the results of races a coach shares with you.\n\n'
+            'Tap Receive Race, then choose Coach. On the coach\'s '
+            'phone, they tap Share Results, then Send to Spectators. You can '
+            'also get a race from another spectator who already has it.';
     }
   }
 }
