@@ -182,7 +182,34 @@ void main() {
     expect(find.text('20th'), findsOneWidget);
     expect(find.text('Morgan Hawks'), findsOneWidget);
     expect(find.text('Unknown runner'), findsOneWidget);
-    expect(find.text('Find Runner'), findsOneWidget);
+    expect(
+        find.byWidgetPredicate((w) =>
+            w is Text &&
+            (w.data == 'Find Runner' || w.data == 'Find Someone Else')),
+        findsOneWidget);
+  });
+
+  testWidgets('an unknown bib suggests who it most likely was, to assign in '
+      'one tap', (tester) async {
+    await open(tester);
+    await tester.tap(find.text('#9567'));
+    await tester.pumpAndSettle();
+
+    // 9567 is Nico's 956 with a digit too many; Gray's 949 is no slip away.
+    expect(find.text('MOST LIKELY'), findsOneWidget);
+    expect(find.byKey(const ValueKey('suggested_956')), findsOneWidget);
+    expect(find.byKey(const ValueKey('suggested_949')), findsNothing);
+    expect(find.textContaining('One digit too many'), findsOneWidget);
+    expect(find.text('Find Someone Else'), findsOneWidget);
+
+    await tester.ensureVisible(find.byKey(const ValueKey('suggested_956')));
+    await tester.tap(find.byKey(const ValueKey('suggested_956')));
+    await tester.pump();
+
+    expect(controller.hasPending, isTrue);
+    expect(controller.pendingLabel, 'Bib #9567');
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('submitting hands back who finished at each place',

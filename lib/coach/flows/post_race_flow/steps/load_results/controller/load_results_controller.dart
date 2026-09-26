@@ -633,6 +633,7 @@ class LoadResultsController with ChangeNotifier {
             for (final runner in inRace)
               if (!recordedBibs.contains(runner.runner.bibNumber)) runner,
           ],
+          roster: inRace,
           knownBibs: {
             ...recordedBibs,
             for (final runner in inRace) ?runner.runner.bibNumber,

@@ -16,6 +16,7 @@ import './inline_context_panel.dart';
 import './create_runner_sheet.dart';
 import './nearby_finishers_sheet.dart';
 import './runner_assignment_list.dart';
+import './suggested_runners.dart';
 part 'duplicate_conflict_card_step1.dart';
 part 'duplicate_conflict_card_multi.dart';
 

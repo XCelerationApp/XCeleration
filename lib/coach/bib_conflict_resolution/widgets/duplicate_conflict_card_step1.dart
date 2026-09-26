@@ -206,6 +206,9 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
   @override
   Widget build(BuildContext context) {
     final leftover = widget.leftoverOccurrence;
+    final suggestions = context
+        .watch<ConflictResolutionController>()
+        .suggestionsFor(widget.conflict.bibNumber);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -277,14 +280,30 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
-        // Find Runner: search the roster, or create the runner if they are
-        // not on it.
-        PrimaryButton(
-          text: 'Find Runner',
-          icon: Icons.search,
-          size: ButtonSize.fullWidth,
-          onPressed: () => _openFindSheet(context),
+        // The bib was typed for someone else here: whose bib is one slip
+        // from it, or among the same team's bibs?
+        SuggestedRunners(
+          suggestions: suggestions,
+          onPick: (runner) => context
+              .read<ConflictResolutionController>()
+              .prepareAssignForDuplicate(runner, _conflictLabel),
         ),
+        if (suggestions.isNotEmpty) const SizedBox(height: AppSpacing.sm),
+        // Find Runner: search the roster, or create the runner if they are
+        // not on it. The fallback once the app has made its best guesses.
+        suggestions.isEmpty
+            ? PrimaryButton(
+                text: 'Find Runner',
+                icon: Icons.search,
+                size: ButtonSize.fullWidth,
+                onPressed: () => _openFindSheet(context),
+              )
+            : SecondaryButton(
+                text: 'Find Someone Else',
+                icon: Icons.search,
+                size: ButtonSize.fullWidth,
+                onPressed: () => _openFindSheet(context),
+              ),
       ],
     );
   }

@@ -54,7 +54,12 @@ void main() {
 
   /// Finds [runner] by name, assigns them and lets the undo toast run out.
   Future<void> assign(WidgetTester tester, RaceRunner runner) async {
-    await tap(tester, find.text('Find Runner'));
+    // "Find Someone Else" once the app has suggestions of its own.
+    await tap(
+        tester,
+        find.byWidgetPredicate((w) =>
+            w is Text &&
+            (w.data == 'Find Runner' || w.data == 'Find Someone Else')));
     // Found by typing their name, as a coach would.
     await tester.enterText(
         find.byKey(const ValueKey('find_runner_search')), runner.runner.name!);

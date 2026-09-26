@@ -3,6 +3,7 @@ import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../model/bib_conflict.dart';
+import '../utils/bib_suggestions.dart';
 import '../services/runner_creator.dart';
 
 enum _FlowStep { summary, conflict, completion }
@@ -59,6 +60,7 @@ class ConflictResolutionController extends ChangeNotifier {
   ConflictResolutionController({
     required List<BibConflict> conflicts,
     required List<RaceRunner> candidates,
+    List<RaceRunner> roster = const [],
     required Set<String> knownBibs,
     required List<String> teams,
     required this.raceName,
@@ -66,6 +68,7 @@ class ConflictResolutionController extends ChangeNotifier {
     this.timingConflictsNext = 0,
   })  : _conflicts = List.unmodifiable(conflicts),
         _candidates = List.unmodifiable(candidates),
+        _roster = List.unmodifiable(roster),
         _knownBibs = Set.unmodifiable(knownBibs),
         _teams = List.unmodifiable(teams),
         _createRunner = createRunner;
@@ -79,6 +82,9 @@ class ConflictResolutionController extends ChangeNotifier {
   /// Runners in the race who are not placed anywhere in the finish order —
   /// who a mistyped bib might really have been.
   final List<RaceRunner> _candidates;
+
+  /// Everyone in the race, placed or not, for each team's block of bibs.
+  final List<RaceRunner> _roster;
 
   /// Bibs already taken, so an added runner cannot reuse one.
   final Set<String> _knownBibs;
@@ -189,10 +195,7 @@ class ConflictResolutionController extends ChangeNotifier {
   /// a mistyped bib is usually a digit or two from the real one.
   List<RaceRunner> runnersNearBib(String bib) {
     final target = int.tryParse(bib);
-    final used = _usedBibs;
-    final free = _candidates
-        .where((r) => !used.contains(r.runner.bibNumber))
-        .toList();
+    final free = _freeRunners;
     if (target == null) return free;
     int distance(RaceRunner r) {
       final value = int.tryParse(r.runner.bibNumber ?? '');
@@ -201,6 +204,22 @@ class ConflictResolutionController extends ChangeNotifier {
 
     return free..sort((a, b) => distance(a).compareTo(distance(b)));
   }
+
+  List<RaceRunner> get _freeRunners {
+    final used = _usedBibs;
+    return _candidates
+        .where((r) => !used.contains(r.runner.bibNumber))
+        .toList();
+  }
+
+  /// Who [bib] was most likely meant to be, with why: runners not placed
+  /// yet whose bib is one slip away, then the team whose bibs it falls
+  /// among.
+  List<RunnerSuggestion> suggestionsFor(String bib) => suggestRunnersForBib(
+        bib,
+        free: _freeRunners,
+        roster: _roster.isEmpty ? _candidates : _roster,
+      );
 
   /// Every bib already taken, so an added runner gets one of their own.
   Set<String> get allKnownBibs => {

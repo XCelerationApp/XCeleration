@@ -14,6 +14,7 @@ import './inline_context_panel.dart';
 import './nearby_finishers_sheet.dart';
 import './create_runner_sheet.dart';
 import './runner_assignment_list.dart';
+import './suggested_runners.dart';
 
 /// Card for a standalone unknown bib — bib was entered but not found in the database.
 /// Header with badge + finish position, time pill, inline context panel, and
@@ -31,6 +32,9 @@ class UnknownBibCard extends StatefulWidget {
 class _UnknownBibCardState extends State<UnknownBibCard> {
   @override
   Widget build(BuildContext context) {
+    final suggestions = context
+        .watch<ConflictResolutionController>()
+        .suggestionsFor(widget.conflict.bibNumber);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -47,12 +51,27 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
           child: const Text('See more nearby finishers ↓'),
         ),
         const SizedBox(height: AppSpacing.sm),
-        PrimaryButton(
-          text: 'Find Runner',
-          icon: Icons.search,
-          size: ButtonSize.fullWidth,
-          onPressed: () => _openFindSheet(context),
+        SuggestedRunners(
+          suggestions: suggestions,
+          onPick: (runner) => context
+              .read<ConflictResolutionController>()
+              .prepareAssign(runner, 'Bib #${widget.conflict.bibNumber}'),
         ),
+        if (suggestions.isNotEmpty) const SizedBox(height: AppSpacing.sm),
+        // Searching is the fallback once the app has made its best guesses.
+        suggestions.isEmpty
+            ? PrimaryButton(
+                text: 'Find Runner',
+                icon: Icons.search,
+                size: ButtonSize.fullWidth,
+                onPressed: () => _openFindSheet(context),
+              )
+            : SecondaryButton(
+                text: 'Find Someone Else',
+                icon: Icons.search,
+                size: ButtonSize.fullWidth,
+                onPressed: () => _openFindSheet(context),
+              ),
       ],
     );
   }

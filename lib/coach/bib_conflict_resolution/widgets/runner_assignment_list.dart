@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../core/utils/grade_utils.dart';
 import 'package:provider/provider.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../controller/conflict_resolution_controller.dart';
@@ -375,7 +376,7 @@ class _RunnerTile extends StatelessWidget {
                     Text(
                       [
                         runner.team.name ?? '',
-                        if (grade != null) 'Grade $grade',
+                        if (grade != null) gradeLabel(grade),
                       ].where((s) => s.isNotEmpty).join(' · '),
                       style: AppTypography.caption
                           .copyWith(color: AppColors.mediumColor),
