@@ -167,18 +167,20 @@ public class SwiftFlutterNearbyConnectionsPlugin: NSObject, FlutterPlugin {
                 result(false)
                 return
             }
-            do {
-                let jsonData = try JSONSerialization.data(withJSONObject: dict, options: .prettyPrinted)
-                if let device = MPCManager.instance.findDevice(for: dict["deviceId"] as! String) {
-                    currentReceivedDevice = device
-                    try device.send(data: jsonData)
-                    result(true)
-                    return
-                }
-            } catch let error as NSError {
-                print(error)
+            guard let deviceId = dict["deviceId"] as? String,
+                  let device = MPCManager.instance.findDevice(for: deviceId) else {
+                result(false)
+                return
             }
-            result(false)
+            do {
+                let jsonData = try JSONSerialization.data(withJSONObject: dict, options: [])
+                currentReceivedDevice = device
+                try device.send(data: jsonData)
+                result(true)
+            } catch {
+                print(error)
+                result(false)
+            }
         default:
             result(FlutterMethodNotImplemented)
             return
