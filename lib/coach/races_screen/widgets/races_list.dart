@@ -63,9 +63,11 @@ class _RacesListState extends State<RacesList> {
       required List<Race> races,
       required bool isExpanded,
       required VoidCallback onToggle,
-      required Widget emptyState,
       required int startIndex,
     }) {
+      // A section with no races is left out: an empty "Upcoming" with its
+      // own placeholder only pushed the races that exist further down.
+      if (races.isEmpty) return;
       items.add(_HeaderItem(
         title: title,
         count: races.length,
@@ -73,20 +75,14 @@ class _RacesListState extends State<RacesList> {
         onToggle: onToggle,
       ));
       if (isExpanded) {
-        if (races.isEmpty) {
-          items.add(_WidgetItem(emptyState));
-        } else {
-          for (int i = 0; i < races.length; i++) {
-            final globalIndex = startIndex + i;
-            final race = races[i];
-            items.add(_CardItem(
-              race: race,
-              controller: widget.controller,
-              canEdit: widget.canEdit,
-              useStagger: useStagger,
-              index: globalIndex,
-            ));
-          }
+        for (int i = 0; i < races.length; i++) {
+          items.add(_CardItem(
+            race: races[i],
+            controller: widget.controller,
+            canEdit: widget.canEdit,
+            useStagger: useStagger,
+            index: startIndex + i,
+          ));
         }
       }
     }
@@ -96,11 +92,6 @@ class _RacesListState extends State<RacesList> {
       races: raceInProgress,
       isExpanded: _inProgressExpanded,
       onToggle: () => setState(() => _inProgressExpanded = !_inProgressExpanded),
-      emptyState: const EmptySection(
-        icon: Icons.timer_outlined,
-        title: 'No races in progress',
-        subtitle: 'Active races will appear here',
-      ),
       startIndex: 0,
     );
     addSection(
@@ -108,11 +99,6 @@ class _RacesListState extends State<RacesList> {
       races: upcomingRaces,
       isExpanded: _upcomingExpanded,
       onToggle: () => setState(() => _upcomingExpanded = !_upcomingExpanded),
-      emptyState: const EmptySection(
-        icon: Icons.calendar_today_outlined,
-        title: 'No upcoming races',
-        subtitle: 'Races you\'re setting up will appear here',
-      ),
       startIndex: raceInProgress.length,
     );
     addSection(
@@ -120,13 +106,18 @@ class _RacesListState extends State<RacesList> {
       races: finishedRaces,
       isExpanded: _finishedExpanded,
       onToggle: () => setState(() => _finishedExpanded = !_finishedExpanded),
-      emptyState: const EmptySection(
-        icon: Icons.history,
-        title: 'No finished races yet',
-        subtitle: 'Completed races will appear here',
-      ),
       startIndex: raceInProgress.length + upcomingRaces.length,
     );
+
+    if (items.isEmpty) {
+      items.add(_WidgetItem(EmptySection(
+        icon: Icons.flag_outlined,
+        title: 'No races yet',
+        subtitle: widget.canEdit
+            ? 'Tap + to set up your first race'
+            : 'Races will appear here',
+      )));
+    }
 
     return SliverList.builder(
       itemCount: items.length,
