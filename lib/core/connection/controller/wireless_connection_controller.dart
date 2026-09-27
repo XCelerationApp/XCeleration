@@ -100,7 +100,7 @@ class WirelessConnectionController extends ChangeNotifier {
         _startConnectionProcess();
       } catch (e) {
         if (_isDisposed) return;
-        Logger.d('Error initializing connection service: $e');
+        Logger.e('Error initializing connection service: $e');
         _wirelessConnectionError = WirelessConnectionError.unknown;
         _isLoading = false;
         notifyListeners();
@@ -159,7 +159,7 @@ class WirelessConnectionController extends ChangeNotifier {
         },
       );
     } catch (e) {
-      Logger.d('Error monitoring devices: $e');
+      Logger.e('Error monitoring devices: $e');
     } finally {
       // Ensure we mark connection as complete when monitoring ends
       if (!_connectionCompleter.isCompleted) {
@@ -324,7 +324,7 @@ class WirelessConnectionController extends ChangeNotifier {
       // Clean up device from protocol
       if (isCurrent()) _protocol.removeDevice(device.deviceId);
     } catch (e) {
-      Logger.d('Error in connection: $e');
+      Logger.e('Error in connection: $e');
       if (!isCurrent()) return;
       _protocol.removeDevice(device.deviceId);
       await _recoverFromFailedTransfer(device, deviceName);

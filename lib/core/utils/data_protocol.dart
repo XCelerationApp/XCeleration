@@ -217,7 +217,14 @@ class Protocol implements ProtocolInterface {
             final retryTime = DateTime.now();
             Logger.d(
                 '[${retryTime.toString()}] Retrying package ${package.number} (attempt ${state.retryCount + 1})');
-            await attemptSend();
+            // A retry runs in a timer, where a throw went uncaught when the
+            // phone had disconnected: end the send with the error instead.
+            try {
+              await attemptSend();
+            } catch (e) {
+              if (!state.completer.isCompleted) state.completer.completeError(e);
+              return;
+            }
             scheduleRetry();
           } else {
             final failTime = DateTime.now();

@@ -269,9 +269,9 @@ class GoogleAuthService {
       await _saveAuthDataToPrefs();
       return _iosAccessToken;
     } on GoogleSignInException catch (e) {
-      Logger.d('Error getting iOS access token: $e');
+      Logger.e('Error getting iOS access token: $e');
     } catch (e) {
-      Logger.d('Error getting iOS access token: $e');
+      Logger.e('Error getting iOS access token: $e');
     }
 
     return null;
@@ -330,7 +330,7 @@ class GoogleAuthService {
         return null;
       }
     } catch (e) {
-      Logger.d('[WebToken] Error getting web access token: $e');
+      Logger.e('[WebToken] Error getting web access token: $e');
     }
 
     return null;
@@ -445,7 +445,7 @@ class GoogleAuthService {
             scopeHint: [_driveScope],
           );
         } on GoogleSignInException catch (e) {
-          Logger.d('Sign-in failed: ${e.description}');
+          _logSignInFailure(e);
           return false;
         }
       } else {
@@ -466,7 +466,7 @@ class GoogleAuthService {
                 scopeHint: [_driveScope],
               );
             } on GoogleSignInException catch (e) {
-              Logger.d('Sign-in failed: ${e.description}');
+              _logSignInFailure(e);
               return false;
             }
           }
@@ -496,6 +496,16 @@ class GoogleAuthService {
     } catch (e) {
       Logger.e('Sign in error: $e');
       return false;
+    }
+  }
+
+  /// Reports a failed Google sign-in, unless the coach cancelled it: only
+  /// the debug log saw these, so a failing export left no trace.
+  static void _logSignInFailure(GoogleSignInException e) {
+    if (e.code == GoogleSignInExceptionCode.canceled) {
+      Logger.d('Google sign-in cancelled');
+    } else {
+      Logger.e('Google sign-in failed: ${e.code.name} ${e.description}');
     }
   }
 

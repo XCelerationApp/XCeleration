@@ -362,7 +362,7 @@ class DeviceConnectionService implements DeviceConnectionServiceInterface {
 
           return Success(await completer.future);
         } catch (e) {
-          Logger.d('Failed to initialize NearbyConnections: $e');
+          Logger.e('Failed to initialize NearbyConnections: $e');
           timer.cancel();
           return Failure(AppError(
             userMessage: 'Failed to check nearby connections availability.',
