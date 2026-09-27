@@ -434,12 +434,16 @@ class BibNumberController extends BibNumberDataController {
           if (data == null) {
             DialogUtils.showErrorDialog(context,
                 message: 'Race data not received');
-            return;
+            return false;
           }
           final result = await processLoadedRaceData(data);
-          if (result case Failure(:final error) when context.mounted) {
-            DialogUtils.showErrorDialog(context, message: error.userMessage);
+          if (result case Failure(:final error)) {
+            if (context.mounted) {
+              DialogUtils.showErrorDialog(context, message: error.userMessage);
+            }
+            return false;
           }
+          return true;
         },
       ),
         ],

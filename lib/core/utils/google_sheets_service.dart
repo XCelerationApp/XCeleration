@@ -61,7 +61,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
             '${sheet['properties']?['title'] ?? ''}',
       ].where((t) => t.isNotEmpty).toList();
     } catch (e) {
-      Logger.d('Could not list tabs: $e');
+      Logger.e('Could not list tabs: $e');
       return null;
     }
   }
@@ -89,7 +89,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
           [for (final cell in row as List) '$cell'],
       ];
     } catch (e) {
-      Logger.d('Could not read tab "$tab": $e');
+      Logger.e('Could not read tab "$tab": $e');
       return null;
     }
   }
@@ -152,7 +152,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
 
       return spreadsheetId;
     } catch (e) {
-      Logger.d('Error creating spreadsheet: $e');
+      Logger.e('Error creating spreadsheet: $e');
       return null;
     }
   }
@@ -219,7 +219,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
       Logger.d('Spreadsheet updated: $spreadsheetId');
       return true;
     } catch (e) {
-      Logger.d('Error updating spreadsheet: $e');
+      Logger.e('Error updating spreadsheet: $e');
       return false;
     }
   }
@@ -329,7 +329,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
       Logger.d('Google Sheet successfully exported to CSV: ${file.path}');
       return file;
     } catch (e) {
-      Logger.d('Error in downloadGoogleSheet: $e');
+      Logger.e('Error in downloadGoogleSheet: $e');
       return null;
     }
   }
