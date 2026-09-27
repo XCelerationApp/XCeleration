@@ -29,10 +29,15 @@ Last reviewed: 2025-08-11
 
 ## Release checklist
 
-- [ ] Lints pass and tests green
-- [ ] Protocol/basic transfer sanity on two devices
+- [ ] Lints pass and tests green (including `test/integration/two_phone_sharing_test.dart`
+      and `test/contract/wire_formats_test.dart`)
+- [ ] Full real-phone rehearsal on the TestFlight build: [release-checklist.md](release-checklist.md)
+- [ ] If anything phones send each other changed on purpose, its new format is
+      saved (see `test/fixtures/wire/README.md`)
 - [ ] Bumped versions and changelog
 - [ ] Screenshots/metadata updated for stores
+- [ ] Sentry checked for new issues
+- [ ] dev -> main merged with **Create a merge commit**, never squash
 
 ## Troubleshooting
 
