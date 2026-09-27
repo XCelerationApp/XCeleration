@@ -16,6 +16,9 @@ String getDeviceNameString(DeviceName deviceName) {
 /// its QR code. The Timer is still 'Race Timer' here although it is 'Timer' on
 /// screen: phones on 1.1.0 only know 'Race Timer', and a name they don't know
 /// is ignored, so a coach's phone never answered a Timer on 1.1.1.
+///
+/// Part of what phones send each other: never change these names for
+/// wording. See test/fixtures/wire/README.md.
 String getDeviceWireName(DeviceName deviceName) {
   if (deviceName == DeviceName.raceTimer) return 'Race Timer';
   return getDeviceNameString(deviceName);
