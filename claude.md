@@ -27,6 +27,21 @@ Flutter, Dart, ChangeNotifier + Provider, SQLite, Supabase.
 - One concern per commit
 - Ask the user before opening a new PR or renaming the curerent branch
 
+## Risky Areas — Extra Checks
+
+These broke on real phones while every test passed. A change that touches any of them needs the checks below, however small it looks (a rename in `connection_utils.dart` broke sharing in 1.1.1):
+
+- **Phone-to-phone sharing:** `lib/core/services/device_connection_service.dart`, `lib/core/connection/`, `lib/core/utils/data_protocol.dart`, `lib/core/utils/connection_utils.dart`, `lib/core/components/*connection*`, `packages/flutter_nearby_connections/`
+- **Anything sent to another phone:** `encode_utils.dart`, `decode_utils.dart`, `race_record.dart`, `data_package.dart`, `race_share_service.dart`, `race_share_decoder.dart`
+- **Sync and saving:** `lib/core/services/sync_service.dart`, `lib/core/repositories/`, results saving
+
+Checks:
+
+- Run `test/integration/two_phone_sharing_test.dart` (real sharing code on several fake phones) and add a scenario for the change.
+- Run `test/contract/wire_formats_test.dart`. Never change what phones send for wording: on-screen names come from `getDeviceNameString`, sent names from `getDeviceWireName`. Changing a format on purpose follows `test/fixtures/wire/README.md`.
+- No silent failures: every failure shows the user something or calls `Logger.e` (which reaches Sentry). `Logger.d` is invisible in release builds.
+- Say in the PR that the real-phone rehearsal (`docs/08-dev/release-checklist.md`) must be run on the next TestFlight build.
+
 ## Working Style
 
 When a task requires manual verification (e.g. "does this look right on device?",

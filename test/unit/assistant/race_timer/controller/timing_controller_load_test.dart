@@ -80,6 +80,13 @@ void main() {
     expect(timer.currentRace?.name, 'Invitational');
   });
 
+  // A race that cannot be read used to be dropped without a word, and the
+  // sheet dinged and closed as if it had worked.
+  test('a race that cannot be read is refused', () async {
+    expect(await timer.loadRaceFromCoach('not a race'), isFalse);
+    expect(await timer.loadRaceFromCoach(invitational), isTrue);
+  });
+
   // Deleting the open race opens the next one straight away: another race
   // on the phone, or the practice race, never an empty screen.
   test('deleting the open race opens the practice race', () async {

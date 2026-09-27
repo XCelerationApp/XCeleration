@@ -64,7 +64,7 @@ class GoogleDriveService {
       await _getDriveApi();
       return true;
     } catch (error) {
-      Logger.d('Error setting up Google Drive: $error');
+      Logger.e('Error setting up Google Drive: $error');
       return false;
     }
   }
@@ -129,7 +129,7 @@ class GoogleDriveService {
 
       return file;
     } catch (e) {
-      Logger.d('Error picking spreadsheet file: $e');
+      Logger.e('Error picking spreadsheet file: $e');
       if (context.mounted) {
         DialogUtils.showErrorDialog(context,
             message:
@@ -195,7 +195,7 @@ class GoogleDriveService {
         };
       }, loadingMessage: 'Creating new spreadsheet...');
     } catch (e) {
-      Logger.d('Error creating spreadsheet: $e');
+      Logger.e('Error creating spreadsheet: $e');
 
       if (context.mounted) {
         DialogUtils.showErrorDialog(context,
@@ -248,7 +248,7 @@ class GoogleDriveService {
       );
       return true;
     } catch (e) {
-      Logger.d('Error setting file permissions: $e');
+      Logger.e('Error setting file permissions: $e');
       return false;
     }
   }
@@ -299,13 +299,13 @@ class GoogleDriveService {
         Logger.d('File downloaded successfully to $filePath');
         return file;
       } catch (e) {
-        Logger.d('Error downloading file: $e');
+        Logger.e('Error downloading file: $e');
         return null;
       } finally {
         authClient.close();
       }
     } catch (e) {
-      Logger.d('Error in _downloadFile: $e');
+      Logger.e('Error in _downloadFile: $e');
       return null;
     }
   }

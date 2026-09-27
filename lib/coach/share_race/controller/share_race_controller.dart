@@ -161,7 +161,7 @@ class ShareResultsController {
         }
       }
     } catch (e) {
-      Logger.d('Error copying to clipboard: $e');
+      Logger.e('Error copying to clipboard: $e');
 
       // Only show error feedback if it's not a cancellation
       if (e is! OperationCanceledException) {
@@ -197,10 +197,13 @@ class ShareResultsController {
             throw Exception('Google sign-in failed');
           }
 
-          // Step 2: Create the sheet
+          // Step 2: Create the sheet. Nothing here can be cancelled, so no
+          // sheet means it failed: it used to pass as a cancel, silently.
           final spreadsheetId = await _googleSheetsService.createSheet(
               title: raceResultsData.resultsTitle);
-          if (spreadsheetId == null) return null; // cancelled
+          if (spreadsheetId == null) {
+            throw Exception('Google Sheet was not created');
+          }
 
           // Step 3: Update the sheet with data
           final updateSuccess = await _googleSheetsService.updateSheet(
@@ -238,7 +241,8 @@ class ShareResultsController {
 
       if (context.mounted && e is! OperationCanceledException) {
         DialogUtils.showErrorDialog(context,
-            message: 'Error creating Google Sheet');
+            message: 'Could not create the Google Sheet. Check you are '
+                'online and try again.');
       }
     }
   }
@@ -320,14 +324,14 @@ class ShareResultsController {
             ),
           );
         } catch (e) {
-          Logger.d('Error sharing PDF: $e');
+          Logger.e('Error sharing PDF: $e');
           if (context.mounted) {
             DialogUtils.showErrorDialog(context, message: 'Failed to share');
           }
         }
       }
     } catch (e) {
-      Logger.d('Error in PDF creation: $e');
+      Logger.e('Error in PDF creation: $e');
 
       // Only show error dialog if context is still mounted and it's not a cancellation
       if (context.mounted && e is! OperationCanceledException) {
@@ -341,7 +345,7 @@ class ShareResultsController {
     try {
       await _shareService.share(params);
     } catch (e) {
-      Logger.d('Error sharing: $e');
+      Logger.e('Error sharing: $e');
       if (context.mounted) {
         DialogUtils.showErrorDialog(context, message: 'Failed to share');
       }

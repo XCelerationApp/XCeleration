@@ -53,7 +53,11 @@ class _DeviceConnectionWidgetState extends State<DeviceConnectionWidget> {
   void _handleCallback(BuildContext context) async {
     final callback = widget.callback;
     if (callback != null) {
-      await callback();
+      // A callback that returns false could not use what arrived and has
+      // said why: no "done" sound, and the sheet stays open to try again.
+      // It used to ding and close either way.
+      final result = await callback();
+      if (result == false) return;
     }
     try {
       final player = audio.AudioPlayer();

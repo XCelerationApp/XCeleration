@@ -14,6 +14,7 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/adjust_times_form.dart';
 import '../../../core/components/device_connection_widget.dart';
+import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
@@ -151,10 +152,15 @@ class TimingController extends TimingData {
         devices: devices,
         callback: () async {
           final data = devices.coach?.data;
-          if (data == null) {
-            return;
+          if (data == null || !await loadRaceFromCoach(data)) {
+            if (context.mounted) {
+              DialogUtils.showErrorDialog(context,
+                  message: 'The race from the coach could not be opened. '
+                      'Ask the coach to send it again.');
+            }
+            return false;
           }
-          await loadRaceFromCoach(data);
+          return true;
         },
       ),
         ],
@@ -167,8 +173,9 @@ class TimingController extends TimingData {
   /// A race already on this phone is opened with the times recorded for it:
   /// the coach may well send the same race twice. Only a race new to this
   /// phone starts from an empty first batch.
+  /// Returns false if the race could not be read or saved.
   @visibleForTesting
-  Future<void> loadRaceFromCoach(String data) async {
+  Future<bool> loadRaceFromCoach(String data) async {
     final RaceRecord sent;
     try {
       // The coach shows one QR code for both volunteers, the Bib Recorder's:
@@ -178,13 +185,14 @@ class TimingController extends TimingData {
           type: DeviceName.raceTimer.toString());
     } catch (e) {
       Logger.e('Error parsing race data: $e');
-      return;
+      return false;
     }
     await initialLoad;
     switch (await _storage.receiveRace(sent)) {
       case Failure(:final error):
         Logger.e('[TimingController.loadRaceFromCoach] '
             '${error.originalException}');
+        return false;
       case Success(:final value):
         clearRecords();
         if (value.isNew) {
@@ -194,6 +202,7 @@ class TimingController extends TimingData {
           );
         }
         await _loadRace(value.race);
+        return true;
     }
   }
 
