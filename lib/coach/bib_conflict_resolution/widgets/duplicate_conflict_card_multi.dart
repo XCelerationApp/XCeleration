@@ -110,7 +110,7 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
           '${widget.conflict.occurrences.length} finishes. Which one was '
           '${widget.conflict.runner.runner.name ?? 'this runner'}? The others '
           'were other runners: the number was typed wrong, or they had the '
-          'wrong number on.',
+          'wrong bib number.',
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
         const SizedBox(height: AppSpacing.md),
