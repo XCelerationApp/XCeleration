@@ -92,9 +92,11 @@ abstract final class ConflictTips {
   ];
 
   static const whoWasIt = [
-    'The suggestions are bibs one slip of the thumb away (a digit '
-        'different, swapped, left out or extra), or in the same team\'s '
-        'block of bibs.',
+    'The runner may have had the wrong number on: a bib swapped with a '
+        'teammate, or the wrong number written. Ask who was wearing it.',
+    'Or the number was typed wrong. The suggestions are bibs one slip of '
+        'the thumb away (a digit different, swapped, left out or extra), or '
+        'in the same team\'s block of bibs.',
     'Ask the runners who finished around this spot who came in near them.',
     'Ask that team\'s coach or runners who it could be, from the finish '
         'time and who was around them.',

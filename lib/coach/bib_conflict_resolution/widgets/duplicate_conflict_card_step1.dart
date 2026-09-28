@@ -16,9 +16,10 @@ class _TwoOccurrenceStep1 extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Bib #${conflict.bibNumber} was typed at two finishes. Which one '
-          'was ${conflict.runner.runner.name ?? 'this runner'}? The other '
-          'was a typo for someone else.',
+          'Bib #${conflict.bibNumber} was recorded at two finishes. Which '
+          'one was ${conflict.runner.runner.name ?? 'this runner'}? The other '
+          'was someone else: the number was typed wrong, or they had the '
+          'wrong number on.',
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -261,7 +262,8 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
         Text(
           [
             ?leftover.time,
-            'Bib #${widget.conflict.bibNumber} was a typo here',
+            // Not "a typo": as often the runner had the wrong number on.
+            'Recorded as #${widget.conflict.bibNumber}, but someone else',
             if (widget.leftoversRemaining > 1)
               '${widget.leftoversRemaining} finishes left',
           ].join(' · '),

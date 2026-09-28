@@ -106,10 +106,11 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Bib #${widget.conflict.bibNumber} was typed at '
+          'Bib #${widget.conflict.bibNumber} was recorded at '
           '${widget.conflict.occurrences.length} finishes. Which one was '
           '${widget.conflict.runner.runner.name ?? 'this runner'}? The others '
-          'were typos for other runners.',
+          'were other runners: the number was typed wrong, or they had the '
+          'wrong number on.',
           style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
         ),
         const SizedBox(height: AppSpacing.md),
