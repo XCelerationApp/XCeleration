@@ -4,11 +4,11 @@
 
 // ignore_for_file: no_leading_underscores_for_library_prefixes
 import 'dart:async' as _i9;
-import 'dart:ui' as _i12;
+import 'dart:ui' as _i13;
 
 import 'package:flutter/material.dart' as _i2;
 import 'package:mockito/mockito.dart' as _i1;
-import 'package:mockito/src/dummies.dart' as _i11;
+import 'package:mockito/src/dummies.dart' as _i12;
 import 'package:xceleration/assistant/bib_number_recorder/controller/bib_number_controller.dart'
     as _i5;
 import 'package:xceleration/assistant/bib_number_recorder/model/bib_datum_record.dart'
@@ -16,6 +16,8 @@ import 'package:xceleration/assistant/bib_number_recorder/model/bib_datum_record
 import 'package:xceleration/assistant/shared/models/race_record.dart' as _i8;
 import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart'
     as _i4;
+import 'package:xceleration/assistant/shared/services/received_race_resolver.dart'
+    as _i11;
 import 'package:xceleration/core/result.dart' as _i10;
 import 'package:xceleration/core/services/tutorial_manager.dart' as _i3;
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart' as _i6;
@@ -274,13 +276,16 @@ class MockBibNumberController extends _i1.Mock
           as _i9.Future<void>);
 
   @override
-  _i9.Future<_i10.Result<void>> processLoadedRaceData(String? data) =>
+  _i9.Future<_i10.Result<void>> processLoadedRaceData(
+    String? data, {
+    _i11.AskAboutRace? ask,
+  }) =>
       (super.noSuchMethod(
-            Invocation.method(#processLoadedRaceData, [data]),
+            Invocation.method(#processLoadedRaceData, [data], {#ask: ask}),
             returnValue: _i9.Future<_i10.Result<void>>.value(
-              _i11.dummyValue<_i10.Result<void>>(
+              _i12.dummyValue<_i10.Result<void>>(
                 this,
-                Invocation.method(#processLoadedRaceData, [data]),
+                Invocation.method(#processLoadedRaceData, [data], {#ask: ask}),
               ),
             ),
           )
@@ -401,7 +406,7 @@ class MockBibNumberController extends _i1.Mock
       (super.noSuchMethod(
             Invocation.method(#prepareShareData, []),
             returnValue: _i9.Future<_i5.ShareDataResult>.value(
-              _i11.dummyValue<_i5.ShareDataResult>(
+              _i12.dummyValue<_i5.ShareDataResult>(
                 this,
                 Invocation.method(#prepareShareData, []),
               ),
@@ -534,7 +539,7 @@ class MockBibNumberController extends _i1.Mock
       (super.noSuchMethod(
             Invocation.method(#getEncodedBibData, []),
             returnValue: _i9.Future<String>.value(
-              _i11.dummyValue<String>(
+              _i12.dummyValue<String>(
                 this,
                 Invocation.method(#getEncodedBibData, []),
               ),
@@ -615,13 +620,13 @@ class MockBibNumberController extends _i1.Mock
           as int);
 
   @override
-  void addListener(_i12.VoidCallback? listener) => super.noSuchMethod(
+  void addListener(_i13.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#addListener, [listener]),
     returnValueForMissingStub: null,
   );
 
   @override
-  void removeListener(_i12.VoidCallback? listener) => super.noSuchMethod(
+  void removeListener(_i13.VoidCallback? listener) => super.noSuchMethod(
     Invocation.method(#removeListener, [listener]),
     returnValueForMissingStub: null,
   );

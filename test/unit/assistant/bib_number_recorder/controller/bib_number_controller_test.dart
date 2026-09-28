@@ -62,6 +62,7 @@ void main() {
     provideDummy<Result<List<RaceRecord>>>(const Success([]));
     provideDummy<Result<void>>(const Failure(AppError(userMessage: '')));
     provideDummy<Result<db_models.BibRecord?>>(const Success(null));
+    provideDummy<Result<RaceRecord?>>(const Success(null));
     provideDummy<Result<List<db_models.BibRecord>>>(const Success([]));
     provideDummy<Result<List<runner_models.Runner>>>(const Success([]));
     provideDummy<Result<ReceivedRace>>(
@@ -104,6 +105,9 @@ void main() {
     when(mockStorage.saveBibRecords(any, any))
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.saveNewRace(any))
+        .thenAnswer((_) async => const Success(null));
+    // No race of the number here yet, unless a test says otherwise.
+    when(mockStorage.getRace(any, any))
         .thenAnswer((_) async => const Success(null));
     when(mockStorage.receiveRace(any)).thenAnswer((i) async => Success(
         ReceivedRace(

@@ -5,6 +5,7 @@ import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:xceleration/assistant/race_timer/controller/timing_controller.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/assistant_storage_service.dart';
+import 'package:xceleration/assistant/shared/services/received_race_resolver.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/services/haptic_feedback_service.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
@@ -14,7 +15,8 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 
 // The coach sends the Timer its race. Sending it again, or sending another
 // coach's race that happens to share its number, must never touch the times
-// already recorded.
+// already recorded. Once times are recorded the volunteer is asked whether
+// to update the race or keep a copy.
 
 class _NoHaptics implements IHapticFeedback {
   @override
@@ -52,6 +54,14 @@ void main() {
   });
 
   tearDown(() => timer.dispose());
+
+  /// What the volunteer was asked, and answers [choice].
+  final asked = <RaceAlreadyHere>[];
+  setUp(asked.clear);
+  AskAboutRace answer(ReceivedRaceChoice choice) => (here) async {
+        asked.add(here);
+        return choice;
+      };
 
   Future<List<String>> savedTimes(int raceId) async {
     await timer.pendingWrites;
@@ -107,13 +117,36 @@ void main() {
     expect(timer.currentRace?.name, 'Demo Race');
   });
 
-  test('the same race sent again keeps its times', () async {
+  test('the same race sent again, nothing recorded, opens unasked', () async {
+    await timer.loadRaceFromCoach(invitational);
+
+    await timer.loadRaceFromCoach(invitational,
+        ask: answer(ReceivedRaceChoice.update));
+
+    expect(asked, isEmpty);
+    expect(timer.currentRace?.name, 'Invitational');
+  });
+
+  test('the same race sent again, with times, asks how many', () async {
+    await timer.loadRaceFromCoach(invitational);
+    timer.addRunnerTimeRecord(TimingDatum(time: '5:01.00'));
+    await timer.pendingWrites;
+
+    await timer.loadRaceFromCoach(invitational,
+        ask: answer(ReceivedRaceChoice.update));
+
+    expect(asked.single.renamed, isFalse);
+    expect(asked.single.recorded, 1);
+  });
+
+  test('the same race sent again and updated keeps its times', () async {
     await timer.loadRaceFromCoach(invitational);
     timer.addRunnerTimeRecord(TimingDatum(time: '5:01.00'));
     timer.addRunnerTimeRecord(TimingDatum(time: '5:02.00'));
     await timer.pendingWrites;
 
-    await timer.loadRaceFromCoach(invitational);
+    await timer.loadRaceFromCoach(invitational,
+        ask: answer(ReceivedRaceChoice.update));
 
     expect(await savedTimes(3), ['5:01.00', '5:02.00']);
     expect(timer.uiRecords, hasLength(2),
@@ -139,6 +172,35 @@ void main() {
     expect(await savedTimes(3), hasLength(2));
   });
 
+  test('the same race sent again and copied opens an empty copy', () async {
+    await timer.loadRaceFromCoach(invitational);
+    timer.addRunnerTimeRecord(TimingDatum(time: '5:01.00'));
+    await timer.pendingWrites;
+
+    await timer.loadRaceFromCoach(invitational,
+        ask: answer(ReceivedRaceChoice.keepSeparate));
+
+    expect(timer.currentRace?.name, 'Invitational (copy)');
+    expect(timer.uiRecords, isEmpty);
+    expect(timer.startTime, isNull);
+    expect(await savedTimes(3), ['5:01.00']);
+  });
+
+  test('the same race renamed by the coach keeps its times', () async {
+    await timer.loadRaceFromCoach(invitational);
+    timer.addRunnerTimeRecord(TimingDatum(time: '5:01.00'));
+    await timer.pendingWrites;
+
+    await timer.loadRaceFromCoach(
+        encoded('Saturday Invitational', DateTime(2026, 9, 12)),
+        ask: answer(ReceivedRaceChoice.update));
+
+    expect(asked.single.renamed, isTrue);
+    expect(timer.currentRace?.name, 'Saturday Invitational');
+    expect(timer.currentRace?.raceId, 3);
+    expect(timer.uiRecords, hasLength(1));
+  });
+
   test('another race with the same number starts empty, and the first keeps '
       'its times', () async {
     await timer.loadRaceFromCoach(invitational);
@@ -146,7 +208,8 @@ void main() {
     await timer.pendingWrites;
 
     await timer.loadRaceFromCoach(
-        encoded('Conference Finals', DateTime(2026, 9, 19)));
+        encoded('Conference Finals', DateTime(2026, 9, 19)),
+        ask: answer(ReceivedRaceChoice.keepSeparate));
 
     expect(timer.currentRace?.name, 'Conference Finals');
     expect(timer.uiRecords, isEmpty);

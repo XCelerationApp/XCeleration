@@ -23,6 +23,8 @@ import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/race_copy.dart';
 import '../../shared/services/assistant_export_service.dart';
 import '../widgets/runners_loaded_sheet.dart';
+import '../../shared/services/received_race_resolver.dart';
+import '../../shared/widgets/race_already_here_dialog.dart';
 import 'bib_number_data_controller.dart';
 
 sealed class ShareDataResult {}
@@ -339,10 +341,29 @@ class BibNumberController extends BibNumberDataController {
     await _loadRace(race);
   }
 
+  Future<Result<void>>? _receiving;
+  String? _receivingData;
+
   /// Parses [data], saves the race and any runners to storage, then loads
   /// the race into the controller. Returns [Failure] with a user-readable
   /// message if parsing or saving fails.
-  Future<Result<void>> processLoadedRaceData(String data) async {
+  ///
+  /// A race already on the phone with bibs recorded, or one sharing its
+  /// number under another name, is settled by [ask]: see
+  /// [resolveReceivedRace]. The same race arriving twice at once (wireless
+  /// and QR code) is handled once, so the volunteer is asked once.
+  Future<Result<void>> processLoadedRaceData(String data,
+      {AskAboutRace? ask}) {
+    if (_receiving != null && _receivingData == data) return _receiving!;
+    _receivingData = data;
+    return _receiving = _processLoadedRaceData(data, ask).whenComplete(() {
+      _receiving = null;
+      _receivingData = null;
+    });
+  }
+
+  Future<Result<void>> _processLoadedRaceData(
+      String data, AskAboutRace? ask) async {
     late RaceRecord raceRecord;
     List<BibDatum> loadedRunners = [];
 
@@ -373,9 +394,18 @@ class BibNumberController extends BibNumberDataController {
     }
 
     // The coach may send the same race again, for instance with runners
-    // added since: that opens the race already here, bibs and all.
+    // added since: that opens the race already here, bibs and all, unless
+    // the volunteer asks for a copy.
     final RaceRecord race;
-    switch (await storage.receiveRace(raceRecord)) {
+    switch (await resolveReceivedRace(
+      storage: storage,
+      sent: raceRecord,
+      countRecorded: _countRecordedBibs,
+      rosterChanges: loadedRunners.isEmpty
+          ? null
+          : (existing) => _rosterChanges(existing, loadedRunners),
+      ask: ask,
+    )) {
       case Success(:final value):
         race = value.race;
       case Failure(:final error):
@@ -405,6 +435,31 @@ class BibNumberController extends BibNumberDataController {
     clearBibRecords();
     await _loadRaceWithRunners(race, loadedRunners);
     return const Success(null);
+  }
+
+  Future<int> _countRecordedBibs(RaceRecord race) async =>
+      switch (await storage.getBibRecords(race.raceId)) {
+        Success(:final value) =>
+          value.where((r) => r.bibNumber.isNotEmpty).length,
+        Failure() => 0,
+      };
+
+  Future<RosterChanges?> _rosterChanges(
+      RaceRecord race, List<BibDatum> sent) async {
+    switch (await storage.getRunners(race.raceId)) {
+      case Failure():
+        return null;
+      case Success(:final value):
+        return RosterChanges.between([
+          for (final r in value)
+            BibDatum(
+              bib: r.bibNumber,
+              name: r.name,
+              teamAbbreviation: r.teamAbbreviation,
+              grade: r.grade,
+            ),
+        ], sent);
+    }
   }
 
   Future<void> showLoadRaceSheet(BuildContext context) async {
@@ -437,7 +492,12 @@ class BibNumberController extends BibNumberDataController {
                 message: 'Race data not received');
             return false;
           }
-          final result = await processLoadedRaceData(data);
+          final result = await processLoadedRaceData(
+            data,
+            ask: (here) async => context.mounted
+                ? askAboutRace(context, here, what: 'bibs')
+                : ReceivedRaceChoice.update,
+          );
           if (result case Failure(:final error)) {
             if (context.mounted) {
               DialogUtils.showErrorDialog(context, message: error.userMessage);

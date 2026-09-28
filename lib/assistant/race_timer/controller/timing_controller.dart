@@ -18,6 +18,8 @@ import '../../../core/components/dialog_utils.dart';
 import '../../../core/services/device_connection_service.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/i_assistant_storage_service.dart';
+import '../../shared/services/received_race_resolver.dart';
+import '../../shared/widgets/race_already_here_dialog.dart';
 import '../../shared/utils/race_to_reopen.dart';
 import '../../shared/services/assistant_export_service.dart';
 import '../../shared/services/race_copy.dart';
@@ -152,7 +154,13 @@ class TimingController extends TimingData {
         devices: devices,
         callback: () async {
           final data = devices.coach?.data;
-          if (data == null || !await loadRaceFromCoach(data)) {
+          if (data == null ||
+              !await loadRaceFromCoach(
+                data,
+                ask: (here) async => context.mounted
+                    ? askAboutRace(context, here, what: 'times')
+                    : ReceivedRaceChoice.update,
+              )) {
             if (context.mounted) {
               DialogUtils.showErrorDialog(context,
                   message: 'The race from the coach could not be opened. '
@@ -168,14 +176,28 @@ class TimingController extends TimingData {
     );
   }
 
+  Future<bool>? _receiving;
+  String? _receivingData;
+
   /// Opens the race the coach sent as [data].
   ///
   /// A race already on this phone is opened with the times recorded for it:
-  /// the coach may well send the same race twice. Only a race new to this
-  /// phone starts from an empty first batch.
-  /// Returns false if the race could not be read or saved.
+  /// the coach may well send the same race twice. If times were recorded, or
+  /// the race here has the number under another name, [ask] settles it: see
+  /// [resolveReceivedRace]. Only a race new to this phone, or a copy, starts
+  /// from an empty first batch. The same race arriving twice at once is
+  /// handled once. Returns false if the race could not be read or saved.
   @visibleForTesting
-  Future<bool> loadRaceFromCoach(String data) async {
+  Future<bool> loadRaceFromCoach(String data, {AskAboutRace? ask}) {
+    if (_receiving != null && _receivingData == data) return _receiving!;
+    _receivingData = data;
+    return _receiving = _loadRaceFromCoach(data, ask).whenComplete(() {
+      _receiving = null;
+      _receivingData = null;
+    });
+  }
+
+  Future<bool> _loadRaceFromCoach(String data, AskAboutRace? ask) async {
     final RaceRecord sent;
     try {
       // The coach shows one QR code for both volunteers, the Bib Recorder's:
@@ -188,7 +210,12 @@ class TimingController extends TimingData {
       return false;
     }
     await initialLoad;
-    switch (await _storage.receiveRace(sent)) {
+    switch (await resolveReceivedRace(
+      storage: _storage,
+      sent: sent,
+      countRecorded: _countRecordedTimes,
+      ask: ask,
+    )) {
       case Failure(:final error):
         Logger.e('[TimingController.loadRaceFromCoach] '
             '${error.originalException}');
@@ -205,6 +232,14 @@ class TimingController extends TimingData {
         return true;
     }
   }
+
+  Future<int> _countRecordedTimes(RaceRecord race) async =>
+      switch (await _storage.getChunks(race.raceId)) {
+        Success(:final value) => [
+            for (final c in value) ...c.timingData.where((d) => d.conflict == null)
+          ].length,
+        Failure() => 0,
+      };
 
   /// A practice race started longer ago than this is started fresh when it
   /// opens: left from another day, its clock read 13 hours and new times

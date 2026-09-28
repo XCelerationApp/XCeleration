@@ -7,6 +7,7 @@ import 'package:xceleration/assistant/shared/models/bib_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/assistant_storage_service.dart';
 import 'package:xceleration/assistant/shared/services/demo_race_generator_impl.dart';
+import 'package:xceleration/assistant/shared/services/received_race_resolver.dart';
 import 'package:xceleration/core/result.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/enums.dart';
@@ -16,7 +17,8 @@ import 'bib_number_controller_test.mocks.dart';
 
 // The coach sends the Bib Recorder its race and roster, often more than
 // once: again after adding runners, or because the first send looked like it
-// failed. Sending it again must never lose the bibs already recorded.
+// failed. Once bibs are recorded the volunteer chooses between updating the
+// race and keeping a copy; either way no bib is ever lost.
 
 void main() {
   final storage = AssistantStorageService.instance;
@@ -33,6 +35,15 @@ void main() {
 
   Future<String> send(String race, List<BibDatum> roster) async =>
       '$race---${await BibEncodeUtils.getEncodedBibData(roster)}';
+
+  /// What the volunteer was asked, and answers [choice].
+  late List<RaceAlreadyHere> asked;
+  AskAboutRace answer(ReceivedRaceChoice choice) => (here) async {
+        asked.add(here);
+        return choice;
+      };
+  final update = ReceivedRaceChoice.update;
+  final keepSeparate = ReceivedRaceChoice.keepSeparate;
 
   BibNumberController build() => BibNumberController(
         storage: storage,
@@ -54,6 +65,13 @@ void main() {
           .value)
         r.bibNumber];
 
+  Future<List<RaceRecord>> racesNamed(String name) async =>
+      (await storage.getRaces(DeviceName.bibRecorder.toString())
+              as Success<List<RaceRecord>>)
+          .value
+          .where((r) => r.name == name)
+          .toList();
+
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     sqfliteFfiInit();
@@ -67,6 +85,7 @@ void main() {
     for (final table in ['bib_records', 'runners', 'race_history']) {
       await db.delete(table);
     }
+    asked = [];
     recorder = build();
     await opened(recorder);
   });
@@ -82,78 +101,152 @@ void main() {
     }
   }
 
-  test('the same race sent again keeps its bibs', () async {
-    await record(['101', '999']);
+  group('the same race sent again', () {
+    test('with nothing recorded, opens with the new roster, unasked',
+        () async {
+      await recorder.processLoadedRaceData(await send(invitational, [ava]));
 
-    await recorder.processLoadedRaceData(await send(invitational, [ava]));
+      await recorder.processLoadedRaceData(
+          await send(invitational, [ava, mia]),
+          ask: answer(update));
 
-    expect(recorder.bibRecords.map((r) => r.bib), ['101', '999']);
-    expect(await savedBibs(3), ['101', '999']);
+      expect(asked, isEmpty);
+      expect(recorder.runners, hasLength(2));
+    });
+
+    test('with bibs recorded, asks, saying how the roster changed', () async {
+      await record(['101', '999']);
+
+      await recorder.processLoadedRaceData(
+          await send(invitational, [ava, mia]),
+          ask: answer(update));
+
+      expect(asked.single.renamed, isFalse);
+      expect(asked.single.recorded, 2);
+      expect(asked.single.rosterChanges?.added, 1);
+    });
+
+    test('updated, keeps its bibs', () async {
+      await record(['101', '999']);
+
+      await recorder.processLoadedRaceData(await send(invitational, [ava]),
+          ask: answer(update));
+
+      expect(recorder.bibRecords.map((r) => r.bib), ['101', '999']);
+      expect(await savedBibs(3), ['101', '999']);
+    });
+
+    test('updated mid-race, keeps recording', () async {
+      await record(['101']);
+
+      await recorder.processLoadedRaceData(await send(invitational, [ava]),
+          ask: answer(update));
+
+      expect(recorder.raceStopped, isFalse);
+      await recorder.addHeardBib('999');
+      expect(await savedBibs(3), ['101', '999']);
+    });
+
+    test('updated, a runner added since is found for a bib already recorded',
+        () async {
+      await record(['101', '102']);
+      expect(recorder.bibRecords[1].flags.notInDatabase, isTrue);
+
+      await recorder.processLoadedRaceData(
+          await send(invitational, [ava, mia]),
+          ask: answer(update));
+
+      expect(recorder.bibRecords[1].name, 'Mia Chen');
+      expect(recorder.bibRecords[1].flags.notInDatabase, isFalse);
+    });
+
+    test('copied, opens an empty copy and the original keeps its bibs',
+        () async {
+      await record(['101']);
+
+      await recorder.processLoadedRaceData(
+          await send(invitational, [ava, mia]),
+          ask: answer(keepSeparate));
+
+      expect(recorder.currentRace?.name, 'Invitational (copy)');
+      expect(recorder.bibRecords, isEmpty);
+      expect(recorder.runners, hasLength(2));
+      expect(await savedBibs(3), ['101']);
+    });
+
+    test('reopened later, it has one copy of each runner and its bibs',
+        () async {
+      await record(['101']);
+      for (var i = 0; i < 2; i++) {
+        await recorder.processLoadedRaceData(
+            await send(invitational, [ava, mia]),
+            ask: answer(update));
+      }
+
+      // As when the app is opened again.
+      final reopened = build();
+      await opened(reopened);
+      addTearDown(reopened.dispose);
+
+      expect(reopened.currentRace?.name, 'Invitational');
+      expect(
+          reopened.runners.map((r) => r.bib), unorderedEquals(['101', '102']));
+      expect(reopened.bibRecords.map((r) => r.bib), ['101']);
+    });
+
+    test('twice at once, asks once and opens once', () async {
+      await record(['101']);
+      final data = await send(invitational, [ava]);
+
+      await Future.wait([
+        recorder.processLoadedRaceData(data, ask: answer(update)),
+        recorder.processLoadedRaceData(data, ask: answer(update)),
+      ]);
+
+      expect(asked, hasLength(1));
+      expect(recorder.bibRecords.map((r) => r.bib), ['101']);
+      expect(recorder.runners, hasLength(1));
+      expect(await racesNamed('Invitational'), hasLength(1));
+    });
   });
 
-  test('sent again mid-race, it keeps recording', () async {
-    await record(['101']);
+  group('a race under the same number with another name', () {
+    final saturday = race('Saturday Invitational', DateTime(2026, 9, 12));
 
-    await recorder.processLoadedRaceData(await send(invitational, [ava]));
+    test('asks whether it is the same race', () async {
+      await record(['101']);
 
-    expect(recorder.raceStopped, isFalse);
-    await recorder.addHeardBib('999');
-    expect(await savedBibs(3), ['101', '999']);
-  });
+      await recorder.processLoadedRaceData(await send(saturday, [ava]),
+          ask: answer(update));
 
-  test('a runner added since is found for a bib already recorded', () async {
-    await record(['101', '102']);
-    expect(recorder.bibRecords[1].flags.notInDatabase, isTrue);
+      expect(asked.single.renamed, isTrue);
+      expect(asked.single.existing.name, 'Invitational');
+      expect(asked.single.sent.name, 'Saturday Invitational');
+    });
 
-    await recorder.processLoadedRaceData(await send(invitational, [ava, mia]));
+    test('the same race, renamed by the coach, keeps its bibs', () async {
+      await record(['101']);
 
-    expect(recorder.bibRecords[1].name, 'Mia Chen');
-    expect(recorder.bibRecords[1].flags.notInDatabase, isFalse);
-  });
+      await recorder.processLoadedRaceData(await send(saturday, [ava]),
+          ask: answer(update));
 
-  test('reopened later, it has one copy of each runner and its bibs',
-      () async {
-    await record(['101']);
-    await recorder.processLoadedRaceData(await send(invitational, [ava, mia]));
-    await recorder.processLoadedRaceData(await send(invitational, [ava, mia]));
+      expect(recorder.currentRace?.name, 'Saturday Invitational');
+      expect(recorder.currentRace?.raceId, 3);
+      expect(recorder.bibRecords.map((r) => r.bib), ['101']);
+      expect(await racesNamed('Invitational'), isEmpty);
+    });
 
-    // As when the app is opened again.
-    final reopened = build();
-    await opened(reopened);
-    addTearDown(reopened.dispose);
+    test('a different race starts empty, and the first keeps its bibs',
+        () async {
+      await record(['101']);
 
-    expect(reopened.currentRace?.name, 'Invitational');
-    expect(reopened.runners.map((r) => r.bib), unorderedEquals(['101', '102']));
-    expect(reopened.bibRecords.map((r) => r.bib), ['101']);
-  });
+      await recorder.processLoadedRaceData(
+          await send(race('Conference Finals', DateTime(2026, 9, 19)), [mia]),
+          ask: answer(keepSeparate));
 
-  test('sent twice at once, it opens once with its bibs', () async {
-    await record(['101']);
-    final data = await send(invitational, [ava]);
-
-    await Future.wait([
-      recorder.processLoadedRaceData(data),
-      recorder.processLoadedRaceData(data),
-    ]);
-
-    expect(recorder.bibRecords.map((r) => r.bib), ['101']);
-    expect(recorder.runners, hasLength(1));
-    final races = (await storage.getRaces(DeviceName.bibRecorder.toString())
-            as Success<List<RaceRecord>>)
-        .value
-        .where((r) => r.name == 'Invitational');
-    expect(races, hasLength(1));
-  });
-
-  test('another race with the same number starts empty, and the first keeps '
-      'its bibs', () async {
-    await record(['101']);
-
-    await recorder.processLoadedRaceData(
-        await send(race('Conference Finals', DateTime(2026, 9, 19)), [mia]));
-
-    expect(recorder.currentRace?.name, 'Conference Finals');
-    expect(recorder.bibRecords, isEmpty);
-    expect(await savedBibs(3), ['101']);
+      expect(recorder.currentRace?.name, 'Conference Finals');
+      expect(recorder.bibRecords, isEmpty);
+      expect(await savedBibs(3), ['101']);
+    });
   });
 }
