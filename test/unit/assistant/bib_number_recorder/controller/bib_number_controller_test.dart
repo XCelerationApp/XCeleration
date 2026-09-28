@@ -483,6 +483,77 @@ void main() {
         controller.dispose();
       });
 
+      // A volunteer told "duplicate" needs to know whose bib it is and where
+      // else it was entered, and the first entry may be the wrong one.
+      group('a bib entered twice', () {
+        late BibNumberController controller;
+
+        setUp(() async {
+          controller = buildController();
+          controller.runners.addAll([
+            BibDatum(
+                bib: '7', name: 'John Peter', teamAbbreviation: 'TIG', grade: '11'),
+            BibDatum(
+                bib: '8', name: 'Ann Lee', teamAbbreviation: 'TIG', grade: '10'),
+          ]);
+          for (final bib in ['7', '8', '5', '7']) {
+            final i = await controller.addBibRecord(BibDatumRecord.blank());
+            await controller.validateBibNumber(i, bib);
+          }
+        });
+
+        tearDown(() => controller.dispose());
+
+        test('flags both entries, each with the other\'s place', () {
+          final first = controller.bibRecords[0];
+          final last = controller.bibRecords[3];
+
+          expect(first.flags.duplicateBibNumber, isTrue);
+          expect(first.flags.duplicatePlaces, [4]);
+          expect(last.flags.duplicateBibNumber, isTrue);
+          expect(last.flags.duplicatePlaces, [1]);
+          expect(last.name, 'John Peter');
+        });
+
+        test('lists every other place when entered three times', () async {
+          final i = await controller.addBibRecord(BibDatumRecord.blank());
+          await controller.validateBibNumber(i, '7');
+
+          expect(controller.bibRecords[0].flags.duplicatePlaces, [4, 5]);
+          expect(controller.bibRecords[4].flags.duplicatePlaces, [1, 4]);
+        });
+
+        test('correcting one entry clears the flag on the other', () async {
+          await controller.validateBibNumber(3, '8');
+
+          expect(controller.bibRecords[0].flags.duplicateBibNumber, isFalse);
+          expect(controller.bibRecords[0].flags.duplicatePlaces, isEmpty);
+          expect(controller.bibRecords[3].flags.duplicatePlaces, [2]);
+        });
+
+        test('deleting an entry before them moves the places up', () async {
+          await controller.removeBibRecord(1);
+
+          expect(controller.bibRecords[0].flags.duplicatePlaces, [3]);
+          expect(controller.bibRecords[2].flags.duplicatePlaces, [1]);
+        });
+
+        test('deleting one copy clears the flag on the other', () async {
+          await controller.removeBibRecord(0);
+
+          expect(controller.bibRecords[2].flags.duplicateBibNumber, isFalse);
+        });
+
+        test('an unknown bib entered twice is flagged not found, not duplicate',
+            () async {
+          final i = await controller.addBibRecord(BibDatumRecord.blank());
+          await controller.validateBibNumber(i, '5');
+
+          expect(controller.bibRecords[i].flags.notInDatabase, isTrue);
+          expect(controller.bibRecords[i].flags.duplicateBibNumber, isFalse);
+        });
+      });
+
       test('does nothing for out-of-range index', () async {
         final controller = buildController();
 
@@ -683,9 +754,9 @@ void main() {
         await controller.addHeardBib('42');
         await controller.addHeardBib('42');
 
-        // The later copy is the one flagged, as for typed bibs.
+        // Both copies are flagged, so the volunteer sees the first too.
         expect(controller.bibRecords.map((r) => r.flags.duplicateBibNumber),
-            [false, true]);
+            [true, true]);
 
         await controller.removeLastBib();
 
