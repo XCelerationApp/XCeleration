@@ -61,10 +61,15 @@ class _RunnerPickerState extends State<RunnerPicker> {
             ),
           ),
           onChanged: (value) => setState(() => _query = value),
+          // Searches as you type: the key, a tap outside or a scroll only
+          // closes the keyboard.
+          textInputAction: TextInputAction.done,
+          onTapOutside: (_) => FocusScope.of(context).unfocus(),
         ),
         const SizedBox(height: AppSpacing.sm),
         Flexible(
           child: ListView.builder(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             shrinkWrap: true,
             itemCount: shown.length,
             itemBuilder: (context, i) {

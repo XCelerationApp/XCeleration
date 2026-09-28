@@ -166,4 +166,22 @@ void main() {
         scrollable: find.byType(Scrollable).last);
     expect(find.text('Runner 12'), findsOneWidget);
   });
+
+  // It searches as you type. The keyboard's search key was the only way to
+  // close the keyboard, which read as needing to be pressed.
+  testWidgets('the keyboard closes with Done or a tap outside', (tester) async {
+    await open(tester);
+    final field = find.byKey(const ValueKey('find_runner_search'));
+
+    expect(tester.widget<TextField>(field).textInputAction,
+        TextInputAction.done);
+
+    await tester.showKeyboard(field);
+    // Well below the search box.
+    await tester.tapAt(tester.getBottomLeft(find.byType(Scaffold)) +
+        const Offset(5, -5));
+    await tester.pump();
+
+    expect(tester.testTextInput.isVisible, isFalse);
+  });
 }

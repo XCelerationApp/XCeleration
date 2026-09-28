@@ -123,7 +123,11 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
           // and its suggestion bubble covered the first result.
           autocorrect: false,
           enableSuggestions: false,
-          textInputAction: TextInputAction.search,
+          // It searches as you type, so the key only closes the keyboard:
+          // "Done", not a search key that seemed to need pressing. Tapping
+          // outside or scrolling the list closes it too.
+          textInputAction: TextInputAction.done,
+          onTapOutside: (_) => FocusScope.of(context).unfocus(),
           onChanged: (_) => setState(() => _selectedRunner = null),
           decoration: InputDecoration(
             hintText: 'Search by name or bib',
@@ -171,6 +175,7 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 400),
           child: ListView.builder(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             shrinkWrap: true,
             padding: EdgeInsets.zero,
             itemCount: items.length,
