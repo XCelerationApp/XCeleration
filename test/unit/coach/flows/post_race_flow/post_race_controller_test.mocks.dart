@@ -322,6 +322,14 @@ class MockMasterRace extends _i1.Mock implements _i4.MasterRace {
           as _i6.Future<int>);
 
   @override
+  _i6.Future<List<_i2.Runner>> getAllSavedRunners() =>
+      (super.noSuchMethod(
+            Invocation.method(#getAllSavedRunners, []),
+            returnValue: _i6.Future<List<_i2.Runner>>.value(<_i2.Runner>[]),
+          )
+          as _i6.Future<List<_i2.Runner>>);
+
+  @override
   _i6.Future<void> addRunnerToTeam(int? teamId, int? runnerId) =>
       (super.noSuchMethod(
             Invocation.method(#addRunnerToTeam, [teamId, runnerId]),
@@ -580,7 +588,16 @@ class MockLoadResultsController extends _i1.Mock
           as _i6.Future<void>);
 
   @override
-  _i6.Future<void> applyResolvedRunners(List<_i2.RaceRunner?>? updated) =>
+  _i6.Future<void> applySettledFinishes(Map<int, _i2.RaceRunner>? settled) =>
+      (super.noSuchMethod(
+            Invocation.method(#applySettledFinishes, [settled]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
+  _i6.Future<void> applyResolvedRunners(List<dynamic>? updated) =>
       (super.noSuchMethod(
             Invocation.method(#applyResolvedRunners, [updated]),
             returnValue: _i6.Future<void>.value(),

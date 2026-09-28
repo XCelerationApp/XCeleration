@@ -263,7 +263,16 @@ class MockLoadResultsController extends _i1.Mock
           as _i8.Future<void>);
 
   @override
-  _i8.Future<void> applyResolvedRunners(List<_i5.RaceRunner?>? updated) =>
+  _i8.Future<void> applySettledFinishes(Map<int, _i5.RaceRunner>? settled) =>
+      (super.noSuchMethod(
+            Invocation.method(#applySettledFinishes, [settled]),
+            returnValue: _i8.Future<void>.value(),
+            returnValueForMissingStub: _i8.Future<void>.value(),
+          )
+          as _i8.Future<void>);
+
+  @override
+  _i8.Future<void> applyResolvedRunners(List<dynamic>? updated) =>
       (super.noSuchMethod(
             Invocation.method(#applyResolvedRunners, [updated]),
             returnValue: _i8.Future<void>.value(),
