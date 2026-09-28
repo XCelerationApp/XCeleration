@@ -131,4 +131,38 @@ void main() {
       expect(find.byKey(const ValueKey('bib_owner_error')), findsNothing);
     });
   });
+
+  group('the Team menu', () {
+    Future<void> pump(WidgetTester tester, List<String> teams) =>
+        tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: CreateRunnerSheet(
+              allKnownBibs: const {},
+              teams: teams,
+              autoBib: '9217',
+              onCreated: (_, _, _, _) {},
+            ),
+          ),
+        ));
+
+    testWidgets('opens and takes a team', (tester) async {
+      await pump(tester, const ['Eagles', 'Hawks']);
+
+      await tester.tap(find.text('Select team'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Hawks').last);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Hawks'), findsOneWidget);
+      expect(find.text('Select team'), findsNothing);
+    });
+
+    testWidgets('with no teams, says why instead of a dead menu',
+        (tester) async {
+      await pump(tester, const []);
+
+      expect(find.byKey(const ValueKey('no_teams')), findsOneWidget);
+      expect(find.text('Select team'), findsNothing);
+    });
+  });
 }

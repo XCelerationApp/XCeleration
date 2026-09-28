@@ -616,7 +616,7 @@ class LoadResultsController with ChangeNotifier {
         lookupBib: masterRace.getRaceRunnerByBib,
       );
       final inRace = await masterRace.raceRunners;
-      final teams = await masterRace.teams;
+      final teams = await teamsForNewRunner(masterRace);
       final race = await masterRace.race;
       final savedBibOwners = await _savedBibOwnersOutside(inRace);
       final recordedBibs = {
