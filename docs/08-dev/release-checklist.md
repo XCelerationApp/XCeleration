@@ -23,7 +23,8 @@ anything odd, even if it worked in the end.
 - [ ] Open **Get Race from Coach** on the Timer, wait a full minute, then tap
       **Send to Volunteers** on the coach. The Timer gets the race.
 - [ ] The Bib Recorder gets the race at the same time as the Timer.
-- [ ] Tap **Send to Volunteers** again from the race; both phones get it again.
+- [ ] Tap **Send to Volunteers** again from the race; both phones get it again
+      without being asked (nothing is recorded yet).
 - [ ] Timer: scan the coach's QR code instead of wireless. The race opens.
 - [ ] Let one phone time out (10 minutes, or leave it and come back), tap
       **Try again**, and it connects.
@@ -35,6 +36,13 @@ anything odd, even if it worked in the end.
       → **Missed one** once and **Extra tap** once.
 - [ ] Bib Recorder: record bibs by voice, and one wrong bib on purpose.
 - [ ] Lock and unlock a phone mid-race; nothing is lost.
+- [ ] Coach: add a runner, then **Send to Volunteers** again. The Bib
+      Recorder asks **Update race** or **Make a copy** and says "1 runner:
+      1 added". **Update race** keeps every bib; the Timer, asked the same,
+      keeps every time.
+- [ ] Coach: rename the race and send it again. Both phones ask **Is this
+      the same race?**; **Same race** keeps what was recorded under the new
+      name.
 
 ## Results
 

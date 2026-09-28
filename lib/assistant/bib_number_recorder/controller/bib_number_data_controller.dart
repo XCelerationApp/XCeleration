@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import 'package:xceleration/core/utils/encode_utils.dart';
 import 'package:xceleration/core/utils/logger.dart';
@@ -150,9 +151,45 @@ class BibNumberDataController extends ChangeNotifier {
 
     _rows[index].dispose();
     _rows.removeAt(index);
+    // The places after it move up, and the bib it duplicated may no longer
+    // be a duplicate.
+    refreshDuplicateFlags();
     notifyListeners();
 
     await _persistBibOrder();
+  }
+
+  /// Flags every entry of a runner's bib that was entered more than once,
+  /// the first as well as the later ones, with the places of the others.
+  /// Unknown bibs are left alone: they are flagged as not found. Does not
+  /// notify; each row's notifier updates its own row.
+  void refreshDuplicateFlags() {
+    final placesByBib = <String, List<int>>{};
+    for (var i = 0; i < _rows.length; i++) {
+      final record = _rows[i].record;
+      if (record.bib.isEmpty || record.flags.notInDatabase) continue;
+      placesByBib.putIfAbsent(record.bib, () => []).add(i + 1);
+    }
+    for (var i = 0; i < _rows.length; i++) {
+      final record = _rows[i].record;
+      final places = placesByBib[record.bib];
+      final others = record.bib.isEmpty ||
+              record.flags.notInDatabase ||
+              places == null
+          ? const <int>[]
+          : [for (final p in places) if (p != i + 1) p];
+      final duplicate = others.isNotEmpty;
+      if (record.flags.duplicateBibNumber == duplicate &&
+          listEquals(record.flags.duplicatePlaces, others)) {
+        continue;
+      }
+      final updated = record.copyWith(
+        flags: record.flags
+            .copyWith(duplicateBibNumber: duplicate, duplicatePlaces: others),
+      );
+      _rows[i].record = updated;
+      _rows[i].notifier.value = updated;
+    }
   }
 
   void clearBibRecords() {

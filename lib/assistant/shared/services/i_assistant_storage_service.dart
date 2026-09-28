@@ -26,6 +26,10 @@ abstract interface class IAssistantStorageService {
   /// Stores a race the coach sent, unless it is already here.
   Future<Result<ReceivedRace>> receiveRace(RaceRecord race);
 
+  /// Stores [race] under a race number of this phone's own, beside any race
+  /// already here: a copy, or another coach's race that shares its number.
+  Future<Result<RaceRecord>> saveRaceAsNew(RaceRecord race);
+
   Future<Result<void>> updateRace(RaceRecord race);
 
   Future<Result<void>> updateRaceDuration(

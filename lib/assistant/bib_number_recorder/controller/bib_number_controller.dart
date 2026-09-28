@@ -23,6 +23,8 @@ import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/race_copy.dart';
 import '../../shared/services/assistant_export_service.dart';
 import '../widgets/runners_loaded_sheet.dart';
+import '../../shared/services/received_race_resolver.dart';
+import '../../shared/widgets/race_already_here_dialog.dart';
 import 'bib_number_data_controller.dart';
 
 sealed class ShareDataResult {}
@@ -228,6 +230,7 @@ class BibNumberController extends BibNumberDataController {
         final index = addBibRecordSilent(bibRecord);
         _validateBibNumberSilent(index, dbRecord.bibNumber);
       }
+      refreshDuplicateFlags();
     } catch (e) {
       Logger.e('Failed to load bib records from database: $e');
     }
@@ -338,10 +341,29 @@ class BibNumberController extends BibNumberDataController {
     await _loadRace(race);
   }
 
+  Future<Result<void>>? _receiving;
+  String? _receivingData;
+
   /// Parses [data], saves the race and any runners to storage, then loads
   /// the race into the controller. Returns [Failure] with a user-readable
   /// message if parsing or saving fails.
-  Future<Result<void>> processLoadedRaceData(String data) async {
+  ///
+  /// A race already on the phone with bibs recorded, or one sharing its
+  /// number under another name, is settled by [ask]: see
+  /// [resolveReceivedRace]. The same race arriving twice at once (wireless
+  /// and QR code) is handled once, so the volunteer is asked once.
+  Future<Result<void>> processLoadedRaceData(String data,
+      {AskAboutRace? ask}) {
+    if (_receiving != null && _receivingData == data) return _receiving!;
+    _receivingData = data;
+    return _receiving = _processLoadedRaceData(data, ask).whenComplete(() {
+      _receiving = null;
+      _receivingData = null;
+    });
+  }
+
+  Future<Result<void>> _processLoadedRaceData(
+      String data, AskAboutRace? ask) async {
     late RaceRecord raceRecord;
     List<BibDatum> loadedRunners = [];
 
@@ -372,9 +394,18 @@ class BibNumberController extends BibNumberDataController {
     }
 
     // The coach may send the same race again, for instance with runners
-    // added since: that opens the race already here, bibs and all.
+    // added since: that opens the race already here, bibs and all, unless
+    // the volunteer asks for a copy.
     final RaceRecord race;
-    switch (await storage.receiveRace(raceRecord)) {
+    switch (await resolveReceivedRace(
+      storage: storage,
+      sent: raceRecord,
+      countRecorded: _countRecordedBibs,
+      rosterChanges: loadedRunners.isEmpty
+          ? null
+          : (existing) => _rosterChanges(existing, loadedRunners),
+      ask: ask,
+    )) {
       case Success(:final value):
         race = value.race;
       case Failure(:final error):
@@ -404,6 +435,31 @@ class BibNumberController extends BibNumberDataController {
     clearBibRecords();
     await _loadRaceWithRunners(race, loadedRunners);
     return const Success(null);
+  }
+
+  Future<int> _countRecordedBibs(RaceRecord race) async =>
+      switch (await storage.getBibRecords(race.raceId)) {
+        Success(:final value) =>
+          value.where((r) => r.bibNumber.isNotEmpty).length,
+        Failure() => 0,
+      };
+
+  Future<RosterChanges?> _rosterChanges(
+      RaceRecord race, List<BibDatum> sent) async {
+    switch (await storage.getRunners(race.raceId)) {
+      case Failure():
+        return null;
+      case Success(:final value):
+        return RosterChanges.between([
+          for (final r in value)
+            BibDatum(
+              bib: r.bibNumber,
+              name: r.name,
+              teamAbbreviation: r.teamAbbreviation,
+              grade: r.grade,
+            ),
+        ], sent);
+    }
   }
 
   Future<void> showLoadRaceSheet(BuildContext context) async {
@@ -436,7 +492,12 @@ class BibNumberController extends BibNumberDataController {
                 message: 'Race data not received');
             return false;
           }
-          final result = await processLoadedRaceData(data);
+          final result = await processLoadedRaceData(
+            data,
+            ask: (here) async => context.mounted
+                ? askAboutRace(context, here, what: 'bibs')
+                : ReceivedRaceChoice.update,
+          );
           if (result case Failure(:final error)) {
             if (context.mounted) {
               DialogUtils.showErrorDialog(context, message: error.userMessage);
@@ -517,9 +578,9 @@ class BibNumberController extends BibNumberDataController {
 
   // Bib number validation and handling
 
-  /// Builds a validated [BibDatumRecord] for [index] and [bibNumber].
+  /// Builds a validated [BibDatumRecord] for [bibNumber].
   /// Pure computation — no side effects, no notifications.
-  BibDatumRecord _buildValidatedRecord(int index, String bibNumber) {
+  BibDatumRecord _buildValidatedRecord(String bibNumber) {
     if (bibNumber.isEmpty) {
       return BibDatumRecord(
         bib: bibNumber,
@@ -549,26 +610,17 @@ class BibNumberController extends BibNumberDataController {
     final matchedRunner = getRunnerByBib(bibNumber);
 
     if (matchedRunner != null) {
-      bool isDuplicate = false;
-      int count = 0;
-      for (var i = 0; i < bibRecords.length; i++) {
-        if (bibRecords[i].bib == bibNumber) {
-          count++;
-          if (count > 1 && i == index) {
-            isDuplicate = true;
-            break;
-          }
-        }
-      }
+      // Duplicates are flagged across the whole list afterwards, by
+      // [refreshDuplicateFlags].
       return BibDatumRecord(
         bib: bibNumber,
         name: matchedRunner.name,
         teamAbbreviation: matchedRunner.teamAbbreviation,
         grade: matchedRunner.grade,
         teamColor: matchedRunner.teamColor,
-        flags: BibDatumRecordFlags(
+        flags: const BibDatumRecordFlags(
           notInDatabase: false,
-          duplicateBibNumber: isDuplicate,
+          duplicateBibNumber: false,
         ),
       );
     } else {
@@ -587,14 +639,16 @@ class BibNumberController extends BibNumberDataController {
 
   Future<void> validateBibNumber(int index, String bibNumber) async {
     if (index < 0 || index >= bibRecords.length) return;
-    updateBibRecord(index, _buildValidatedRecord(index, bibNumber));
+    updateBibRecordSilent(index, _buildValidatedRecord(bibNumber));
+    refreshDuplicateFlags();
+    notifyListeners();
   }
 
   /// Validates a bib number and updates the record without calling
   /// [notifyListeners]. For bulk-load operations only.
   void _validateBibNumberSilent(int index, String bibNumber) {
     if (index < 0 || index >= bibRecords.length) return;
-    updateBibRecordSilent(index, _buildValidatedRecord(index, bibNumber));
+    updateBibRecordSilent(index, _buildValidatedRecord(bibNumber));
   }
 
   /// Whether Add does anything right now: while the race runs, or before it
@@ -628,11 +682,8 @@ class BibNumberController extends BibNumberDataController {
     // In the list before it is checked, so a second copy is seen as one.
     updateBibRecord(index, bibRecords[index].copyWith(bib: bib));
     _scheduler.schedulePostFrame(_scrollToLastItemIfNeeded);
-    await validateBibNumber(index, bib);
     // A second runner with the same bib flags both.
-    for (var i = 0; i < index; i++) {
-      if (bibRecords[i].bib == bib) await validateBibNumber(i, bib);
-    }
+    await validateBibNumber(index, bib);
     await saveBibOrder();
   }
 
@@ -642,12 +693,8 @@ class BibNumberController extends BibNumberDataController {
   /// Takes back the last bib, for a voice entry heard wrong.
   Future<void> removeLastBib() async {
     if (bibRecords.isEmpty) return;
-    final removed = bibRecords.last.bib;
+    // Removing it clears the duplicate flag on the bib it duplicated.
     await removeBibRecord(bibRecords.length - 1);
-    // The bib it duplicated may no longer be a duplicate.
-    for (var i = 0; i < bibRecords.length; i++) {
-      if (bibRecords[i].bib == removed) await validateBibNumber(i, removed);
-    }
   }
 
   Future<void> addBib() async {
@@ -710,21 +757,11 @@ class BibNumberController extends BibNumberDataController {
       // Only scroll if necessary - check if we need to scroll to make new item visible
       _scheduler.schedulePostFrame(_scrollToLastItemIfNeeded);
 
-      // Validate the new record, then re-validate only existing records whose
-      // bib matches the new value so their duplicate flag stays accurate.
-      // Re-validating all records is O(N) and unnecessary — only records
-      // sharing the same bib can gain or lose the duplicateBibNumber flag.
+      // Validating the new record also flags any earlier entry of its bib.
       _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
         final newIndex = bibRecords.length - 1;
         if (newIndex >= 0) {
           await validateBibNumber(newIndex, bibNumber);
-        }
-        if (bibNumber.isNotEmpty) {
-          for (var i = 0; i < newIndex; i++) {
-            if (bibRecords[i].bib == bibNumber) {
-              await validateBibNumber(i, bibRecords[i].bib);
-            }
-          }
         }
       });
 
