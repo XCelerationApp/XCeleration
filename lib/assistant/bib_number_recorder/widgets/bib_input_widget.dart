@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/theme/app_opacity.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../../../../core/theme/typography.dart';
 import '../model/bib_datum_record.dart';
@@ -26,7 +28,12 @@ class BibInputWidget extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
         decoration: BoxDecoration(
-          color: index % 2 == 0 ? Colors.white : Colors.grey.shade50,
+          // A row with a problem is tinted so it stands out in a long list.
+          color: record.hasErrors
+              ? AppColors.redColor.withValues(alpha: AppOpacity.light)
+              : index % 2 == 0
+                  ? Colors.white
+                  : Colors.grey.shade50,
           border: Border(
             bottom: BorderSide(
               color: Colors.grey.shade300,
@@ -58,6 +65,8 @@ class BibInputWidget extends StatelessWidget {
                       record.name!.isNotEmpty &&
                       !record.hasErrors)
                     Flexible(child: _buildRunnerInfo())
+                  else if (record.flags.duplicateBibNumber)
+                    Flexible(child: _buildDuplicateText())
                   else if (record.hasErrors)
                     Flexible(child: _buildErrorText()),
                 ],
@@ -134,6 +143,47 @@ class BibInputWidget extends StatelessWidget {
       );
     }
     return const SizedBox.shrink();
+  }
+
+  /// Where else the bib was entered, and whose it is, so the volunteer
+  /// knows which runner to look for: "Duplicate, also place 3" over
+  /// "John Peter, NHS". Every entry of the bib shows it, not just the last.
+  Widget _buildDuplicateText() {
+    final places = record.flags.duplicatePlaces;
+    final label = switch (places.length) {
+      0 => 'Duplicate bib number',
+      1 => 'Duplicate, also place ${places.single}',
+      _ => 'Duplicate, also places ${places.join(', ')}',
+    };
+    final name = record.name ?? '';
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline,
+                color: AppColors.redColor, size: 16),
+            const SizedBox(width: AppSpacing.xs),
+            Flexible(
+              child: Text(
+                label,
+                style: AppTypography.smallBodySemibold
+                    .copyWith(color: AppColors.redColor),
+              ),
+            ),
+          ],
+        ),
+        if (name.isNotEmpty)
+          Text(
+            '$name, ${record.teamAbbreviation}',
+            style: AppTypography.bodyRegular,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+      ],
+    );
   }
 
   Widget _buildErrorText() {

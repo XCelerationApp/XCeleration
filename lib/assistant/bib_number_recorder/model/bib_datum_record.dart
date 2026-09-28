@@ -69,18 +69,25 @@ class BibDatumRecordFlags {
   final bool notInDatabase;
   final bool duplicateBibNumber;
 
+  /// For a duplicate bib, the places (1-based) where the same bib was also
+  /// entered, so the volunteer can see which runner it should be.
+  final List<int> duplicatePlaces;
+
   const BibDatumRecordFlags({
     required this.notInDatabase,
     required this.duplicateBibNumber,
+    this.duplicatePlaces = const [],
   });
 
   BibDatumRecordFlags copyWith({
     bool? notInDatabase,
     bool? duplicateBibNumber,
+    List<int>? duplicatePlaces,
   }) {
     return BibDatumRecordFlags(
       notInDatabase: notInDatabase ?? this.notInDatabase,
       duplicateBibNumber: duplicateBibNumber ?? this.duplicateBibNumber,
+      duplicatePlaces: duplicatePlaces ?? this.duplicatePlaces,
     );
   }
 }

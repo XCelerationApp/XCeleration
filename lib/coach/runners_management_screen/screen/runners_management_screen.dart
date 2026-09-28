@@ -8,7 +8,7 @@ import '../../../core/theme/app_opacity.dart';
 import '../../../core/theme/app_spacing.dart';
 import '../../../core/theme/typography.dart';
 import '../../../shared/models/database/i_master_race_resolver.dart';
-import '../widgets/runner_search_bar.dart';
+import '../../../core/components/runner_search_bar.dart';
 import '../widgets/runners_list.dart';
 
 // Main Screen

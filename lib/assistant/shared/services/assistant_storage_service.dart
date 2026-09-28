@@ -154,11 +154,8 @@ class AssistantStorageService implements IAssistantStorageService {
                   race.date.millisecondsSinceEpoch) {
             return Success(ReceivedRace(race: stored, isNew: false));
           }
-          final highest = await txn
-              .rawQuery('SELECT MAX(race_id) AS highest FROM race_history');
-          final next = (highest.first['highest'] as int? ?? 0) + 1;
           toStore = RaceRecord(
-            raceId: next < _ownRaceIdStart ? _ownRaceIdStart : next,
+            raceId: await _nextOwnRaceId(txn),
             date: race.date,
             name: race.name,
             type: race.type,
@@ -171,6 +168,37 @@ class AssistantStorageService implements IAssistantStorageService {
         }
         await txn.insert('race_history', toStore.toMap());
         return Success(ReceivedRace(race: toStore, isNew: true));
+      });
+    } catch (e) {
+      return Failure(AppError(
+        userMessage: 'Could not save the race. Please try again.',
+        originalException: e,
+      ));
+    }
+  }
+
+  /// A race number of this phone's own, above any a coach hands out.
+  Future<int> _nextOwnRaceId(Transaction txn) async {
+    final highest =
+        await txn.rawQuery('SELECT MAX(race_id) AS highest FROM race_history');
+    final next = (highest.first['highest'] as int? ?? 0) + 1;
+    return next < _ownRaceIdStart ? _ownRaceIdStart : next;
+  }
+
+  @override
+  Future<Result<RaceRecord>> saveRaceAsNew(RaceRecord race) async {
+    try {
+      final db = await database;
+      return await db.transaction((txn) async {
+        final stored = RaceRecord(
+          raceId: await _nextOwnRaceId(txn),
+          date: race.date,
+          name: race.name,
+          type: race.type,
+          stopped: true,
+        );
+        await txn.insert('race_history', stored.toMap());
+        return Success(stored);
       });
     } catch (e) {
       return Failure(AppError(
