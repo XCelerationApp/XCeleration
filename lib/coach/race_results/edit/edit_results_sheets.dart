@@ -8,21 +8,27 @@ import '../../../core/theme/typography.dart';
 import '../../../core/utils/time_formatter.dart';
 import '../../../shared/models/database/race_runner.dart';
 import '../../bib_conflict_resolution/utils/ordinal.dart';
+import '../../bib_conflict_resolution/widgets/create_runner_tile.dart';
 
 /// Everyone in the race, searchable by name or bib, for choosing who finished
 /// at a place. A runner already in the results shows their place, since
-/// choosing them swaps the two.
+/// choosing them swaps the two. With [onCreateNew], a runner who is not on
+/// the roster can be added, named from what was typed.
 class RunnerPicker extends StatefulWidget {
   const RunnerPicker({
     super.key,
     required this.runners,
     required this.placeOf,
     required this.onPicked,
+    this.onCreateNew,
   });
 
   final List<RaceRunner> runners;
   final int? Function(RaceRunner) placeOf;
   final void Function(RaceRunner) onPicked;
+
+  /// Called with the name typed, or '' when a bib or nothing was typed.
+  final void Function(String name)? onCreateNew;
 
   @override
   State<RunnerPicker> createState() => _RunnerPickerState();
@@ -94,8 +100,19 @@ class _RunnerPickerState extends State<RunnerPicker> {
             },
           ),
         ),
+        if (widget.onCreateNew case final create?)
+          CreateRunnerTile(
+            name: _typedName,
+            onTap: () => create(_typedName),
+          ),
       ],
     );
+  }
+
+  /// What was typed, if it is a name rather than a bib.
+  String get _typedName {
+    final typed = _query.trim();
+    return RegExp(r'^\d*$').hasMatch(typed) ? '' : typed;
   }
 }
 

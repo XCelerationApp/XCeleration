@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import '../controller/conflict_resolution_controller.dart';
 import '../utils/runner_search.dart';
+import 'create_runner_tile.dart';
 import '../../../core/theme/app_animations.dart';
 import '../../../core/theme/app_border_radius.dart';
 import '../../../core/theme/app_colors.dart';
@@ -188,7 +189,7 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
                   isSelected: _isSelected(runner),
                   onTap: () => _toggle(runner),
                 ),
-              _CreateRow(:final name) => _CreateTile(
+              _CreateRow(:final name) => CreateRunnerTile(
                   name: name,
                   onTap: () => widget.onCreateNew!(name),
                 ),
@@ -400,49 +401,6 @@ class _RunnerTile extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CreateTile extends StatelessWidget {
-  const _CreateTile({required this.name, required this.onTap});
-
-  /// What was typed, or '' for a runner not yet named.
-  final String name;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: const EdgeInsets.only(top: AppSpacing.xs),
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.md,
-        ),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          border: Border.all(color: AppColors.primaryColor),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.person_add_outlined,
-                color: AppColors.primaryColor),
-            const SizedBox(width: AppSpacing.md),
-            Expanded(
-              child: Text(
-                name.isEmpty
-                    ? 'Not on the roster? Create a new runner'
-                    : 'Create new runner "$name"',
-                style: AppTypography.smallBodySemibold
-                    .copyWith(color: AppColors.primaryColor),
-              ),
-            ),
-            const Icon(Icons.chevron_right, color: AppColors.primaryColor),
-          ],
         ),
       ),
     );

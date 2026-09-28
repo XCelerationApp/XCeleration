@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/coach/race_results/edit/edit_results_controller.dart';
+import 'package:xceleration/coach/bib_conflict_resolution/services/runner_creator.dart';
 import 'package:xceleration/coach/race_results/edit/edit_results_screen.dart';
+import 'package:xceleration/core/result.dart';
 import 'package:xceleration/shared/models/database/race_result.dart';
 import 'package:xceleration/shared/models/database/race_runner.dart';
 import 'package:xceleration/shared/models/database/runner.dart';
@@ -26,9 +28,13 @@ void main() {
   List<RaceResult>? saved;
   bool? popped;
 
+  /// Runners saved through Add New Runner.
+  late List<NewRunner> created;
+
   Future<void> open(WidgetTester tester) async {
     saved = null;
     popped = null;
+    created = [];
     await tester.pumpWidget(MaterialApp(
       home: Builder(
         builder: (context) => Scaffold(
@@ -48,6 +54,21 @@ void main() {
                       ],
                       raceRunners: [_ann, _bo, _di],
                       save: (results) async => saved = results,
+                    ),
+                    newRunners: NewRunnerSetup(
+                      teams: const ['Eagles'],
+                      create: (runner) async {
+                        created.add(runner);
+                        return Success(RaceRunner(
+                          raceId: 7,
+                          runner: Runner(
+                              runnerId: 9,
+                              name: runner.name,
+                              bibNumber: runner.bibNumber,
+                              grade: runner.grade),
+                          team: _eagles,
+                        ));
+                      },
                     ),
                   ),
                 ),
@@ -137,5 +158,43 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(saved, isNull);
+  });
+
+  // A tester could only change a finish to a runner already in the system:
+  // someone missing from the roster could not be added.
+  testWidgets('a finish can go to a runner who is not on the roster',
+      (tester) async {
+    await open(tester);
+
+    await tester.tap(find.text('Bo'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Change Runner'));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byType(TextField), 'Sam Lee');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Create new runner "Sam Lee"'));
+    await tester.pumpAndSettle();
+
+    // The name typed is filled in; bib, team and grade are chosen.
+    await tester.enterText(find.widgetWithText(TextField, 'e.g. 421'), '150');
+    await tester.tap(find.text('Select team'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Eagles').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Grade').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('10th').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Add Runner'));
+    await tester.pumpAndSettle();
+
+    expect(created.single.name, 'Sam Lee');
+    expect(created.single.bibNumber, '150');
+    expect(created.single.teamName, 'Eagles');
+
+    await tester.tap(find.text('Save Changes'));
+    await tester.pumpAndSettle();
+
+    expect(savedNames(), ['Ann', 'Sam Lee']);
   });
 }
