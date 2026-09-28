@@ -56,7 +56,6 @@ class _RaceHeaderState extends State<RaceHeader> {
 
   Widget _buildHeader(BuildContext context) {
     final race = widget.controller.race;
-    final canEdit = widget.controller.canEdit;
     final flowState = race.flowState ?? Race.FLOW_SETUP;
     final stage = RaceStage.of(flowState);
     final statusColor = stage.color;
@@ -68,8 +67,10 @@ class _RaceHeaderState extends State<RaceHeader> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Race title (editable), with the whole width to itself.
-          _buildTitle(race, canEdit),
+          // Race title (editable), with the whole width to itself. Its owner
+          // can rename or delete a race at any stage: once finished, neither
+          // used to be offered, and old test races could not be cleared out.
+          _buildTitle(race, widget.controller.canEditResults),
           if (!isFinished) ...[
             const SizedBox(height: AppSpacing.md),
             RaceStepsBar(stage: stage, color: statusColor),
@@ -102,7 +103,7 @@ class _RaceHeaderState extends State<RaceHeader> {
     );
   }
 
-  Widget _buildTitle(Race race, bool canEdit) {
+  Widget _buildTitle(Race race, bool canManage) {
     if (widget.controller.form.isEditing(RaceField.name)) {
       return TextField(
         controller: widget.controller.form.nameController,
@@ -140,7 +141,7 @@ class _RaceHeaderState extends State<RaceHeader> {
             overflow: TextOverflow.ellipsis,
           ),
         ),
-        if (canEdit) ...[
+        if (canManage) ...[
           IconButton(
             key: const ValueKey('edit_race_name'),
             tooltip: 'Rename race',
