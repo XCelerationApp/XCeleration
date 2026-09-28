@@ -121,6 +121,18 @@ CREATE TABLE sync_state (
 
 const _userId = 'user-abc';
 
+/// Sets the stored version of the user's database back to [version], so the
+/// next open runs the upgrade steps after it again.
+Future<void> _reopenAt(Directory dir, int version) async {
+  final file = dir
+      .listSync(recursive: true)
+      .whereType<File>()
+      .firstWhere((f) => f.path.endsWith('.db') && f.path.contains('user'));
+  final db = await databaseFactory.openDatabase(file.path);
+  await db.setVersion(version);
+  await db.close();
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
@@ -141,7 +153,11 @@ void main() {
   });
 
   /// Writes a database in the pre-v18 shape, with one season's worth of rows.
-  Future<void> seedOldDatabase() async {
+  Future<void> seedOldDatabase({
+    bool teamInRace = true,
+    bool teamRemoved = false,
+    bool runnersRemoved = false,
+  }) async {
     final db = await databaseFactory.openDatabase(
       p.join(dir.path, 'races.db'),
       options: OpenDatabaseOptions(version: 17),
@@ -155,11 +171,20 @@ void main() {
     await db.insert('races', {'race_id': 1, 'name': 'Invitational'});
     await db.insert('race_results',
         {'race_id': 1, 'runner_id': 1, 'place': 1, 'finish_time': 900000});
-    await db.insert(
-        'race_participants', {'race_id': 1, 'runner_id': 1, 'team_id': 1});
+    await db.insert('race_participants', {
+      'race_id': 1,
+      'runner_id': 1,
+      'team_id': 1,
+      if (runnersRemoved) 'deleted_at': '2026-01-01T00:00:00Z',
+    });
     await db.insert('team_rosters', {'team_id': 1, 'runner_id': 1});
-    await db
-        .insert('race_team_participation', {'race_id': 1, 'team_id': 1});
+    if (teamInRace) {
+      await db.insert('race_team_participation', {
+        'race_id': 1,
+        'team_id': 1,
+        if (teamRemoved) 'deleted_at': '2026-01-01T00:00:00Z',
+      });
+    }
     await db.close();
   }
 
@@ -403,6 +428,61 @@ void main() {
 
     final inRace = (await db.query('race_team_participation')).single;
     expect(inRace['is_dirty'], 1);
+  });
+
+  // Teams added to a race were never marked for upload, so the server had
+  // races with runners but no teams. The upgrade sends them up, and gives a
+  // race the teams its runners are on where the entry is missing.
+  group('teams in races (v20)', () {
+    test('marks every team in a race for upload', () async {
+      await seedOldDatabase();
+      await provider.openForUser(_userId);
+      final db = await provider.database;
+
+      await db.update('race_team_participation', {'is_dirty': 0});
+      // Run the v20 step again, as on a phone already on v19.
+      await provider.close();
+      await _reopenAt(dir, 19);
+      await provider.openForUser(_userId);
+      final reopened = await provider.database;
+
+      final row = (await reopened.query('race_team_participation')).single;
+      expect(row['is_dirty'], 1);
+    });
+
+    test('restores the team of runners in a race that lacked it', () async {
+      await seedOldDatabase(teamInRace: false);
+
+      await provider.openForUser(_userId);
+      final db = await provider.database;
+
+      final row = (await db.query('race_team_participation')).single;
+      expect((row['race_id'], row['team_id']), (1, 1));
+      expect(row['deleted_at'], isNull);
+      expect(row['is_dirty'], 1);
+    });
+
+    test('brings back a removed team whose runners are still in the race',
+        () async {
+      await seedOldDatabase(teamRemoved: true);
+
+      await provider.openForUser(_userId);
+      final db = await provider.database;
+
+      final row = (await db.query('race_team_participation')).single;
+      expect(row['deleted_at'], isNull);
+      expect(row['is_dirty'], 1);
+    });
+
+    test('leaves a removed team alone when its runners left too', () async {
+      await seedOldDatabase(teamRemoved: true, runnersRemoved: true);
+
+      await provider.openForUser(_userId);
+      final db = await provider.database;
+
+      final row = (await db.query('race_team_participation')).single;
+      expect(row['deleted_at'], isNotNull);
+    });
   });
 
   test('a fresh install gets the same uniqueness as an upgraded one',

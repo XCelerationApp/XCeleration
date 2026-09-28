@@ -99,12 +99,19 @@ class RaceRepository implements IRaceRepository {
           'Team ${teamParticipant.teamId} already in race ${teamParticipant.raceId}');
     }
     final db = await _db;
+    // Marked dirty, or it never reaches the server: is_dirty defaults to 0,
+    // so every team added to a race stayed on the phone that added it, and
+    // races pulled elsewhere had runners but no teams. Replacing a removed
+    // row clears its deletion.
     await db.insert(
       'race_team_participation',
       {
         'race_id': teamParticipant.raceId,
         'team_id': teamParticipant.teamId,
         'team_color_override': teamParticipant.colorOverride,
+        'updated_at': SyncTimestamp.now(),
+        'deleted_at': null,
+        'is_dirty': 1,
       },
       conflictAlgorithm: ConflictAlgorithm.replace,
     );

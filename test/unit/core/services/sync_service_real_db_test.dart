@@ -2,11 +2,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:xceleration/core/repositories/i_database_connection_provider.dart';
+import 'package:xceleration/core/repositories/race_repository.dart';
+import 'package:xceleration/core/repositories/runner_repository.dart';
 import 'package:xceleration/core/services/i_auth_service.dart';
 import 'package:xceleration/core/services/i_remote_api_client.dart';
 import 'package:xceleration/core/services/i_remote_sync_client.dart';
 import 'package:xceleration/core/services/sync_service.dart';
 import 'package:xceleration/core/utils/local_schema.dart';
+import 'package:xceleration/shared/models/database/base_models.dart';
 
 /// Runs [SyncService] against a real SQLite database created from the app's
 /// own schema, so a column the sync code expects but the schema does not have
@@ -925,6 +928,39 @@ void main() {
       expect(rows.single['team_color_override'], 4283215696);
       expect(rows.single['race_id'], (await db.query('races')).single['race_id']);
     });
+  });
+
+  // Adding a team to a race wrote a row that was never marked dirty, so it
+  // stayed on the phone: every race on the server had runners but no teams.
+  test('a team added to a race is sent', () async {
+    final db = await conn.database;
+    final raceId = await db.insert('races', {
+      'uuid': raceUuid,
+      'name': 'Invitational',
+      'updated_at': '2026-01-01T00:00:00Z',
+      'is_dirty': 0,
+    });
+    final teamId = await db.insert('teams', {
+      'uuid': teamUuid,
+      'name': 'Eagles',
+      'color': 0,
+      'updated_at': '2026-01-01T00:00:00Z',
+      'is_dirty': 0,
+    });
+    final races = RaceRepository(
+        conn: conn, runnerRepo: RunnerRepository(conn: conn));
+
+    await races.addTeamParticipantToRace(
+        TeamParticipant(raceId: raceId, teamId: teamId));
+    await service.syncAll();
+
+    final pushed = remote.upserts
+        .where((u) => u.table == 'race_team_participation')
+        .expand((u) => u.rows)
+        .toList();
+    expect(pushed, hasLength(1));
+    expect((pushed.single['race_uuid'], pushed.single['team_uuid']),
+        (raceUuid, teamUuid));
   });
 
   group('the rest of the sync', () {
