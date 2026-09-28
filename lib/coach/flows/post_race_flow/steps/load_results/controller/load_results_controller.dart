@@ -616,7 +616,7 @@ class LoadResultsController with ChangeNotifier {
         lookupBib: masterRace.getRaceRunnerByBib,
       );
       final inRace = await masterRace.raceRunners;
-      final teams = await masterRace.teams;
+      final teams = await teamsForNewRunner(masterRace);
       final race = await masterRace.race;
       final savedBibOwners = await _savedBibOwnersOutside(inRace);
       final recordedBibs = {
@@ -660,12 +660,11 @@ class LoadResultsController with ChangeNotifier {
     }
 
     // Write who finished at each settled place back into the finish order.
-    if (settled != null) {
-      final updated = applyResolvedFinishes(raceRunners!, settled);
-      await applyResolvedRunners([
-        for (final entry in updated) entry is RaceRunner ? entry : null,
-      ]);
-    }
+    // A coach who leaves part way comes back with some settled: the rest stay
+    // as the bibs recorded, still to resolve. They used to become empty
+    // entries, which no longer counted as conflicts, so Next opened onto a
+    // page that could not save and had nothing left to resolve.
+    if (settled != null) await applySettledFinishes(settled);
 
     // If there are still timing conflicts, open the timing conflicts sheet
     if (hasTimingConflicts &&
@@ -697,13 +696,20 @@ class LoadResultsController with ChangeNotifier {
     }
   }
 
-  /// Takes the finish order once every bib is resolved.
+  /// Writes who finished at each place the coach settled into the finish
+  /// order, leaving the bibs still to resolve as they were.
+  @visibleForTesting
+  Future<void> applySettledFinishes(Map<int, RaceRunner> settled) =>
+      applyResolvedRunners(applyResolvedFinishes(raceRunners!, settled));
+
+  /// Takes the finish order with the bibs resolved so far: a [RaceRunner]
+  /// for each settled place, the recorded bib for each still to resolve.
   ///
   /// Resolving a bib only ever says who a finish was — every entry is
   /// somebody who crossed the line — so the number of finishers is the same
   /// as before, and nothing reconciled against the Timer changes.
   @visibleForTesting
-  Future<void> applyResolvedRunners(List<RaceRunner?> updated) async {
+  Future<void> applyResolvedRunners(List<dynamic> updated) async {
     assert(updated.length == raceRunners!.length,
         'bib resolution never adds or removes a finisher');
     raceRunners = updated;

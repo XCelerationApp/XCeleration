@@ -200,14 +200,18 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
             children: [
               Expanded(
                 flex: 3,
-                child: _DropdownField<String>(
-                  label: 'Team',
-                  hint: 'Select team',
-                  value: _selectedTeam,
-                  items: widget.teams,
-                  itemLabel: (t) => t,
-                  onChanged: (t) => setState(() => _selectedTeam = t),
-                ),
+                // An empty menu is greyed out and ignores taps, which read
+                // as broken; say why instead.
+                child: widget.teams.isEmpty
+                    ? const _NoTeams()
+                    : _DropdownField<String>(
+                        label: 'Team',
+                        hint: 'Select team',
+                        value: _selectedTeam,
+                        items: widget.teams,
+                        itemLabel: (t) => t,
+                        onChanged: (t) => setState(() => _selectedTeam = t),
+                      ),
               ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
@@ -341,6 +345,27 @@ class _AutoBibDisplay extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _NoTeams extends StatelessWidget {
+  const _NoTeams();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      key: const ValueKey('no_teams'),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Team', style: AppTypography.smallBodySemibold),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          'This race has no teams yet. Add one on the Runners tab, then '
+          'come back.',
+          style: AppTypography.caption.copyWith(color: AppColors.redColor),
         ),
       ],
     );

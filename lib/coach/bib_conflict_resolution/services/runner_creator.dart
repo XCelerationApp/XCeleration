@@ -20,6 +20,25 @@ class NewRunner {
   final int grade;
 }
 
+/// The teams a runner added while resolving a bib can join: the race's
+/// teams and the teams its runners are on.
+///
+/// The race's teams alone came back empty for a race whose runners were
+/// entered but whose teams were not, so the Team menu offered nothing and
+/// could not be opened.
+Future<List<Team>> teamsForNewRunner(MasterRace masterRace) async {
+  final byKey = <Object, Team>{};
+  for (final team in [
+    ...await masterRace.teams,
+    for (final runner in await masterRace.raceRunners) runner.team,
+  ]) {
+    if ((team.name ?? '').isEmpty) continue;
+    byKey.putIfAbsent(team.teamId ?? team.name!, () => team);
+  }
+  return byKey.values.toList()
+    ..sort((a, b) => a.name!.toLowerCase().compareTo(b.name!.toLowerCase()));
+}
+
 /// Saves [newRunner] and enters them in the race, so they can be given the
 /// finish being resolved.
 ///
@@ -32,12 +51,23 @@ Future<Result<RaceRunner>> saveNewRunner(
   NewRunner newRunner,
 ) async {
   try {
-    final teams = await masterRace.teams;
-    final team = teams.where((t) => t.name == newRunner.teamName).firstOrNull;
+    final team = (await teamsForNewRunner(masterRace))
+        .where((t) => t.name == newRunner.teamName)
+        .firstOrNull;
     if (team == null || team.teamId == null) {
       return Failure(AppError(
         userMessage: 'Team "${newRunner.teamName}" was not found. '
             'Choose one of the teams in this race.',
+      ));
+    }
+    // A team known only from its runners joins the race too, so it is
+    // offered and listed from now on.
+    final inRace = await masterRace.teams;
+    if (!inRace.any((t) => t.teamId == team.teamId)) {
+      await masterRace.addTeamParticipant(TeamParticipant(
+        raceId: masterRace.raceId,
+        teamId: team.teamId!,
+        colorOverride: team.color?.toARGB32(),
       ));
     }
 

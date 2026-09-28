@@ -329,6 +329,29 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
+    // A coach who leaves the conflict screen part way comes back with some
+    // places settled. The rest used to become empty entries that no longer
+    // counted as conflicts: Next opened onto a page that could not save.
+    group('bibs resolved part way', () {
+      test('the bibs not yet resolved are still conflicts', () async {
+        controller.raceRunners = ['9904', '9905'];
+
+        await controller.applySettledFinishes({1: _runner(1)});
+
+        expect((controller.raceRunners![0] as RaceRunner).runner.runnerId, 1);
+        expect(controller.raceRunners![1], '9905');
+        expect(controller.hasBibConflicts, isTrue);
+      });
+
+      test('with every bib resolved, none are left', () async {
+        controller.raceRunners = ['9904', '9905'];
+
+        await controller.applySettledFinishes({1: _runner(1), 2: _runner(2)});
+
+        expect(controller.hasBibConflicts, isFalse);
+      });
+    });
+
     group('containsTimingConflicts', () {
       test('returns false when timingChunks is null', () {
         controller.timingChunks = null;
