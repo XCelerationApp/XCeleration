@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../../../core/theme/app_animations.dart';
-import '../../../core/theme/app_border_radius.dart';
-import '../../../core/theme/app_colors.dart';
-import '../../../core/theme/app_spacing.dart';
-import '../../../core/theme/typography.dart';
+import '../theme/app_animations.dart';
+import '../theme/app_border_radius.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_spacing.dart';
+import '../theme/typography.dart';
 
 class RunnerSearchBar extends StatefulWidget {
   const RunnerSearchBar({
