@@ -715,6 +715,43 @@ void main() {
       });
     });
 
+    // A tester fixed a duplicate on the Bib Recorder by typing the right
+    // runner's bib over one copy. Both copies must lose the flag, the one
+    // left alone as well as the one typed over.
+    test('typing the right bib over one copy of a duplicate clears both',
+        () {
+      fakeAsync((async) {
+        final controller = buildController();
+        controller.runners.addAll([
+          BibDatum(bib: '3003', name: 'Pete', teamAbbreviation: 'TA', grade: '11'),
+          BibDatum(bib: '2003', name: 'Dave', teamAbbreviation: 'RW', grade: '10'),
+        ]);
+        for (final _ in ['3003', '3003']) {
+          controller.addBibRecord(BibDatumRecord.blank());
+        }
+        async.flushMicrotasks();
+        controller.validateBibNumber(0, '3003');
+        controller.validateBibNumber(1, '3003');
+        async.flushMicrotasks();
+        expect(controller.bibRecords.map((r) => r.flags.duplicateBibNumber),
+            [true, true]);
+
+        for (final typed in ['', '2', '20', '200', '2003']) {
+          controller.handleBibNumber(typed, index: 0);
+        }
+        async.elapse(const Duration(milliseconds: 600));
+
+        expect(controller.bibRecords.map((r) => r.bib), ['2003', '3003']);
+        expect(controller.bibRecords[0].name, 'Dave');
+        expect(controller.bibRecords.map((r) => r.flags.duplicateBibNumber),
+            [false, false]);
+        expect(controller.checkDuplicateRecords(), isEmpty,
+            reason: 'nothing is sent to the coach as a duplicate');
+
+        controller.dispose();
+      });
+    });
+
     group('bibs heard by voice', () {
       BibNumberController running() {
         final controller = buildController();
