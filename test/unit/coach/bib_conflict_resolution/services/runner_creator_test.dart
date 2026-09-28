@@ -30,6 +30,8 @@ void main() {
     when(masterRace.createRunner(any)).thenAnswer((_) async => 55);
     when(masterRace.addRunnerToTeam(any, any)).thenAnswer((_) async {});
     when(masterRace.addRaceParticipant(any)).thenAnswer((_) async {});
+    when(masterRace.raceRunners).thenAnswer((_) async => []);
+    when(masterRace.addTeamParticipant(any)).thenAnswer((_) async {});
   });
 
   test('saves the runner, puts them on the team and enters them', () async {
@@ -98,5 +100,49 @@ void main() {
     final result = await saveNewRunner(masterRace, newRunner);
 
     expect(result, isA<Failure>());
+  });
+
+  // A race whose runners were entered but whose teams were not: the Team
+  // menu for a new runner was empty and could not be opened.
+  group('a team known only from the race\'s runners', () {
+    const hawks = Team(teamId: 8, name: 'Hawks', abbreviation: 'HAW');
+
+    setUp(() {
+      when(masterRace.teams).thenAnswer((_) async => []);
+      when(masterRace.raceRunners).thenAnswer((_) async => [
+            RaceRunner(
+                raceId: 3,
+                runner: const Runner(runnerId: 1, name: 'Mia', bibNumber: '1'),
+                team: hawks),
+            RaceRunner(
+                raceId: 3,
+                runner: const Runner(runnerId: 2, name: 'Zoe', bibNumber: '2'),
+                team: hawks),
+          ]);
+    });
+
+    test('is offered, once', () async {
+      final teams = await teamsForNewRunner(masterRace);
+
+      expect(teams.map((t) => t.name), ['Hawks']);
+    });
+
+    test('can be chosen, and joins the race', () async {
+      final result = await saveNewRunner(masterRace,
+          const NewRunner(
+              name: 'Avery Stone', bibNumber: '412', teamName: 'Hawks', grade: 10));
+
+      expect((result as Success).value.team.teamId, 8);
+      final joined = verify(masterRace.addTeamParticipant(captureAny))
+          .captured
+          .single as TeamParticipant;
+      expect((joined.raceId, joined.teamId), (3, 8));
+    });
+  });
+
+  test('a team already in the race is not entered again', () async {
+    await saveNewRunner(masterRace, newRunner);
+
+    verifyNever(masterRace.addTeamParticipant(any));
   });
 }

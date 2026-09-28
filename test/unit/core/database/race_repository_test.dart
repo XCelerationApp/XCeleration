@@ -282,6 +282,35 @@ void main() {
         expect(result, isNotNull);
       });
 
+      // Left unmarked, the row was never uploaded: every race on the server
+      // had runners but no teams.
+      test('marks it to be synced', () async {
+        final raceId = await repo.createRace(validRace());
+        final teamId = await insertTeam('Eagles');
+        await repo.addTeamParticipantToRace(
+            TeamParticipant(raceId: raceId, teamId: teamId));
+
+        final db = await connProvider.database;
+        final row = (await db.query('race_team_participation',
+                where: 'race_id = ? AND team_id = ?',
+                whereArgs: [raceId, teamId]))
+            .single;
+        expect(row['is_dirty'], 1);
+        expect(row['updated_at'], isNotNull);
+      });
+
+      test('adding a removed team again brings it back', () async {
+        final raceId = await repo.createRace(validRace());
+        final teamId = await insertTeam('Eagles');
+        final tp = TeamParticipant(raceId: raceId, teamId: teamId);
+        await repo.addTeamParticipantToRace(tp);
+        await repo.removeTeamParticipantFromRace(tp);
+
+        await repo.addTeamParticipantToRace(tp);
+
+        expect(await repo.getRaceTeamParticipant(tp), isNotNull);
+      });
+
       test('throws when team is already in the race', () async {
         final raceId = await repo.createRace(validRace());
         final teamId = await insertTeam('Eagles');

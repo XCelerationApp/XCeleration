@@ -5,6 +5,7 @@ import 'package:path/path.dart';
 import '../../shared/models/database/master_race.dart';
 import '../utils/local_schema.dart';
 import '../utils/logger.dart';
+import '../utils/sync_timestamp.dart';
 import 'i_database_connection_provider.dart';
 
 /// Opens the coach's local database, one file per signed-in user.
@@ -88,7 +89,7 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
     return await openDatabase(
       path,
-      version: 19,
+      version: 20,
       onCreate: _createDB,
       onUpgrade: _onUpgrade,
     );
@@ -190,6 +191,34 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
             'UPDATE ${entry.key} SET is_dirty = 1 WHERE deleted_at IS NULL');
         Logger.d('Marked $marked ${entry.key} rows for their first upload');
       }
+    }
+
+    if (oldVersion < 20) {
+      // A team added to a race was written unmarked (is_dirty defaults to 0),
+      // so none added since v19 was ever uploaded: every race on the server
+      // had runners but no teams, and a phone that pulled one offered no team
+      // for a new runner. Mark them all again, and give each race the teams
+      // its runners are on where the entry is missing or was removed.
+      final now = SyncTimestamp.now();
+      final marked = await db.rawUpdate(
+          'UPDATE race_team_participation SET is_dirty = 1, updated_at = ? '
+          'WHERE deleted_at IS NULL',
+          [now]);
+      await db.rawInsert('''
+        INSERT INTO race_team_participation
+          (race_id, team_id, created_at, updated_at, is_dirty)
+        SELECT DISTINCT rp.race_id, rp.team_id, ?, ?, 1
+        FROM race_participants rp
+        WHERE rp.deleted_at IS NULL AND rp.team_id IS NOT NULL
+          AND NOT EXISTS (
+            SELECT 1 FROM race_team_participation t
+            WHERE t.race_id = rp.race_id AND t.team_id = rp.team_id
+              AND t.deleted_at IS NULL)
+        ON CONFLICT(race_id, team_id) DO UPDATE SET
+          deleted_at = NULL, is_dirty = 1, updated_at = excluded.updated_at
+      ''', [now, now]);
+      Logger.d('Marked $marked teams in races for upload, and restored any '
+          'missing for runners in the race');
     }
   }
 
