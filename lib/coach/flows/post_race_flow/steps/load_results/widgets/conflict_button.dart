@@ -5,14 +5,12 @@ import '../../../../../../core/components/race_components.dart'
 class ConflictButton extends StatelessWidget {
   final String title;
   final String description;
-  final String buttonText;
   final VoidCallback onPressed;
 
   const ConflictButton({
     super.key,
     required this.title,
     required this.description,
-    required this.buttonText,
     required this.onPressed,
   });
 

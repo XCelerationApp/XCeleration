@@ -47,13 +47,13 @@ class LoadResultsStep extends FlowStep {
   String get description => !controller.resultsLoaded
       ? super.description
       : _hasConflicts
-          ? 'The results are in. A few need checking: tap Start below, then '
-              'Next.'
+          ? 'The results are in. A few need checking: tap Some Results '
+              'Need Checking below, then Next.'
           : 'The results are in. Tap Next to look them over before saving.';
 
   /// Next stays greyed out until every conflict is resolved: the conflicts
-  /// are opened from the card's Start button, not by Next. Saving happens on
-  /// the next page, once the coach has seen the results.
+  /// are opened from the Some Results Need Checking card, not by Next.
+  /// Saving happens on the next page, once the coach has seen the results.
   bool get _hasConflicts =>
       controller.hasBibConflicts || controller.hasTimingConflicts;
 
@@ -65,6 +65,7 @@ class LoadResultsStep extends FlowStep {
   String? Function()? get blockedReason => () => !controller.resultsLoaded
       ? 'Waiting for the times and bibs from your volunteers.'
       : _hasConflicts
-          ? 'Resolve the conflicts first: tap Start above.'
+          ? 'Resolve the conflicts first: tap Some Results Need Checking '
+              'above.'
           : null;
 }
