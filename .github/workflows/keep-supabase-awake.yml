@@ -1,0 +1,53 @@
+name: Keep Supabase Awake
+
+# Free Supabase projects are paused after about a week with no activity, and
+# a paused project stops sync until someone restores it from the dashboard.
+# One small read every three days keeps it awake between seasons.
+#
+# Scheduled runs only start from the default branch (main). In a public repo
+# GitHub turns schedules off after 60 days with no commits, and emails first:
+# re-enable it from the Actions tab if that happens.
+
+on:
+  schedule:
+    - cron: '17 9 */3 * *' # 09:17 UTC every third day
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ask the database for one race
+        env:
+          DOTENV: ${{ secrets.DOTENV }}
+        run: |
+          value() {
+            printf '%s\n' "$DOTENV" | grep "^$1=" | head -n1 | cut -d= -f2- | tr -d "\"' \r"
+          }
+          url=$(value SUPABASE_URL)
+          key=$(value SUPABASE_PUBLISHABLE_KEY)
+          if [ -z "$url" ] || [ -z "$key" ]; then
+            echo "::error::SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY is missing from the DOTENV secret"
+            exit 1
+          fi
+          echo "::add-mask::$key"
+
+          body=$(mktemp)
+          status=$(curl -sS --max-time 60 -o "$body" -w '%{http_code}' \
+            "$url/rest/v1/races?select=race_id&limit=1" \
+            -H "apikey: $key" -H "Authorization: Bearer $key") || status=000
+          echo "Supabase answered HTTP $status"
+
+          # The public key may not read races, so Postgres refusing with
+          # "permission denied" (42501) is as good as a row: the database
+          # itself answered. Anything else, such as a paused project, fails.
+          if [ "$status" = 200 ] || grep -q '"42501"' "$body"; then
+            echo "The database is awake."
+          else
+            echo "::error::Supabase did not answer from the database (HTTP $status). It may be paused: restore it from the Supabase dashboard."
+            exit 1
+          fi
