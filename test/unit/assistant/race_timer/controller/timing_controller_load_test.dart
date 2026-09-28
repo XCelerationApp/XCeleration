@@ -120,6 +120,25 @@ void main() {
         reason: 'the reopened race shows what was recorded');
   });
 
+  // Sent again while the race is running, straight after finishes are
+  // logged: the clock keeps going and no finish is lost.
+  test('the same race sent again mid-race keeps the clock and times',
+      () async {
+    await timer.loadRaceFromCoach(invitational);
+    timer.startRace();
+    final started = timer.startTime;
+    timer.logTime();
+    timer.logTime();
+
+    await timer.loadRaceFromCoach(invitational);
+
+    expect(timer.raceStopped, isFalse);
+    expect(timer.startTime?.millisecondsSinceEpoch,
+        started?.millisecondsSinceEpoch);
+    expect(timer.uiRecords, hasLength(2));
+    expect(await savedTimes(3), hasLength(2));
+  });
+
   test('another race with the same number starts empty, and the first keeps '
       'its times', () async {
     await timer.loadRaceFromCoach(invitational);
