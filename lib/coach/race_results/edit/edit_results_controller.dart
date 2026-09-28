@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 
 import '../../../core/app_error.dart';
+import '../../../core/result.dart';
+import '../../bib_conflict_resolution/services/runner_creator.dart';
 import '../../../core/utils/logger.dart';
 import '../../bib_conflict_resolution/utils/ordinal.dart';
 import '../../../core/utils/time_formatter.dart';
@@ -80,6 +82,15 @@ class EditResultsController extends ChangeNotifier {
     final i = _finishes
         .indexWhere((f) => f.runner.runner.runnerId == runner.runner.runnerId);
     return i < 0 ? null : i + 1;
+  }
+
+  /// Adds [runner], just created and entered in the race, to those who can
+  /// be chosen.
+  void addRunner(RaceRunner runner) {
+    _raceRunners
+      ..add(runner)
+      ..sort(_byBib);
+    notifyListeners();
   }
 
   /// Makes [runner] the finisher at [index]. Someone already in the results
@@ -174,4 +185,22 @@ class EditResultsController extends ChangeNotifier {
     if (x != null && y != null) return x.compareTo(y);
     return (a.runner.bibNumber ?? '').compareTo(b.runner.bibNumber ?? '');
   }
+}
+
+/// What adding a runner who is not on the roster needs.
+class NewRunnerSetup {
+  const NewRunnerSetup({
+    required this.teams,
+    required this.create,
+    this.savedBibOwners = const {},
+  });
+
+  /// The teams they can join.
+  final List<String> teams;
+
+  /// Bibs of runners saved on this phone but not in the race, with names.
+  final Map<String, String> savedBibOwners;
+
+  /// Saves the runner and enters them in the race.
+  final Future<Result<RaceRunner>> Function(NewRunner) create;
 }

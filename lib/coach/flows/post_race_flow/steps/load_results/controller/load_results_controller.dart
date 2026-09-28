@@ -618,7 +618,7 @@ class LoadResultsController with ChangeNotifier {
       final inRace = await masterRace.raceRunners;
       final teams = await teamsForNewRunner(masterRace);
       final race = await masterRace.race;
-      final savedBibOwners = await _savedBibOwnersOutside(inRace);
+      final savedBibOwners = await savedBibOwnersOutside(masterRace, inRace);
       final recordedBibs = {
         for (final entry in entries)
           if (entry is RaceRunner) ?entry.runner.bibNumber else if (entry is String) entry,
@@ -673,26 +673,6 @@ class LoadResultsController with ChangeNotifier {
         context.mounted) {
       if (!context.mounted) return;
       await showTimingConflictsSheet(context);
-    }
-  }
-
-  /// Bibs held by runners saved on this phone who are not in this race, with
-  /// each one's name, so a runner added while resolving a bib is not
-  /// silently given someone else's. Empty if they can't be read: saving the
-  /// runner checks again.
-  Future<Map<String, String>> _savedBibOwnersOutside(
-      List<RaceRunner> inRace) async {
-    try {
-      final entered = {for (final r in inRace) r.runner.runnerId};
-      return {
-        for (final runner in await masterRace.getAllSavedRunners())
-          if (!entered.contains(runner.runnerId) &&
-              (runner.bibNumber ?? '').isNotEmpty)
-            runner.bibNumber!: runner.name ?? 'another runner',
-      };
-    } catch (e) {
-      Logger.e('Could not read saved runners: $e');
-      return const {};
     }
   }
 

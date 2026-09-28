@@ -39,6 +39,26 @@ Future<List<Team>> teamsForNewRunner(MasterRace masterRace) async {
     ..sort((a, b) => a.name!.toLowerCase().compareTo(b.name!.toLowerCase()));
 }
 
+/// Bibs held by runners saved on this phone who are not in the race
+/// ([inRace]), with each one's name, so a runner added while resolving a bib
+/// or editing results is not silently given someone else's. Empty if they
+/// can't be read: saving the runner checks again.
+Future<Map<String, String>> savedBibOwnersOutside(
+    MasterRace masterRace, List<RaceRunner> inRace) async {
+  try {
+    final entered = {for (final r in inRace) r.runner.runnerId};
+    return {
+      for (final runner in await masterRace.getAllSavedRunners())
+        if (!entered.contains(runner.runnerId) &&
+            (runner.bibNumber ?? '').isNotEmpty)
+          runner.bibNumber!: runner.name ?? 'another runner',
+    };
+  } catch (e) {
+    Logger.e('Could not read saved runners: $e');
+    return const {};
+  }
+}
+
 /// Saves [newRunner] and enters them in the race, so they can be given the
 /// finish being resolved.
 ///

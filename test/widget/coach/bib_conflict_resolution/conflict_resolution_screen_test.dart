@@ -209,7 +209,7 @@ void main() {
 
     expect(find.text('16th place is correct'), findsOneWidget);
     expect(find.text('Who finished 21st?'), findsOneWidget);
-    expect(find.textContaining('Bib #959 was a typo here'), findsOneWidget);
+    expect(find.textContaining('Recorded as #959, but someone else'), findsOneWidget);
     // Not "unknown": 959 is Quinn's bib, just not at this finish.
     expect(find.text('UNKNOWN BIB'), findsNothing);
     // Nearby: the runner ahead, then this finish, each with its place.
