@@ -9,22 +9,31 @@ import '../../../core/theme/typography.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/utils/time_formatter.dart';
 import '../../../shared/models/database/master_race.dart';
+import '../../../core/result.dart';
+import '../../bib_conflict_resolution/services/runner_creator.dart';
 import '../../bib_conflict_resolution/utils/ordinal.dart';
+import '../../bib_conflict_resolution/widgets/create_runner_sheet.dart';
 import 'edit_results_controller.dart';
 import 'edit_results_sheets.dart';
 
 /// The finish order of a finished race, for correcting who finished where,
 /// their times, and finishes that should not count.
 class EditResultsScreen extends StatelessWidget {
-  const EditResultsScreen({super.key, required this.create});
+  const EditResultsScreen({super.key, required this.create, this.newRunners});
 
   final EditResultsController Function() create;
+
+  /// For adding a runner who is not on the roster; without it, a finish can
+  /// only go to someone already in the race.
+  final NewRunnerSetup? newRunners;
 
   /// Opens the editor for [masterRace]'s results. Returns whether anything
   /// was saved.
   static Future<bool> open(BuildContext context, MasterRace masterRace) async {
     final results = await masterRace.results;
     final runners = await masterRace.raceRunners;
+    final teams = await teamsForNewRunner(masterRace);
+    final savedBibOwners = await savedBibOwnersOutside(masterRace, runners);
     if (!context.mounted) return false;
     final saved = await Navigator.of(context, rootNavigator: true).push<bool>(
       MaterialPageRoute(
@@ -36,6 +45,11 @@ class EditResultsScreen extends StatelessWidget {
             raceRunners: runners,
             save: masterRace.saveResults,
           ),
+          newRunners: NewRunnerSetup(
+            teams: [for (final team in teams) ?team.name],
+            savedBibOwners: savedBibOwners,
+            create: (runner) => saveNewRunner(masterRace, runner),
+          ),
         ),
       ),
     );
@@ -46,13 +60,15 @@ class EditResultsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => create(),
-      child: const _EditResultsBody(),
+      child: _EditResultsBody(newRunners: newRunners),
     );
   }
 }
 
 class _EditResultsBody extends StatelessWidget {
-  const _EditResultsBody();
+  const _EditResultsBody({this.newRunners});
+
+  final NewRunnerSetup? newRunners;
 
   Future<void> _leave(BuildContext context) async {
     final c = context.read<EditResultsController>();
@@ -149,6 +165,39 @@ class _EditResultsBody extends StatelessWidget {
     );
   }
 
+  /// Adds a runner who is not on the roster and gives them the finish at
+  /// [index]. They are saved and entered in the race at once, like a runner
+  /// added while resolving a bib; the results change only on Save.
+  void _createRunner(BuildContext context, int index, String name) {
+    final setup = newRunners!;
+    final c = context.read<EditResultsController>();
+    sheet(
+      context: context,
+      title: 'Add New Runner',
+      body: CreateRunnerSheet(
+        allKnownBibs: {
+          for (final r in c.raceRunners) ?r.runner.bibNumber,
+        },
+        savedBibOwners: setup.savedBibOwners,
+        teams: setup.teams,
+        initialName: name,
+        onCreated: (name, bib, team, grade) async {
+          final result = await setup.create(NewRunner(
+              name: name, bibNumber: bib, teamName: team, grade: grade));
+          if (!context.mounted) return;
+          switch (result) {
+            case Success(:final value):
+              c.addRunner(value);
+              c.assignRunner(index, value);
+              Navigator.of(context).pop();
+            case Failure(:final error):
+              DialogUtils.showErrorDialog(context, message: error.userMessage);
+          }
+        },
+      ),
+    );
+  }
+
   void _showActions(BuildContext context, int index) {
     final c = context.read<EditResultsController>();
     final finish = c.finishes[index];
@@ -174,6 +223,12 @@ class _EditResultsBody extends StatelessWidget {
                     c.assignRunner(index, runner);
                     Navigator.of(context).pop();
                   },
+                  onCreateNew: newRunners == null
+                      ? null
+                      : (name) {
+                          Navigator.of(context).pop();
+                          _createRunner(context, index, name);
+                        },
                 ),
               );
             },
