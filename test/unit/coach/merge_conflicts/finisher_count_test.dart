@@ -24,14 +24,18 @@ class _NoopScheduler implements IPostFrameCallbackScheduler {
 const _team = Team(teamId: 1, name: 'Eagles');
 
 List<RaceRunner> _runners(int n) => [
-      for (var i = 1; i <= n; i++)
-        RaceRunner(
-          raceId: 1,
-          runner:
-              Runner(runnerId: i, name: 'Runner $i', bibNumber: '$i', grade: 11),
-          team: _team,
-        ),
-    ];
+  for (var i = 1; i <= n; i++)
+    RaceRunner(
+      raceId: 1,
+      runner: Runner(
+        runnerId: i,
+        name: 'Runner $i',
+        bibNumber: '$i',
+        grade: 11,
+      ),
+      team: _team,
+    ),
+];
 
 String _t(int seconds) =>
     '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}.00';
@@ -67,7 +71,9 @@ void main() {
     test('with the open slot written into its times', () {
       final chunk = TimingChunk(
         id: 0,
-        timingData: [for (final t in ['TBD', _t(10), _t(20)]) TimingDatum(time: t)],
+        timingData: [
+          for (final t in ['TBD', _t(10), _t(20)]) TimingDatum(time: t),
+        ],
         conflictRecord: TimingDatum(
           time: _t(30),
           conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
@@ -77,27 +83,35 @@ void main() {
     });
   });
 
-  test('placing a slot without typing leaves the other batches alone',
-      () async {
-    final c = _controller([
-      _missing(0, [10, 20], end: 30),
-      _missing(1, [40, 50], end: 60),
-    ], 6);
+  test(
+    'placing a slot without typing leaves the other batches alone',
+    () async {
+      final c = _controller([
+        _missing(0, [10, 20], end: 30),
+        _missing(1, [40, 50], end: 60),
+      ], 6);
 
-    // The coach moves the first batch's slot but doesn't know the time yet.
-    c.insertTbdAt(0, 0);
-    expect(c.timingChunks.map((ch) => ch.recordCount), [3, 3]);
-    expect(c.uiChunks[1].records.first.place, 4,
-        reason: 'the second batch still starts at 4th place');
+      // The coach moves the first batch's slot but doesn't know the time yet.
+      c.insertTbdAt(0, 0);
+      expect(c.timingChunks.map((ch) => ch.recordCount), [3, 3]);
+      expect(
+        c.uiChunks[1].records.first.place,
+        4,
+        reason: 'the second batch still starts at 4th place',
+      );
 
-    // Then finishes the last batch.
-    final slot = c.uiChunks[1].records.indexWhere((r) => r.isUnfilled);
-    c.updateMissingTimeRecord(1, slot, '0:55.00');
-    await c.resolveMissingTimeConflict(1);
+      // Then finishes the last batch.
+      final slot = c.uiChunks[1].records.indexWhere((r) => r.isUnfilled);
+      c.updateMissingTimeRecord(1, slot, '0:55.00');
+      await c.resolveMissingTimeConflict(1);
 
-    final last = c.timingChunks.last;
-    expect(last.conflictRecord!.conflict!.type, ConflictType.confirmRunner,
-        reason: 'no extra time appears in the batch just resolved');
-    expect(last.timingData.map((d) => d.time), [_t(40), _t(50), '0:55.00']);
-  });
+      final last = c.timingChunks.last;
+      expect(
+        last.conflictRecord!.conflict!.type,
+        ConflictType.confirmRunner,
+        reason: 'no extra time appears in the batch just resolved',
+      );
+      expect(last.timingData.map((d) => d.time), [_t(40), _t(50), '0:55.00']);
+    },
+  );
 }

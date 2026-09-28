@@ -10,7 +10,8 @@ class UrlLauncherHelper {
     try {
       // Try to launch with Google Sheets app scheme
       final sheetsAppUri = Uri.parse(
-          'googlesheetsapp://spreadsheets.google.com/d/${sheetUri.toString()}');
+        'googlesheetsapp://spreadsheets.google.com/d/${sheetUri.toString()}',
+      );
       final canLaunchSheetsApp = await canLaunchUrl(sheetsAppUri);
 
       if (canLaunchSheetsApp) {
@@ -23,8 +24,10 @@ class UrlLauncherHelper {
     } catch (e) {
       Logger.e('Error launching URL: $e');
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Unable to open Google Sheet');
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Unable to open Google Sheet',
+        );
       }
     }
   }

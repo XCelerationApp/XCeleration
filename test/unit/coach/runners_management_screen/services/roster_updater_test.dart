@@ -48,8 +48,7 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
   Future<void> deleteUserData(String userId) async => deleteDatabase();
 }
 
-Map<String, dynamic> _row(String name, int grade, String bib,
-        {String? team}) =>
+Map<String, dynamic> _row(String name, int grade, String bib, {String? team}) =>
     {'name': name, 'grade': grade, 'bib': bib, 'team': ?team};
 
 void main() {
@@ -69,16 +68,22 @@ void main() {
     runners = RunnerRepository(conn: conn);
     teams = TeamRepository(conn: conn);
     races = RaceRepository(conn: conn, runnerRepo: runners);
-    raceId = await races.createRace(Race(
-      raceId: 0,
-      raceName: 'Invitational',
-      location: 'Park',
-      distance: 5,
-      distanceUnit: 'km',
-      flowState: Race.FLOW_SETUP,
-    ));
+    raceId = await races.createRace(
+      Race(
+        raceId: 0,
+        raceName: 'Invitational',
+        location: 'Park',
+        distance: 5,
+        distanceUnit: 'km',
+        flowState: Race.FLOW_SETUP,
+      ),
+    );
     final importer = RosterImporter(
-        raceId: raceId, runners: runners, teams: teams, races: races);
+      raceId: raceId,
+      runners: runners,
+      teams: teams,
+      races: races,
+    );
     await importer.importRows([
       _row('Ann Lee', 10, '101', team: 'Eagles'),
       _row('Bo Park', 11, '102', team: 'Eagles'),
@@ -87,15 +92,19 @@ void main() {
     ]);
     eagles = (await teams.getTeamByName('Eagles'))!;
     updater = RosterUpdater(
-        raceId: raceId, runners: runners, teams: teams, races: races);
+      raceId: raceId,
+      runners: runners,
+      teams: teams,
+      races: races,
+    );
   });
 
   tearDown(() async => conn.close());
 
   Future<List<String>> onEagles() async => [
-        for (final r in await runners.getTeamRunners(eagles.teamId!))
-          '${r.bibNumber} ${r.name} ${r.grade}'
-      ]..sort();
+    for (final r in await runners.getTeamRunners(eagles.teamId!))
+      '${r.bibNumber} ${r.name} ${r.grade}',
+  ]..sort();
 
   Future<List<String>> inRace() async {
     final out = <String>[];
@@ -120,8 +129,11 @@ void main() {
       _row('Di Fox', 9, '104'), // new
     ]);
 
-    expect(await onEagles(),
-        ['101 Ann Lee 10', '102 Bo Park 12', '104 Di Fox 9']);
+    expect(await onEagles(), [
+      '101 Ann Lee 10',
+      '102 Bo Park 12',
+      '104 Di Fox 9',
+    ]);
     expect(await inRace(), ['101', '102', '104', '200']);
     expect(result.changed, 1);
     expect(result.removed, 1);
@@ -129,10 +141,7 @@ void main() {
   });
 
   test('a runner taken off the team is kept, with their bib', () async {
-    await update([
-      _row('Ann Lee', 10, '101'),
-      _row('Bo Park', 11, '102'),
-    ]);
+    await update([_row('Ann Lee', 10, '101'), _row('Bo Park', 11, '102')]);
 
     final cy = await runners.getRunnerByBib('103');
     expect(cy?.name, 'Cy Diaz');
@@ -147,13 +156,15 @@ void main() {
 
     expect(result.bibTaken.single.before.name, 'Ann Lee');
     expect(result.changed, 0);
-    expect(await onEagles(),
-        ['101 Ann Lee 10', '102 Bo Park 11', '103 Cy Diaz 12']);
+    expect(await onEagles(), [
+      '101 Ann Lee 10',
+      '102 Bo Park 11',
+      '103 Cy Diaz 12',
+    ]);
     expect((await runners.getRunnerByBib('200'))?.name, 'Hal Ng');
   });
 
-  test('a Team column naming another team does not move new runners',
-      () async {
+  test('a Team column naming another team does not move new runners', () async {
     await update([
       _row('Ann Lee', 10, '101'),
       _row('Bo Park', 11, '102'),

@@ -48,17 +48,20 @@ class UIChunk {
 
       for (int i = 0; i < times.length; i++) {
         final isExtra = i >= runnersCount;
-        final runner =
-            isExtra || allRunners.isEmpty ? null : allRunners.removeAt(0);
+        final runner = isExtra || allRunners.isEmpty
+            ? null
+            : allRunners.removeAt(0);
         final place = isExtra ? null : i + startingPlace;
 
-        records.add(UIRecord(
-          place: place,
-          runner: runner,
-          initialTime: times[i],
-          isOriginallyTBD: false, // Extra times are never originally TBD
-          validationError: null,
-        ));
+        records.add(
+          UIRecord(
+            place: place,
+            runner: runner,
+            initialTime: times[i],
+            isOriginallyTBD: false, // Extra times are never originally TBD
+            validationError: null,
+          ),
+        );
       }
     } else if (conflictType == ConflictType.missingTime) {
       // For missing time conflicts: all positions have runners, some times are TBD
@@ -79,16 +82,18 @@ class UIChunk {
         final isOriginallyTBD = recordedTimes != null
             ? !recordedTimes.contains(times[i])
             : i < originalTimingData.length
-                ? originalTimingData[i].time == 'TBD'
-                : true; // Added TBDs are originally TBD
+            ? originalTimingData[i].time == 'TBD'
+            : true; // Added TBDs are originally TBD
 
-        records.add(UIRecord(
-          place: place,
-          runner: runner,
-          initialTime: times[i],
-          isOriginallyTBD: isOriginallyTBD,
-          validationError: null,
-        ));
+        records.add(
+          UIRecord(
+            place: place,
+            runner: runner,
+            initialTime: times[i],
+            isOriginallyTBD: isOriginallyTBD,
+            validationError: null,
+          ),
+        );
       }
     } else if (conflictType == ConflictType.confirmRunner) {
       // For confirm runner conflicts: all positions have runners and times
@@ -96,13 +101,15 @@ class UIChunk {
         final runner = allRunners.isNotEmpty ? allRunners.removeAt(0) : null;
         final place = i + startingPlace;
 
-        records.add(UIRecord(
-          place: place,
-          runner: runner,
-          initialTime: times[i],
-          isOriginallyTBD: false, // Confirm runners are never TBD
-          validationError: null,
-        ));
+        records.add(
+          UIRecord(
+            place: place,
+            runner: runner,
+            initialTime: times[i],
+            isOriginallyTBD: false, // Confirm runners are never TBD
+            validationError: null,
+          ),
+        );
       }
     }
 
@@ -110,10 +117,11 @@ class UIChunk {
     final conflict = conflictRecord.conflict!;
     final startTime =
         records.isNotEmpty && records.first.timeController.text.isNotEmpty
-            ? records.first.timeController.text
-            : '0.0';
-    final parsedEndTime =
-        TimeFormatter.loadDurationFromString(conflictRecord.time);
+        ? records.first.timeController.text
+        : '0.0';
+    final parsedEndTime = TimeFormatter.loadDurationFromString(
+      conflictRecord.time,
+    );
     final endTime = parsedEndTime != null
         ? TimeFormatter.formatDuration(parsedEndTime)
         : conflictRecord.time;
@@ -189,10 +197,12 @@ class UIChunk {
         return records.every((record) => record.runner != null);
       case ConflictType.missingTime:
         // Missing time conflict is resolved when all positions have valid non-TBD times
-        return records.every((record) =>
-            record.time.isNotEmpty &&
-            record.time != 'TBD' &&
-            record.validationError == null);
+        return records.every(
+          (record) =>
+              record.time.isNotEmpty &&
+              record.time != 'TBD' &&
+              record.validationError == null,
+        );
       case ConflictType.confirmRunner:
         // ConfirmRunner conflicts are already resolved
         return true;

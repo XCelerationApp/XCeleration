@@ -4,20 +4,13 @@ import 'package:xceleration/core/components/dialog_utils.dart';
 import 'package:xceleration/core/theme/typography.dart';
 
 /// Actions that can be performed on a Google Sheet
-enum GoogleSheetAction {
-  openSheet,
-  share,
-  copyLink,
-}
+enum GoogleSheetAction { openSheet, share, copyLink }
 
 /// A button to open a Google Sheet
 class GoogleSheetOpenButton extends StatelessWidget {
   final VoidCallback onPressed;
 
-  const GoogleSheetOpenButton({
-    super.key,
-    required this.onPressed,
-  });
+  const GoogleSheetOpenButton({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +24,7 @@ class GoogleSheetOpenButton extends StatelessWidget {
       ),
       child: Text(
         'Open',
-        style: AppTypography.smallBodySemibold.copyWith(
-          color: Colors.white,
-        ),
+        style: AppTypography.smallBodySemibold.copyWith(color: Colors.white),
       ),
     );
   }
@@ -44,11 +35,7 @@ class GoogleSheetIcon extends StatelessWidget {
   final double size;
   final double iconSize;
 
-  const GoogleSheetIcon({
-    super.key,
-    this.size = 28,
-    this.iconSize = 18,
-  });
+  const GoogleSheetIcon({super.key, this.size = 28, this.iconSize = 18});
 
   @override
   Widget build(BuildContext context) {
@@ -59,11 +46,7 @@ class GoogleSheetIcon extends StatelessWidget {
         color: const Color(0xFF0F9D58), // Google Sheets green
         borderRadius: BorderRadius.circular(8),
       ),
-      child: Icon(
-        Icons.table_chart,
-        color: Colors.white,
-        size: iconSize,
-      ),
+      child: Icon(Icons.table_chart, color: Colors.white, size: iconSize),
     );
   }
 }
@@ -96,9 +79,7 @@ class GoogleSheetInfoRow extends StatelessWidget {
           Expanded(
             child: Text(
               title,
-              style: AppTypography.bodyRegular.copyWith(
-                color: Colors.black87,
-              ),
+              style: AppTypography.bodyRegular.copyWith(color: Colors.black87),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -107,9 +88,7 @@ class GoogleSheetInfoRow extends StatelessWidget {
           const SizedBox(width: 10),
 
           // Open button
-          GoogleSheetOpenButton(
-            onPressed: onOpenPressed,
-          ),
+          GoogleSheetOpenButton(onPressed: onOpenPressed),
         ],
       ),
     );
@@ -137,9 +116,7 @@ class GoogleSheetActionButton extends StatelessWidget {
         icon: Icon(icon, size: 24, color: Colors.black87),
         label: Text(
           label,
-          style: AppTypography.buttonText.copyWith(
-            color: Colors.black87,
-          ),
+          style: AppTypography.buttonText.copyWith(color: Colors.black87),
         ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -156,10 +133,7 @@ class GoogleSheetActionButton extends StatelessWidget {
 class GoogleSheetShareButton extends StatelessWidget {
   final VoidCallback onPressed;
 
-  const GoogleSheetShareButton({
-    super.key,
-    required this.onPressed,
-  });
+  const GoogleSheetShareButton({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -169,9 +143,7 @@ class GoogleSheetShareButton extends StatelessWidget {
         icon: const Icon(Icons.share, size: 24, color: Colors.black87),
         label: Text(
           'Share',
-          style: AppTypography.buttonText.copyWith(
-            color: Colors.black87,
-          ),
+          style: AppTypography.buttonText.copyWith(color: Colors.black87),
         ),
         style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 12),
@@ -266,7 +238,8 @@ class GoogleSheetOptionsDialog extends StatelessWidget {
               onCopy: () async {
                 // Copy to clipboard directly without closing dialog
                 await Clipboard.setData(
-                    ClipboardData(text: sheetUri.toString()));
+                  ClipboardData(text: sheetUri.toString()),
+                );
                 // Let the user know the link was copied
                 if (context.mounted) {
                   DialogUtils.showSuccessDialog(
@@ -292,9 +265,7 @@ Future<GoogleSheetAction?> showGoogleSheetOptionsDialog(
 }) async {
   return showDialog<GoogleSheetAction>(
     context: context,
-    builder: (context) => GoogleSheetOptionsDialog(
-      title: title,
-      sheetUri: sheetUri,
-    ),
+    builder: (context) =>
+        GoogleSheetOptionsDialog(title: title, sheetUri: sheetUri),
   );
 }

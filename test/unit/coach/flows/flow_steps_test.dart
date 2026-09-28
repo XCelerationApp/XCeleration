@@ -7,15 +7,14 @@ FlowStep _step({
   bool Function()? canProceed,
   Future<void> Function()? onNext,
   VoidCallback? onBack,
-}) =>
-    FlowStep(
-      title: 'Step',
-      description: 'Description',
-      content: const SizedBox(),
-      canProceed: canProceed,
-      onNext: onNext,
-      onBack: onBack,
-    );
+}) => FlowStep(
+  title: 'Step',
+  description: 'Description',
+  content: const SizedBox(),
+  canProceed: canProceed,
+  onNext: onNext,
+  onBack: onBack,
+);
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -123,7 +122,11 @@ void main() {
       test('calls onNext callback of current step', () async {
         bool called = false;
         final controller = FlowController([
-          _step(onNext: () async { called = true; }),
+          _step(
+            onNext: () async {
+              called = true;
+            },
+          ),
           _step(),
         ]);
         await controller.goToNext();
@@ -142,10 +145,10 @@ void main() {
 
       test('calls onStepChanged callback with new index', () async {
         int? reportedIndex;
-        final controller = FlowController(
-          [_step(), _step()],
-          onStepChanged: (i) => reportedIndex = i,
-        );
+        final controller = FlowController([
+          _step(),
+          _step(),
+        ], onStepChanged: (i) => reportedIndex = i);
         await controller.goToNext();
         expect(reportedIndex, 1);
         controller.dispose();
@@ -165,7 +168,11 @@ void main() {
         bool called = false;
         final controller = FlowController([
           _step(),
-          _step(onBack: () { called = true; }),
+          _step(
+            onBack: () {
+              called = true;
+            },
+          ),
         ]);
         await controller.goToNext();
         controller.goBack();
@@ -185,10 +192,10 @@ void main() {
 
       test('calls onStepChanged with new index', () async {
         int? reportedIndex;
-        final controller = FlowController(
-          [_step(), _step()],
-          onStepChanged: (i) => reportedIndex = i,
-        );
+        final controller = FlowController([
+          _step(),
+          _step(),
+        ], onStepChanged: (i) => reportedIndex = i);
         await controller.goToNext();
         reportedIndex = null;
         controller.goBack();
@@ -208,17 +215,19 @@ void main() {
     });
 
     group('content change subscription', () {
-      test('notifies listeners when current step emits a content change',
-          () async {
-        final step = _step();
-        final controller = FlowController([step]);
-        int notifyCount = 0;
-        controller.addListener(() => notifyCount++);
-        step.notifyContentChanged();
-        await Future<void>.delayed(Duration.zero);
-        expect(notifyCount, greaterThan(0));
-        controller.dispose();
-      });
+      test(
+        'notifies listeners when current step emits a content change',
+        () async {
+          final step = _step();
+          final controller = FlowController([step]);
+          int notifyCount = 0;
+          controller.addListener(() => notifyCount++);
+          step.notifyContentChanged();
+          await Future<void>.delayed(Duration.zero);
+          expect(notifyCount, greaterThan(0));
+          controller.dispose();
+        },
+      );
 
       test('subscribes to new step after goToNext', () async {
         final step1 = _step();
@@ -299,26 +308,28 @@ void main() {
     });
 
     group('dispose', () {
-      test('leaves the steps working for the next time the flow opens',
-          () async {
-        // The race keeps its steps. Closing the flow and opening it again
-        // must still hear a step say it can now go on.
-        var ready = false;
-        final step = _step(canProceed: () => ready);
-        FlowController([step]).dispose();
+      test(
+        'leaves the steps working for the next time the flow opens',
+        () async {
+          // The race keeps its steps. Closing the flow and opening it again
+          // must still hear a step say it can now go on.
+          var ready = false;
+          final step = _step(canProceed: () => ready);
+          FlowController([step]).dispose();
 
-        final reopened = FlowController([step]);
-        var notified = 0;
-        reopened.addListener(() => notified++);
-        ready = true;
-        step.notifyContentChanged();
-        await Future<void>.delayed(Duration.zero);
+          final reopened = FlowController([step]);
+          var notified = 0;
+          reopened.addListener(() => notified++);
+          ready = true;
+          step.notifyContentChanged();
+          await Future<void>.delayed(Duration.zero);
 
-        expect(notified, greaterThan(0));
-        expect(reopened.canProceed, isTrue);
-        reopened.dispose();
-        step.dispose();
-      });
+          expect(notified, greaterThan(0));
+          expect(reopened.canProceed, isTrue);
+          reopened.dispose();
+          step.dispose();
+        },
+      );
     });
   });
 }

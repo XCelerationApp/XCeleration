@@ -62,11 +62,16 @@ class ServiceLocator {
     _active._services[ITeamRepository] = teamRepo;
 
     final raceRepo = RaceRepository(
-        conn: connProvider, runnerRepo: runnerRepo, writeBus: writeBus);
+      conn: connProvider,
+      runnerRepo: runnerRepo,
+      writeBus: writeBus,
+    );
     _active._services[IRaceRepository] = raceRepo;
 
-    final resultsRepo =
-        ResultsRepository(conn: connProvider, writeBus: writeBus);
+    final resultsRepo = ResultsRepository(
+      conn: connProvider,
+      writeBus: writeBus,
+    );
     _active._services[IResultsRepository] = resultsRepo;
 
     // Consolidated Google service — registered here for DI; initialization is
@@ -75,7 +80,8 @@ class ServiceLocator {
 
     // Feature services — registered behind interfaces for testability.
     _active._services[IRaceService] = RaceService();
-    _active._services[SpectatorStorageService] = SpectatorStorageService.instance;
+    _active._services[SpectatorStorageService] =
+        SpectatorStorageService.instance;
 
     Logger.d('Services initialized successfully');
   }

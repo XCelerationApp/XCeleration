@@ -10,12 +10,19 @@ void main() {
   final runners = [
     BibDatum(bib: '101', name: 'Ava Lee', teamAbbreviation: 'NHS', grade: '11'),
     BibDatum(bib: '102', name: 'Mia Chen', teamAbbreviation: 'RHS', grade: '9'),
-    BibDatum(bib: '215', name: 'Zoe Park', teamAbbreviation: 'NHS', grade: '12'),
+    BibDatum(
+      bib: '215',
+      name: 'Zoe Park',
+      teamAbbreviation: 'NHS',
+      grade: '12',
+    ),
   ];
 
-  Future<void> pumpSheet(WidgetTester tester) => tester.pumpWidget(MaterialApp(
-        home: Scaffold(body: RunnersLoadedSheet(runners: runners)),
-      ));
+  Future<void> pumpSheet(WidgetTester tester) => tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(body: RunnersLoadedSheet(runners: runners)),
+    ),
+  );
 
   testWidgets('shows every runner at first', (tester) async {
     await pumpSheet(tester);
@@ -27,17 +34,33 @@ void main() {
   });
 
   testWidgets('lists runners by bib number, 2 before 10', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: RunnersLoadedSheet(runners: [
-          BibDatum(bib: '10', name: 'Ten', teamAbbreviation: 'NHS', grade: '9'),
-          BibDatum(bib: '2', name: 'Two', teamAbbreviation: 'NHS', grade: '9'),
-        ]),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RunnersLoadedSheet(
+            runners: [
+              BibDatum(
+                bib: '10',
+                name: 'Ten',
+                teamAbbreviation: 'NHS',
+                grade: '9',
+              ),
+              BibDatum(
+                bib: '2',
+                name: 'Two',
+                teamAbbreviation: 'NHS',
+                grade: '9',
+              ),
+            ],
+          ),
+        ),
       ),
-    ));
+    );
 
-    expect(tester.getTopLeft(find.text('Two')).dy,
-        lessThan(tester.getTopLeft(find.text('Ten')).dy));
+    expect(
+      tester.getTopLeft(find.text('Two')).dy,
+      lessThan(tester.getTopLeft(find.text('Ten')).dy),
+    );
   });
 
   testWidgets('searches by name', (tester) async {

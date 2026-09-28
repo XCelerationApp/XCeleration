@@ -59,7 +59,9 @@ class CsvUtils {
 
   // Save the generated CSV content using file_saver (cross-platform)
   static Future<String> saveCsvWithFileSaver(
-      String filename, String csvContent) async {
+    String filename,
+    String csvContent,
+  ) async {
     try {
       String? selectedDirectory = await FilePicker.platform.getDirectoryPath();
 

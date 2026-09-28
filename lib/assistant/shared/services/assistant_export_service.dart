@@ -50,17 +50,17 @@ class AssistantExportService {
 
   /// The Timer's finish times as a table: a heading row, then place and time.
   static List<List<String>> timerTable(List<UIRecord> records) => [
-        ['Place', 'Time'],
-        ...records
-            .where((r) => r.type == RecordType.runnerTime)
-            .map((r) => [r.place?.toString() ?? '', r.time]),
-      ];
+    ['Place', 'Time'],
+    ...records
+        .where((r) => r.type == RecordType.runnerTime)
+        .map((r) => [r.place?.toString() ?? '', r.time]),
+  ];
 
   /// The Bib Recorder's list as a table: a heading row, then [bibRows].
   static List<List<String>> bibTable(List<BibDatumRecord> records) => [
-        ['Place', 'Bib', 'Name', 'Team', 'Grade'],
-        ...bibRows(records),
-      ];
+    ['Place', 'Bib', 'Name', 'Team', 'Grade'],
+    ...bibRows(records),
+  ];
 
   /// A table as plain text under the race's name and date. Columns are
   /// split by tabs, so it reads in a message and pastes into a spreadsheet
@@ -103,10 +103,12 @@ class AssistantExportService {
       final csv = const ListToCsvConverter().convert(rows);
       return _writeTempTextFile(csv, race.name, 'csv', 'text/csv');
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not create CSV export.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not create CSV export.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -121,18 +123,20 @@ class AssistantExportService {
 
       final rows = timerTable(records).skip(1).toList();
 
-      pdf.addPage(pw.MultiPage(
-        theme: theme,
-        build: (_) => [
-          pw.Header(level: 0, text: '${race.name} — ${race.formattedDate}'),
-          pw.SizedBox(height: 16),
-          pw.Header(level: 1, text: 'Finish Times'),
-          pw.TableHelper.fromTextArray(
-            headers: ['Place', 'Time'],
-            data: rows,
-          ),
-        ],
-      ));
+      pdf.addPage(
+        pw.MultiPage(
+          theme: theme,
+          build: (_) => [
+            pw.Header(level: 0, text: '${race.name} — ${race.formattedDate}'),
+            pw.SizedBox(height: 16),
+            pw.Header(level: 1, text: 'Finish Times'),
+            pw.TableHelper.fromTextArray(
+              headers: ['Place', 'Time'],
+              data: rows,
+            ),
+          ],
+        ),
+      );
 
       return _writeTempBytesFile(
         await pdf.save(),
@@ -141,10 +145,12 @@ class AssistantExportService {
         'application/pdf',
       );
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not create PDF export.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not create PDF export.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -167,10 +173,12 @@ class AssistantExportService {
       final csv = const ListToCsvConverter().convert(rows);
       return _writeTempTextFile(csv, race.name, 'csv', 'text/csv');
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not create CSV export.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not create CSV export.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -185,18 +193,20 @@ class AssistantExportService {
 
       final rows = bibRows(records);
 
-      pdf.addPage(pw.MultiPage(
-        theme: theme,
-        build: (_) => [
-          pw.Header(level: 0, text: '${race.name} — ${race.formattedDate}'),
-          pw.SizedBox(height: 16),
-          pw.Header(level: 1, text: 'Bib Numbers'),
-          pw.TableHelper.fromTextArray(
-            headers: ['Place', 'Bib', 'Name', 'Team', 'Grade'],
-            data: rows,
-          ),
-        ],
-      ));
+      pdf.addPage(
+        pw.MultiPage(
+          theme: theme,
+          build: (_) => [
+            pw.Header(level: 0, text: '${race.name} — ${race.formattedDate}'),
+            pw.SizedBox(height: 16),
+            pw.Header(level: 1, text: 'Bib Numbers'),
+            pw.TableHelper.fromTextArray(
+              headers: ['Place', 'Bib', 'Name', 'Team', 'Grade'],
+              data: rows,
+            ),
+          ],
+        ),
+      );
 
       return _writeTempBytesFile(
         await pdf.save(),
@@ -205,10 +215,12 @@ class AssistantExportService {
         'application/pdf',
       );
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not create PDF export.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not create PDF export.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -236,10 +248,12 @@ class AssistantExportService {
   // ---------------------------------------------------------------------------
 
   static Future<(pw.Font, pw.Font)> _loadFonts() async {
-    final regular =
-        pw.Font.ttf(await rootBundle.load('assets/fonts/Inter-Regular.ttf'));
-    final bold =
-        pw.Font.ttf(await rootBundle.load('assets/fonts/Inter-Bold.ttf'));
+    final regular = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/Inter-Regular.ttf'),
+    );
+    final bold = pw.Font.ttf(
+      await rootBundle.load('assets/fonts/Inter-Bold.ttf'),
+    );
     return (regular, bold);
   }
 
@@ -255,10 +269,12 @@ class AssistantExportService {
       await File(path).writeAsString(content, flush: true);
       return Success(XFile(path, mimeType: mimeType));
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not save export file.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save export file.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -274,10 +290,12 @@ class AssistantExportService {
       await File(path).writeAsBytes(bytes, flush: true);
       return Success(XFile(path, mimeType: mimeType));
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not save export file.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save export file.',
+          originalException: e,
+        ),
+      );
     }
   }
 

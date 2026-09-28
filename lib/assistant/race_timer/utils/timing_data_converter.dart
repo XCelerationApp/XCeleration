@@ -25,54 +25,64 @@ class RaceTimerDataConverter {
     } else if (!chunk.hasConflict) {
       for (int i = 0; i < chunk.timingData.length; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
-        uiRecords.add(UIRecord(
-          time: timingDatum.time,
-          place: startingPlace + i,
-          textColor: Colors.black,
-          type: RecordType.runnerTime,
-        ));
+        uiRecords.add(
+          UIRecord(
+            time: timingDatum.time,
+            place: startingPlace + i,
+            textColor: Colors.black,
+            type: RecordType.runnerTime,
+          ),
+        );
         endingPlace++;
       }
     } else if (chunk.conflictRecord!.conflict!.type ==
         ConflictType.confirmRunner) {
       for (int i = 0; i < chunk.timingData.length; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
-        uiRecords.add(UIRecord(
-          time: timingDatum.time,
-          place: startingPlace + i,
-          textColor: Colors.green,
-          type: RecordType.runnerTime,
-        ));
+        uiRecords.add(
+          UIRecord(
+            time: timingDatum.time,
+            place: startingPlace + i,
+            textColor: Colors.green,
+            type: RecordType.runnerTime,
+          ),
+        );
         endingPlace++;
       }
-      uiRecords.add(UIRecord(
-        time: chunk.conflictRecord!.time,
-        place: null, // Don't assign a place to confirmation records
-        textColor: Colors.green,
-        type: RecordType.confirmRunner,
-        conflictTime: chunk.conflictRecord!.time,
-      ));
+      uiRecords.add(
+        UIRecord(
+          time: chunk.conflictRecord!.time,
+          place: null, // Don't assign a place to confirmation records
+          textColor: Colors.green,
+          type: RecordType.confirmRunner,
+          conflictTime: chunk.conflictRecord!.time,
+        ),
+      );
       // Don't increment endingPlace for confirmation records
     } else if (chunk.conflictRecord!.conflict!.type ==
         ConflictType.missingTime) {
       for (int i = 0; i < chunk.timingData.length; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
-        uiRecords.add(UIRecord(
-          time: timingDatum.time,
-          place: startingPlace + i,
-          textColor: AppColors.redColor,
-          type: RecordType.runnerTime,
-        ));
+        uiRecords.add(
+          UIRecord(
+            time: timingDatum.time,
+            place: startingPlace + i,
+            textColor: AppColors.redColor,
+            type: RecordType.runnerTime,
+          ),
+        );
         endingPlace++;
       }
       for (int i = 0; i < chunk.conflictRecord!.conflict!.offBy; i++) {
-        uiRecords.add(UIRecord(
-          time: 'TBD',
-          place: endingPlace,
-          textColor: AppColors.redColor,
-          type: RecordType.missingTime,
-          conflictTime: chunk.conflictRecord!.time,
-        ));
+        uiRecords.add(
+          UIRecord(
+            time: 'TBD',
+            place: endingPlace,
+            textColor: AppColors.redColor,
+            type: RecordType.missingTime,
+            conflictTime: chunk.conflictRecord!.time,
+          ),
+        );
         endingPlace++;
       }
     } else if (chunk.conflictRecord!.conflict!.type == ConflictType.extraTime) {
@@ -83,23 +93,27 @@ class RaceTimerDataConverter {
               .clamp(0, chunk.timingData.length);
       for (int i = 0; i < extraTimesIndex; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
-        uiRecords.add(UIRecord(
-          time: timingDatum.time,
-          place: startingPlace + i,
-          textColor: AppColors.redColor,
-          type: RecordType.runnerTime,
-        ));
+        uiRecords.add(
+          UIRecord(
+            time: timingDatum.time,
+            place: startingPlace + i,
+            textColor: AppColors.redColor,
+            type: RecordType.runnerTime,
+          ),
+        );
         endingPlace++;
       }
       for (int i = extraTimesIndex; i < chunk.timingData.length; i++) {
         TimingDatum timingDatum = chunk.timingData[i];
-        uiRecords.add(UIRecord(
-          time: timingDatum.time,
-          place: null,
-          textColor: AppColors.redColor,
-          type: RecordType.extraTime,
-          conflictTime: chunk.conflictRecord!.time,
-        ));
+        uiRecords.add(
+          UIRecord(
+            time: timingDatum.time,
+            place: null,
+            textColor: AppColors.redColor,
+            type: RecordType.extraTime,
+            conflictTime: chunk.conflictRecord!.time,
+          ),
+        );
         // don't increment endingPlace
       }
     } else {

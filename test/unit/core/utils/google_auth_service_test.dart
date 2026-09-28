@@ -90,16 +90,18 @@ void main() {
         expect(result, isFalse);
       });
 
-      test('calls signOut before interactive sign-in when web token missing',
-          () async {
-        // Default fake: authenticate throws, but signOut is called first
-        final service = buildService();
+      test(
+        'calls signOut before interactive sign-in when web token missing',
+        () async {
+          // Default fake: authenticate throws, but signOut is called first
+          final service = buildService();
 
-        await service.signIn();
+          await service.signIn();
 
-        expect(fakePlatform.signOutCallCount, 1);
-        expect(fakePlatform.authenticateCallCount, 1);
-      });
+          expect(fakePlatform.signOutCallCount, 1);
+          expect(fakePlatform.authenticateCallCount, 1);
+        },
+      );
 
       test('returns false when sign-in throws', () async {
         final service = buildService();
@@ -160,12 +162,14 @@ void main() {
     });
 
     group('token exchange (via webAccessToken)', () {
-      test('returns false when offline (offline guard exercises token path)',
-          () async {
-        final service = buildService(online: false);
-        final result = await service.signIn();
-        expect(result, isFalse);
-      });
+      test(
+        'returns false when offline (offline guard exercises token path)',
+        () async {
+          final service = buildService(online: false);
+          final result = await service.signIn();
+          expect(result, isFalse);
+        },
+      );
     });
   });
 }

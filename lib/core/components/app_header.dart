@@ -91,8 +91,11 @@ class AppHeader extends StatelessWidget {
                           style: titleStyle ?? AppTypography.displayMedium,
                         ),
                         const SizedBox(width: AppSpacing.xs),
-                        const Icon(Icons.keyboard_arrow_down_rounded,
-                            size: 28, color: AppColors.mediumColor),
+                        const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          size: 28,
+                          color: AppColors.mediumColor,
+                        ),
                       ],
                     ),
                   ),
@@ -104,8 +107,10 @@ class AppHeader extends StatelessWidget {
           _HeaderIconButton(
             icon: Icons.info_outline,
             highlight: true,
-            onTap: () =>
-                InstructionsBanner.showInstructionsSheetManual(context, currentRole),
+            onTap: () => InstructionsBanner.showInstructionsSheetManual(
+              context,
+              currentRole,
+            ),
           ),
           const SizedBox(width: AppSpacing.sm),
           _HeaderIconButton(

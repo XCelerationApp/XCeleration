@@ -8,9 +8,7 @@ void main() {
   group('ActionButton', () {
     group('text rendering', () {
       testWidgets('displays the provided text', (tester) async {
-        await tester.pumpWidget(
-          _wrap(const ActionButton(text: 'Submit')),
-        );
+        await tester.pumpWidget(_wrap(const ActionButton(text: 'Submit')));
 
         expect(find.text('Submit'), findsOneWidget);
       });
@@ -21,10 +19,7 @@ void main() {
         var pressed = false;
 
         await tester.pumpWidget(
-          _wrap(ActionButton(
-            text: 'Go',
-            onPressed: () => pressed = true,
-          )),
+          _wrap(ActionButton(text: 'Go', onPressed: () => pressed = true)),
         );
 
         await tester.tap(find.byType(ActionButton));
@@ -35,11 +30,13 @@ void main() {
         var pressed = false;
 
         await tester.pumpWidget(
-          _wrap(ActionButton(
-            text: 'Go',
-            isEnabled: false,
-            onPressed: () => pressed = true,
-          )),
+          _wrap(
+            ActionButton(
+              text: 'Go',
+              isEnabled: false,
+              onPressed: () => pressed = true,
+            ),
+          ),
         );
 
         await tester.tap(find.byType(ActionButton));
@@ -50,57 +47,62 @@ void main() {
     group('icon', () {
       testWidgets('renders icon when provided', (tester) async {
         await tester.pumpWidget(
-          _wrap(const ActionButton(
-            text: 'Save',
-            icon: Icons.save,
-          )),
+          _wrap(const ActionButton(text: 'Save', icon: Icons.save)),
         );
 
         expect(find.byIcon(Icons.save), findsOneWidget);
       });
 
       testWidgets('renders no icon when not provided', (tester) async {
-        await tester.pumpWidget(
-          _wrap(const ActionButton(text: 'Save')),
-        );
+        await tester.pumpWidget(_wrap(const ActionButton(text: 'Save')));
 
         expect(find.byType(Icon), findsNothing);
       });
 
-      testWidgets('places icon before text when iconLeading is true',
-          (tester) async {
+      testWidgets('places icon before text when iconLeading is true', (
+        tester,
+      ) async {
         await tester.pumpWidget(
-          _wrap(const ActionButton(
-            text: 'Save',
-            icon: Icons.save,
-            iconLeading: true,
-          )),
+          _wrap(
+            const ActionButton(
+              text: 'Save',
+              icon: Icons.save,
+              iconLeading: true,
+            ),
+          ),
         );
 
         final row = tester.widget<Row>(
-          find.descendant(
-            of: find.byType(ActionButton),
-            matching: find.byType(Row),
-          ).first,
+          find
+              .descendant(
+                of: find.byType(ActionButton),
+                matching: find.byType(Row),
+              )
+              .first,
         );
         expect(row.children.first, isA<Icon>());
       });
 
-      testWidgets('places icon after text when iconLeading is false',
-          (tester) async {
+      testWidgets('places icon after text when iconLeading is false', (
+        tester,
+      ) async {
         await tester.pumpWidget(
-          _wrap(const ActionButton(
-            text: 'Next',
-            icon: Icons.arrow_forward,
-            iconLeading: false,
-          )),
+          _wrap(
+            const ActionButton(
+              text: 'Next',
+              icon: Icons.arrow_forward,
+              iconLeading: false,
+            ),
+          ),
         );
 
         final row = tester.widget<Row>(
-          find.descendant(
-            of: find.byType(ActionButton),
-            matching: find.byType(Row),
-          ).first,
+          find
+              .descendant(
+                of: find.byType(ActionButton),
+                matching: find.byType(Row),
+              )
+              .first,
         );
         expect(row.children.last, isA<Icon>());
       });
@@ -109,10 +111,7 @@ void main() {
     group('size variants', () {
       testWidgets('renders small size without error', (tester) async {
         await tester.pumpWidget(
-          _wrap(const ActionButton(
-            text: 'Small',
-            size: ButtonSize.small,
-          )),
+          _wrap(const ActionButton(text: 'Small', size: ButtonSize.small)),
         );
 
         expect(find.text('Small'), findsOneWidget);
@@ -120,10 +119,7 @@ void main() {
 
       testWidgets('renders large size without error', (tester) async {
         await tester.pumpWidget(
-          _wrap(const ActionButton(
-            text: 'Large',
-            size: ButtonSize.large,
-          )),
+          _wrap(const ActionButton(text: 'Large', size: ButtonSize.large)),
         );
 
         expect(find.text('Large'), findsOneWidget);
@@ -131,10 +127,7 @@ void main() {
 
       testWidgets('renders full-width size without error', (tester) async {
         await tester.pumpWidget(
-          _wrap(const ActionButton(
-            text: 'Full',
-            size: ButtonSize.fullWidth,
-          )),
+          _wrap(const ActionButton(text: 'Full', size: ButtonSize.fullWidth)),
         );
 
         expect(find.text('Full'), findsOneWidget);
@@ -144,10 +137,7 @@ void main() {
     group('primary vs secondary', () {
       testWidgets('renders primary button without error', (tester) async {
         await tester.pumpWidget(
-          _wrap(const ActionButton(
-            text: 'Primary',
-            isPrimary: true,
-          )),
+          _wrap(const ActionButton(text: 'Primary', isPrimary: true)),
         );
 
         expect(find.text('Primary'), findsOneWidget);
@@ -155,10 +145,7 @@ void main() {
 
       testWidgets('renders secondary button without error', (tester) async {
         await tester.pumpWidget(
-          _wrap(const ActionButton(
-            text: 'Secondary',
-            isPrimary: false,
-          )),
+          _wrap(const ActionButton(text: 'Secondary', isPrimary: false)),
         );
 
         expect(find.text('Secondary'), findsOneWidget);

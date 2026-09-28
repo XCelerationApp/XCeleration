@@ -37,10 +37,7 @@ class IndividualResultsWidget extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Individual Results',
-                  style: AppTypography.titleSemibold,
-                ),
+                Text('Individual Results', style: AppTypography.titleSemibold),
                 Text(
                   '${raceResultsData.individualResults.length} Runners',
                   style: AppTypography.bodyRegular.copyWith(

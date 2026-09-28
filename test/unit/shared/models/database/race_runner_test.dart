@@ -10,24 +10,18 @@ Runner _validRunner({
   String bibNumber = '42',
   int grade = 10,
 }) =>
-    Runner(
-      runnerId: runnerId,
-      name: name,
-      bibNumber: bibNumber,
-      grade: grade,
-    );
+    Runner(runnerId: runnerId, name: name, bibNumber: bibNumber, grade: grade);
 
 Team _validTeam({
   int teamId = 1,
   String name = 'Eagles',
   String abbreviation = 'EAG',
-}) =>
-    Team(
-      teamId: teamId,
-      name: name,
-      abbreviation: abbreviation,
-      color: const Color(0xFF2196F3),
-    );
+}) => Team(
+  teamId: teamId,
+  name: name,
+  abbreviation: abbreviation,
+  color: const Color(0xFF2196F3),
+);
 
 void main() {
   group('RaceRunner', () {
@@ -91,7 +85,12 @@ void main() {
       test('returns a new instance with identical field values', () {
         final original = RaceRunner(
           raceId: 5,
-          runner: _validRunner(runnerId: 10, name: 'Bob', bibNumber: '99', grade: 11),
+          runner: _validRunner(
+            runnerId: 10,
+            name: 'Bob',
+            bibNumber: '99',
+            grade: 11,
+          ),
           team: _validTeam(teamId: 3, name: 'Hawks', abbreviation: 'HWK'),
         );
 

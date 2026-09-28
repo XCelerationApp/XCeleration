@@ -19,13 +19,15 @@ class _FakeRaces extends ChangeNotifier implements RacesController {
 
 void main() {
   Future<void> pump(WidgetTester tester, List<Race> races) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: CustomScrollView(
-          slivers: [RacesList(controller: _FakeRaces(races), canEdit: true)],
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CustomScrollView(
+            slivers: [RacesList(controller: _FakeRaces(races), canEdit: true)],
+          ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
   }
 

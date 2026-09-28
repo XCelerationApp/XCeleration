@@ -53,12 +53,12 @@ class RaceFormState extends ChangeNotifier {
   Set<RaceField> get changedFields => Set.unmodifiable(_changedFields);
 
   TextEditingController controllerFor(RaceField field) => switch (field) {
-        RaceField.name => nameController,
-        RaceField.location => locationController,
-        RaceField.date => dateController,
-        RaceField.distance => distanceController,
-        RaceField.unit => unitController,
-      };
+    RaceField.name => nameController,
+    RaceField.location => locationController,
+    RaceField.date => dateController,
+    RaceField.distance => distanceController,
+    RaceField.unit => unitController,
+  };
 
   void storeOriginalValue(RaceField field, Race race) {
     if (!_originalValues.containsKey(field)) {
@@ -125,8 +125,9 @@ class RaceFormState extends ChangeNotifier {
           locationController.text = value ?? '';
         case RaceField.date:
           final date = value as DateTime?;
-          dateController.text =
-              date != null ? DateFormat('yyyy-MM-dd').format(date) : '';
+          dateController.text = date != null
+              ? DateFormat('yyyy-MM-dd').format(date)
+              : '';
         case RaceField.distance:
           distanceController.text = (value ?? 0).toString();
         case RaceField.unit:

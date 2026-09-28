@@ -59,12 +59,7 @@ class BibRecord {
 
   @override
   int get hashCode {
-    return Object.hash(
-      raceId,
-      bibId,
-      bibNumber,
-      createdAt,
-    );
+    return Object.hash(raceId, bibId, bibNumber, createdAt);
   }
 
   @override

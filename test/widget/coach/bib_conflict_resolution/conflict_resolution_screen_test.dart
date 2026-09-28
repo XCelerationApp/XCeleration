@@ -14,10 +14,10 @@ import 'package:xceleration/shared/models/database/team.dart';
 const _eagles = Team(teamId: 1, name: 'Eagles', abbreviation: 'EAG');
 
 RaceRunner _runner(int id, String bib, String name) => RaceRunner(
-      raceId: 1,
-      runner: Runner(runnerId: id, name: name, bibNumber: bib, grade: 11),
-      team: _eagles,
-    );
+  raceId: 1,
+  runner: Runner(runnerId: id, name: name, bibNumber: bib, grade: 11),
+  team: _eagles,
+);
 
 final _quinn = _runner(1, '959', 'Quinn Owls');
 final _gray = _runner(2, '949', 'Gray Eagles');
@@ -27,13 +27,37 @@ final _duplicate = DuplicateBibConflict(
   bibNumber: '959',
   runner: _quinn,
   occurrences: const [
-    ConflictOccurrence(place: 16, after: '15:40.10', before: '15:44.00', nearby: [
-      NearbyFinisher(place: 15, name: 'Finley Eagles', team: 'Eagles', bibNumber: '944'),
-      NearbyFinisher(place: 18, name: 'Emery Eagles', team: 'Eagles', bibNumber: '945'),
-    ]),
-    ConflictOccurrence(place: 21, time: '16:03.78', nearby: [
-      NearbyFinisher(place: 20, name: 'Morgan Hawks', team: 'Hawks', bibNumber: '957'),
-    ]),
+    ConflictOccurrence(
+      place: 16,
+      after: '15:40.10',
+      before: '15:44.00',
+      nearby: [
+        NearbyFinisher(
+          place: 15,
+          name: 'Finley Eagles',
+          team: 'Eagles',
+          bibNumber: '944',
+        ),
+        NearbyFinisher(
+          place: 18,
+          name: 'Emery Eagles',
+          team: 'Eagles',
+          bibNumber: '945',
+        ),
+      ],
+    ),
+    ConflictOccurrence(
+      place: 21,
+      time: '16:03.78',
+      nearby: [
+        NearbyFinisher(
+          place: 20,
+          name: 'Morgan Hawks',
+          team: 'Hawks',
+          bibNumber: '957',
+        ),
+      ],
+    ),
   ],
 );
 
@@ -62,22 +86,26 @@ void main() {
     controller = _controller(timingConflictsNext: timingConflictsNext);
     popped = null;
     didPop = false;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: Center(
-            child: ElevatedButton(
-              onPressed: () async {
-                popped = await ConflictResolutionScreen.open(context,
-                    create: () => controller);
-                didPop = true;
-              },
-              child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () async {
+                  popped = await ConflictResolutionScreen.open(
+                    context,
+                    create: () => controller,
+                  );
+                  didPop = true;
+                },
+                child: const Text('open'),
+              ),
             ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }
@@ -89,8 +117,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('the summary lists every conflict, in finish order',
-      (tester) async {
+  testWidgets('the summary lists every conflict, in finish order', (
+    tester,
+  ) async {
     await open(tester);
 
     expect(find.text('1 duplicate bib · 1 unknown bib'), findsOneWidget);
@@ -99,8 +128,9 @@ void main() {
     expect(find.text('#9567'), findsOneWidget);
   });
 
-  testWidgets('only describes the kinds of conflict the race has',
-      (tester) async {
+  testWidgets('only describes the kinds of conflict the race has', (
+    tester,
+  ) async {
     controller = ConflictResolutionController(
       conflicts: [_duplicate],
       candidates: [_gray],
@@ -109,9 +139,9 @@ void main() {
       raceName: 'Invitational',
       createRunner: (_) async => Success(_gray),
     );
-    await tester.pumpWidget(MaterialApp(
-      home: ConflictResolutionScreen(create: () => controller),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(home: ConflictResolutionScreen(create: () => controller)),
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Duplicate Bibs'), findsOneWidget);
@@ -146,8 +176,9 @@ void main() {
     expect(find.text('Start Resolving'), findsOneWidget);
   });
 
-  testWidgets('back from the summary with nothing done hands back nothing',
-      (tester) async {
+  testWidgets('back from the summary with nothing done hands back nothing', (
+    tester,
+  ) async {
     await open(tester);
 
     await tester.tap(find.text('Back'));
@@ -157,8 +188,9 @@ void main() {
     expect(popped, isNull);
   });
 
-  testWidgets('leaving part way keeps the conflicts already resolved',
-      (tester) async {
+  testWidgets('leaving part way keeps the conflicts already resolved', (
+    tester,
+  ) async {
     await open(tester);
     // The unknown bib done; the repeated bib only half done.
     controller.openConflict(1);
@@ -179,8 +211,9 @@ void main() {
     expect(popped, {17: _nico});
   });
 
-  testWidgets('the phone\'s back button steps back a card, not out',
-      (tester) async {
+  testWidgets('the phone\'s back button steps back a card, not out', (
+    tester,
+  ) async {
     await open(tester);
     await start(tester);
 
@@ -191,8 +224,9 @@ void main() {
     expect(find.text('Start Resolving'), findsOneWidget);
   });
 
-  testWidgets('a repeated bib asks which finish, then who the other was',
-      (tester) async {
+  testWidgets('a repeated bib asks which finish, then who the other was', (
+    tester,
+  ) async {
     await open(tester);
     await start(tester);
 
@@ -217,21 +251,30 @@ void main() {
     expect(find.text('Morgan Hawks'), findsOneWidget);
     expect(find.text('Unknown runner'), findsOneWidget);
     expect(
-        find.byWidgetPredicate((w) =>
+      find.byWidgetPredicate(
+        (w) =>
             w is Text &&
-            (w.data == 'Find Runner' || w.data == 'Find Someone Else')),
-        findsOneWidget);
+            (w.data == 'Find Runner' || w.data == 'Find Someone Else'),
+      ),
+      findsOneWidget,
+    );
   });
 
-  testWidgets('both finishes of a repeated bib are the same size',
-      (tester) async {
+  testWidgets('both finishes of a repeated bib are the same size', (
+    tester,
+  ) async {
     // 16th has only a range, 21st a settled time in large type.
     await open(tester);
     await start(tester);
 
-    Size box(String place) => tester.getSize(find
-        .ancestor(of: find.text(place), matching: find.byType(AnimatedContainer))
-        .first);
+    Size box(String place) => tester.getSize(
+      find
+          .ancestor(
+            of: find.text(place),
+            matching: find.byType(AnimatedContainer),
+          )
+          .first,
+    );
     expect(box('16th place'), box('21st place'));
   });
 
@@ -258,8 +301,9 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('submitting hands back who finished at each place',
-      (tester) async {
+  testWidgets('submitting hands back who finished at each place', (
+    tester,
+  ) async {
     await open(tester);
     controller.startResolving();
     controller.chooseDuplicateOccurrence(16);
@@ -281,8 +325,9 @@ void main() {
     expect(popped, {16: _quinn, 17: _nico, 21: _gray});
   });
 
-  testWidgets('says timing conflicts come next, rather than all resolved',
-      (tester) async {
+  testWidgets('says timing conflicts come next, rather than all resolved', (
+    tester,
+  ) async {
     await open(tester, timingConflictsNext: 2);
     controller.startResolving();
     controller.chooseDuplicateOccurrence(16);
@@ -292,8 +337,10 @@ void main() {
     await controller.commitPending();
     await tester.pumpAndSettle();
 
-    expect(find.textContaining('Next, 2 places need their times'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Next, 2 places need their times'),
+      findsOneWidget,
+    );
     expect(find.text('Next: Timing Conflicts'), findsOneWidget);
     expect(find.text('Done'), findsNothing);
   });

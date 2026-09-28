@@ -26,7 +26,10 @@ class ListTitles extends StatelessWidget {
         child: Row(
           children: [
             Expanded(child: Text('NAME', style: style)),
-            SizedBox(width: 36, child: Center(child: Text('GR.', style: style))),
+            SizedBox(
+              width: 36,
+              child: Center(child: Text('GR.', style: style)),
+            ),
             SizedBox(
               width: 56,
               child: Text('BIB', textAlign: TextAlign.right, style: style),

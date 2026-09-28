@@ -44,7 +44,6 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> deleteUserData(String userId) async => deleteDatabase();
-
 }
 
 void main() {
@@ -75,7 +74,11 @@ void main() {
   }
 
   // Inserts a runner row and returns its id.
-  Future<int> insertRunner({String name = 'Alice', String bib = '100', int grade = 11}) async {
+  Future<int> insertRunner({
+    String name = 'Alice',
+    String bib = '100',
+    int grade = 11,
+  }) async {
     final db = await connProvider.database;
     return db.insert('runners', {
       'name': name,
@@ -133,11 +136,13 @@ void main() {
         final runnerId = await insertRunner();
         final teamId = await insertTeam();
         await repo.addRaceResult(
-            buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId));
-        final row = (await (await connProvider.database).query('race_results',
-                where: 'race_id = ? AND runner_id = ?',
-                whereArgs: [raceId, runnerId]))
-            .single;
+          buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId),
+        );
+        final row = (await (await connProvider.database).query(
+          'race_results',
+          where: 'race_id = ? AND runner_id = ?',
+          whereArgs: [raceId, runnerId],
+        )).single;
         expect(row['updated_at'], endsWith('Z'));
       });
     });
@@ -151,21 +156,32 @@ void main() {
         final raceId = await insertRace();
         final runnerId = await insertRunner();
         final teamId = await insertTeam();
-        final result = buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId);
+        final result = buildResult(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         await repo.addRaceResult(result);
         final fetched = await repo.getRaceResult(result);
         expect(fetched, isNotNull);
         expect(fetched!.place, 1);
       });
 
-      test('throws when result for same runner in same race already exists', () async {
-        final raceId = await insertRace();
-        final runnerId = await insertRunner();
-        final teamId = await insertTeam();
-        final result = buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId);
-        await repo.addRaceResult(result);
-        expect(() => repo.addRaceResult(result), throwsException);
-      });
+      test(
+        'throws when result for same runner in same race already exists',
+        () async {
+          final raceId = await insertRace();
+          final runnerId = await insertRunner();
+          final teamId = await insertTeam();
+          final result = buildResult(
+            raceId: raceId,
+            runnerId: runnerId,
+            teamId: teamId,
+          );
+          await repo.addRaceResult(result);
+          expect(() => repo.addRaceResult(result), throwsException);
+        },
+      );
     });
 
     // =========================================================================
@@ -177,7 +193,11 @@ void main() {
         final raceId = await insertRace();
         final runnerId = await insertRunner();
         final teamId = await insertTeam();
-        final result = buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId);
+        final result = buildResult(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         await repo.addRaceResult(result);
         final fetched = await repo.getRaceResult(result);
         expect(fetched, isNotNull);
@@ -188,7 +208,11 @@ void main() {
         final raceId = await insertRace();
         final runnerId = await insertRunner();
         final teamId = await insertTeam();
-        final query = buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId);
+        final query = buildResult(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         expect(await repo.getRaceResult(query), isNull);
       });
 
@@ -196,8 +220,18 @@ void main() {
         final teamId = await insertTeam();
         final noRaceId = RaceResult(
           raceId: null,
-          runner: Runner(runnerId: 1, name: 'Alice', bibNumber: '100', grade: 11),
-          team: Team(teamId: teamId, name: 'Eagles', abbreviation: 'EA', color: const Color(0xFF2196F3)),
+          runner: Runner(
+            runnerId: 1,
+            name: 'Alice',
+            bibNumber: '100',
+            grade: 11,
+          ),
+          team: Team(
+            teamId: teamId,
+            name: 'Eagles',
+            abbreviation: 'EA',
+            color: const Color(0xFF2196F3),
+          ),
           place: 1,
           finishTime: const Duration(minutes: 10),
         );
@@ -210,7 +244,12 @@ void main() {
         final noRunnerId = RaceResult(
           raceId: raceId,
           runner: const Runner(name: 'Alice', bibNumber: '100', grade: 11),
-          team: Team(teamId: teamId, name: 'Eagles', abbreviation: 'EA', color: const Color(0xFF2196F3)),
+          team: Team(
+            teamId: teamId,
+            name: 'Eagles',
+            abbreviation: 'EA',
+            color: const Color(0xFF2196F3),
+          ),
           place: 1,
           finishTime: const Duration(minutes: 10),
         );
@@ -228,12 +267,24 @@ void main() {
         final r1 = await insertRunner(name: 'Alice', bib: '1');
         final r2 = await insertRunner(name: 'Bob', bib: '2');
         final teamId = await insertTeam();
-        await repo.addRaceResult(buildResult(
-            raceId: raceId, runnerId: r1, teamId: teamId, place: 2,
-            finishTime: const Duration(minutes: 13)));
-        await repo.addRaceResult(buildResult(
-            raceId: raceId, runnerId: r2, teamId: teamId, place: 1,
-            finishTime: const Duration(minutes: 12)));
+        await repo.addRaceResult(
+          buildResult(
+            raceId: raceId,
+            runnerId: r1,
+            teamId: teamId,
+            place: 2,
+            finishTime: const Duration(minutes: 13),
+          ),
+        );
+        await repo.addRaceResult(
+          buildResult(
+            raceId: raceId,
+            runnerId: r2,
+            teamId: teamId,
+            place: 1,
+            finishTime: const Duration(minutes: 12),
+          ),
+        );
         final results = await repo.getRaceResults(raceId);
         expect(results.length, 2);
         expect(results.first.place, 1);
@@ -256,8 +307,9 @@ void main() {
         final r1 = await insertRunner(name: 'Alice', bib: '1');
         final r2 = await insertRunner(name: 'Bob', bib: '2');
         final teamId = await insertTeam();
-        await repo.addRaceResult(buildResult(
-            raceId: raceId, runnerId: r1, teamId: teamId, place: 1));
+        await repo.addRaceResult(
+          buildResult(raceId: raceId, runnerId: r1, teamId: teamId, place: 1),
+        );
         // Save a new list replacing old results.
         await repo.saveRaceResults(raceId, [
           buildResult(raceId: raceId, runnerId: r2, teamId: teamId, place: 1),
@@ -272,36 +324,53 @@ void main() {
         final runnerId = await insertRunner();
         final teamId = await insertTeam();
         await repo.addRaceResult(
-            buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId));
+          buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId),
+        );
         await repo.saveRaceResults(raceId, []);
         expect(await repo.getRaceResults(raceId), isEmpty);
       });
 
       Future<Map<String, Object?>> rowFor(int raceId, int runnerId) async =>
-          (await (await connProvider.database).query('race_results',
-                  where: 'race_id = ? AND runner_id = ?',
-                  whereArgs: [raceId, runnerId]))
-              .single;
-
-      test('keeps the synced uuid of a runner whose result is replaced',
-          () async {
-        final raceId = await insertRace();
-        final runnerId = await insertRunner();
-        final teamId = await insertTeam();
-        await repo.addRaceResult(buildResult(
-            raceId: raceId, runnerId: runnerId, teamId: teamId, place: 1));
-        await (await connProvider.database).update(
-            'race_results', {'uuid': 'synced-uuid'},
+          (await (await connProvider.database).query(
+            'race_results',
             where: 'race_id = ? AND runner_id = ?',
-            whereArgs: [raceId, runnerId]);
+            whereArgs: [raceId, runnerId],
+          )).single;
 
-        await repo.saveRaceResults(raceId, [
-          buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId,
-              place: 1, finishTime: const Duration(minutes: 11)),
-        ]);
+      test(
+        'keeps the synced uuid of a runner whose result is replaced',
+        () async {
+          final raceId = await insertRace();
+          final runnerId = await insertRunner();
+          final teamId = await insertTeam();
+          await repo.addRaceResult(
+            buildResult(
+              raceId: raceId,
+              runnerId: runnerId,
+              teamId: teamId,
+              place: 1,
+            ),
+          );
+          await (await connProvider.database).update(
+            'race_results',
+            {'uuid': 'synced-uuid'},
+            where: 'race_id = ? AND runner_id = ?',
+            whereArgs: [raceId, runnerId],
+          );
 
-        expect((await rowFor(raceId, runnerId))['uuid'], 'synced-uuid');
-      });
+          await repo.saveRaceResults(raceId, [
+            buildResult(
+              raceId: raceId,
+              runnerId: runnerId,
+              teamId: teamId,
+              place: 1,
+              finishTime: const Duration(minutes: 11),
+            ),
+          ]);
+
+          expect((await rowFor(raceId, runnerId))['uuid'], 'synced-uuid');
+        },
+      );
 
       test('lets two runners swap places', () async {
         final raceId = await insertRace();
@@ -309,9 +378,11 @@ void main() {
         final r2 = await insertRunner(name: 'Bob', bib: '2');
         final teamId = await insertTeam();
         await repo.addRaceResult(
-            buildResult(raceId: raceId, runnerId: r1, teamId: teamId, place: 1));
+          buildResult(raceId: raceId, runnerId: r1, teamId: teamId, place: 1),
+        );
         await repo.addRaceResult(
-            buildResult(raceId: raceId, runnerId: r2, teamId: teamId, place: 2));
+          buildResult(raceId: raceId, runnerId: r2, teamId: teamId, place: 2),
+        );
 
         await repo.saveRaceResults(raceId, [
           buildResult(raceId: raceId, runnerId: r2, teamId: teamId, place: 1),
@@ -328,8 +399,11 @@ void main() {
         final teamId = await insertTeam();
 
         await repo.saveRaceResults(raceId, [
-          buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId)
-              .copyWith(isDirty: 0),
+          buildResult(
+            raceId: raceId,
+            runnerId: runnerId,
+            teamId: teamId,
+          ).copyWith(isDirty: 0),
         ]);
 
         expect((await rowFor(raceId, runnerId))['is_dirty'], 1);
@@ -364,11 +438,20 @@ void main() {
         final raceId = await insertRace();
         final runnerId = await insertRunner();
         final teamId = await insertTeam();
-        final result = buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId, place: 1);
+        final result = buildResult(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+          place: 1,
+        );
         await repo.addRaceResult(result);
         final updated = buildResult(
-            raceId: raceId, runnerId: runnerId, teamId: teamId,
-            place: 1, finishTime: const Duration(minutes: 11, seconds: 0));
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+          place: 1,
+          finishTime: const Duration(minutes: 11, seconds: 0),
+        );
         await repo.updateRaceResult(updated);
         final fetched = await repo.getRaceResult(updated);
         expect(fetched!.finishTime, const Duration(minutes: 11));
@@ -379,7 +462,10 @@ void main() {
         final runnerId = await insertRunner();
         final teamId = await insertTeam();
         final nonExistent = buildResult(
-            raceId: raceId, runnerId: runnerId, teamId: teamId);
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         expect(() => repo.updateRaceResult(nonExistent), throwsException);
       });
 
@@ -398,7 +484,11 @@ void main() {
         final raceId = await insertRace();
         final runnerId = await insertRunner();
         final teamId = await insertTeam();
-        final result = buildResult(raceId: raceId, runnerId: runnerId, teamId: teamId);
+        final result = buildResult(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         await repo.addRaceResult(result);
         await repo.deleteRaceResult(result);
         expect(await repo.getRaceResult(result), isNull);
@@ -409,7 +499,10 @@ void main() {
         final runnerId = await insertRunner();
         final teamId = await insertTeam();
         final nonExistent = buildResult(
-            raceId: raceId, runnerId: runnerId, teamId: teamId);
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         expect(() => repo.deleteRaceResult(nonExistent), throwsException);
       });
 
@@ -417,8 +510,18 @@ void main() {
         final teamId = await insertTeam();
         final noIds = RaceResult(
           raceId: null,
-          runner: Runner(runnerId: 1, name: 'Alice', bibNumber: '100', grade: 11),
-          team: Team(teamId: teamId, name: 'Eagles', abbreviation: 'EA', color: const Color(0xFF2196F3)),
+          runner: Runner(
+            runnerId: 1,
+            name: 'Alice',
+            bibNumber: '100',
+            grade: 11,
+          ),
+          team: Team(
+            teamId: teamId,
+            name: 'Eagles',
+            abbreviation: 'EA',
+            color: const Color(0xFF2196F3),
+          ),
           place: 1,
           finishTime: const Duration(minutes: 10),
         );

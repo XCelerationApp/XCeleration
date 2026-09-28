@@ -10,10 +10,7 @@ class TimingDatum {
   Conflict? conflict;
 
   /// Constructor for TimingDatum
-  TimingDatum({
-    required this.time,
-    this.conflict,
-  });
+  TimingDatum({required this.time, this.conflict});
 
   bool get hasConflict => conflict != null;
 
@@ -23,10 +20,7 @@ class TimingDatum {
   }
 
   /// Creates a copy of this record with the given fields replaced
-  TimingDatum copyWith({
-    String? time,
-    Conflict? conflict,
-  }) {
+  TimingDatum copyWith({String? time, Conflict? conflict}) {
     return TimingDatum(
       time: time ?? this.time,
       conflict: conflict ?? this.conflict,
@@ -54,7 +48,9 @@ class TimingDatum {
       // The remainder after the first two tokens is the time string
       final time = parts.sublist(2).join(' ');
       return TimingDatum(
-          time: time, conflict: Conflict(type: conflictType, offBy: offBy));
+        time: time,
+        conflict: Conflict(type: conflictType, offBy: offBy),
+      );
     } else if (encodedString == 'TBD' ||
         TimeFormatter.isDuration(encodedString)) {
       return TimingDatum(time: encodedString);

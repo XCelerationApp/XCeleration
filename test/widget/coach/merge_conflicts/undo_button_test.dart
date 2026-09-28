@@ -24,10 +24,10 @@ class _NoopScheduler implements IPostFrameCallbackScheduler {
 const _team = Team(teamId: 1, name: 'Eagles');
 
 RaceRunner _runner(int n) => RaceRunner(
-      raceId: 1,
-      runner: Runner(runnerId: n, name: 'Runner $n', bibNumber: '$n', grade: 11),
-      team: _team,
-    );
+  raceId: 1,
+  runner: Runner(runnerId: n, name: 'Runner $n', bibNumber: '$n', grade: 11),
+  team: _team,
+);
 
 String _t(int seconds) =>
     '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}.00';
@@ -39,35 +39,37 @@ void main() {
 
   /// A batch of three times for two runners: one of them is a stray tap.
   MergeConflictsController buildController() => MergeConflictsController(
-        masterRace: MasterRace.getInstance(1),
-        timingChunks: [
-          TimingChunk(
-            id: 0,
-            timingData: [10, 11, 12]
-                .map((s) => TimingDatum(time: _t(s)))
-                .toList(),
-            conflictRecord: TimingDatum(
-              time: _t(13),
-              conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
-            ),
-          )
-        ],
-        raceRunners: [_runner(1), _runner(2)],
-        scheduler: _NoopScheduler(),
-      );
+    masterRace: MasterRace.getInstance(1),
+    timingChunks: [
+      TimingChunk(
+        id: 0,
+        timingData: [10, 11, 12].map((s) => TimingDatum(time: _t(s))).toList(),
+        conflictRecord: TimingDatum(
+          time: _t(13),
+          conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+        ),
+      ),
+    ],
+    raceRunners: [_runner(1), _runner(2)],
+    scheduler: _NoopScheduler(),
+  );
 
   Future<void> pumpList(
-      WidgetTester tester, MergeConflictsController controller) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: SingleChildScrollView(
-          child: ChangeNotifierProvider.value(
-            value: controller,
-            child: const ChunkList(),
+    WidgetTester tester,
+    MergeConflictsController controller,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ChangeNotifierProvider.value(
+              value: controller,
+              child: const ChunkList(),
+            ),
           ),
         ),
       ),
-    ));
+    );
   }
 
   testWidgets('is not offered before anything is pressed', (tester) async {
@@ -103,8 +105,9 @@ void main() {
     expect(find.text('Resolve Conflict'), findsOneWidget);
   });
 
-  testWidgets('tapping it puts the removed time back on screen',
-      (tester) async {
+  testWidgets('tapping it puts the removed time back on screen', (
+    tester,
+  ) async {
     final controller = buildController();
     await pumpList(tester, controller);
     controller.removeExtraTimeRecord(0, 1);
@@ -114,7 +117,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text(_t(11)), findsOneWidget, reason: 'the time is back');
-    expect(find.text('Undo'), findsNothing,
-        reason: 'nothing left to take back');
+    expect(
+      find.text('Undo'),
+      findsNothing,
+      reason: 'nothing left to take back',
+    );
   });
 }

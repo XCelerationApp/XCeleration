@@ -125,8 +125,9 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
     if (oldVersion < 16) {
       try {
-        await db
-            .execute('ALTER TABLE race_results ADD COLUMN runner_uuid TEXT');
+        await db.execute(
+          'ALTER TABLE race_results ADD COLUMN runner_uuid TEXT',
+        );
         Logger.d('Added runner_uuid column to race_results table');
       } catch (e) {
         Logger.d('runner_uuid column might already exist in race_results: $e');
@@ -144,10 +145,13 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
       for (final column in ['race_uuid', 'runner_uuid', 'team_uuid']) {
         try {
           await db.execute(
-              'ALTER TABLE race_participants ADD COLUMN $column TEXT');
+            'ALTER TABLE race_participants ADD COLUMN $column TEXT',
+          );
           Logger.d('Added $column column to race_participants table');
         } catch (e) {
-          Logger.d('$column column might already exist in race_participants: $e');
+          Logger.d(
+            '$column column might already exist in race_participants: $e',
+          );
         }
       }
     }
@@ -177,8 +181,9 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
       for (final entry in columns.entries) {
         for (final column in entry.value) {
           try {
-            await db
-                .execute('ALTER TABLE ${entry.key} ADD COLUMN $column TEXT');
+            await db.execute(
+              'ALTER TABLE ${entry.key} ADD COLUMN $column TEXT',
+            );
             Logger.d('Added $column column to ${entry.key}');
           } catch (e) {
             Logger.d('$column might already exist in ${entry.key}: $e');
@@ -188,7 +193,8 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
         // is marked dirty and the roster already on this phone would never be
         // uploaded. Mark them once so the next sync carries them up.
         final marked = await db.rawUpdate(
-            'UPDATE ${entry.key} SET is_dirty = 1 WHERE deleted_at IS NULL');
+          'UPDATE ${entry.key} SET is_dirty = 1 WHERE deleted_at IS NULL',
+        );
         Logger.d('Marked $marked ${entry.key} rows for their first upload');
       }
     }
@@ -201,10 +207,12 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
       // its runners are on where the entry is missing or was removed.
       final now = SyncTimestamp.now();
       final marked = await db.rawUpdate(
-          'UPDATE race_team_participation SET is_dirty = 1, updated_at = ? '
-          'WHERE deleted_at IS NULL',
-          [now]);
-      await db.rawInsert('''
+        'UPDATE race_team_participation SET is_dirty = 1, updated_at = ? '
+        'WHERE deleted_at IS NULL',
+        [now],
+      );
+      await db.rawInsert(
+        '''
         INSERT INTO race_team_participation
           (race_id, team_id, created_at, updated_at, is_dirty)
         SELECT DISTINCT rp.race_id, rp.team_id, ?, ?, 1
@@ -216,9 +224,13 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
               AND t.deleted_at IS NULL)
         ON CONFLICT(race_id, team_id) DO UPDATE SET
           deleted_at = NULL, is_dirty = 1, updated_at = excluded.updated_at
-      ''', [now, now]);
-      Logger.d('Marked $marked teams in races for upload, and restored any '
-          'missing for runners in the race');
+      ''',
+        [now, now],
+      );
+      Logger.d(
+        'Marked $marked teams in races for upload, and restored any '
+        'missing for runners in the race',
+      );
     }
   }
 
@@ -230,20 +242,25 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
   Future<void> _rebuildTable(Database db, String table) async {
     final temporary = '${table}__rebuild';
     await db.execute('DROP TABLE IF EXISTS $temporary');
-    await db.execute(createTableStatement(table)
-        .replaceFirst('IF NOT EXISTS $table', 'IF NOT EXISTS $temporary'));
+    await db.execute(
+      createTableStatement(
+        table,
+      ).replaceFirst('IF NOT EXISTS $table', 'IF NOT EXISTS $temporary'),
+    );
 
-    Future<Set<String>> columnsOf(String name) async =>
-        (await db.rawQuery('PRAGMA table_info($name)'))
-            .map((row) => row['name'] as String)
-            .toSet();
+    Future<Set<String>> columnsOf(String name) async => (await db.rawQuery(
+      'PRAGMA table_info($name)',
+    )).map((row) => row['name'] as String).toSet();
     final existing = await columnsOf(table);
     final wanted = await columnsOf(temporary);
-    final shared =
-        wanted.where(existing.contains).map((c) => '"$c"').join(', ');
+    final shared = wanted
+        .where(existing.contains)
+        .map((c) => '"$c"')
+        .join(', ');
 
-    await db
-        .execute('INSERT INTO $temporary ($shared) SELECT $shared FROM $table');
+    await db.execute(
+      'INSERT INTO $temporary ($shared) SELECT $shared FROM $table',
+    );
     await db.execute('DROP TABLE $table');
     await db.execute('ALTER TABLE $temporary RENAME TO $table');
     Logger.d('Rebuilt $table for schema v18');
@@ -264,19 +281,21 @@ class DatabaseConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> deleteDatabase() => _inTurn(() async {
-        final userId = _openUserId;
-        await _close();
-        if (userId == null) return;
-        Logger.d('Deleting database');
-        await databaseFactory.deleteDatabase(
-            join(await getDatabasesPath(), fileNameFor(userId)));
-      });
+    final userId = _openUserId;
+    await _close();
+    if (userId == null) return;
+    Logger.d('Deleting database');
+    await databaseFactory.deleteDatabase(
+      join(await getDatabasesPath(), fileNameFor(userId)),
+    );
+  });
 
   @override
   Future<void> deleteUserData(String userId) => _inTurn(() async {
-        if (_openUserId == userId) await _close();
-        Logger.d('Deleting local data for a user');
-        await databaseFactory.deleteDatabase(
-            join(await getDatabasesPath(), fileNameFor(userId)));
-      });
+    if (_openUserId == userId) await _close();
+    Logger.d('Deleting local data for a user');
+    await databaseFactory.deleteDatabase(
+      join(await getDatabasesPath(), fileNameFor(userId)),
+    );
+  });
 }

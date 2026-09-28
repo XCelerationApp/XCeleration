@@ -25,20 +25,32 @@ void main() {
 
   setUp(() {
     storage = MockIAssistantStorageService();
-    when(storage.updateRaceStartTime(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(storage.updateRaceStatus(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(storage.updateRaceDuration(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(storage.saveChunk(any, any))
-        .thenAnswer((_) async => const Success(null));
+    when(
+      storage.updateRaceStartTime(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      storage.updateRaceStatus(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      storage.updateRaceDuration(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      storage.saveChunk(any, any),
+    ).thenAnswer((_) async => const Success(null));
     wall = start;
     mono = const Duration(hours: 5);
     timing = TimingData(
-        storage: storage, now: () => wall, monotonic: () => mono);
+      storage: storage,
+      now: () => wall,
+      monotonic: () => mono,
+    );
     timing.currentRace = RaceRecord(
-        raceId: 1, date: start, name: 'Shift', type: 'timer', stopped: true);
+      raceId: 1,
+      date: start,
+      name: 'Shift',
+      type: 'timer',
+      stopped: true,
+    );
     timing.startTime = start;
     timing.raceStopped = false;
   });
@@ -51,21 +63,24 @@ void main() {
   }
 
   String t(int minutes, [int seconds = 0]) => TimeFormatter.formatDuration(
-      Duration(minutes: minutes, seconds: seconds));
+    Duration(minutes: minutes, seconds: seconds),
+  );
 
-  void logFinish() => timing
-      .addRunnerTimeRecord(TimingDatum(time: TimeFormatter.formatDuration(
-          timing.raceElapsed)));
+  void logFinish() => timing.addRunnerTimeRecord(
+    TimingDatum(time: TimeFormatter.formatDuration(timing.raceElapsed)),
+  );
 
-  List<String> times() => [
-        for (final r in timing.uiRecords) r.time,
-      ];
+  List<String> times() => [for (final r in timing.uiRecords) r.time];
 
   test('started late: the clock and every time move later', () async {
     advance(const Duration(minutes: 16));
     logFinish();
-    timing.addConfirmRecord(TimingDatum(
-        time: t(16, 5), conflict: Conflict(type: ConflictType.confirmRunner)));
+    timing.addConfirmRecord(
+      TimingDatum(
+        time: t(16, 5),
+        conflict: Conflict(type: ConflictType.confirmRunner),
+      ),
+    );
     advance(const Duration(seconds: 30));
     logFinish();
 

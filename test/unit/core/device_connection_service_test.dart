@@ -44,12 +44,14 @@ void main() {
   late MockPlatformCheckerInterface mockPlatformChecker;
   StreamController<List<Device>>? stateChangeController;
   StreamController? dataController;
-  final ConnectedDevice mockConnectedDevice =
-      ConnectedDevice(DeviceName.bibRecorder);
+  final ConnectedDevice mockConnectedDevice = ConnectedDevice(
+    DeviceName.bibRecorder,
+  );
   final Device mockDevice = Device(
-      'test_id',
-      getDeviceNameString(mockConnectedDevice.name),
-      SessionState.notConnected.index);
+    'test_id',
+    getDeviceNameString(mockConnectedDevice.name),
+    SessionState.notConnected.index,
+  );
 
   setUp(() async {
     mockNearbyConnections = MockNearbyConnections();
@@ -76,37 +78,46 @@ void main() {
     // Setup all stream controllers and mocks
 
     // Setup initial mocks for NearbyConnections
-    when(mockNearbyConnections.startBrowsingForPeers())
-        .thenAnswer((_) => Future.value(true));
-    when(mockNearbyConnections.startAdvertisingPeer())
-        .thenAnswer((_) => Future.value(true));
-    when(mockNearbyConnections.stopBrowsingForPeers())
-        .thenAnswer((_) => Future.value(true));
-    when(mockNearbyConnections.stopAdvertisingPeer())
-        .thenAnswer((_) => Future.value(true));
+    when(
+      mockNearbyConnections.startBrowsingForPeers(),
+    ).thenAnswer((_) => Future.value(true));
+    when(
+      mockNearbyConnections.startAdvertisingPeer(),
+    ).thenAnswer((_) => Future.value(true));
+    when(
+      mockNearbyConnections.stopBrowsingForPeers(),
+    ).thenAnswer((_) => Future.value(true));
+    when(
+      mockNearbyConnections.stopAdvertisingPeer(),
+    ).thenAnswer((_) => Future.value(true));
 
     // Setup mock for sendMessage
-    when(mockNearbyConnections.sendMessage(any, any))
-        .thenAnswer((_) => Future.value(true));
+    when(
+      mockNearbyConnections.sendMessage(any, any),
+    ).thenAnswer((_) => Future.value(true));
 
     // Setup mock for invitePeer
-    when(mockNearbyConnections.invitePeer(
-      deviceID: anyNamed('deviceID'),
-      deviceName: anyNamed('deviceName'),
-    )).thenAnswer((_) => Future.value(true));
+    when(
+      mockNearbyConnections.invitePeer(
+        deviceID: anyNamed('deviceID'),
+        deviceName: anyNamed('deviceName'),
+      ),
+    ).thenAnswer((_) => Future.value(true));
 
     // Setup mock for disconnectPeer
-    when(mockNearbyConnections.disconnectPeer(
-      deviceID: anyNamed('deviceID'),
-    )).thenAnswer((_) => Future.value(true));
+    when(
+      mockNearbyConnections.disconnectPeer(deviceID: anyNamed('deviceID')),
+    ).thenAnswer((_) => Future.value(true));
 
     // Setup NearbyConnections init behavior to immediately callback with success
-    when(mockNearbyConnections.init(
-      serviceType: anyNamed('serviceType'),
-      deviceName: anyNamed('deviceName'),
-      strategy: anyNamed('strategy'),
-      callback: anyNamed('callback'),
-    )).thenAnswer((invocation) {
+    when(
+      mockNearbyConnections.init(
+        serviceType: anyNamed('serviceType'),
+        deviceName: anyNamed('deviceName'),
+        strategy: anyNamed('strategy'),
+        callback: anyNamed('callback'),
+      ),
+    ).thenAnswer((invocation) {
       // Extract and call the callback immediately with success
       final callback =
           invocation.namedArguments[const Symbol('callback')] as Function;
@@ -116,20 +127,26 @@ void main() {
     });
 
     // Setup stateChangedSubscription
-    when(mockNearbyConnections.stateChangedSubscription(
-            callback: anyNamed('callback')))
-        .thenAnswer((invocation) {
-      final callback = invocation.namedArguments[const Symbol('callback')]
-          as Function(List<Device>);
+    when(
+      mockNearbyConnections.stateChangedSubscription(
+        callback: anyNamed('callback'),
+      ),
+    ).thenAnswer((invocation) {
+      final callback =
+          invocation.namedArguments[const Symbol('callback')]
+              as Function(List<Device>);
       return stateChangeController!.stream.listen(callback);
     });
 
     // Setup dataReceivedSubscription
-    when(mockNearbyConnections.dataReceivedSubscription(
-            callback: anyNamed('callback')))
-        .thenAnswer((invocation) {
-      final callback = invocation.namedArguments[const Symbol('callback')]
-          as Function(dynamic);
+    when(
+      mockNearbyConnections.dataReceivedSubscription(
+        callback: anyNamed('callback'),
+      ),
+    ).thenAnswer((invocation) {
+      final callback =
+          invocation.namedArguments[const Symbol('callback')]
+              as Function(dynamic);
       return dataController!.stream.listen((data) => callback(data));
     });
 
@@ -163,20 +180,32 @@ void main() {
     final initResult = await deviceConnectionService.init();
 
     // Verify initialization succeeded
-    expect(initResult, isA<Success<bool>>(),
-        reason: 'Service initialization should return Success');
-    expect((initResult as Success<bool>).value, isTrue,
-        reason: 'Service initialization should return Success(true)');
-    expect(deviceConnectionService.isActive, isTrue,
-        reason: 'Service should be active after initialization');
+    expect(
+      initResult,
+      isA<Success<bool>>(),
+      reason: 'Service initialization should return Success',
+    );
+    expect(
+      (initResult as Success<bool>).value,
+      isTrue,
+      reason: 'Service initialization should return Success(true)',
+    );
+    expect(
+      deviceConnectionService.isActive,
+      isTrue,
+      reason: 'Service should be active after initialization',
+    );
 
     // CRITICAL: The nearbyConnectionsInitialized flag must be set to true
     // for methods like inviteDevice to work properly
     deviceConnectionService.nearbyConnectionsInitialized = true;
 
     // Verify the flag is set
-    expect(deviceConnectionService.nearbyConnectionsInitialized, isTrue,
-        reason: 'NearbyConnections should be initialized after initialization');
+    expect(
+      deviceConnectionService.nearbyConnectionsInitialized,
+      isTrue,
+      reason: 'NearbyConnections should be initialized after initialization',
+    );
   });
 
   tearDown(() async {
@@ -225,9 +254,12 @@ void main() {
       // Arrange
       mockDevice.state = SessionState.notConnected;
 
-      when(mockNearbyConnections.invitePeer(
-              deviceID: mockDevice.deviceId, deviceName: mockDevice.deviceName))
-          .thenAnswer((_) {
+      when(
+        mockNearbyConnections.invitePeer(
+          deviceID: mockDevice.deviceId,
+          deviceName: mockDevice.deviceName,
+        ),
+      ).thenAnswer((_) {
         Logger.d('Inviting peer');
         mockDevice.state = SessionState.connected;
         return Future.value(true);
@@ -238,16 +270,20 @@ void main() {
       // Assert
       expect(result, isTrue);
       expect(mockDevice.state, SessionState.connected);
-      verify(mockNearbyConnections.invitePeer(
-              deviceID: mockDevice.deviceId, deviceName: mockDevice.deviceName))
-          .called(1);
+      verify(
+        mockNearbyConnections.invitePeer(
+          deviceID: mockDevice.deviceId,
+          deviceName: mockDevice.deviceName,
+        ),
+      ).called(1);
     });
 
     test('disconnectDevice should handle device disconnection', () async {
       mockDevice.state = SessionState.connected;
 
-      when(mockNearbyConnections.disconnectPeer(deviceID: mockDevice.deviceId))
-          .thenAnswer((_) {
+      when(
+        mockNearbyConnections.disconnectPeer(deviceID: mockDevice.deviceId),
+      ).thenAnswer((_) {
         Logger.d('Disconnecting peer');
         mockDevice.state = SessionState.notConnected;
         return Future.value(true);
@@ -260,24 +296,27 @@ void main() {
       // Assert
       expect(result, isTrue, reason: 'disconnectDevice should return true');
       expect(mockDevice.state, SessionState.notConnected);
-      verify(mockNearbyConnections.disconnectPeer(
-              deviceID: mockDevice.deviceId))
-          .called(1);
+      verify(
+        mockNearbyConnections.disconnectPeer(deviceID: mockDevice.deviceId),
+      ).called(1);
     });
 
     test(
-        'inviteDevice returns true when device already connected without calling invitePeer',
-        () async {
-      mockDevice.state = SessionState.connected;
+      'inviteDevice returns true when device already connected without calling invitePeer',
+      () async {
+        mockDevice.state = SessionState.connected;
 
-      final result = await deviceConnectionService.inviteDevice(mockDevice);
+        final result = await deviceConnectionService.inviteDevice(mockDevice);
 
-      expect(result, isTrue);
-      verifyNever(mockNearbyConnections.invitePeer(
-        deviceID: anyNamed('deviceID'),
-        deviceName: anyNamed('deviceName'),
-      ));
-    });
+        expect(result, isTrue);
+        verifyNever(
+          mockNearbyConnections.invitePeer(
+            deviceID: anyNamed('deviceID'),
+            deviceName: anyNamed('deviceName'),
+          ),
+        );
+      },
+    );
 
     test('inviteDevice returns false when service is disposed', () async {
       deviceConnectionService.dispose();
@@ -289,31 +328,39 @@ void main() {
 
     test('inviteDevice returns false when invite throws', () async {
       mockDevice.state = SessionState.notConnected;
-      when(mockNearbyConnections.invitePeer(
-        deviceID: anyNamed('deviceID'),
-        deviceName: anyNamed('deviceName'),
-      )).thenThrow(Exception('network error'));
+      when(
+        mockNearbyConnections.invitePeer(
+          deviceID: anyNamed('deviceID'),
+          deviceName: anyNamed('deviceName'),
+        ),
+      ).thenThrow(Exception('network error'));
 
       final result = await deviceConnectionService.inviteDevice(mockDevice);
 
       expect(result, isFalse);
     });
 
-    test('disconnectDevice returns false when device is not connected',
-        () async {
-      mockDevice.state = SessionState.notConnected;
+    test(
+      'disconnectDevice returns false when device is not connected',
+      () async {
+        mockDevice.state = SessionState.notConnected;
 
-      final result = await deviceConnectionService.disconnectDevice(mockDevice);
+        final result = await deviceConnectionService.disconnectDevice(
+          mockDevice,
+        );
 
-      expect(result, isFalse);
-      verifyNever(
-          mockNearbyConnections.disconnectPeer(deviceID: anyNamed('deviceID')));
-    });
+        expect(result, isFalse);
+        verifyNever(
+          mockNearbyConnections.disconnectPeer(deviceID: anyNamed('deviceID')),
+        );
+      },
+    );
 
     test('disconnectDevice returns false when disconnect throws', () async {
       mockDevice.state = SessionState.connected;
-      when(mockNearbyConnections.disconnectPeer(deviceID: anyNamed('deviceID')))
-          .thenThrow(Exception('disconnect error'));
+      when(
+        mockNearbyConnections.disconnectPeer(deviceID: anyNamed('deviceID')),
+      ).thenThrow(Exception('disconnect error'));
 
       final result = await deviceConnectionService.disconnectDevice(mockDevice);
 
@@ -329,23 +376,26 @@ void main() {
       final package = Package(number: 1, type: 'DATA', data: 'test_data');
 
       // Add debug logging to track execution
-      when(mockNearbyConnections.sendMessage(
-              mockDevice.deviceId, package.data!))
-          .thenAnswer((_) {
+      when(
+        mockNearbyConnections.sendMessage(mockDevice.deviceId, package.data!),
+      ).thenAnswer((_) {
         Logger.d('Sending message to ${mockDevice.deviceName}');
         return Future.value(true);
       });
 
       // Act
       final result = await deviceConnectionService.sendMessageToDevice(
-          mockDevice, package);
+        mockDevice,
+        package,
+      );
 
       // Assert
       expect(result, isTrue, reason: 'sendMessageToDevice should return true');
 
       // Use any() for the second parameter since the Package is serialized with a checksum
-      verify(mockNearbyConnections.sendMessage(mockDevice.deviceId, any))
-          .called(1);
+      verify(
+        mockNearbyConnections.sendMessage(mockDevice.deviceId, any),
+      ).called(1);
     });
 
     test('Data resend works after failure', () async {
@@ -356,13 +406,15 @@ void main() {
 
       // Setup mock with logging - first throws exception, then succeeds
       var attemptCount = 0;
-      when(mockNearbyConnections.sendMessage(mockDevice.deviceId, any))
-          .thenAnswer((_) {
+      when(
+        mockNearbyConnections.sendMessage(mockDevice.deviceId, any),
+      ).thenAnswer((_) {
         attemptCount++;
         if (attemptCount == 1) {
           Logger.d('First attempt - simulating exception');
           throw Exception(
-              'Simulated network error'); // First attempt throws exception
+            'Simulated network error',
+          ); // First attempt throws exception
         } else {
           Logger.d('Retry attempt - simulating success');
           return Future.value(true); // Retry succeeds
@@ -371,78 +423,94 @@ void main() {
 
       // Act - first attempt
       final firstResult = await deviceConnectionService.sendMessageToDevice(
-          mockDevice, package);
+        mockDevice,
+        package,
+      );
       expect(firstResult, isFalse, reason: 'First attempt should fail');
 
       // Act - second attempt
       final secondResult = await deviceConnectionService.sendMessageToDevice(
-          mockDevice, package);
+        mockDevice,
+        package,
+      );
       expect(secondResult, isTrue, reason: 'Second attempt should succeed');
 
       // Verify it was called exactly twice (initial try + retry)
-      verify(mockNearbyConnections.sendMessage(mockDevice.deviceId, any))
-          .called(2);
-    });
-
-    test('sendMessageToDevice returns false when service is disposed',
-        () async {
-      mockDevice.state = SessionState.connected;
-      deviceConnectionService.dispose();
-
-      final result = await deviceConnectionService.sendMessageToDevice(
-          mockDevice, Package(number: 1, type: 'DATA', data: 'test'));
-
-      expect(result, isFalse);
-    });
-
-    test('sendMessageToDevice returns false when device is not connected',
-        () async {
-      mockDevice.state = SessionState.notConnected;
-
-      final result = await deviceConnectionService.sendMessageToDevice(
-          mockDevice, Package(number: 1, type: 'DATA', data: 'test'));
-
-      expect(result, isFalse);
-      verifyNever(mockNearbyConnections.sendMessage(any, any));
-    });
-
-    test('monitorMessageReceives returns null when service is disposed',
-        () async {
-      deviceConnectionService.dispose();
-
-      final token = await deviceConnectionService.monitorMessageReceives(
-        mockDevice,
-        messageReceivedCallback: (_, _) {},
-      );
-
-      expect(token, isNull);
+      verify(
+        mockNearbyConnections.sendMessage(mockDevice.deviceId, any),
+      ).called(2);
     });
 
     test(
-        'monitorMessageReceives does not invoke callback on message parsing error',
-        () {
-      fakeAsync((fake) {
-        bool callbackInvoked = false;
+      'sendMessageToDevice returns false when service is disposed',
+      () async {
+        mockDevice.state = SessionState.connected;
+        deviceConnectionService.dispose();
 
-        deviceConnectionService.monitorMessageReceives(
+        final result = await deviceConnectionService.sendMessageToDevice(
           mockDevice,
-          messageReceivedCallback: (_, _) {
-            callbackInvoked = true;
-          },
+          Package(number: 1, type: 'DATA', data: 'test'),
         );
-        fake.flushMicrotasks();
 
-        // Emit data with an invalid package string (not valid JSON)
-        dataController!.add({
-          'senderDeviceId': mockDevice.deviceId,
-          'message': 'INVALID_PACKAGE_FORMAT',
+        expect(result, isFalse);
+      },
+    );
+
+    test(
+      'sendMessageToDevice returns false when device is not connected',
+      () async {
+        mockDevice.state = SessionState.notConnected;
+
+        final result = await deviceConnectionService.sendMessageToDevice(
+          mockDevice,
+          Package(number: 1, type: 'DATA', data: 'test'),
+        );
+
+        expect(result, isFalse);
+        verifyNever(mockNearbyConnections.sendMessage(any, any));
+      },
+    );
+
+    test(
+      'monitorMessageReceives returns null when service is disposed',
+      () async {
+        deviceConnectionService.dispose();
+
+        final token = await deviceConnectionService.monitorMessageReceives(
+          mockDevice,
+          messageReceivedCallback: (_, _) {},
+        );
+
+        expect(token, isNull);
+      },
+    );
+
+    test(
+      'monitorMessageReceives does not invoke callback on message parsing error',
+      () {
+        fakeAsync((fake) {
+          bool callbackInvoked = false;
+
+          deviceConnectionService.monitorMessageReceives(
+            mockDevice,
+            messageReceivedCallback: (_, _) {
+              callbackInvoked = true;
+            },
+          );
+          fake.flushMicrotasks();
+
+          // Emit data with an invalid package string (not valid JSON)
+          dataController!.add({
+            'senderDeviceId': mockDevice.deviceId,
+            'message': 'INVALID_PACKAGE_FORMAT',
+          });
+
+          fake.elapse(const Duration(milliseconds: 200));
+
+          expect(callbackInvoked, isFalse);
         });
-
-        fake.elapse(const Duration(milliseconds: 200));
-
-        expect(callbackInvoked, isFalse);
-      });
-    });
+      },
+    );
 
     test('monitorMessageReceives should handle incoming messages', () {
       fakeAsync((fake) {
@@ -455,15 +523,18 @@ void main() {
         // Use 'senderDeviceId' and 'message' keys to match what the service expects
         final dataPayload = {
           'senderDeviceId': mockDevice.deviceId,
-          'message': testData.toString()
+          'message': testData.toString(),
         };
 
         // Setup dataReceivedSubscription specifically for this test
-        when(mockNearbyConnections.dataReceivedSubscription(
-                callback: anyNamed('callback')))
-            .thenAnswer((invocation) {
-          final callback = invocation.namedArguments[const Symbol('callback')]
-              as Function(dynamic);
+        when(
+          mockNearbyConnections.dataReceivedSubscription(
+            callback: anyNamed('callback'),
+          ),
+        ).thenAnswer((invocation) {
+          final callback =
+              invocation.namedArguments[const Symbol('callback')]
+                  as Function(dynamic);
           Logger.d('Creating new data subscription');
           // Return a subscription that will trigger our callback when we add to dataController
           return dataController!.stream.listen(callback);
@@ -487,8 +558,11 @@ void main() {
         fake.elapse(const Duration(milliseconds: 200));
 
         // Assert
-        expect(messageReceived, isTrue,
-            reason: 'Message callback should have been triggered');
+        expect(
+          messageReceived,
+          isTrue,
+          reason: 'Message callback should have been triggered',
+        );
       });
     });
   });
@@ -511,8 +585,10 @@ void main() {
       expect(result, isA<DevicesManager>());
       expect(result.currentDeviceName, equals(deviceName));
       expect(result.currentDeviceType, equals(deviceType));
-      expect(result.otherDevices.any((device) => device.name == deviceName),
-          isFalse);
+      expect(
+        result.otherDevices.any((device) => device.name == deviceName),
+        isFalse,
+      );
     });
   });
 
@@ -537,12 +613,14 @@ void main() {
         fake.elapse(const Duration(milliseconds: 350));
 
         // Verify _stagnationTimer was called (indicating a rescan)
-        verify(mockNearbyConnections.init(
-          serviceType: anyNamed('serviceType'),
-          deviceName: anyNamed('deviceName'),
-          strategy: anyNamed('strategy'),
-          callback: anyNamed('callback'),
-        )).called(1);
+        verify(
+          mockNearbyConnections.init(
+            serviceType: anyNamed('serviceType'),
+            deviceName: anyNamed('deviceName'),
+            strategy: anyNamed('strategy'),
+            callback: anyNamed('callback'),
+          ),
+        ).called(1);
       });
     });
 
@@ -564,12 +642,14 @@ void main() {
         fake.elapse(const Duration(milliseconds: 350));
 
         // Verify _stagnationTimer was called (indicating a rescan)
-        verify(mockNearbyConnections.init(
-          serviceType: anyNamed('serviceType'),
-          deviceName: anyNamed('deviceName'),
-          strategy: anyNamed('strategy'),
-          callback: anyNamed('callback'),
-        )).called(1);
+        verify(
+          mockNearbyConnections.init(
+            serviceType: anyNamed('serviceType'),
+            deviceName: anyNamed('deviceName'),
+            strategy: anyNamed('strategy'),
+            callback: anyNamed('callback'),
+          ),
+        ).called(1);
       });
     });
 
@@ -585,10 +665,11 @@ void main() {
 
         // Act
         deviceConnectionService.monitorDevicesConnectionStatus(
-            timeout: const Duration(milliseconds: 100),
-            timeoutCallback: () async {
-              timeoutCallbackCalled = true;
-            });
+          timeout: const Duration(milliseconds: 100),
+          timeoutCallback: () async {
+            timeoutCallbackCalled = true;
+          },
+        );
 
         mockNearbyHelper.emitDeviceStateChange([mockDevice]);
         fake.elapse(const Duration(milliseconds: 200));
@@ -599,11 +680,13 @@ void main() {
         mockConnectedDevice.status = ConnectionStatus.searching;
         fake.elapse(const Duration(seconds: 31));
         expect(timeoutCallbackCalled, isTrue);
-        verifyNever(mockNearbyConnections.init(
-          serviceType: anyNamed('serviceType'),
-          strategy: anyNamed('strategy'),
-          callback: anyNamed('callback'),
-        ));
+        verifyNever(
+          mockNearbyConnections.init(
+            serviceType: anyNamed('serviceType'),
+            strategy: anyNamed('strategy'),
+            callback: anyNamed('callback'),
+          ),
+        );
       });
     });
 
@@ -617,10 +700,11 @@ void main() {
 
         // Act
         deviceConnectionService.monitorDevicesConnectionStatus(
-            timeout: const Duration(milliseconds: 100),
-            timeoutCallback: () async {
-              timeoutCallbackCalled = true;
-            });
+          timeout: const Duration(milliseconds: 100),
+          timeoutCallback: () async {
+            timeoutCallbackCalled = true;
+          },
+        );
 
         // Simulate a state change to trigger _shouldRescan evaluation
         mockNearbyHelper.emitDeviceStateChange([mockDevice]);
@@ -630,11 +714,13 @@ void main() {
 
         // Assert that the timeout was reached (no rescan occurred)
         expect(timeoutCallbackCalled, isTrue);
-        verifyNever(mockNearbyConnections.init(
-          serviceType: anyNamed('serviceType'),
-          strategy: anyNamed('strategy'),
-          callback: anyNamed('callback'),
-        ));
+        verifyNever(
+          mockNearbyConnections.init(
+            serviceType: anyNamed('serviceType'),
+            strategy: anyNamed('strategy'),
+            callback: anyNamed('callback'),
+          ),
+        );
       });
     });
   });
@@ -650,11 +736,14 @@ void main() {
         mockConnectedDevice.status = ConnectionStatus.searching;
 
         // Mock state change subscription to use our local controller
-        when(mockNearbyConnections.stateChangedSubscription(
-                callback: anyNamed('callback')))
-            .thenAnswer((invocation) {
-          final callback = invocation.namedArguments[const Symbol('callback')]
-              as Function(List<Device>);
+        when(
+          mockNearbyConnections.stateChangedSubscription(
+            callback: anyNamed('callback'),
+          ),
+        ).thenAnswer((invocation) {
+          final callback =
+              invocation.namedArguments[const Symbol('callback')]
+                  as Function(List<Device>);
 
           // Schedule the callback to be called with our test device
           // This simulates finding a device in the "notConnected" state
@@ -678,9 +767,12 @@ void main() {
         fake.elapse(const Duration(milliseconds: 350));
 
         // Assert
-        expect(deviceFoundCallbackTriggered, isTrue,
-            reason:
-                'deviceFoundCallback should be triggered for notConnected devices');
+        expect(
+          deviceFoundCallbackTriggered,
+          isTrue,
+          reason:
+              'deviceFoundCallback should be triggered for notConnected devices',
+        );
       });
     });
 
@@ -691,8 +783,9 @@ void main() {
         fakeAsync((fake) {
           final timer = ConnectedDevice(DeviceName.raceTimer);
           when(mockDevicesManager.otherDevices).thenReturn([timer]);
-          when(mockDevicesManager.getDevice(DeviceName.raceTimer))
-              .thenReturn(timer);
+          when(
+            mockDevicesManager.getDevice(DeviceName.raceTimer),
+          ).thenReturn(timer);
           final found = <String>[];
           deviceConnectionService.rescanBackoff = const Duration(seconds: 10);
 
@@ -729,12 +822,14 @@ void main() {
 
         // Several rescans pass with nothing found.
         fake.elapse(const Duration(seconds: 1));
-        verify(mockNearbyConnections.init(
-          serviceType: anyNamed('serviceType'),
-          deviceName: anyNamed('deviceName'),
-          strategy: anyNamed('strategy'),
-          callback: anyNamed('callback'),
-        )).called(greaterThan(1));
+        verify(
+          mockNearbyConnections.init(
+            serviceType: anyNamed('serviceType'),
+            deviceName: anyNamed('deviceName'),
+            strategy: anyNamed('strategy'),
+            callback: anyNamed('callback'),
+          ),
+        ).called(greaterThan(1));
         expect(ended, isFalse, reason: 'a rescan does not end the search');
 
         stateChangeController!.add([mockDevice]);
@@ -795,8 +890,11 @@ void main() {
         stateChangeController!.add([mockDevice]);
         fake.elapse(const Duration(milliseconds: 100));
         stateChangeController!.add([
-          Device(mockDevice.deviceId, mockDevice.deviceName,
-              SessionState.connecting.index),
+          Device(
+            mockDevice.deviceId,
+            mockDevice.deviceName,
+            SessionState.connecting.index,
+          ),
         ]);
         fake.elapse(const Duration(milliseconds: 350));
 
@@ -812,19 +910,22 @@ void main() {
 
         // Act - Setup monitoring with a very short timeout
         deviceConnectionService.monitorDevicesConnectionStatus(
-            timeout: const Duration(milliseconds: 100),
-            timeoutCallback: () async {
-              // Mark that timeout occurred
-              timeoutOccurred = true;
-            });
+          timeout: const Duration(milliseconds: 100),
+          timeoutCallback: () async {
+            // Mark that timeout occurred
+            timeoutOccurred = true;
+          },
+        );
 
         // Wait for timeout to occur
         fake.elapse(const Duration(milliseconds: 150));
 
         // Assert timeout callback was triggered
-        expect(timeoutOccurred, isTrue,
-            reason:
-                'Timeout callback should be triggered after timeout period');
+        expect(
+          timeoutOccurred,
+          isTrue,
+          reason: 'Timeout callback should be triggered after timeout period',
+        );
       });
     });
   });
@@ -854,8 +955,9 @@ void main() {
     test('returns false when service is disposed', () async {
       deviceConnectionService.dispose();
 
-      final result =
-          await deviceConnectionService.attemptReconnection(mockDevice);
+      final result = await deviceConnectionService.attemptReconnection(
+        mockDevice,
+      );
 
       expect(result, isFalse);
     });
@@ -907,14 +1009,14 @@ void main() {
         String? token;
         deviceConnectionService
             .monitorMessageReceives(
-          mockDevice,
-          messageReceivedCallback: (_, _) {
-            callbackInvoked = true;
-          },
-        )
+              mockDevice,
+              messageReceivedCallback: (_, _) {
+                callbackInvoked = true;
+              },
+            )
             .then((t) {
-          token = t;
-        });
+              token = t;
+            });
         fake.flushMicrotasks();
 
         deviceConnectionService.stopMessageMonitoring(token!);
@@ -937,8 +1039,8 @@ void main() {
     test('returns Success(false) when service is disposed', () async {
       deviceConnectionService.dispose();
 
-      final result =
-          await deviceConnectionService.checkIfNearbyConnectionsWorks();
+      final result = await deviceConnectionService
+          .checkIfNearbyConnectionsWorks();
 
       expect(result, isA<Success<bool>>());
       expect((result as Success<bool>).value, isFalse);
@@ -946,8 +1048,8 @@ void main() {
 
     test('returns Success(false) on non-mobile platform', () async {
       // mockPlatformChecker returns false for both isAndroid and isIOS by default
-      final result =
-          await deviceConnectionService.checkIfNearbyConnectionsWorks();
+      final result = await deviceConnectionService
+          .checkIfNearbyConnectionsWorks();
 
       expect(result, isA<Success<bool>>());
       expect((result as Success<bool>).value, isFalse);

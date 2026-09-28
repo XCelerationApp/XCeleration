@@ -24,10 +24,7 @@ class InstructionsBanner extends StatelessWidget {
             const Icon(Icons.info_outline, color: Colors.blueAccent, size: 24),
             const SizedBox(width: 8),
             Flexible(
-              child: Text(
-                'Instructions',
-                style: AppTypography.headerRegular,
-              ),
+              child: Text('Instructions', style: AppTypography.headerRegular),
             ),
           ],
         ),
@@ -38,7 +35,9 @@ class InstructionsBanner extends StatelessWidget {
   /// Shows a modal bottom sheet with placeholder instructions using the shared sheet function and app typography.
   /// Only shows instructions once per role using shared preferences.
   static Future<void> showInstructionsSheet(
-      BuildContext context, Role role) async {
+    BuildContext context,
+    Role role,
+  ) async {
     final prefs = await SharedPreferences.getInstance();
     final key = 'instructions_shown_${role.name}';
     final hasShownBefore = prefs.getBool(key) ?? false;
@@ -60,7 +59,9 @@ class InstructionsBanner extends StatelessWidget {
   /// Shows instructions dialog regardless of whether they've been shown before.
   /// This is used when the user manually clicks the instructions button.
   static Future<void> showInstructionsSheetManual(
-      BuildContext context, Role role) async {
+    BuildContext context,
+    Role role,
+  ) async {
     if (context.mounted) {
       await DialogUtils.showMessageDialog(
         context,

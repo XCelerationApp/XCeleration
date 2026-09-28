@@ -24,7 +24,9 @@ class SpreadsheetLoadSheet extends StatelessWidget {
           'Use a Google Sheet, Excel (.xlsx) or CSV file with a column for '
           'each runner\'s bib, name and grade (9 to 12). Add a Team column '
           'to import several teams at once.',
-          style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
+          style: AppTypography.bodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
         ),
         Align(
           alignment: Alignment.centerLeft,
@@ -38,8 +40,10 @@ class SpreadsheetLoadSheet extends StatelessWidget {
               foregroundColor: AppColors.primaryColor,
               padding: EdgeInsets.zero,
             ),
-            child: Text('See a sample spreadsheet',
-                style: AppTypography.bodySemibold),
+            child: Text(
+              'See a sample spreadsheet',
+              style: AppTypography.bodySemibold,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -98,17 +102,25 @@ class _SourceButton extends StatelessWidget {
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Row(
             children: [
-              Icon(icon, color: primary ? Colors.white : AppColors.primaryColor),
+              Icon(
+                icon,
+                color: primary ? Colors.white : AppColors.primaryColor,
+              ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style: AppTypography.bodySemibold.copyWith(color: fg)),
-                    Text(detail,
-                        style: AppTypography.smallBodyRegular.copyWith(
-                            color: fg.withValues(alpha: 0.8))),
+                    Text(
+                      label,
+                      style: AppTypography.bodySemibold.copyWith(color: fg),
+                    ),
+                    Text(
+                      detail,
+                      style: AppTypography.smallBodyRegular.copyWith(
+                        color: fg.withValues(alpha: 0.8),
+                      ),
+                    ),
                   ],
                 ),
               ),

@@ -13,10 +13,10 @@ import 'package:xceleration/shared/models/database/team.dart';
 const _eagles = Team(teamId: 1, name: 'Eagles');
 
 RaceRunner _runner(int id, String name) => RaceRunner(
-      raceId: 7,
-      runner: Runner(runnerId: id, name: name, bibNumber: '${100 + id}', grade: 10),
-      team: _eagles,
-    );
+  raceId: 7,
+  runner: Runner(runnerId: id, name: name, bibNumber: '${100 + id}', grade: 10),
+  team: _eagles,
+);
 
 final _ann = _runner(1, 'Ann');
 final _bo = _runner(2, 'Bo');
@@ -29,35 +29,49 @@ void main() {
   Future<void> open(WidgetTester tester) async {
     saved = null;
     popped = null;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: ElevatedButton(
-            onPressed: () async {
-              popped = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => EditResultsScreen(
-                    create: () => EditResultsController(
-                      raceId: 7,
-                      results: [
-                        RaceResult(raceId: 7, runner: _ann.runner, team: _eagles,
-                            place: 1, finishTime: const Duration(minutes: 15)),
-                        RaceResult(raceId: 7, runner: _bo.runner, team: _eagles,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () async {
+                popped = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => EditResultsScreen(
+                      create: () => EditResultsController(
+                        raceId: 7,
+                        results: [
+                          RaceResult(
+                            raceId: 7,
+                            runner: _ann.runner,
+                            team: _eagles,
+                            place: 1,
+                            finishTime: const Duration(minutes: 15),
+                          ),
+                          RaceResult(
+                            raceId: 7,
+                            runner: _bo.runner,
+                            team: _eagles,
                             place: 2,
-                            finishTime: const Duration(minutes: 15, seconds: 20)),
-                      ],
-                      raceRunners: [_ann, _bo, _di],
-                      save: (results) async => saved = results,
+                            finishTime: const Duration(
+                              minutes: 15,
+                              seconds: 20,
+                            ),
+                          ),
+                        ],
+                        raceRunners: [_ann, _bo, _di],
+                        save: (results) async => saved = results,
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-            child: const Text('open'),
+                );
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }

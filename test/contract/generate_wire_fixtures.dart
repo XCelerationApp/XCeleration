@@ -14,9 +14,10 @@ import 'wire_samples.dart';
 void main() {
   test('save this version\'s wire formats', () async {
     final pubspec = File('pubspec.yaml').readAsStringSync();
-    final version =
-        RegExp(r'^version:\s*([0-9.]+)', multiLine: true).firstMatch(pubspec)!
-            .group(1)!;
+    final version = RegExp(
+      r'^version:\s*([0-9.]+)',
+      multiLine: true,
+    ).firstMatch(pubspec)!.group(1)!;
     final dir = Directory('test/fixtures/wire/$version');
     if (dir.existsSync()) {
       markTestSkipped('$version is already saved; not replacing it.');

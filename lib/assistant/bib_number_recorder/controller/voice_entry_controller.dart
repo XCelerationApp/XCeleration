@@ -48,11 +48,12 @@ class VoiceEntryController extends ChangeNotifier {
     Future<void> Function()? fetchModel,
     bool Function(String bib)? isKnownBib,
     this.liveTapDelay = const Duration(milliseconds: 150),
-  })  : _createService = createService ??
-            (() => VoiceRecognitionService.create(isKnownBib: isKnownBib)),
-        _haptics = haptics ?? HapticFeedbackService(),
-        _prefs = prefs ?? SharedPreferences.getInstance,
-        _fetchModel = fetchModel ?? _downloadModel;
+  }) : _createService =
+           createService ??
+           (() => VoiceRecognitionService.create(isKnownBib: isKnownBib)),
+       _haptics = haptics ?? HapticFeedbackService(),
+       _prefs = prefs ?? SharedPreferences.getInstance,
+       _fetchModel = fetchModel ?? _downloadModel;
 
   /// How long after the mic starts recording its tap comes. Felt a moment
   /// after the press, the tap says "recording now": a word started as the
@@ -124,7 +125,8 @@ class VoiceEntryController extends ChangeNotifier {
         await prefs.setBool(prefKey, false);
         _error = const AppError(
           // The panel adds "Use the keypad, or try again."
-          userMessage: 'Voice entry closed the app last time it started, so '
+          userMessage:
+              'Voice entry closed the app last time it started, so '
               'it was turned off.',
         );
         _set(VoiceEntryState.failed);
@@ -133,10 +135,12 @@ class VoiceEntryController extends ChangeNotifier {
       if (prefs.getBool(prefKey) ?? true) {
         await _prepare();
       } else {
-        unawaited(_fetchModel().catchError((Object e) {
-          // Tried again when voice is turned on.
-          Logger.d('[VoiceEntryController] Model not fetched early: $e');
-        }));
+        unawaited(
+          _fetchModel().catchError((Object e) {
+            // Tried again when voice is turned on.
+            Logger.d('[VoiceEntryController] Model not fetched early: $e');
+          }),
+        );
       }
     } catch (e) {
       Logger.e('[VoiceEntryController.restore] $e');

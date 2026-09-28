@@ -33,15 +33,23 @@ abstract interface class IAssistantStorageService {
   Future<Result<void>> updateRace(RaceRecord race);
 
   Future<Result<void>> updateRaceDuration(
-      int raceId, String type, Duration? time);
+    int raceId,
+    String type,
+    Duration? time,
+  );
 
   Future<Result<void>> updateRaceStartTime(
-      int raceId, String type, DateTime? startedAt);
+    int raceId,
+    String type,
+    DateTime? startedAt,
+  );
 
   Future<Result<void>> updateRaceStatus(int raceId, String type, bool stopped);
 
-  Future<Result<List<RaceRecord>>> getRecentRaces(String type,
-      {Duration? since});
+  Future<Result<List<RaceRecord>>> getRecentRaces(
+    String type, {
+    Duration? since,
+  });
 
   Future<Result<List<RaceRecord>>> getRaces(String type);
 
@@ -66,21 +74,34 @@ abstract interface class IAssistantStorageService {
   Future<Result<void>> deleteChunks(int raceId);
 
   Future<Result<void>> saveChunkConflict(
-      int raceId, int chunkId, TimingDatum conflictRecord);
+    int raceId,
+    int chunkId,
+    TimingDatum conflictRecord,
+  );
 
   Future<Result<void>> updateChunkConflict(
-      String chunkId, TimingDatum? conflictRecord);
+    String chunkId,
+    TimingDatum? conflictRecord,
+  );
 
   Future<Result<String?>> getChunkConflict(String chunkId);
 
   Future<Result<void>> saveChunkTimingData(
-      String chunkId, List<String> encodedRecords);
+    String chunkId,
+    List<String> encodedRecords,
+  );
 
   Future<Result<void>> updateChunkTimingData(
-      int raceId, int chunkId, List<TimingDatum> timingData);
+    int raceId,
+    int chunkId,
+    List<TimingDatum> timingData,
+  );
 
   Future<Result<void>> addLoggedTimingDatum(
-      int raceId, int chunkId, TimingDatum datum);
+    int raceId,
+    int chunkId,
+    TimingDatum datum,
+  );
 
   // Runner Methods
 
@@ -109,7 +130,10 @@ abstract interface class IAssistantStorageService {
   Future<Result<void>> removeBibRecord(int raceId, int bibId);
 
   Future<Result<void>> updateBibRecordValue(
-      int raceId, int bibId, String bibNumber);
+    int raceId,
+    int bibId,
+    String bibNumber,
+  );
 
   Future<Result<BibRecord?>> getBibRecord(int raceId, int bibId);
 

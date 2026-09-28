@@ -2,16 +2,20 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/utils/race_to_reopen.dart';
 
-RaceRecord _race(int id, DateTime date,
-        {DateTime? startedAt, bool stopped = true, String? name}) =>
-    RaceRecord(
-      raceId: id,
-      date: date,
-      name: name ?? 'Race $id',
-      type: 'timer',
-      startedAt: startedAt,
-      stopped: stopped,
-    );
+RaceRecord _race(
+  int id,
+  DateTime date, {
+  DateTime? startedAt,
+  bool stopped = true,
+  String? name,
+}) => RaceRecord(
+  raceId: id,
+  date: date,
+  name: name ?? 'Race $id',
+  type: 'timer',
+  startedAt: startedAt,
+  stopped: stopped,
+);
 
 void main() {
   final demo = _race(-1, DateTime(2026, 9, 1), name: 'Demo Race');
@@ -21,8 +25,12 @@ void main() {
   test('nothing to open', () => expect(raceToReopen([]), isNull));
 
   test('a running race wins, even with an older date', () {
-    final running = _race(3, DateTime(2026, 9, 1),
-        startedAt: DateTime(2026, 9, 21, 10), stopped: false);
+    final running = _race(
+      3,
+      DateTime(2026, 9, 1),
+      startedAt: DateTime(2026, 9, 21, 10),
+      stopped: false,
+    );
     // Listed newest date first, as storage returns them.
     expect(raceToReopen([newer, older, running, demo]), running);
   });

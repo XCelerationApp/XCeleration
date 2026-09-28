@@ -28,11 +28,12 @@ class RunnerTimeRecord extends StatelessWidget {
   Widget build(BuildContext context) {
     final raceRunner = record.runner;
     final place = record.place;
-    final isResolved = !chunk.hasConflict ||
-        chunk.conflict.type == ConflictType.confirmRunner;
+    final isResolved =
+        !chunk.hasConflict || chunk.conflict.type == ConflictType.confirmRunner;
 
-    final Color conflictColor =
-        isResolved ? Colors.green : AppColors.primaryColor;
+    final Color conflictColor = isResolved
+        ? Colors.green
+        : AppColors.primaryColor;
 
     // Under each time in a conflict, the gap since the one before; a time
     // that looks like a stray tap is picked out in orange.
@@ -44,7 +45,8 @@ class RunnerTimeRecord extends StatelessWidget {
       final spot = controller.suggestionFor(chunk.chunkId);
       // Only a stray tap, and only where it clearly stands out: a missed
       // runner could be anywhere, so no + is picked out as the likely spot.
-      highlight = chunk.conflict.type == ConflictType.extraTime &&
+      highlight =
+          chunk.conflict.type == ConflictType.extraTime &&
           spot != null &&
           spot.clear &&
           spot.row == chunkIndex;
@@ -79,7 +81,9 @@ class RunnerTimeRecord extends StatelessWidget {
                   ),
                 ),
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 12, vertical: 16),
+                  horizontal: 12,
+                  vertical: 16,
+                ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
@@ -108,8 +112,7 @@ class RunnerTimeRecord extends StatelessWidget {
                     bottomRight: Radius.circular(10),
                   ),
                 ),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 14),
+                padding: const EdgeInsets.symmetric(horizontal: 14),
                 child: SizedBox.expand(
                   child: (chunk.conflict.type == ConflictType.extraTime
                       ? ExtraTimeCell(
@@ -120,7 +123,9 @@ class RunnerTimeRecord extends StatelessWidget {
                           onRemoveExtraTime: chunk.conflict.offBy <= 0
                               ? null
                               : () => controller.removeExtraTimeRecord(
-                                  chunk.chunkId, chunkIndex),
+                                  chunk.chunkId,
+                                  chunkIndex,
+                                ),
                         )
                       : Builder(
                           builder: (context) {
@@ -128,25 +133,36 @@ class RunnerTimeRecord extends StatelessWidget {
                                 chunk.lastInsertedIndex == chunkIndex;
                             if (shouldAutofocus) {
                               WidgetsBinding.instance.addPostFrameCallback(
-                                  (_) => chunk.lastInsertedIndex = null);
+                                (_) => chunk.lastInsertedIndex = null,
+                              );
                             }
                             return MissingTimeCell(
                               controller: record.timeController,
                               time: record.time,
                               onSubmitted: (newValue) =>
                                   controller.submitMissingTimeRecord(
-                                      chunk.chunkId, chunkIndex, newValue),
+                                    chunk.chunkId,
+                                    chunkIndex,
+                                    newValue,
+                                  ),
                               onChanged: (newValue) =>
                                   controller.updateMissingTimeRecord(
-                                      chunk.chunkId, chunkIndex, newValue),
-                              onAddTime: (chunk.conflict.type ==
+                                    chunk.chunkId,
+                                    chunkIndex,
+                                    newValue,
+                                  ),
+                              onAddTime:
+                                  (chunk.conflict.type ==
                                           ConflictType.missingTime &&
                                       chunk.shouldShowPlusButton(chunkIndex))
                                   ? () => controller.insertTbdAt(
-                                      chunk.chunkId, chunkIndex)
+                                      chunk.chunkId,
+                                      chunkIndex,
+                                    )
                                   : null,
-                              validationError:
-                                  chunk.validateTimeOrder(chunkIndex),
+                              validationError: chunk.validateTimeOrder(
+                                chunkIndex,
+                              ),
                               autofocus: shouldAutofocus,
                               isOriginallyTBD: record.isOriginallyTBD,
                               record: record,

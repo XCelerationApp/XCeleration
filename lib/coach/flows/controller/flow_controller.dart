@@ -144,9 +144,11 @@ class MasterFlowController {
 
     // Sending and collecting each start from a short check that everything
     // is ready, then go straight to the page that does the work.
-    final sending = currentState == Race.FLOW_SETUP_COMPLETED ||
+    final sending =
+        currentState == Race.FLOW_SETUP_COMPLETED ||
         currentState == Race.FLOW_PRE_RACE;
-    final collecting = currentState == Race.FLOW_PRE_RACE_COMPLETED ||
+    final collecting =
+        currentState == Race.FLOW_PRE_RACE_COMPLETED ||
         currentState == Race.FLOW_POST_RACE;
     if (!sending && !collecting) return;
     if (!context.mounted) return;
@@ -156,7 +158,8 @@ class MasterFlowController {
       ready = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Ready to Send the Race?',
-        content: '• You are at the race.\n'
+        content:
+            '• You are at the race.\n'
             '• Any last-minute roster changes are made.\n'
             '• The Timer and Bib Recorder are next to you, with '
             'XCeleration open.',
@@ -167,7 +170,8 @@ class MasterFlowController {
       ready = await DialogUtils.showConfirmationDialog(
         context,
         title: 'Ready to Collect Results?',
-        content: '• Every runner has finished.\n'
+        content:
+            '• Every runner has finished.\n'
             '• The Timer and Bib Recorder are next to you, with '
             'XCeleration open.',
         confirmText: 'Collect Results',
@@ -197,26 +201,31 @@ class MasterFlowController {
     // Styled like the app's other messages (light, green tick), not the
     // dark default that looked like it came from somewhere else.
     if (message != null) {
-      messenger?.showSnackBar(SnackBar(
-        content: Row(
-          children: [
-            Icon(Icons.check_circle_outline, color: Colors.green.shade700),
-            const SizedBox(width: AppSpacing.sm),
-            Expanded(
-              child: Text(message,
-                  style: AppTypography.bodyRegular
-                      .copyWith(color: Colors.green.shade700)),
-            ),
-          ],
+      messenger?.showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: Colors.green.shade700),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Text(
+                  message,
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: Colors.green.shade700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.lightColor,
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+          ),
+          duration: const Duration(seconds: 4),
         ),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.lightColor,
-        elevation: 3,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-        ),
-        duration: const Duration(seconds: 4),
-      ));
+      );
     }
   }
 
@@ -270,9 +279,12 @@ class MasterFlowController {
     // Mark as pre-race-completed instead of moving directly to post-race
     await updateRaceFlowState(context, Race.FLOW_PRE_RACE_COMPLETED);
     if (context.mounted) {
-      closeRaceSheet(context,
-          message: 'Race sent. After the race, open it and tap Collect '
-              'Results.');
+      closeRaceSheet(
+        context,
+        message:
+            'Race sent. After the race, open it and tap Collect '
+            'Results.',
+      );
     }
     return true;
   }
@@ -300,7 +312,10 @@ class MasterFlowController {
     await updateRaceFlowState(context, Race.FLOW_FINISHED);
     if (context.mounted) {
       // A finished race opens on its results, so they are one tap away.
-      closeRaceSheet(context, message: 'Results saved. Open the race to see and share them.');
+      closeRaceSheet(
+        context,
+        message: 'Results saved. Open the race to see and share them.',
+      );
     }
     return true;
   }
@@ -514,7 +529,8 @@ Future<bool> showFlow({
             selector: (_, c) => (c.canProceed, c.currentIndex, c.blockedReason),
             builder: (ctx, data, _) {
               final (canProceed, index, blockedReason) = data;
-              final label = steps[index].nextLabel ??
+              final label =
+                  steps[index].nextLabel ??
                   (index == steps.length - 1 ? 'Done' : 'Next');
               return Padding(
                 padding: const EdgeInsets.fromLTRB(24, 16, 24, 24),

@@ -8,10 +8,7 @@ class ReloadButton extends StatelessWidget {
   /// Function to call when the reload button is pressed
   final VoidCallback onPressed;
 
-  const ReloadButton({
-    super.key,
-    required this.onPressed,
-  });
+  const ReloadButton({super.key, required this.onPressed});
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +20,8 @@ class ReloadButton extends StatelessWidget {
         final again = await DialogUtils.showConfirmationDialog(
           context,
           title: 'Load the Results Again?',
-          content: 'This connects to the volunteers\' phones again. Any '
+          content:
+              'This connects to the volunteers\' phones again. Any '
               'bibs or times you fixed here are lost.',
           confirmText: 'Load Again',
           cancelText: 'Cancel',

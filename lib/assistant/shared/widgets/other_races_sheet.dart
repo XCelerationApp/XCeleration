@@ -22,10 +22,12 @@ class OtherRacesSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     // Filter out the current race
     final otherRaces = races
-        .where((race) =>
-            currentRace == null ||
-            race.raceId != currentRace!.raceId ||
-            race.type != currentRace!.type)
+        .where(
+          (race) =>
+              currentRace == null ||
+              race.raceId != currentRace!.raceId ||
+              race.type != currentRace!.type,
+        )
         .toList();
 
     if (otherRaces.isEmpty) {
@@ -99,8 +101,9 @@ class OtherRacesSheet extends StatelessWidget {
       final isInProgress = !race.stopped;
 
       statusText = isInProgress ? 'In Progress' : 'Completed';
-      statusColor =
-          isInProgress ? AppColors.mediumColor : AppColors.primaryColor;
+      statusColor = isInProgress
+          ? AppColors.mediumColor
+          : AppColors.primaryColor;
     } else {
       // Race timer logic: completed if stopped and has duration, in progress if started, not started otherwise
       final isCompleted = race.stopped && race.duration != null;
@@ -109,20 +112,18 @@ class OtherRacesSheet extends StatelessWidget {
       statusText = isCompleted
           ? 'Completed'
           : isStarted
-              ? 'In Progress'
-              : 'Not Started';
-      statusColor =
-          isCompleted ? AppColors.primaryColor : AppColors.mediumColor;
+          ? 'In Progress'
+          : 'Not Started';
+      statusColor = isCompleted
+          ? AppColors.primaryColor
+          : AppColors.mediumColor;
     }
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.backgroundColor,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.lightColor,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.lightColor, width: 1),
         boxShadow: [
           BoxShadow(
             color: AppColors.darkColor.withValues(alpha: 0.05),

@@ -32,14 +32,18 @@ const _teams = [
 ];
 
 List<RaceRunner> _roster(int n) => [
-      for (var i = 1; i <= n; i++)
-        RaceRunner(
-          raceId: 1,
-          runner: Runner(
-              runnerId: i, name: 'Runner $i', bibNumber: '${100 + i}', grade: 10),
-          team: _teams[i % 3],
-        )
-    ];
+  for (var i = 1; i <= n; i++)
+    RaceRunner(
+      raceId: 1,
+      runner: Runner(
+        runnerId: i,
+        name: 'Runner $i',
+        bibNumber: '${100 + i}',
+        grade: 10,
+      ),
+      team: _teams[i % 3],
+    ),
+];
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -56,13 +60,18 @@ void main() {
   Future<void> assign(WidgetTester tester, RaceRunner runner) async {
     // "Find Someone Else" once the app has suggestions of its own.
     await tap(
-        tester,
-        find.byWidgetPredicate((w) =>
+      tester,
+      find.byWidgetPredicate(
+        (w) =>
             w is Text &&
-            (w.data == 'Find Runner' || w.data == 'Find Someone Else')));
+            (w.data == 'Find Runner' || w.data == 'Find Someone Else'),
+      ),
+    );
     // Found by typing their name, as a coach would.
     await tester.enterText(
-        find.byKey(const ValueKey('find_runner_search')), runner.runner.name!);
+      find.byKey(const ValueKey('find_runner_search')),
+      runner.runner.name!,
+    );
     await tester.pumpAndSettle();
     await tap(tester, find.text(runner.runner.name!).last);
     await tap(tester, find.text('Assign ${runner.runner.name} →'));
@@ -82,12 +91,16 @@ void main() {
         addTearDown(tester.view.reset);
 
         late BuildContext ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (c) {
-            ctx = c;
-            return const Scaffold();
-          }),
-        ));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (c) {
+                ctx = c;
+                return const Scaffold();
+              },
+            ),
+          ),
+        );
 
         final roster = _roster(12);
         final byBib = {for (final r in roster) r.runner.bibNumber!: r};
@@ -96,17 +109,25 @@ void main() {
         when(masterRace.raceRunners).thenAnswer((_) async => roster);
         when(masterRace.teams).thenAnswer((_) async => _teams);
         when(masterRace.race).thenAnswer((_) async => Race(raceName: 'Sim'));
-        when(masterRace.getRaceRunnerByBib(any)).thenAnswer(
-            (i) async => byBib[i.positionalArguments.first as String]);
+        when(
+          masterRace.getRaceRunnerByBib(any),
+        ).thenAnswer((i) async => byBib[i.positionalArguments.first as String]);
         final controller = LoadResultsController(
           masterRace: masterRace,
           devices: DevicesManager(DeviceName.coach, DeviceType.browserDevice),
           scheduler: _NoopScheduler(),
         );
 
-        final race = (await controller.loadSimulatedResults(ctx, scenario,
-            simulator: RaceSimulator(random: Random(seed))))!;
-        expect(controller.hasBibConflicts, isTrue, reason: race.notes.join('\n'));
+        final race = (await controller.loadSimulatedResults(
+          ctx,
+          scenario,
+          simulator: RaceSimulator(random: Random(seed)),
+        ))!;
+        expect(
+          controller.hasBibConflicts,
+          isTrue,
+          reason: race.notes.join('\n'),
+        );
         final truth = [for (final f in race.answerKey) f.runner];
 
         // What the screen will ask about.
@@ -125,11 +146,14 @@ void main() {
             case DuplicateBibConflict(:final occurrences, :final bibNumber):
               // The finish that is really the bib's owner.
               final owner = occurrences.firstWhere(
-                  (o) => truth[o.place - 1].runner.bibNumber == bibNumber);
+                (o) => truth[o.place - 1].runner.bibNumber == bibNumber,
+              );
               await tap(tester, find.text('${ordinal(owner.place)} place'));
               for (final o in occurrences.where((o) => o != owner)) {
-                expect(find.text('Who finished ${ordinal(o.place)}?'),
-                    findsOneWidget);
+                expect(
+                  find.text('Who finished ${ordinal(o.place)}?'),
+                  findsOneWidget,
+                );
                 await assign(tester, truth[o.place - 1]);
               }
             case UnknownBibConflict(:final occurrence):

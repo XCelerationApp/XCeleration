@@ -168,13 +168,18 @@ CREATE INDEX IF NOT EXISTS idx_team_rosters_active ON team_rosters(team_id) WHER
 /// into a shape that differs from what a fresh install gets.
 String createTableStatement(String table) {
   final marker = 'CREATE TABLE IF NOT EXISTS $table (';
-  return splitSqlStatements(localSchemaSql)
-      .firstWhere((stmt) => stmt.startsWith(marker));
+  return splitSqlStatements(
+    localSchemaSql,
+  ).firstWhere((stmt) => stmt.startsWith(marker));
 }
 
 /// Every `CREATE INDEX` statement in [localSchemaSql].
 List<String> createIndexStatements() => splitSqlStatements(localSchemaSql)
-    .where((stmt) => stmt.startsWith('CREATE INDEX') || stmt.startsWith('CREATE UNIQUE INDEX'))
+    .where(
+      (stmt) =>
+          stmt.startsWith('CREATE INDEX') ||
+          stmt.startsWith('CREATE UNIQUE INDEX'),
+    )
     .toList();
 
 /// Utility to split and execute the schema script safely

@@ -24,8 +24,7 @@ class SavedBibChoicesSheet extends StatefulWidget {
 class _SavedBibChoicesSheetState extends State<SavedBibChoicesSheet> {
   /// For each conflict, whether to use the spreadsheet's details. Saved by
   /// default: nothing already saved changes unless the coach says so.
-  late final List<bool> _useSheet =
-      List.filled(widget.conflicts.length, false);
+  late final List<bool> _useSheet = List.filled(widget.conflicts.length, false);
 
   void _setAll(bool useSheet) =>
       setState(() => _useSheet.fillRange(0, _useSheet.length, useSheet));
@@ -43,7 +42,9 @@ class _SavedBibChoicesSheetState extends State<SavedBibChoicesSheet> {
           '${count == 1 ? 'This bib belongs' : 'These bibs belong'} to '
           'runners already saved with a different name or grade. Choose '
           'whose details to keep. Either way, each bib is in this race.',
-          style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
+          style: AppTypography.bodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         if (count > 1) ...[
@@ -82,8 +83,10 @@ class _SavedBibChoicesSheetState extends State<SavedBibChoicesSheet> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Bib ${saved.bibNumber}',
-                      style: AppTypography.smallBodySemibold),
+                  Text(
+                    'Bib ${saved.bibNumber}',
+                    style: AppTypography.smallBodySemibold,
+                  ),
                   const SizedBox(height: AppSpacing.xs),
                   IntrinsicHeight(
                     child: Row(
@@ -151,7 +154,8 @@ class _AllButton extends StatelessWidget {
         foregroundColor: AppColors.primaryColor,
         backgroundColor: selected ? AppColors.selectedRoleColor : null,
         side: BorderSide(
-            color: selected ? AppColors.primaryColor : AppColors.lightColor),
+          color: selected ? AppColors.primaryColor : AppColors.lightColor,
+        ),
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       ),
       child: FittedBox(fit: BoxFit.scaleDown, child: Text(label)),
@@ -207,19 +211,25 @@ class _Choice extends StatelessWidget {
                   ),
                   const SizedBox(width: AppSpacing.xs),
                   Flexible(
-                    child: Text(label,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.mediumColor)),
+                    child: Text(
+                      label,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.mediumColor,
+                      ),
+                    ),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xs),
               Text(name, style: AppTypography.bodySemibold),
               if (grade != null)
-                Text('Grade $grade',
-                    style: AppTypography.caption
-                        .copyWith(color: AppColors.mediumColor)),
+                Text(
+                  'Grade $grade',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
+                ),
             ],
           ),
         ),

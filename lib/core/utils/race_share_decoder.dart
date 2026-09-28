@@ -18,11 +18,14 @@ class RaceShareDecodedData {
 class RaceShareDecoder {
   /// Decode payload and return both results and keep raw encoded for re-broadcast
   static Result<({String rawEncoded, RaceResultsData results})> decodeWithRaw(
-      String encoded) {
+    String encoded,
+  ) {
     final result = decodeToResultsData(encoded);
     return switch (result) {
-      Success(:final value) =>
-        Success((rawEncoded: encoded, results: value.results)),
+      Success(:final value) => Success((
+        rawEncoded: encoded,
+        results: value.results,
+      )),
       Failure(:final error) => Failure(error),
     };
   }
@@ -44,8 +47,9 @@ class RaceShareDecoder {
       final raceDate = raceMap['race_date'] != null
           ? DateTime.parse(raceMap['race_date'])
           : null;
-      final shortDate =
-          raceDate != null ? '${raceDate.month}/${raceDate.day}' : '';
+      final shortDate = raceDate != null
+          ? '${raceDate.month}/${raceDate.day}'
+          : '';
       final title =
           '${name.isNotEmpty ? name : 'Race'}${shortDate.isNotEmpty ? ' $shortDate' : ''} Results';
       final double? distance = (raceMap['distance'] as num?)?.toDouble();
@@ -63,46 +67,56 @@ class RaceShareDecoder {
           final int finishMs = (row[3] as num?)?.toInt() ?? 0;
           final String? teamLabel =
               (teamIndex != null && teamIndex >= 0 && teamIndex < teams.length)
-                  ? teams[teamIndex]?.toString()
-                  : null;
-          results.add(RaceResult(
-            place: place,
-            runner: Runner(name: name, bibNumber: null, grade: null),
-            team: teamLabel != null
-                ? Team(name: teamLabel, abbreviation: teamLabel)
-                : null,
-            finishTime: finishMs > 0 ? Duration(milliseconds: finishMs) : null,
-          ));
+              ? teams[teamIndex]?.toString()
+              : null;
+          results.add(
+            RaceResult(
+              place: place,
+              runner: Runner(name: name, bibNumber: null, grade: null),
+              team: teamLabel != null
+                  ? Team(name: teamLabel, abbreviation: teamLabel)
+                  : null,
+              finishTime: finishMs > 0
+                  ? Duration(milliseconds: finishMs)
+                  : null,
+            ),
+          );
         }
       }
 
       // Compute team/individual aggregates using existing service helpers
       const service = RaceResultsService();
       final individual = service.convertToResultsRecords(
-          service.calculateIndividualResults(results),
-          raceDistance: distance,
-          distanceUnit: distanceUnit);
+        service.calculateIndividualResults(results),
+        raceDistance: distance,
+        distanceUnit: distanceUnit,
+      );
       final teamResults = service.calculateTeamResults(results);
       service.sortAndPlaceTeams(teamResults);
       final h2h = teamResults.length >= 2 && teamResults.length <= 4
           ? service.calculateHeadToHeadResults(teamResults)
           : <List<TeamRecord>>[];
 
-      return Success(RaceShareDecodedData(
-        title: title,
-        results: RaceResultsData(
-          resultsTitle: title,
-          individualResults: individual,
-          overallTeamResults:
-              teamResults.map((r) => TeamRecord.from(r)).toList(),
-          headToHeadTeamResults: h2h,
+      return Success(
+        RaceShareDecodedData(
+          title: title,
+          results: RaceResultsData(
+            resultsTitle: title,
+            individualResults: individual,
+            overallTeamResults: teamResults
+                .map((r) => TeamRecord.from(r))
+                .toList(),
+            headToHeadTeamResults: h2h,
+          ),
         ),
-      ));
+      );
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not load race data. The file may be invalid.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load race data. The file may be invalid.',
+          originalException: e,
+        ),
+      );
     }
   }
 }

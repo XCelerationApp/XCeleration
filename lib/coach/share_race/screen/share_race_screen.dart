@@ -5,10 +5,7 @@ import '../widgets/share_format_selection_widget.dart';
 class ShareRaceScreen extends StatelessWidget {
   final ShareRaceController controller;
 
-  const ShareRaceScreen({
-    super.key,
-    required this.controller,
-  });
+  const ShareRaceScreen({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -16,11 +13,7 @@ class ShareRaceScreen extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        ShareFormatSelectionWidget(
-          controller: controller,
-        ),
-      ],
+      children: [ShareFormatSelectionWidget(controller: controller)],
     );
   }
 }

@@ -37,10 +37,7 @@ class Package {
   }
 
   factory Package.fromJson(Map<String, dynamic> json) {
-    Package package = Package(
-      number: json['number'],
-      type: json['type'],
-    );
+    Package package = Package(number: json['number'], type: json['type']);
     if (package.type != 'DATA') return package;
     package.data = json['data'];
     package.checksum = json['checksum'];

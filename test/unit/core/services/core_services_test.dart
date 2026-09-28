@@ -18,11 +18,7 @@ import 'package:xceleration/core/services/profile_service.dart';
 
 import '../../../helpers/fake_google_sign_in_platform.dart';
 
-@GenerateMocks([
-  IRemoteApiClient,
-  IAuthService,
-  ConnectivityService,
-])
+@GenerateMocks([IRemoteApiClient, IAuthService, ConnectivityService])
 import 'core_services_test.mocks.dart';
 
 void main() {
@@ -47,28 +43,35 @@ void main() {
           'anon-key',
           httpClient: MockClient((request) async {
             requests.add(request);
-            return http.Response('{"success":true}', status,
-                request: request,
-                headers: {'content-type': 'application/json'});
+            return http.Response(
+              '{"success":true}',
+              status,
+              request: request,
+              headers: {'content-type': 'application/json'},
+            );
           }),
         );
         final expiresAt =
-            DateTime.now().add(const Duration(hours: 1)).millisecondsSinceEpoch ~/
-                1000;
-        await client.auth.recoverSession(jsonEncode({
-          'access_token': 'user-jwt',
-          'token_type': 'bearer',
-          'expires_in': 3600,
-          'expires_at': expiresAt,
-          'refresh_token': 'refresh',
-          'user': {
-            'id': 'uid-123',
-            'aud': 'authenticated',
-            'app_metadata': <String, dynamic>{},
-            'user_metadata': <String, dynamic>{},
-            'created_at': '2024-01-01T00:00:00Z',
-          },
-        }));
+            DateTime.now()
+                .add(const Duration(hours: 1))
+                .millisecondsSinceEpoch ~/
+            1000;
+        await client.auth.recoverSession(
+          jsonEncode({
+            'access_token': 'user-jwt',
+            'token_type': 'bearer',
+            'expires_in': 3600,
+            'expires_at': expiresAt,
+            'refresh_token': 'refresh',
+            'user': {
+              'id': 'uid-123',
+              'aud': 'authenticated',
+              'app_metadata': <String, dynamic>{},
+              'user_metadata': <String, dynamic>{},
+              'created_at': '2024-01-01T00:00:00Z',
+            },
+          }),
+        );
         when(mockRemote.init()).thenAnswer((_) async {});
         when(mockRemote.isInitialized).thenReturn(true);
         when(mockRemote.client).thenReturn(client);
@@ -80,8 +83,10 @@ void main() {
 
         await service.deleteCurrentUserAccount();
 
-        expect(requests.single.url.toString(),
-            'https://configured-project.supabase.co/functions/v1/delete-user');
+        expect(
+          requests.single.url.toString(),
+          'https://configured-project.supabase.co/functions/v1/delete-user',
+        );
       });
 
       test('sends the signed-in user\'s token', () async {
@@ -104,11 +109,13 @@ void main() {
 
         await expectLater(
           service.deleteCurrentUserAccount(),
-          throwsA(isA<Exception>().having(
-            (e) => e.toString(),
-            'message',
-            contains('Remote service not configured'),
-          )),
+          throwsA(
+            isA<Exception>().having(
+              (e) => e.toString(),
+              'message',
+              contains('Remote service not configured'),
+            ),
+          ),
         );
       });
     });
@@ -221,13 +228,20 @@ void main() {
           final body = request.url.path.endsWith('/coach_links')
               ? '[${linkedCoachIds.map((id) => '{"coach_user_id":"$id"}').join(',')}]'
               : '[]';
-          return http.Response(body, 200,
-              request: request,
-              headers: {'content-type': 'application/json'});
+          return http.Response(
+            body,
+            200,
+            request: request,
+            headers: {'content-type': 'application/json'},
+          );
         });
-        when(mockRemote.client).thenReturn(SupabaseClient(
-            'https://test.supabase.co', 'anon-key',
-            httpClient: httpClient));
+        when(mockRemote.client).thenReturn(
+          SupabaseClient(
+            'https://test.supabase.co',
+            'anon-key',
+            httpClient: httpClient,
+          ),
+        );
         when(mockAuth.currentUserId).thenReturn('viewer-1');
       }
 
@@ -247,8 +261,10 @@ void main() {
 
         await service.listLinkedCoachesWithProfiles();
 
-        expect(profilesRequest().queryParameters['or'],
-            '(user_id.eq.coach-1,user_id.eq.coach-2)');
+        expect(
+          profilesRequest().queryParameters['or'],
+          '(user_id.eq.coach-1,user_id.eq.coach-2)',
+        );
       });
     });
 
@@ -264,13 +280,20 @@ void main() {
           final body = request.url.path.endsWith('/rpc/find_user_id_by_email')
               ? lookupResponse
               : '[]';
-          return http.Response(body, 200,
-              request: request,
-              headers: {'content-type': 'application/json'});
+          return http.Response(
+            body,
+            200,
+            request: request,
+            headers: {'content-type': 'application/json'},
+          );
         });
-        when(mockRemote.client).thenReturn(SupabaseClient(
-            'https://test.supabase.co', 'anon-key',
-            httpClient: httpClient));
+        when(mockRemote.client).thenReturn(
+          SupabaseClient(
+            'https://test.supabase.co',
+            'anon-key',
+            httpClient: httpClient,
+          ),
+        );
         when(mockAuth.currentUserId).thenReturn('viewer-1');
       }
 
@@ -289,8 +312,10 @@ void main() {
 
         await service.linkCoachByEmail('coach@example.com');
 
-        expect(requests.any((r) => r.url.path.endsWith('/user_profiles')),
-            isFalse);
+        expect(
+          requests.any((r) => r.url.path.endsWith('/user_profiles')),
+          isFalse,
+        );
       });
 
       test('links the viewer to the coach that was found', () async {
@@ -299,10 +324,13 @@ void main() {
         final linked = await service.linkCoachByEmail('coach@example.com');
 
         expect(linked, isTrue);
-        final upsert =
-            requests.singleWhere((r) => r.url.path.endsWith('/coach_links'));
-        expect(jsonDecode(upsert.body),
-            {'coach_user_id': 'coach-1', 'viewer_user_id': 'viewer-1'});
+        final upsert = requests.singleWhere(
+          (r) => r.url.path.endsWith('/coach_links'),
+        );
+        expect(jsonDecode(upsert.body), {
+          'coach_user_id': 'coach-1',
+          'viewer_user_id': 'viewer-1',
+        });
       });
 
       test('returns false when no user has that email', () async {
@@ -388,37 +416,43 @@ void main() {
         expect(result, isFalse);
       });
 
-      test('returns false when authenticate throws generic exception',
-          () async {
-        fakePlatform.shouldThrowGenericException = true;
-        final service = buildService();
+      test(
+        'returns false when authenticate throws generic exception',
+        () async {
+          fakePlatform.shouldThrowGenericException = true;
+          final service = buildService();
 
-        final result = await service.signIn();
+          final result = await service.signIn();
 
-        expect(result, isFalse);
-      });
+          expect(result, isFalse);
+        },
+      );
 
-      test('attempts lightweight authentication before interactive sign-in',
-          () async {
-        fakePlatform.setupLightweightSuccess();
-        final service = buildService();
+      test(
+        'attempts lightweight authentication before interactive sign-in',
+        () async {
+          fakePlatform.setupLightweightSuccess();
+          final service = buildService();
 
-        await service.signIn();
+          await service.signIn();
 
-        expect(fakePlatform.lightweightCallCount, 1);
-        expect(fakePlatform.authenticateCallCount, 0);
-      });
+          expect(fakePlatform.lightweightCallCount, 1);
+          expect(fakePlatform.authenticateCallCount, 0);
+        },
+      );
 
-      test('falls back to interactive sign-in when lightweight fails',
-          () async {
-        fakePlatform.setupSuccessfulSignIn();
-        final service = buildService();
+      test(
+        'falls back to interactive sign-in when lightweight fails',
+        () async {
+          fakePlatform.setupSuccessfulSignIn();
+          final service = buildService();
 
-        await service.signIn();
+          await service.signIn();
 
-        expect(fakePlatform.lightweightCallCount, 1);
-        expect(fakePlatform.authenticateCallCount, 1);
-      });
+          expect(fakePlatform.lightweightCallCount, 1);
+          expect(fakePlatform.authenticateCallCount, 1);
+        },
+      );
 
       test('isSignedIn returns true after successful sign-in', () async {
         fakePlatform.setupSuccessfulSignIn();
@@ -509,8 +543,10 @@ void main() {
       test('returns null when not signed in', () async {
         final service = buildService();
 
-        final result =
-            await service.downloadSheetAsCsv('spreadsheet-id', 'results');
+        final result = await service.downloadSheetAsCsv(
+          'spreadsheet-id',
+          'results',
+        );
 
         expect(result, isNull);
       });
@@ -522,8 +558,10 @@ void main() {
 
         // Now go offline
         when(mockConnectivity.isOnline()).thenAnswer((_) async => false);
-        final result =
-            await service.downloadSheetAsCsv('spreadsheet-id', 'results');
+        final result = await service.downloadSheetAsCsv(
+          'spreadsheet-id',
+          'results',
+        );
 
         expect(result, isNull);
       });

@@ -11,4 +11,3 @@ void scrollToBottom(ScrollController scrollController) {
     }
   });
 }
-

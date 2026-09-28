@@ -10,24 +10,19 @@ void main() {
   group('EnhancedFlowIndicator', () {
     group('back button', () {
       testWidgets('is present when onBack is not null', (tester) async {
-        await tester.pumpWidget(_buildApp(
-          EnhancedFlowIndicator(
-            totalSteps: 3,
-            currentStep: 0,
-            onBack: () {},
+        await tester.pumpWidget(
+          _buildApp(
+            EnhancedFlowIndicator(totalSteps: 3, currentStep: 0, onBack: () {}),
           ),
-        ));
+        );
 
         expect(find.byIcon(Icons.arrow_back), findsOneWidget);
       });
 
       testWidgets('is absent when onBack is null', (tester) async {
-        await tester.pumpWidget(_buildApp(
-          const EnhancedFlowIndicator(
-            totalSteps: 3,
-            currentStep: 0,
-          ),
-        ));
+        await tester.pumpWidget(
+          _buildApp(const EnhancedFlowIndicator(totalSteps: 3, currentStep: 0)),
+        );
 
         expect(find.byIcon(Icons.arrow_back), findsNothing);
       });
@@ -35,13 +30,15 @@ void main() {
       testWidgets('tapping invokes onBack', (tester) async {
         bool tapped = false;
 
-        await tester.pumpWidget(_buildApp(
-          EnhancedFlowIndicator(
-            totalSteps: 3,
-            currentStep: 0,
-            onBack: () => tapped = true,
+        await tester.pumpWidget(
+          _buildApp(
+            EnhancedFlowIndicator(
+              totalSteps: 3,
+              currentStep: 0,
+              onBack: () => tapped = true,
+            ),
           ),
-        ));
+        );
 
         await tester.tap(find.byIcon(Icons.arrow_back));
 
@@ -53,17 +50,15 @@ void main() {
       testWidgets('renders totalSteps segments', (tester) async {
         const totalSteps = 4;
 
-        await tester.pumpWidget(_buildApp(
-          const EnhancedFlowIndicator(
-            totalSteps: totalSteps,
-            currentStep: 0,
+        await tester.pumpWidget(
+          _buildApp(
+            const EnhancedFlowIndicator(totalSteps: totalSteps, currentStep: 0),
           ),
-        ));
+        );
 
         final segments = find.byWidgetPredicate(
           (widget) =>
-              widget is Container &&
-              widget.constraints?.maxHeight == 5.0,
+              widget is Container && widget.constraints?.maxHeight == 5.0,
         );
         expect(segments, findsNWidgets(totalSteps));
       });

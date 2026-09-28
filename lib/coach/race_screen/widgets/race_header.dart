@@ -13,10 +13,7 @@ import '../controller/race_form_state.dart';
 class RaceHeader extends StatefulWidget {
   final RaceScreenController controller;
 
-  const RaceHeader({
-    super.key,
-    required this.controller,
-  });
+  const RaceHeader({super.key, required this.controller});
 
   @override
   State<RaceHeader> createState() => _RaceHeaderState();
@@ -64,7 +61,11 @@ class _RaceHeaderState extends State<RaceHeader> {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+        AppSpacing.lg,
+        AppSpacing.sm,
+        AppSpacing.lg,
+        0,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -107,9 +108,7 @@ class _RaceHeaderState extends State<RaceHeader> {
       return TextField(
         controller: widget.controller.form.nameController,
         focusNode: _titleFocusNode,
-        style: AppTypography.titleLarge.copyWith(
-          color: AppColors.darkColor,
-        ),
+        style: AppTypography.titleLarge.copyWith(color: AppColors.darkColor),
         textAlign: TextAlign.start,
         cursorColor: AppColors.primaryColor,
         decoration: const InputDecoration(
@@ -119,8 +118,7 @@ class _RaceHeaderState extends State<RaceHeader> {
         ),
         onChanged: (value) =>
             widget.controller.trackFieldChange(RaceField.name),
-        onSubmitted: (_) =>
-            widget.controller.form.stopEditing(RaceField.name),
+        onSubmitted: (_) => widget.controller.form.stopEditing(RaceField.name),
         onTapOutside: (_) => _titleFocusNode.unfocus(),
       );
     }
@@ -144,8 +142,11 @@ class _RaceHeaderState extends State<RaceHeader> {
           IconButton(
             key: const ValueKey('edit_race_name'),
             tooltip: 'Rename race',
-            icon: const Icon(Icons.edit,
-                color: AppColors.primaryColor, size: 20),
+            icon: const Icon(
+              Icons.edit,
+              color: AppColors.primaryColor,
+              size: 20,
+            ),
             onPressed: () {
               widget.controller.form.startEditing(RaceField.name);
               WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -166,12 +167,18 @@ class _RaceHeaderState extends State<RaceHeader> {
                 value: 'delete',
                 child: Row(
                   children: [
-                    const Icon(Icons.delete_outline,
-                        color: AppColors.redColor, size: 20),
+                    const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.redColor,
+                      size: 20,
+                    ),
                     const SizedBox(width: AppSpacing.sm),
-                    Text('Delete Race',
-                        style: AppTypography.bodyRegular
-                            .copyWith(color: AppColors.redColor)),
+                    Text(
+                      'Delete Race',
+                      style: AppTypography.bodyRegular.copyWith(
+                        color: AppColors.redColor,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -221,7 +228,9 @@ class _ActionButtonState extends State<_ActionButton> {
           curve: AppAnimations.spring,
           constraints: const BoxConstraints(minHeight: 52),
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
           decoration: BoxDecoration(
             color: _pressed
                 ? Color.lerp(widget.color, Colors.black, 0.12)

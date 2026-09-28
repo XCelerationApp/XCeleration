@@ -25,8 +25,9 @@ void main() {
   });
 
   test('ignores anything it does not know', () async {
-    SharedPreferences.setMockInitialValues(
-        {LiveRaceScreen.prefKey: 'somewhere else'});
+    SharedPreferences.setMockInitialValues({
+      LiveRaceScreen.prefKey: 'somewhere else',
+    });
 
     expect(await LiveRaceScreen.read(), isNull);
   });

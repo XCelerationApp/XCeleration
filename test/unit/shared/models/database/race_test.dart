@@ -6,13 +6,13 @@ import 'package:xceleration/shared/models/database/race.dart';
 
 void main() {
   Map<String, dynamic> row(Map<String, dynamic> overrides) => {
-        'race_id': 1,
-        'name': 'Invitational',
-        'race_date': '2026-09-12T00:00:00.000',
-        'distance': 3.1,
-        'flow_state': Race.FLOW_SETUP,
-        ...overrides,
-      };
+    'race_id': 1,
+    'name': 'Invitational',
+    'race_date': '2026-09-12T00:00:00.000',
+    'distance': 3.1,
+    'flow_state': Race.FLOW_SETUP,
+    ...overrides,
+  };
 
   test('reads a race row', () {
     final race = Race.fromJson(row({}));
