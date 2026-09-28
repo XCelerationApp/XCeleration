@@ -18,7 +18,8 @@ Map<int, String> settledTimesByPlace(List<TimingChunk> chunks) {
   for (final chunk in chunks) {
     final finishers = chunk.recordCount;
     // A chunk is settled when it holds exactly one real time per finisher.
-    final settled = finishers == chunk.timingData.length &&
+    final settled =
+        finishers == chunk.timingData.length &&
         chunk.timingData.every((datum) => datum.time != 'TBD');
 
     if (settled) {
@@ -43,7 +44,8 @@ Map<int, String> approximateTimesByPlace(List<TimingChunk> chunks) {
   var place = 1;
   for (final chunk in chunks) {
     final finishers = chunk.recordCount < 0 ? 0 : chunk.recordCount;
-    final settled = finishers == chunk.timingData.length &&
+    final settled =
+        finishers == chunk.timingData.length &&
         chunk.timingData.every((datum) => datum.time != 'TBD');
     final real = [
       for (final d in chunk.timingData)
@@ -61,4 +63,3 @@ Map<int, String> approximateTimesByPlace(List<TimingChunk> chunks) {
   }
   return times;
 }
-

@@ -69,7 +69,9 @@ class _SuggestionTile extends StatelessWidget {
               children: [
                 Container(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.xs,
+                  ),
                   decoration: BoxDecoration(
                     color: AppColors.primaryColor.withValues(alpha: 0.12),
                     borderRadius: BorderRadius.circular(AppBorderRadius.sm),
@@ -95,11 +97,13 @@ class _SuggestionTile extends StatelessWidget {
                         style: AppTypography.smallBodySemibold,
                       ),
                       Text(
-                        [runner.team.name ?? '', ...suggestion.reasons]
-                            .where((s) => s.isNotEmpty)
-                            .join(' · '),
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.mediumColor),
+                        [
+                          runner.team.name ?? '',
+                          ...suggestion.reasons,
+                        ].where((s) => s.isNotEmpty).join(' · '),
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.mediumColor,
+                        ),
                       ),
                     ],
                   ),
@@ -107,8 +111,9 @@ class _SuggestionTile extends StatelessWidget {
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   'Assign',
-                  style: AppTypography.smallBodySemibold
-                      .copyWith(color: AppColors.primaryColor),
+                  style: AppTypography.smallBodySemibold.copyWith(
+                    color: AppColors.primaryColor,
+                  ),
                 ),
               ],
             ),

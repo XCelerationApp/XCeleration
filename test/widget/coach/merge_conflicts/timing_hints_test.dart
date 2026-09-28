@@ -24,10 +24,10 @@ class _NoopScheduler implements IPostFrameCallbackScheduler {
 const _team = Team(teamId: 1, name: 'Eagles');
 
 RaceRunner _runner(int n) => RaceRunner(
-      raceId: 1,
-      runner: Runner(runnerId: n, name: 'Runner $n', bibNumber: '$n', grade: 11),
-      team: _team,
-    );
+  raceId: 1,
+  runner: Runner(runnerId: n, name: 'Runner $n', bibNumber: '$n', grade: 11),
+  team: _team,
+);
 
 String _t(int seconds) =>
     '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}.00';
@@ -43,35 +43,39 @@ void main() {
         timingChunks: [
           TimingChunk(
             id: 0,
-            timingData:
-                seconds.map((s) => TimingDatum(time: _t(s))).toList(),
+            timingData: seconds.map((s) => TimingDatum(time: _t(s))).toList(),
             conflictRecord: TimingDatum(
               time: _t(end),
               conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
             ),
-          )
+          ),
         ],
         raceRunners: [for (var i = 1; i <= runners; i++) _runner(i)],
         scheduler: _NoopScheduler(),
       );
 
   Future<void> pumpList(
-      WidgetTester tester, MergeConflictsController controller) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: SingleChildScrollView(
-          child: ChangeNotifierProvider.value(
-            value: controller,
-            child: const ChunkList(),
+    WidgetTester tester,
+    MergeConflictsController controller,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: ChangeNotifierProvider.value(
+              value: controller,
+              child: const ChunkList(),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
   }
 
-  testWidgets('a missing time shows the gaps, and points nowhere',
-      (tester) async {
+  testWidgets('a missing time shows the gaps, and points nowhere', (
+    tester,
+  ) async {
     // However much one gap stands out, the runner could be anywhere.
     final controller = build([10, 11, 30], 32, 4);
     await pumpList(tester, controller);
@@ -85,11 +89,21 @@ void main() {
 
     await tester.tap(find.text('How to decide'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Ask the runners from 1st to 4th who finished '
-        'right in front of them'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Ask the runners from 1st to 4th who finished '
+        'right in front of them',
+      ),
+      findsOneWidget,
+    );
     expect(find.textContaining("Don't go by the gaps alone"), findsOneWidget);
-    expect(find.textContaining('Put the missing time where it seems most '
-        'likely'), findsOneWidget);
+    expect(
+      find.textContaining(
+        'Put the missing time where it seems most '
+        'likely',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('in the last batch, says the runner may have come after the '
@@ -99,20 +113,24 @@ void main() {
       timingChunks: [
         TimingChunk(
           id: 0,
-          timingData: [for (final s in [10, 11, 30]) TimingDatum(time: _t(s))],
+          timingData: [
+            for (final s in [10, 11, 30]) TimingDatum(time: _t(s)),
+          ],
           conflictRecord: TimingDatum(
             time: 'MISSING_TIMES',
             conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
           ),
-        )
+        ),
       ],
       raceRunners: [for (var i = 1; i <= 4; i++) _runner(i)],
       scheduler: _NoopScheduler(),
     );
     await pumpList(tester, controller);
 
-    expect(find.textContaining('may also have finished after the last time'),
-        findsOneWidget);
+    expect(
+      find.textContaining('may also have finished after the last time'),
+      findsOneWidget,
+    );
   });
 
   testWidgets('an extra time points to a likely double tap, and How to '
@@ -124,13 +142,13 @@ void main() {
           id: 0,
           timingData: [
             for (final t in ['0:10.00', '0:15.00', '0:15.30', '0:20.00'])
-              TimingDatum(time: t)
+              TimingDatum(time: t),
           ],
           conflictRecord: TimingDatum(
             time: _t(25),
             conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
           ),
-        )
+        ),
       ],
       raceRunners: [for (var i = 1; i <= 3; i++) _runner(i)],
       scheduler: _NoopScheduler(),
@@ -141,10 +159,14 @@ void main() {
 
     await tester.tap(find.text('How to decide'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('Ask the runners from 1st to 3rd'),
-        findsOneWidget);
-    expect(find.textContaining('Remove the second of the two closest'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Ask the runners from 1st to 3rd'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Remove the second of the two closest'),
+      findsOneWidget,
+    );
     expect(find.textContaining('Best Guess'), findsNothing);
   });
 }

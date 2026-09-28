@@ -51,24 +51,29 @@ Future<Result<RaceRunner>> saveNewRunner(
   NewRunner newRunner,
 ) async {
   try {
-    final team = (await teamsForNewRunner(masterRace))
-        .where((t) => t.name == newRunner.teamName)
-        .firstOrNull;
+    final team = (await teamsForNewRunner(
+      masterRace,
+    )).where((t) => t.name == newRunner.teamName).firstOrNull;
     if (team == null || team.teamId == null) {
-      return Failure(AppError(
-        userMessage: 'Team "${newRunner.teamName}" was not found. '
-            'Choose one of the teams in this race.',
-      ));
+      return Failure(
+        AppError(
+          userMessage:
+              'Team "${newRunner.teamName}" was not found. '
+              'Choose one of the teams in this race.',
+        ),
+      );
     }
     // A team known only from its runners joins the race too, so it is
     // offered and listed from now on.
     final inRace = await masterRace.teams;
     if (!inRace.any((t) => t.teamId == team.teamId)) {
-      await masterRace.addTeamParticipant(TeamParticipant(
-        raceId: masterRace.raceId,
-        teamId: team.teamId!,
-        colorOverride: team.color?.toARGB32(),
-      ));
+      await masterRace.addTeamParticipant(
+        TeamParticipant(
+          raceId: masterRace.raceId,
+          teamId: team.teamId!,
+          colorOverride: team.color?.toARGB32(),
+        ),
+      );
     }
 
     final runner = Runner(
@@ -82,11 +87,14 @@ Future<Result<RaceRunner>> saveNewRunner(
     if (existing?.runnerId != null) {
       String plain(String? s) => (s ?? '').trim().toLowerCase();
       if (plain(existing!.name) != plain(newRunner.name)) {
-        return Failure(AppError(
-          userMessage: 'Bib #${newRunner.bibNumber} is already '
-              '${existing.name ?? 'another runner'}\'s. Add them by name, '
-              'or give ${newRunner.name} a different bib.',
-        ));
+        return Failure(
+          AppError(
+            userMessage:
+                'Bib #${newRunner.bibNumber} is already '
+                '${existing.name ?? 'another runner'}\'s. Add them by name, '
+                'or give ${newRunner.name} a different bib.',
+          ),
+        );
       }
       saved = existing;
     } else {
@@ -95,22 +103,24 @@ Future<Result<RaceRunner>> saveNewRunner(
       saved = runner.copyWith(runnerId: runnerId);
     }
 
-    await masterRace.addRaceParticipant(RaceParticipant(
-      raceId: masterRace.raceId,
-      runnerId: saved.runnerId!,
-      teamId: team.teamId!,
-    ));
+    await masterRace.addRaceParticipant(
+      RaceParticipant(
+        raceId: masterRace.raceId,
+        runnerId: saved.runnerId!,
+        teamId: team.teamId!,
+      ),
+    );
 
-    return Success(RaceRunner(
-      raceId: masterRace.raceId,
-      runner: saved,
-      team: team,
-    ));
+    return Success(
+      RaceRunner(raceId: masterRace.raceId, runner: saved, team: team),
+    );
   } catch (e) {
     Logger.e('Could not save a new runner: $e');
-    return Failure(AppError(
-      userMessage: 'Could not save the runner. Please try again.',
-      originalException: e,
-    ));
+    return Failure(
+      AppError(
+        userMessage: 'Could not save the runner. Please try again.',
+        originalException: e,
+      ),
+    );
   }
 }

@@ -34,16 +34,17 @@ class EditResultsController extends ChangeNotifier {
     required List<RaceResult> results,
     required List<RaceRunner> raceRunners,
     required Future<void> Function(List<RaceResult>) save,
-  })  : _raceRunners = [...raceRunners]..sort(_byBib),
-        _save = save {
+  }) : _raceRunners = [...raceRunners]..sort(_byBib),
+       _save = save {
     final byId = {for (final r in raceRunners) r.runner.runnerId: r};
-    final placed = [...results]..sort(
-        (a, b) => (a.place ?? 1 << 30).compareTo(b.place ?? 1 << 30));
+    final placed = [...results]
+      ..sort((a, b) => (a.place ?? 1 << 30).compareTo(b.place ?? 1 << 30));
     _finishes = [
       for (final result in placed)
         if (result.runner != null)
           EditableFinish(
-            runner: byId[result.runner!.runnerId] ??
+            runner:
+                byId[result.runner!.runnerId] ??
                 RaceRunner(
                   raceId: raceId,
                   runner: result.runner!,
@@ -77,8 +78,9 @@ class EditResultsController extends ChangeNotifier {
 
   /// The place [runner] finished, or null if they are not in the results.
   int? placeOf(RaceRunner runner) {
-    final i = _finishes
-        .indexWhere((f) => f.runner.runner.runnerId == runner.runner.runnerId);
+    final i = _finishes.indexWhere(
+      (f) => f.runner.runner.runnerId == runner.runner.runnerId,
+    );
     return i < 0 ? null : i + 1;
   }
 
@@ -88,9 +90,11 @@ class EditResultsController extends ChangeNotifier {
     final current = _finishes[index].runner;
     if (current.runner.runnerId == runner.runner.runnerId) return;
     final other = placeOf(runner);
-    _change(other == null
-        ? '${runner.runner.name} at ${ordinal(index + 1)}'
-        : 'Swap ${ordinal(index + 1)} and ${ordinal(other)}');
+    _change(
+      other == null
+          ? '${runner.runner.name} at ${ordinal(index + 1)}'
+          : 'Swap ${ordinal(index + 1)} and ${ordinal(other)}',
+    );
     _finishes[index] = _finishes[index].withRunner(runner);
     if (other != null) {
       _finishes[other - 1] = _finishes[other - 1].withRunner(current);
@@ -114,8 +118,10 @@ class EditResultsController extends ChangeNotifier {
     }
     if (time == _finishes[index].time) return null;
     _change('Time at ${ordinal(index + 1)}');
-    _finishes[index] =
-        EditableFinish(runner: _finishes[index].runner, time: time);
+    _finishes[index] = EditableFinish(
+      runner: _finishes[index].runner,
+      time: time,
+    );
     notifyListeners();
     return null;
   }

@@ -12,16 +12,18 @@ class NearbyConnections implements NearbyConnectionsInterface {
   }
 
   @override
-  Future<dynamic> init(
-      {required String serviceType,
-      String? deviceName,
-      required Strategy strategy,
-      required Function callback}) async {
+  Future<dynamic> init({
+    required String serviceType,
+    String? deviceName,
+    required Strategy strategy,
+    required Function callback,
+  }) async {
     return _nearbyService.init(
-        serviceType: serviceType,
-        deviceName: deviceName,
-        strategy: strategy,
-        callback: callback);
+      serviceType: serviceType,
+      deviceName: deviceName,
+      strategy: strategy,
+      callback: callback,
+    );
   }
 
   @override
@@ -45,16 +47,21 @@ class NearbyConnections implements NearbyConnectionsInterface {
   }
 
   @override
-  StreamSubscription<dynamic> stateChangedSubscription(
-      {required dynamic Function(List<Device>) callback}) {
+  StreamSubscription<dynamic> stateChangedSubscription({
+    required dynamic Function(List<Device>) callback,
+  }) {
     return _nearbyService.stateChangedSubscription(callback: callback);
   }
 
   @override
-  FutureOr<dynamic> invitePeer(
-      {required String deviceID, required String deviceName}) async {
+  FutureOr<dynamic> invitePeer({
+    required String deviceID,
+    required String deviceName,
+  }) async {
     return _nearbyService.invitePeer(
-        deviceID: deviceID, deviceName: deviceName);
+      deviceID: deviceID,
+      deviceName: deviceName,
+    );
   }
 
   @override
@@ -68,8 +75,9 @@ class NearbyConnections implements NearbyConnectionsInterface {
   }
 
   @override
-  StreamSubscription<dynamic> dataReceivedSubscription(
-      {required dynamic Function(dynamic) callback}) {
+  StreamSubscription<dynamic> dataReceivedSubscription({
+    required dynamic Function(dynamic) callback,
+  }) {
     return _nearbyService.dataReceivedSubscription(callback: callback);
   }
 }

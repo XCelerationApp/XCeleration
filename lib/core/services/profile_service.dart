@@ -5,8 +5,8 @@ class ProfileService {
   ProfileService({
     required IRemoteApiClient remoteApi,
     required IAuthService auth,
-  })  : _remoteApi = remoteApi,
-        _auth = auth;
+  }) : _remoteApi = remoteApi,
+       _auth = auth;
 
   final IRemoteApiClient _remoteApi;
   final IAuthService _auth;

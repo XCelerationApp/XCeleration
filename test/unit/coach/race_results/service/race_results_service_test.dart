@@ -29,221 +29,250 @@ db.RaceResult _result({
 void main() {
   group('RaceResultsService - incomplete teams handling', () {
     test(
-        'Single eligible team vs incomplete team: incomplete excluded, N/A score, last place',
-        () {
-      final teamA = const Team(name: 'Alpha', abbreviation: 'ALP');
-      final teamB = const Team(name: 'Beta', abbreviation: 'BET');
+      'Single eligible team vs incomplete team: incomplete excluded, N/A score, last place',
+      () {
+        final teamA = const Team(name: 'Alpha', abbreviation: 'ALP');
+        final teamB = const Team(name: 'Beta', abbreviation: 'BET');
 
-      // Team A: 5 finishers (eligible)
-      final resultsA = <db.RaceResult>[
-        _result(
+        // Team A: 5 finishers (eligible)
+        final resultsA = <db.RaceResult>[
+          _result(
             team: teamA,
             name: 'A1',
             bib: 'A1',
-            finish: const Duration(minutes: 18, seconds: 0)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 0),
+          ),
+          _result(
             team: teamA,
             name: 'A2',
             bib: 'A2',
-            finish: const Duration(minutes: 18, seconds: 30)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 30),
+          ),
+          _result(
             team: teamA,
             name: 'A3',
             bib: 'A3',
-            finish: const Duration(minutes: 19, seconds: 0)),
-        _result(
+            finish: const Duration(minutes: 19, seconds: 0),
+          ),
+          _result(
             team: teamA,
             name: 'A4',
             bib: 'A4',
-            finish: const Duration(minutes: 19, seconds: 30)),
-        _result(
+            finish: const Duration(minutes: 19, seconds: 30),
+          ),
+          _result(
             team: teamA,
             name: 'A5',
             bib: 'A5',
-            finish: const Duration(minutes: 20, seconds: 0)),
-      ];
+            finish: const Duration(minutes: 20, seconds: 0),
+          ),
+        ];
 
-      // Team B: 4 finishers (incomplete)
-      final resultsB = <db.RaceResult>[
-        _result(
+        // Team B: 4 finishers (incomplete)
+        final resultsB = <db.RaceResult>[
+          _result(
             team: teamB,
             name: 'B1',
             bib: 'B1',
-            finish: const Duration(minutes: 18, seconds: 15)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 15),
+          ),
+          _result(
             team: teamB,
             name: 'B2',
             bib: 'B2',
-            finish: const Duration(minutes: 18, seconds: 45)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 45),
+          ),
+          _result(
             team: teamB,
             name: 'B3',
             bib: 'B3',
-            finish: const Duration(minutes: 19, seconds: 15)),
-        _result(
+            finish: const Duration(minutes: 19, seconds: 15),
+          ),
+          _result(
             team: teamB,
             name: 'B4',
             bib: 'B4',
-            finish: const Duration(minutes: 19, seconds: 45)),
-      ];
+            finish: const Duration(minutes: 19, seconds: 45),
+          ),
+        ];
 
-      final all = <db.RaceResult>[...resultsA, ...resultsB];
+        final all = <db.RaceResult>[...resultsA, ...resultsB];
 
-      // Full pipeline as used in app
-      const service = RaceResultsService();
-      final individual = service.calculateIndividualResults(all);
-      final teams = service.calculateTeamResults(individual);
-      service.sortAndPlaceTeams(teams);
+        // Full pipeline as used in app
+        const service = RaceResultsService();
+        final individual = service.calculateIndividualResults(all);
+        final teams = service.calculateTeamResults(individual);
+        service.sortAndPlaceTeams(teams);
 
-      // Expect ordering: teamA first (eligible), teamB last (incomplete)
-      expect(teams.length, 2);
-      expect(teams[0].team.name, 'Alpha');
-      expect(teams[0].place, 1);
-      expect(teams[1].team.name, 'Beta');
-      expect(teams[1].place, 2);
+        // Expect ordering: teamA first (eligible), teamB last (incomplete)
+        expect(teams.length, 2);
+        expect(teams[0].team.name, 'Alpha');
+        expect(teams[0].place, 1);
+        expect(teams[1].team.name, 'Beta');
+        expect(teams[1].place, 2);
 
-      // Incomplete team score should be 0 (rendered as N/A in UI)
-      expect(teams[1].score, 0);
+        // Incomplete team score should be 0 (rendered as N/A in UI)
+        expect(teams[1].score, 0);
 
-      // Team A score is computed excluding incomplete team (places 1..5 => 15)
-      final teamAScore = teams[0].score;
-      expect(teamAScore, 15);
-    });
+        // Team A score is computed excluding incomplete team (places 1..5 => 15)
+        final teamAScore = teams[0].score;
+        expect(teamAScore, 15);
+      },
+    );
 
     test(
-        'Two eligible teams with one incomplete: incomplete excluded from scoring and placement',
-        () {
-      final teamA = const Team(name: 'Alpha', abbreviation: 'ALP');
-      final teamB = const Team(name: 'Beta', abbreviation: 'BET');
-      final teamC = const Team(name: 'Gamma', abbreviation: 'GAM');
+      'Two eligible teams with one incomplete: incomplete excluded from scoring and placement',
+      () {
+        final teamA = const Team(name: 'Alpha', abbreviation: 'ALP');
+        final teamB = const Team(name: 'Beta', abbreviation: 'BET');
+        final teamC = const Team(name: 'Gamma', abbreviation: 'GAM');
 
-      // Team A: 5 finishers
-      final resultsA = <db.RaceResult>[
-        _result(
+        // Team A: 5 finishers
+        final resultsA = <db.RaceResult>[
+          _result(
             team: teamA,
             name: 'A1',
             bib: 'A1',
-            finish: const Duration(minutes: 18, seconds: 0)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 0),
+          ),
+          _result(
             team: teamA,
             name: 'A2',
             bib: 'A2',
-            finish: const Duration(minutes: 18, seconds: 20)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 20),
+          ),
+          _result(
             team: teamA,
             name: 'A3',
             bib: 'A3',
-            finish: const Duration(minutes: 18, seconds: 40)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 40),
+          ),
+          _result(
             team: teamA,
             name: 'A4',
             bib: 'A4',
-            finish: const Duration(minutes: 19, seconds: 0)),
-        _result(
+            finish: const Duration(minutes: 19, seconds: 0),
+          ),
+          _result(
             team: teamA,
             name: 'A5',
             bib: 'A5',
-            finish: const Duration(minutes: 19, seconds: 20)),
-      ];
+            finish: const Duration(minutes: 19, seconds: 20),
+          ),
+        ];
 
-      // Team C: 5 finishers interleaved slightly slower than A
-      final resultsC = <db.RaceResult>[
-        _result(
+        // Team C: 5 finishers interleaved slightly slower than A
+        final resultsC = <db.RaceResult>[
+          _result(
             team: teamC,
             name: 'C1',
             bib: 'C1',
-            finish: const Duration(minutes: 18, seconds: 10)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 10),
+          ),
+          _result(
             team: teamC,
             name: 'C2',
             bib: 'C2',
-            finish: const Duration(minutes: 18, seconds: 30)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 30),
+          ),
+          _result(
             team: teamC,
             name: 'C3',
             bib: 'C3',
-            finish: const Duration(minutes: 18, seconds: 50)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 50),
+          ),
+          _result(
             team: teamC,
             name: 'C4',
             bib: 'C4',
-            finish: const Duration(minutes: 19, seconds: 10)),
-        _result(
+            finish: const Duration(minutes: 19, seconds: 10),
+          ),
+          _result(
             team: teamC,
             name: 'C5',
             bib: 'C5',
-            finish: const Duration(minutes: 19, seconds: 30)),
-      ];
+            finish: const Duration(minutes: 19, seconds: 30),
+          ),
+        ];
 
-      // Team B: incomplete 4 finishers mixed in
-      final resultsB = <db.RaceResult>[
-        _result(
+        // Team B: incomplete 4 finishers mixed in
+        final resultsB = <db.RaceResult>[
+          _result(
             team: teamB,
             name: 'B1',
             bib: 'B1',
-            finish: const Duration(minutes: 18, seconds: 5)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 5),
+          ),
+          _result(
             team: teamB,
             name: 'B2',
             bib: 'B2',
-            finish: const Duration(minutes: 18, seconds: 35)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 35),
+          ),
+          _result(
             team: teamB,
             name: 'B3',
             bib: 'B3',
-            finish: const Duration(minutes: 18, seconds: 55)),
-        _result(
+            finish: const Duration(minutes: 18, seconds: 55),
+          ),
+          _result(
             team: teamB,
             name: 'B4',
             bib: 'B4',
-            finish: const Duration(minutes: 19, seconds: 15)),
-      ];
+            finish: const Duration(minutes: 19, seconds: 15),
+          ),
+        ];
 
-      final all = <db.RaceResult>[...resultsA, ...resultsB, ...resultsC];
+        final all = <db.RaceResult>[...resultsA, ...resultsB, ...resultsC];
 
-      const service = RaceResultsService();
-      final individual = service.calculateIndividualResults(all);
-      final teams = service.calculateTeamResults(individual);
-      service.sortAndPlaceTeams(teams);
+        const service = RaceResultsService();
+        final individual = service.calculateIndividualResults(all);
+        final teams = service.calculateTeamResults(individual);
+        service.sortAndPlaceTeams(teams);
 
-      // Order: A then C (eligible), B (incomplete) last
-      expect(teams.length, 3);
-      expect(teams[0].team.name, 'Alpha');
-      expect(teams[0].place, 1);
-      expect(teams[1].team.name, 'Gamma');
-      expect(teams[1].place, 2);
-      expect(teams[2].team.name, 'Beta');
-      expect(teams[2].place, 3);
+        // Order: A then C (eligible), B (incomplete) last
+        expect(teams.length, 3);
+        expect(teams[0].team.name, 'Alpha');
+        expect(teams[0].place, 1);
+        expect(teams[1].team.name, 'Gamma');
+        expect(teams[1].place, 2);
+        expect(teams[2].team.name, 'Beta');
+        expect(teams[2].place, 3);
 
-      // Scores excluding incomplete team B
-      expect(teams[2].score, 0); // incomplete
-      expect(teams[0].score, 25); // 1+3+5+7+9
-      expect(teams[1].score, 30); // 2+4+6+8+10
-    });
+        // Scores excluding incomplete team B
+        expect(teams[2].score, 0); // incomplete
+        expect(teams[0].score, 25); // 1+3+5+7+9
+        expect(teams[1].score, 30); // 2+4+6+8+10
+      },
+    );
 
     test('Cloning TeamRecord preserves incomplete score of 0', () {
       final teamX = const Team(name: 'X', abbreviation: 'X');
       final resultsX = <db.RaceResult>[
         _result(
-            team: teamX,
-            name: 'X1',
-            bib: 'X1',
-            finish: const Duration(minutes: 18, seconds: 0)),
+          team: teamX,
+          name: 'X1',
+          bib: 'X1',
+          finish: const Duration(minutes: 18, seconds: 0),
+        ),
         _result(
-            team: teamX,
-            name: 'X2',
-            bib: 'X2',
-            finish: const Duration(minutes: 18, seconds: 20)),
+          team: teamX,
+          name: 'X2',
+          bib: 'X2',
+          finish: const Duration(minutes: 18, seconds: 20),
+        ),
         _result(
-            team: teamX,
-            name: 'X3',
-            bib: 'X3',
-            finish: const Duration(minutes: 18, seconds: 40)),
+          team: teamX,
+          name: 'X3',
+          bib: 'X3',
+          finish: const Duration(minutes: 18, seconds: 40),
+        ),
         _result(
-            team: teamX,
-            name: 'X4',
-            bib: 'X4',
-            finish: const Duration(minutes: 19, seconds: 0)),
+          team: teamX,
+          name: 'X4',
+          bib: 'X4',
+          finish: const Duration(minutes: 19, seconds: 0),
+        ),
       ];
 
       const service = RaceResultsService();
@@ -266,18 +295,20 @@ void main() {
 
     /// One runner per finish place; place N finishes at 18:00 + N seconds.
     List<db.RaceResult> finishers(Team team, List<int> places) => [
-          for (final p in places)
-            _result(
-                team: team,
-                name: '${team.abbreviation}$p',
-                bib: '${team.abbreviation}$p',
-                finish: Duration(minutes: 18, seconds: p)),
-        ];
+      for (final p in places)
+        _result(
+          team: team,
+          name: '${team.abbreviation}$p',
+          bib: '${team.abbreviation}$p',
+          finish: Duration(minutes: 18, seconds: p),
+        ),
+    ];
 
     List<String> placedTeams(List<db.RaceResult> all) {
       const service = RaceResultsService();
-      final teams =
-          service.calculateTeamResults(service.calculateIndividualResults(all));
+      final teams = service.calculateTeamResults(
+        service.calculateIndividualResults(all),
+      );
       service.sortAndPlaceTeams(teams);
       return [for (final t in teams) '${t.place} ${t.team.name} ${t.score}'];
     }
@@ -293,15 +324,17 @@ void main() {
       expect(placedTeams(all), ['1 Beta 28', '2 Alpha 28']);
     });
 
-    test('ranks a team with a sixth runner ahead of a tied team without one',
-        () {
-      final all = [
-        ...finishers(beta, [1, 2, 5, 9, 11]),
-        ...finishers(alpha, [3, 4, 6, 7, 8, 10]),
-      ];
+    test(
+      'ranks a team with a sixth runner ahead of a tied team without one',
+      () {
+        final all = [
+          ...finishers(beta, [1, 2, 5, 9, 11]),
+          ...finishers(alpha, [3, 4, 6, 7, 8, 10]),
+        ];
 
-      expect(placedTeams(all), ['1 Alpha 28', '2 Beta 28']);
-    });
+        expect(placedTeams(all), ['1 Alpha 28', '2 Beta 28']);
+      },
+    );
   });
 
   group('RaceResultsService - finish order and missing teams', () {
@@ -358,9 +391,24 @@ void main() {
       // Chute order. C's runners and A's 8th runner must not affect team
       // places: team places are renumbered over A and B's top seven only.
       final order = [
-        ('A1', a), ('B1', b), ('C1', c), ('A2', a), ('B2', b), ('A3', a),
-        ('C2', c), ('B3', b), ('A4', a), ('B4', b), ('A5', a), ('C3', c),
-        ('B5', b), ('A6', a), ('B6', b), ('A7', a), ('B7', b), ('A8', a),
+        ('A1', a),
+        ('B1', b),
+        ('C1', c),
+        ('A2', a),
+        ('B2', b),
+        ('A3', a),
+        ('C2', c),
+        ('B3', b),
+        ('A4', a),
+        ('B4', b),
+        ('A5', a),
+        ('C3', c),
+        ('B5', b),
+        ('A6', a),
+        ('B6', b),
+        ('A7', a),
+        ('B7', b),
+        ('A8', a),
       ];
       final results = [
         for (final (i, (bib, team)) in order.indexed)
@@ -378,7 +426,9 @@ void main() {
       service.sortAndPlaceTeams(teams);
 
       // Individual places are the chute order, unaffected by team scoring.
-      expect([for (final r in records) r.place], List.generate(18, (i) => i + 1));
+      expect([
+        for (final r in records) r.place,
+      ], List.generate(18, (i) => i + 1));
       // A: 1+3+5+7+9 = 25; B: 2+4+6+8+10 = 30; C is incomplete.
       final byName = {for (final t in teams) t.team.name: t};
       expect(byName['A']!.score, 25);
@@ -404,8 +454,9 @@ void main() {
             finishTime: Duration(minutes: 17, seconds: i * 3),
           ),
       ];
-      final teams = service
-          .calculateTeamResults(service.calculateIndividualResults(results));
+      final teams = service.calculateTeamResults(
+        service.calculateIndividualResults(results),
+      );
       service.sortAndPlaceTeams(teams);
       return {for (final t in teams) t.team.name!: t.score};
     }
@@ -441,32 +492,41 @@ void main() {
 
     setUp(() {
       masterRace = MockMasterRace();
-      when(masterRace.race).thenAnswer((_) async => Race(
-          raceId: 1, raceName: 'Tri Meet', raceDate: DateTime(2026, 9, 12)));
+      when(masterRace.race).thenAnswer(
+        (_) async => Race(
+          raceId: 1,
+          raceName: 'Tri Meet',
+          raceDate: DateTime(2026, 9, 12),
+        ),
+      );
       // A, B, C, A, B, C, ... seven runners each.
-      when(masterRace.results).thenAnswer((_) async => [
-            for (var i = 0; i < 21; i++)
-              db.RaceResult(
-                place: i + 1,
-                runner: Runner(
-                    name: 'R$i', bibNumber: '${100 + i}', grade: 10),
-                team: [a, b, c][i % 3],
-                finishTime: Duration(minutes: 17, seconds: i * 4),
-              ),
-          ]);
+      when(masterRace.results).thenAnswer(
+        (_) async => [
+          for (var i = 0; i < 21; i++)
+            db.RaceResult(
+              place: i + 1,
+              runner: Runner(name: 'R$i', bibNumber: '${100 + i}', grade: 10),
+              team: [a, b, c][i % 3],
+              finishTime: Duration(minutes: 17, seconds: i * 4),
+            ),
+        ],
+      );
     });
 
     Future<RaceResultsData> calculate() async =>
-        ((await const RaceResultsService()
-                .calculateCompleteRaceResults(masterRace))
-            as Success<RaceResultsData>)
+        ((await const RaceResultsService().calculateCompleteRaceResults(
+                  masterRace,
+                ))
+                as Success<RaceResultsData>)
             .value;
 
     test('scores every team over the whole field', () async {
       final data = await calculate();
 
-      expect([for (final t in data.overallTeamResults) '${t.team.name} ${t.score}'],
-          ['A 35', 'B 40', 'C 45']);
+      expect(
+        [for (final t in data.overallTeamResults) '${t.team.name} ${t.score}'],
+        ['A 35', 'B 40', 'C 45'],
+      );
     });
 
     test('scores each pair as a dual meet, without the third team', () async {
@@ -474,18 +534,18 @@ void main() {
 
       final duals = [
         for (final pair in data.headToHeadTeamResults)
-          [for (final t in pair) '${t.team.name} ${t.score}'].join(' v ')
+          [for (final t in pair) '${t.team.name} ${t.score}'].join(' v '),
       ];
       expect(duals, ['A 25 v B 30', 'A 25 v C 30', 'B 25 v C 30']);
     });
 
-    test('the dual meets leave the overall scores and places alone',
-        () async {
+    test('the dual meets leave the overall scores and places alone', () async {
       final data = await calculate();
 
       expect([for (final t in data.overallTeamResults) t.score], [35, 40, 45]);
-      expect([for (final r in data.individualResults) r.place],
-          List.generate(21, (i) => i + 1));
+      expect([
+        for (final r in data.individualResults) r.place,
+      ], List.generate(21, (i) => i + 1));
     });
   });
 
@@ -523,15 +583,17 @@ void main() {
       final teamA = const Team(name: 'Alpha', abbreviation: 'ALP');
       final results = <db.RaceResult>[
         _result(
-            team: teamA,
-            name: 'A1',
-            bib: 'A1',
-            finish: const Duration(minutes: 18)),
+          team: teamA,
+          name: 'A1',
+          bib: 'A1',
+          finish: const Duration(minutes: 18),
+        ),
         _result(
-            team: teamA,
-            name: 'A2',
-            bib: 'A2',
-            finish: const Duration(minutes: 19)),
+          team: teamA,
+          name: 'A2',
+          bib: 'A2',
+          finish: const Duration(minutes: 19),
+        ),
       ];
 
       when(mockMasterRace.results).thenAnswer((_) async => results);

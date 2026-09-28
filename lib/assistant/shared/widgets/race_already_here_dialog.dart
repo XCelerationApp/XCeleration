@@ -40,7 +40,7 @@ Future<ReceivedRaceChoice> askAboutRace(
 
 /// The dialog's words, apart so they can be checked without a screen.
 ({String title, String content, String update, String keep})
-    raceAlreadyHereText(RaceAlreadyHere here, String what) {
+raceAlreadyHereText(RaceAlreadyHere here, String what) {
   final old = here.existing, sent = here.sent;
   final recorded = here.recorded == 0
       ? ''
@@ -49,7 +49,8 @@ Future<ReceivedRaceChoice> askAboutRace(
   if (here.renamed) {
     return (
       title: 'Is this the same race?',
-      content: 'The coach sent "${sent.name}" (${sent.formattedDate}). This '
+      content:
+          'The coach sent "${sent.name}" (${sent.formattedDate}). This '
           'phone already has "${old.name}" (${old.formattedDate}) under the '
           'same race number$recorded.\n\n'
           'If the coach renamed it, update it and keep your $what. If it is '
@@ -60,7 +61,8 @@ Future<ReceivedRaceChoice> askAboutRace(
   }
   return (
     title: 'Race already on this phone',
-    content: '"${old.name}" is already here$recorded.\n\n'
+    content:
+        '"${old.name}" is already here$recorded.\n\n'
         'Update it to keep your $what'
         '${roster == null ? '' : ' and use the coach\'s new roster ($roster)'}'
         ', or make a separate copy.',

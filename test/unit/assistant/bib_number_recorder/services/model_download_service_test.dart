@@ -13,9 +13,13 @@ void main() {
 
   setUp(() async {
     support = await Directory.systemTemp.createTemp('model_test');
-    modelDir = Directory(p.join(support.path, 'sherpa_onnx',
-        'sherpa-onnx-zipformer-small-en-2023-06-26'))
-      ..createSync(recursive: true);
+    modelDir = Directory(
+      p.join(
+        support.path,
+        'sherpa_onnx',
+        'sherpa-onnx-zipformer-small-en-2023-06-26',
+      ),
+    )..createSync(recursive: true);
     // Already downloaded, so nothing is fetched.
     for (final f in [
       'encoder-epoch-99-avg-1.int8.onnx',

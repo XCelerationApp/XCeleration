@@ -84,8 +84,9 @@ class InstructionsAndList extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   'No race results to review',
-                  style: AppTypography.titleSemibold
-                      .copyWith(color: Colors.grey[600]),
+                  style: AppTypography.titleSemibold.copyWith(
+                    color: Colors.grey[600],
+                  ),
                 ),
               ],
             ),

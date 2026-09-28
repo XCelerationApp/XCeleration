@@ -81,7 +81,9 @@ class _BigActionButtonState extends State<BigActionButton> {
           duration: AppAnimations.fast,
           constraints: BoxConstraints(minHeight: widget.height),
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
           decoration: BoxDecoration(
             color: _pressed ? Color.lerp(color, Colors.black, 0.15) : color,
             borderRadius: BorderRadius.circular(AppBorderRadius.xl),
@@ -102,7 +104,9 @@ class _BigActionButtonState extends State<BigActionButton> {
                       widget.label,
                       textAlign: TextAlign.center,
                       style: AppTypography.titleLarge.copyWith(
-                          color: foreground, fontWeight: FontWeight.w700),
+                        color: foreground,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
                 ],
@@ -113,7 +117,8 @@ class _BigActionButtonState extends State<BigActionButton> {
                   widget.sublabel!,
                   textAlign: TextAlign.center,
                   style: AppTypography.smallBodySemibold.copyWith(
-                      color: foreground.withValues(alpha: 0.85)),
+                    color: foreground.withValues(alpha: 0.85),
+                  ),
                 ),
               ],
             ],
@@ -146,22 +151,30 @@ class RaceDayButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style = (filled
-            ? FilledButton.styleFrom(
-                backgroundColor: color, foregroundColor: Colors.white)
-            : OutlinedButton.styleFrom(
-                foregroundColor: color,
-                side: BorderSide(
-                    color: color.withValues(alpha: AppOpacity.solid)),
-              ))
-        .copyWith(
-      minimumSize: WidgetStatePropertyAll(Size(0, height)),
-      padding: const WidgetStatePropertyAll(
-          EdgeInsets.symmetric(horizontal: AppSpacing.md)),
-      shape: WidgetStatePropertyAll(RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppBorderRadius.lg))),
-      textStyle: WidgetStatePropertyAll(AppTypography.bodySemibold),
-    );
+    final style =
+        (filled
+                ? FilledButton.styleFrom(
+                    backgroundColor: color,
+                    foregroundColor: Colors.white,
+                  )
+                : OutlinedButton.styleFrom(
+                    foregroundColor: color,
+                    side: BorderSide(
+                      color: color.withValues(alpha: AppOpacity.solid),
+                    ),
+                  ))
+            .copyWith(
+              minimumSize: WidgetStatePropertyAll(Size(0, height)),
+              padding: const WidgetStatePropertyAll(
+                EdgeInsets.symmetric(horizontal: AppSpacing.md),
+              ),
+              shape: WidgetStatePropertyAll(
+                RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+                ),
+              ),
+              textStyle: WidgetStatePropertyAll(AppTypography.bodySemibold),
+            );
     final child = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -214,7 +227,11 @@ class RaceDayStatusBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.lg, AppSpacing.md, AppSpacing.md, AppSpacing.md),
+        AppSpacing.lg,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceColor,
         borderRadius: BorderRadius.circular(AppBorderRadius.lg),
@@ -227,8 +244,7 @@ class RaceDayStatusBar extends StatelessWidget {
               Container(
                 width: 10,
                 height: 10,
-                decoration:
-                    BoxDecoration(color: color, shape: BoxShape.circle),
+                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
               ),
               const SizedBox(width: AppSpacing.sm),
               Flexible(
@@ -238,9 +254,12 @@ class RaceDayStatusBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: AppSpacing.sm),
-              Text('· $count',
-                  style: AppTypography.bodySemibold
-                      .copyWith(color: AppColors.mediumColor)),
+              Text(
+                '· $count',
+                style: AppTypography.bodySemibold.copyWith(
+                  color: AppColors.mediumColor,
+                ),
+              ),
               const Spacer(),
               if (onStop != null)
                 OutlinedButton(
@@ -248,13 +267,15 @@ class RaceDayStatusBar extends StatelessWidget {
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.redColor,
                     side: BorderSide(
-                        color: AppColors.redColor
-                            .withValues(alpha: AppOpacity.solid)),
+                      color: AppColors.redColor.withValues(
+                        alpha: AppOpacity.solid,
+                      ),
+                    ),
                     minimumSize: const Size(72, 40),
                     visualDensity: VisualDensity.compact,
                     shape: RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(AppBorderRadius.full)),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.full),
+                    ),
                   ),
                   child: Text('Stop', style: AppTypography.bodySemibold),
                 ),

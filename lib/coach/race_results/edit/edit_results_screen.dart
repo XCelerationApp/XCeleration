@@ -85,9 +85,12 @@ class _EditResultsBody extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppColors.backgroundColor,
         appBar: AppBar(
-          title: Text('Edit Results',
-              style: AppTypography.titleSemibold
-                  .copyWith(color: AppColors.darkColor)),
+          title: Text(
+            'Edit Results',
+            style: AppTypography.titleSemibold.copyWith(
+              color: AppColors.darkColor,
+            ),
+          ),
           leading: IconButton(
             icon: const Icon(Icons.close),
             onPressed: () => _leave(context),
@@ -106,12 +109,17 @@ class _EditResultsBody extends StatelessWidget {
             children: [
               Padding(
                 padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.sm),
+                  AppSpacing.lg,
+                  0,
+                  AppSpacing.lg,
+                  AppSpacing.sm,
+                ),
                 child: Text(
                   'Tap a finish to change the runner or time, or take it out '
                   'of the results.',
-                  style: AppTypography.bodyRegular
-                      .copyWith(color: AppColors.mediumColor),
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
                 ),
               ),
               Expanded(
@@ -128,9 +136,12 @@ class _EditResultsBody extends StatelessWidget {
               if (c.error != null)
                 Padding(
                   padding: const EdgeInsets.all(AppSpacing.sm),
-                  child: Text(c.error!.userMessage,
-                      style: AppTypography.bodyRegular
-                          .copyWith(color: AppColors.redColor)),
+                  child: Text(
+                    c.error!.userMessage,
+                    style: AppTypography.bodyRegular.copyWith(
+                      color: AppColors.redColor,
+                    ),
+                  ),
                 ),
               Padding(
                 padding: const EdgeInsets.all(AppSpacing.lg),
@@ -194,12 +205,18 @@ class _EditResultsBody extends StatelessWidget {
             },
           ),
           ListTile(
-            leading: const Icon(Icons.remove_circle_outline,
-                color: AppColors.redColor),
-            title: const Text('Take Out of Results',
-                style: TextStyle(color: AppColors.redColor)),
-            subtitle: const Text('For a disqualification, or someone recorded '
-                'who did not finish. Everyone after moves up a place.'),
+            leading: const Icon(
+              Icons.remove_circle_outline,
+              color: AppColors.redColor,
+            ),
+            title: const Text(
+              'Take Out of Results',
+              style: TextStyle(color: AppColors.redColor),
+            ),
+            subtitle: const Text(
+              'For a disqualification, or someone recorded '
+              'who did not finish. Everyone after moves up a place.',
+            ),
             onTap: () {
               c.remove(index);
               Navigator.of(context).pop();
@@ -231,15 +248,20 @@ class _FinishRow extends StatelessWidget {
         width: AppSpacing.xxxl,
         child: Text(ordinal(place), style: AppTypography.bodySemibold),
       ),
-      title: Text(runner.runner.name ?? 'Unnamed runner',
-          style: AppTypography.bodyRegular),
+      title: Text(
+        runner.runner.name ?? 'Unnamed runner',
+        style: AppTypography.bodyRegular,
+      ),
       subtitle: Text(
         '${runner.team.name ?? ''} · #${runner.runner.bibNumber}',
         style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
       ),
-      trailing: Text(TimeFormatter.formatDuration(finish.time),
-          style: AppTypography.bodySemibold.copyWith(
-              fontFeatures: const [FontFeature.tabularFigures()])),
+      trailing: Text(
+        TimeFormatter.formatDuration(finish.time),
+        style: AppTypography.bodySemibold.copyWith(
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
     );
   }
 }

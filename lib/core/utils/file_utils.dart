@@ -66,8 +66,9 @@ class FileUtils {
           }
 
           // Only add if row has actual data
-          if (rowData
-              .any((cell) => cell != null && cell.toString().isNotEmpty)) {
+          if (rowData.any(
+            (cell) => cell != null && cell.toString().isNotEmpty,
+          )) {
             data.add(rowData);
           }
         }
@@ -128,9 +129,13 @@ class FileUtils {
       shouldParseNumbers: false,
     ).convert(contents);
     return rows
-        .where((row) =>
-            row.isNotEmpty &&
-            row.any((cell) => cell != null && cell.toString().trim().isNotEmpty))
+        .where(
+          (row) =>
+              row.isNotEmpty &&
+              row.any(
+                (cell) => cell != null && cell.toString().trim().isNotEmpty,
+              ),
+        )
         .toList();
   }
 }

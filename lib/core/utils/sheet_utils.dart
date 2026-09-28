@@ -70,17 +70,18 @@ Widget createSheetHeader(
   );
 }
 
-Future<dynamic> sheet(
-    {required BuildContext context,
-    required Widget body,
-    String? title,
-    double titleSize = 24,
-    Widget? actionButtons,
-    bool showHeader = true,
-    bool takeUpScreen = false,
-    bool useRootNavigator = false,
-    bool useBottomPadding = true,
-    double horizontalPadding = 24}) async {
+Future<dynamic> sheet({
+  required BuildContext context,
+  required Widget body,
+  String? title,
+  double titleSize = 24,
+  Widget? actionButtons,
+  bool showHeader = true,
+  bool takeUpScreen = false,
+  bool useRootNavigator = false,
+  bool useBottomPadding = true,
+  double horizontalPadding = 24,
+}) async {
   // Ensure no underlying input keeps focus when presenting the sheet
   FocusManager.instance.primaryFocus?.unfocus();
   final result = await showModalBottomSheet(
@@ -92,9 +93,7 @@ Future<dynamic> sheet(
     builder: (context) => Container(
       decoration: BoxDecoration(
         color: AppColors.backgroundColor,
-        borderRadius: const BorderRadius.vertical(
-          top: Radius.circular(16),
-        ),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
       ),
       constraints: BoxConstraints(
         maxHeight: MediaQuery.of(context).size.height * 0.92,
@@ -105,7 +104,8 @@ Future<dynamic> sheet(
           top: 8,
           left: horizontalPadding,
           right: horizontalPadding,
-          bottom: (useBottomPadding
+          bottom:
+              (useBottomPadding
                   ? MediaQuery.of(context).viewInsets.bottom
                   : 0) +
               36,

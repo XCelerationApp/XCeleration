@@ -16,29 +16,13 @@ enum ConnectionStatus {
   failed,
 }
 
-enum WirelessConnectionError {
-  unavailable,
-  unknown,
-  timeout,
-}
+enum WirelessConnectionError { unavailable, unknown, timeout }
 
-enum PopupScreen {
-  main,
-  qr,
-}
+enum PopupScreen { main, qr }
 
-enum DeviceName {
-  coach,
-  bibRecorder,
-  raceTimer,
-  assistant,
-  spectator,
-}
+enum DeviceName { coach, bibRecorder, raceTimer, assistant, spectator }
 
-enum DeviceType {
-  advertiserDevice,
-  browserDevice,
-}
+enum DeviceType { advertiserDevice, browserDevice }
 
 enum RecordType {
   runnerTime,
@@ -48,33 +32,15 @@ enum RecordType {
   manualTime,
 }
 
-enum ConflictType {
-  confirmRunner,
-  missingTime,
-  extraTime,
-}
+enum ConflictType { confirmRunner, missingTime, extraTime }
 
-enum RaceScreenPage {
-  main,
-  results,
-}
+enum RaceScreenPage { main, results }
 
-enum ResultFormat {
-  plainText,
-  googleSheet,
-  pdf,
-}
+enum ResultFormat { plainText, googleSheet, pdf }
 
-enum FlowType {
-  preRace,
-  postRace,
-}
+enum FlowType { preRace, postRace }
 
-enum RunnerRecordFlags {
-  duplicateBibNumber,
-  notInDatabase,
-  lowConfidenceScore,
-}
+enum RunnerRecordFlags { duplicateBibNumber, notInDatabase, lowConfidenceScore }
 
 /// Event types for the event bus system
 enum EventTypes {

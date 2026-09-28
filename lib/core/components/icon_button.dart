@@ -102,7 +102,10 @@ class CircleIconButton extends StatelessWidget {
           boxShadow: elevation > 0
               ? [
                   BoxShadow(
-                    color: ColorUtils.withOpacity(Colors.black, AppOpacity.light),
+                    color: ColorUtils.withOpacity(
+                      Colors.black,
+                      AppOpacity.light,
+                    ),
                     spreadRadius: 0,
                     blurRadius: elevation * 2,
                     offset: elevation > 0 ? const Offset(0, 2) : Offset.zero,
@@ -115,19 +118,19 @@ class CircleIconButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: effectiveBackgroundColor,
             foregroundColor: effectiveIconColor,
-            disabledBackgroundColor:
-                ColorUtils.withOpacity(effectiveBackgroundColor, AppOpacity.solid),
-            disabledForegroundColor:
-                ColorUtils.withOpacity(effectiveIconColor, AppOpacity.solid),
+            disabledBackgroundColor: ColorUtils.withOpacity(
+              effectiveBackgroundColor,
+              AppOpacity.solid,
+            ),
+            disabledForegroundColor: ColorUtils.withOpacity(
+              effectiveIconColor,
+              AppOpacity.solid,
+            ),
             padding: EdgeInsets.zero,
             shape: const CircleBorder(),
             elevation: 0,
           ),
-          child: Icon(
-            icon,
-            size: iconSize,
-            color: effectiveIconColor,
-          ),
+          child: Icon(icon, size: iconSize, color: effectiveIconColor),
         ),
       ),
     );
@@ -218,12 +221,12 @@ class RoundedRectangleButton extends StatelessWidget {
         color: color,
         border: Border.all(color: AppColors.backgroundColor, width: 2),
         boxShadow: [BoxShadow(color: color, spreadRadius: 2)],
-        borderRadius:
-            const BorderRadius.all(Radius.circular(AppBorderRadius.full)),
+        borderRadius: const BorderRadius.all(
+          Radius.circular(AppBorderRadius.full),
+        ),
       ),
       buttonShape: const RoundedRectangleBorder(
-        borderRadius:
-            BorderRadius.all(Radius.circular(AppBorderRadius.full)),
+        borderRadius: BorderRadius.all(Radius.circular(AppBorderRadius.full)),
       ),
     );
   }

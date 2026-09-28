@@ -9,21 +9,23 @@ import 'package:xceleration/shared/models/race_stage.dart';
 // coach is on. It has to fit the narrowest phone, even at a large text size.
 
 Widget _bar(String state, {double textScale = 1}) => MaterialApp(
-      home: MediaQuery(
-        data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
-        child: Scaffold(
-          body: Padding(
-            padding: const EdgeInsets.all(16),
-            // The full width of the header on the narrowest phone.
-            child: SizedBox(
-              width: 288,
-              child: RaceStepsBar(
-                  stage: RaceStage.of(state), color: AppColors.primaryColor),
-            ),
+  home: MediaQuery(
+    data: MediaQueryData(textScaler: TextScaler.linear(textScale)),
+    child: Scaffold(
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        // The full width of the header on the narrowest phone.
+        child: SizedBox(
+          width: 288,
+          child: RaceStepsBar(
+            stage: RaceStage.of(state),
+            color: AppColors.primaryColor,
           ),
         ),
       ),
-    );
+    ),
+  ),
+);
 
 void main() {
   for (final state in Race.FLOW_SEQUENCE.take(5)) {
@@ -35,15 +37,13 @@ void main() {
       await tester.pumpWidget(_bar(state));
 
       final stage = RaceStage.of(state);
-      expect(
-        find.textContaining('Step ${stage.step} of 3'),
-        findsOneWidget,
-      );
+      expect(find.textContaining('Step ${stage.step} of 3'), findsOneWidget);
       expect(find.textContaining(stage.label), findsOneWidget);
     });
 
-    testWidgets('fits a small phone at a large text size at $state',
-        (tester) async {
+    testWidgets('fits a small phone at a large text size at $state', (
+      tester,
+    ) async {
       tester.view.physicalSize = const Size(320, 568);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(tester.view.reset);

@@ -115,8 +115,11 @@ void main() {
             header,
             ['101', 'Ann Lee', '10'],
           ]);
-          expect(result.runners.single, {'name': 'Ann Lee', 'grade': 10,
-              'bib': '101'}, reason: header.join(', '));
+          expect(result.runners.single, {
+            'name': 'Ann Lee',
+            'grade': 10,
+            'bib': '101',
+          }, reason: header.join(', '));
         }
       });
 
@@ -125,21 +128,31 @@ void main() {
           ['Last', 'First', 'Bib', 'Grade', 'M/F'],
           ['Lee', 'Ann', '101', 'Jr', 'F'],
         ]);
-        expect(result.runners.single,
-            {'name': 'Ann Lee', 'grade': 11, 'bib': '101', 'gender': 'F'});
+        expect(result.runners.single, {
+          'name': 'Ann Lee',
+          'grade': 11,
+          'bib': '101',
+          'gender': 'F',
+        });
       });
     });
 
     test('reads the sample spreadsheet the app offers', () {
       // The app shows this sheet as the example to copy, so it must import.
-      final text =
-          File('assets/sample_sheets/sample_spreadsheet.csv').readAsStringSync();
+      final text = File(
+        'assets/sample_sheets/sample_spreadsheet.csv',
+      ).readAsStringSync();
       final result = processSpreadsheetData(FileUtils.parseCsvText(text));
 
       expect(result.skipped, isEmpty);
-      expect(result.runners.map((r) => '${r['bib']} ${r['name']} ${r['team']}'),
-          ['1001 Alex Smith Eagles', '1002 Jamie Rivera Eagles',
-           '2001 Sam Lee Hawks']);
+      expect(
+        result.runners.map((r) => '${r['bib']} ${r['name']} ${r['team']}'),
+        [
+          '1001 Alex Smith Eagles',
+          '1002 Jamie Rivera Eagles',
+          '2001 Sam Lee Hawks',
+        ],
+      );
     });
   });
 }

@@ -14,30 +14,36 @@ void main() {
         expect(client.isInitialized, isFalse);
       });
 
-      test('returns true after successful init with env vars present', () async {
-        final client = RemoteApiClient(
-          env: {
-            'SUPABASE_URL': 'https://test.supabase.co',
-            'SUPABASE_PUBLISHABLE_KEY': 'anon-key',
-          },
-          initializer: ({required url, required anonKey}) async {},
-        );
+      test(
+        'returns true after successful init with env vars present',
+        () async {
+          final client = RemoteApiClient(
+            env: {
+              'SUPABASE_URL': 'https://test.supabase.co',
+              'SUPABASE_PUBLISHABLE_KEY': 'anon-key',
+            },
+            initializer: ({required url, required anonKey}) async {},
+          );
 
-        await client.init();
+          await client.init();
 
-        expect(client.isInitialized, isTrue);
-      });
+          expect(client.isInitialized, isTrue);
+        },
+      );
 
-      test('remains false after init skipped due to missing env vars', () async {
-        final client = RemoteApiClient(
-          env: {},
-          initializer: ({required url, required anonKey}) async {},
-        );
+      test(
+        'remains false after init skipped due to missing env vars',
+        () async {
+          final client = RemoteApiClient(
+            env: {},
+            initializer: ({required url, required anonKey}) async {},
+          );
 
-        await client.init();
+          await client.init();
 
-        expect(client.isInitialized, isFalse);
-      });
+          expect(client.isInitialized, isFalse);
+        },
+      );
     });
 
     // -------------------------------------------------------------------------
@@ -63,18 +69,20 @@ void main() {
         expect(capturedKey, 'anon-key');
       });
 
-      test('skips initializer and does not throw when both env vars are absent',
-          () async {
-        final client = RemoteApiClient(
-          env: {},
-          initializer: ({required url, required anonKey}) async {
-            fail('initializer must not be called when env vars are absent');
-          },
-        );
+      test(
+        'skips initializer and does not throw when both env vars are absent',
+        () async {
+          final client = RemoteApiClient(
+            env: {},
+            initializer: ({required url, required anonKey}) async {
+              fail('initializer must not be called when env vars are absent');
+            },
+          );
 
-        await expectLater(client.init(), completes);
-        expect(client.isInitialized, isFalse);
-      });
+          await expectLater(client.init(), completes);
+          expect(client.isInitialized, isFalse);
+        },
+      );
 
       test('skips initializer when SUPABASE_URL is absent', () async {
         final client = RemoteApiClient(
@@ -88,13 +96,13 @@ void main() {
         expect(client.isInitialized, isFalse);
       });
 
-      test('skips initializer when SUPABASE_PUBLISHABLE_KEY is absent',
-          () async {
+      test('skips initializer when SUPABASE_PUBLISHABLE_KEY is absent', () async {
         final client = RemoteApiClient(
           env: {'SUPABASE_URL': 'https://test.supabase.co'},
           initializer: ({required url, required anonKey}) async {
             fail(
-                'initializer must not be called when SUPABASE_PUBLISHABLE_KEY is absent');
+              'initializer must not be called when SUPABASE_PUBLISHABLE_KEY is absent',
+            );
           },
         );
 
@@ -122,35 +130,37 @@ void main() {
         expect(client.isInitialized, isTrue);
       });
 
-      test('remains not initialized after first skipped call, then initializes on second call with env vars',
-          () async {
-        int callCount = 0;
+      test(
+        'remains not initialized after first skipped call, then initializes on second call with env vars',
+        () async {
+          int callCount = 0;
 
-        // First instance: no env vars — skips
-        final clientNoEnv = RemoteApiClient(
-          env: {},
-          initializer: ({required url, required anonKey}) async {
-            callCount++;
-          },
-        );
-        await clientNoEnv.init();
-        expect(clientNoEnv.isInitialized, isFalse);
-        expect(callCount, 0);
+          // First instance: no env vars — skips
+          final clientNoEnv = RemoteApiClient(
+            env: {},
+            initializer: ({required url, required anonKey}) async {
+              callCount++;
+            },
+          );
+          await clientNoEnv.init();
+          expect(clientNoEnv.isInitialized, isFalse);
+          expect(callCount, 0);
 
-        // Second instance: env vars present — initializes
-        final clientWithEnv = RemoteApiClient(
-          env: {
-            'SUPABASE_URL': 'https://test.supabase.co',
-            'SUPABASE_PUBLISHABLE_KEY': 'anon-key',
-          },
-          initializer: ({required url, required anonKey}) async {
-            callCount++;
-          },
-        );
-        await clientWithEnv.init();
-        expect(clientWithEnv.isInitialized, isTrue);
-        expect(callCount, 1);
-      });
+          // Second instance: env vars present — initializes
+          final clientWithEnv = RemoteApiClient(
+            env: {
+              'SUPABASE_URL': 'https://test.supabase.co',
+              'SUPABASE_PUBLISHABLE_KEY': 'anon-key',
+            },
+            initializer: ({required url, required anonKey}) async {
+              callCount++;
+            },
+          );
+          await clientWithEnv.init();
+          expect(clientWithEnv.isInitialized, isTrue);
+          expect(callCount, 1);
+        },
+      );
     });
   });
 }

@@ -57,8 +57,7 @@ class _RunnersListState extends State<RunnersList> {
     });
   }
 
-  bool _isExpanded(Team team) =>
-      _expanded[team.teamId ?? -1] ?? true;
+  bool _isExpanded(Team team) => _expanded[team.teamId ?? -1] ?? true;
 
   void _toggleExpanded(Team team) {
     setState(() {
@@ -87,7 +86,9 @@ class _RunnersListState extends State<RunnersList> {
                 Icon(
                   Icons.error_outline,
                   size: 48,
-                  color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
+                  color: AppColors.mediumColor.withValues(
+                    alpha: AppOpacity.solid,
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text(
@@ -104,8 +105,7 @@ class _RunnersListState extends State<RunnersList> {
         if (!snapshot.hasData) {
           return Center(
             child: CircularProgressIndicator(
-              valueColor:
-                  AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
             ),
           );
         }
@@ -121,100 +121,104 @@ class _RunnersListState extends State<RunnersList> {
     );
   }
 
-  Widget _buildList(
-    BuildContext context,
-    Map<Team, List<RaceRunner>> teamMap,
-  ) {
+  Widget _buildList(BuildContext context, Map<Team, List<RaceRunner>> teamMap) {
     final teams = teamMap.keys.toList()
       ..sort((a, b) => (a.name ?? '').compareTo(b.name ?? ''));
 
     return ListView.builder(
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.sm,
+      ),
       itemCount: teams.length,
       itemBuilder: (context, index) {
-          final team = teams[index];
-          final raceRunners = teamMap[team] ?? [];
-          final expanded = _isExpanded(team);
+        final team = teams[index];
+        final raceRunners = teamMap[team] ?? [];
+        final expanded = _isExpanded(team);
 
-          return _AnimatedTeamSection(
-            index: index,
-            child: Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.mediumColor.withValues(alpha: AppOpacity.faint),
-                  border: Border.all(
-                    color: AppColors.mediumColor.withValues(alpha: AppOpacity.medium),
-                  ),
-                  borderRadius: BorderRadius.circular(AppBorderRadius.md),
+        return _AnimatedTeamSection(
+          index: index,
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: AppColors.mediumColor.withValues(
+                  alpha: AppOpacity.faint,
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(AppBorderRadius.md),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TeamHeaderTile(
-                        team: team,
-                        runnerCount: raceRunners.length,
-                        controller: widget.controller,
-                        isExpanded: expanded,
-                        onToggleExpand: () => _toggleExpanded(team),
-                        onAddRunner: () =>
-                            widget.controller.showAddRunnerChoiceSheet(
-                          context,
-                          team,
-                        ),
-                        isViewMode: widget.controller.isViewMode,
-                      ),
-                      // Collapsible runner rows with column headers
-                      AnimatedSize(
-                        duration: AppAnimations.standard,
-                        curve: AppAnimations.spring,
-                        child: expanded
-                            ? Column(
-                                  children: [
-                                    if (raceRunners.isNotEmpty) const ListTitles(),
-                                    if (raceRunners.isEmpty)
-                                      _EmptyTeamState(
-                                        isViewMode: widget.controller.isViewMode,
-                                      )
-                                    else
-                                      ListView.builder(
-                                        shrinkWrap: true,
-                                        // Not the phone's safe-area inset,
-                                        // which left a gap under each team.
-                                        padding: EdgeInsets.zero,
-                                        physics: const NeverScrollableScrollPhysics(),
-                                        itemCount: raceRunners.length,
-                                        itemBuilder: (context, i) {
-                                          final raceRunner = raceRunners[i];
-                                          return RunnerListItem(
-                                            key: ValueKey(raceRunner.runner.bibNumber),
-                                            runner: raceRunner.runner,
-                                            team: team,
-                                            controller: widget.controller,
-                                            onAction: (action) =>
-                                                widget.controller.handleRaceRunnerAction(
+                border: Border.all(
+                  color: AppColors.mediumColor.withValues(
+                    alpha: AppOpacity.medium,
+                  ),
+                ),
+                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(AppBorderRadius.md),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    TeamHeaderTile(
+                      team: team,
+                      runnerCount: raceRunners.length,
+                      controller: widget.controller,
+                      isExpanded: expanded,
+                      onToggleExpand: () => _toggleExpanded(team),
+                      onAddRunner: () => widget.controller
+                          .showAddRunnerChoiceSheet(context, team),
+                      isViewMode: widget.controller.isViewMode,
+                    ),
+                    // Collapsible runner rows with column headers
+                    AnimatedSize(
+                      duration: AppAnimations.standard,
+                      curve: AppAnimations.spring,
+                      child: expanded
+                          ? Column(
+                              children: [
+                                if (raceRunners.isNotEmpty) const ListTitles(),
+                                if (raceRunners.isEmpty)
+                                  _EmptyTeamState(
+                                    isViewMode: widget.controller.isViewMode,
+                                  )
+                                else
+                                  ListView.builder(
+                                    shrinkWrap: true,
+                                    // Not the phone's safe-area inset,
+                                    // which left a gap under each team.
+                                    padding: EdgeInsets.zero,
+                                    physics:
+                                        const NeverScrollableScrollPhysics(),
+                                    itemCount: raceRunners.length,
+                                    itemBuilder: (context, i) {
+                                      final raceRunner = raceRunners[i];
+                                      return RunnerListItem(
+                                        key: ValueKey(
+                                          raceRunner.runner.bibNumber,
+                                        ),
+                                        runner: raceRunner.runner,
+                                        team: team,
+                                        controller: widget.controller,
+                                        onAction: (action) => widget.controller
+                                            .handleRaceRunnerAction(
                                               context,
                                               action,
                                               raceRunner,
                                             ),
-                                            isViewMode: widget.controller.isViewMode,
-                                          );
-                                        },
-                                      ),
-                                  ],
-                                )
-                            : const SizedBox.shrink(),
-                      ),
-                    ],
-                  ),
+                                        isViewMode:
+                                            widget.controller.isViewMode,
+                                      );
+                                    },
+                                  ),
+                              ],
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
                 ),
               ),
             ),
-          );
+          ),
+        );
       },
     );
   }
@@ -247,11 +251,7 @@ class _AnimatedTeamSectionState extends State<_AnimatedTeamSection>
     );
     _opacity = CurvedAnimation(
       parent: _controller,
-      curve: Interval(
-        staggerMs / totalMs,
-        1.0,
-        curve: AppAnimations.enter,
-      ),
+      curve: Interval(staggerMs / totalMs, 1.0, curve: AppAnimations.enter),
     );
     _controller.forward();
   }
@@ -264,10 +264,7 @@ class _AnimatedTeamSectionState extends State<_AnimatedTeamSection>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacity,
-      child: widget.child,
-    );
+    return FadeTransition(opacity: _opacity, child: widget.child);
   }
 }
 
@@ -325,7 +322,7 @@ class _EmptyState extends StatelessWidget {
                 hasSearch
                     ? 'Try a name, bib or team'
                     : 'Tap Add Team to import a spreadsheet, bring a team '
-                        'from an earlier race, or make one.',
+                          'from an earlier race, or make one.',
                 textAlign: TextAlign.center,
                 style: AppTypography.bodyRegular.copyWith(
                   color: AppColors.mediumColor,

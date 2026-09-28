@@ -68,9 +68,12 @@ class SharedActionButton extends StatelessWidget {
         elevation: elevation ?? (isSelected ? 3 : 1),
         fontSize: fontSize ?? 12,
         fontWeight: fontWeight ?? FontWeight.w600,
-        padding: padding ??
+        padding:
+            padding ??
             const EdgeInsets.symmetric(
-                horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+              horizontal: AppSpacing.lg,
+              vertical: AppSpacing.lg,
+            ),
       );
     } else if (height != null ||
         backgroundColor != null ||
@@ -82,22 +85,28 @@ class SharedActionButton extends StatelessWidget {
         icon: icon,
         iconSize: 18,
         fontSize: fontSize ?? 16,
-        textColor: textColor ??
+        textColor:
+            textColor ??
             (isPrimary && computedEnabled
                 ? Colors.white
                 : AppColors.mediumColor),
-        backgroundColor: backgroundColor ??
+        backgroundColor:
+            backgroundColor ??
             (isPrimary && computedEnabled
                 ? AppColors.primaryColor
                 : AppColors.backgroundColor),
-        borderColor: borderColor ??
+        borderColor:
+            borderColor ??
             (isPrimary && computedEnabled
                 ? AppColors.primaryColor
                 : AppColors.mediumColor),
         fontWeight: fontWeight ?? FontWeight.w500,
-        padding: padding ??
+        padding:
+            padding ??
             const EdgeInsets.symmetric(
-                vertical: AppSpacing.sm, horizontal: AppSpacing.lg),
+              vertical: AppSpacing.sm,
+              horizontal: AppSpacing.lg,
+            ),
         borderRadius: borderRadius ?? AppBorderRadius.md,
         isPrimary: isPrimary,
         onPressed: onPressed,

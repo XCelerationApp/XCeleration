@@ -21,11 +21,18 @@ abstract interface class IRaceRepository {
   Future<RaceParticipant?> getRaceParticipant(RaceParticipant raceParticipant);
   Future<List<RaceParticipant>> getRaceParticipants(int raceId);
   Future<RaceParticipant?> getRaceParticipantByBib(
-      int raceId, String bibNumber);
+    int raceId,
+    String bibNumber,
+  );
   Future<List<RaceParticipant>> getRaceParticipantsByBibs(
-      int raceId, List<String> bibNumbers);
-  Future<List<RaceParticipant>> searchRaceParticipants(int raceId, String query,
-      [String searchParameter = 'all']);
+    int raceId,
+    List<String> bibNumbers,
+  );
+  Future<List<RaceParticipant>> searchRaceParticipants(
+    int raceId,
+    String query, [
+    String searchParameter = 'all',
+  ]);
 
   // --- Flow state helpers ---
   Future<String> getRaceFlowState(int raceId);

@@ -9,10 +9,7 @@ import 'timer_display_widget.dart';
 /// clock itself, with Stop kept up here, away from Log Finish.
 class RaceStatusWidget extends StatelessWidget {
   final TimingController controller;
-  const RaceStatusWidget({
-    super.key,
-    required this.controller,
-  });
+  const RaceStatusWidget({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {

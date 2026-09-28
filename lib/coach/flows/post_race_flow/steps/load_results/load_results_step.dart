@@ -11,17 +11,17 @@ class LoadResultsStep extends FlowStep {
   late final Widget _content = LoadResultsWidget(controller: controller);
 
   /// Creates a new instance of LoadResultsStep
-  LoadResultsStep({
-    required this.controller,
-  }) : super(
-          title: 'Load Results',
-          description: 'On each volunteer\'s phone, tap Share Times or '
-              'Share Bibs. Their results load here as each phone connects, '
-              'then tap Next.',
-          nextLabel: 'Next',
-          // Initialize with a placeholder
-          content: SizedBox.shrink(),
-        ) {
+  LoadResultsStep({required this.controller})
+    : super(
+        title: 'Load Results',
+        description:
+            'On each volunteer\'s phone, tap Share Times or '
+            'Share Bibs. Their results load here as each phone connects, '
+            'then tap Next.',
+        nextLabel: 'Next',
+        // Initialize with a placeholder
+        content: SizedBox.shrink(),
+      ) {
     // Listen to controller changes and notify the flow system
     controller.addListener(_onControllerUpdate);
   }
@@ -47,9 +47,9 @@ class LoadResultsStep extends FlowStep {
   String get description => !controller.resultsLoaded
       ? super.description
       : _hasConflicts
-          ? 'The results are in. A few need checking: tap Some Results '
-              'Need Checking below, then Next.'
-          : 'The results are in. Tap Next to look them over before saving.';
+      ? 'The results are in. A few need checking: tap Some Results '
+            'Need Checking below, then Next.'
+      : 'The results are in. Tap Next to look them over before saving.';
 
   /// Next stays greyed out until every conflict is resolved: the conflicts
   /// are opened from the Some Results Need Checking card, not by Next.
@@ -62,10 +62,11 @@ class LoadResultsStep extends FlowStep {
       () => controller.resultsLoaded && !_hasConflicts;
 
   @override
-  String? Function()? get blockedReason => () => !controller.resultsLoaded
+  String? Function()? get blockedReason =>
+      () => !controller.resultsLoaded
       ? 'Waiting for the times and bibs from your volunteers.'
       : _hasConflicts
-          ? 'Resolve the conflicts first: tap Some Results Need Checking '
-              'above.'
-          : null;
+      ? 'Resolve the conflicts first: tap Some Results Need Checking '
+            'above.'
+      : null;
 }

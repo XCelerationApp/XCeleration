@@ -19,13 +19,12 @@ class ResolveConflictButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: isResolved ? onResolve : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor:
-              isResolved ? AppColors.primaryColor : Colors.grey[400],
+          backgroundColor: isResolved
+              ? AppColors.primaryColor
+              : Colors.grey[400],
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 12),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
-          ),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           elevation: isResolved ? 2 : 0,
         ),
         child: Text(

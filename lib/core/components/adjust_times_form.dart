@@ -68,8 +68,9 @@ class _AdjustTimesFormState extends State<AdjustTimesForm> {
         children: [
           Text(
             widget.explanation,
-            style: AppTypography.bodyRegular
-                .copyWith(color: AppColors.mediumColor),
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.mediumColor,
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           SegmentedButton<bool>(

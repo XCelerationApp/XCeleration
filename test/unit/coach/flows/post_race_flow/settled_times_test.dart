@@ -23,17 +23,16 @@ TimingChunk _chunk(
   ConflictType type = ConflictType.confirmRunner,
   int offBy = 0,
   List<String>? rawTimes,
-}) =>
-    TimingChunk(
-      id: id,
-      timingData: (rawTimes ?? seconds.map(_t).toList())
-          .map((t) => TimingDatum(time: t))
-          .toList(),
-      conflictRecord: TimingDatum(
-        time: _t(seconds.isEmpty ? 0 : seconds.last + 1),
-        conflict: Conflict(type: type, offBy: offBy),
-      ),
-    );
+}) => TimingChunk(
+  id: id,
+  timingData: (rawTimes ?? seconds.map(_t).toList())
+      .map((t) => TimingDatum(time: t))
+      .toList(),
+  conflictRecord: TimingDatum(
+    time: _t(seconds.isEmpty ? 0 : seconds.last + 1),
+    conflict: Conflict(type: type, offBy: offBy),
+  ),
+);
 
 void main() {
   test('gives every place a time when the Timer flagged nothing', () {
@@ -104,10 +103,13 @@ void main() {
 
   test('treats a chunk still holding a TBD as unsettled', () {
     final times = settledTimesByPlace([
-      _chunk(0, [10, 11],
-          type: ConflictType.missingTime,
-          offBy: 0,
-          rawTimes: [_t(10), 'TBD']),
+      _chunk(
+        0,
+        [10, 11],
+        type: ConflictType.missingTime,
+        offBy: 0,
+        rawTimes: [_t(10), 'TBD'],
+      ),
     ]);
 
     expect(times, isEmpty, reason: 'TBD is not a time to show anyone');
@@ -126,8 +128,7 @@ void main() {
   });
 
   group('approximateTimesByPlace', () {
-    test('gives flagged places the Timer\'s time near them, to the second',
-        () {
+    test('gives flagged places the Timer\'s time near them, to the second', () {
       final times = approximateTimesByPlace([
         _chunk(0, [900, 905]),
         // Three finishers, two times: a missed tap.

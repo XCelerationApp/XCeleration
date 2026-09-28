@@ -3,23 +3,18 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:xceleration/core/services/i_remote_api_client.dart';
 import 'package:xceleration/core/utils/logger.dart';
 
-typedef SupabaseInitializer = Future<void> Function({
-  required String url,
-  required String anonKey,
-});
+typedef SupabaseInitializer =
+    Future<void> Function({required String url, required String anonKey});
 
 Future<void> _defaultSupabaseInitializer({
   required String url,
   required String anonKey,
-}) =>
-    Supabase.initialize(url: url, anonKey: anonKey, debug: false);
+}) => Supabase.initialize(url: url, anonKey: anonKey, debug: false);
 
 class RemoteApiClient implements IRemoteApiClient {
-  RemoteApiClient({
-    Map<String, String>? env,
-    SupabaseInitializer? initializer,
-  })  : _env = env ?? dotenv.env,
-        _initializer = initializer ?? _defaultSupabaseInitializer;
+  RemoteApiClient({Map<String, String>? env, SupabaseInitializer? initializer})
+    : _env = env ?? dotenv.env,
+      _initializer = initializer ?? _defaultSupabaseInitializer;
 
   final Map<String, String> _env;
   final SupabaseInitializer _initializer;

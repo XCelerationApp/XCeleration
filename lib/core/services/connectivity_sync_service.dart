@@ -19,11 +19,12 @@ class ConnectivitySyncService {
     Stream<void>? writeStream,
     Connectivity? connectivity,
     ConnectivityService? connectivityService,
-  })  : _sync = sync,
-        _auth = auth,
-        _writeStream = writeStream,
-        _connectivity = connectivity ?? Connectivity(),
-        _connectivityService = connectivityService ?? const ConnectivityService();
+  }) : _sync = sync,
+       _auth = auth,
+       _writeStream = writeStream,
+       _connectivity = connectivity ?? Connectivity(),
+       _connectivityService =
+           connectivityService ?? const ConnectivityService();
 
   StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
   StreamSubscription<void>? _writeSub;
@@ -31,8 +32,9 @@ class ConnectivitySyncService {
 
   void start() {
     // Sync whenever the device connects to Wi‑Fi.
-    _connectivitySub ??=
-        _connectivity.onConnectivityChanged.listen((results) async {
+    _connectivitySub ??= _connectivity.onConnectivityChanged.listen((
+      results,
+    ) async {
       if (_auth.isSignedIn && results.contains(ConnectivityResult.wifi)) {
         try {
           await _sync.syncAll();
@@ -57,8 +59,7 @@ class ConnectivitySyncService {
 
   Future<void> _syncIfOnWifi() async {
     try {
-      if (_auth.isSignedIn &&
-          await _connectivityService.isOnline()) {
+      if (_auth.isSignedIn && await _connectivityService.isOnline()) {
         await _sync.syncAll();
       }
     } catch (_) {}

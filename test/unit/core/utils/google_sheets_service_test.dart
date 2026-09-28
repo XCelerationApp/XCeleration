@@ -89,7 +89,7 @@ void main() {
         final result = await service.updateSheet(
           spreadsheetId: 'sheet-id',
           data: [
-            ['a', 'b']
+            ['a', 'b'],
           ],
         );
 
@@ -102,7 +102,7 @@ void main() {
         await service.updateSheet(
           spreadsheetId: 'sheet-id',
           data: [
-            ['a', 'b']
+            ['a', 'b'],
           ],
         );
 
@@ -116,7 +116,7 @@ void main() {
         final result = await service.updateSheet(
           spreadsheetId: 'sheet-id',
           data: [
-            ['a', 'b']
+            ['a', 'b'],
           ],
         );
 
@@ -130,8 +130,10 @@ void main() {
 
         final url = service.constructSharingUrl('abc123');
 
-        expect(url,
-            'https://docs.google.com/spreadsheets/d/abc123/edit?usp=sharing');
+        expect(
+          url,
+          'https://docs.google.com/spreadsheets/d/abc123/edit?usp=sharing',
+        );
       });
     });
 
@@ -141,32 +143,40 @@ void main() {
 
         final url = service.constructCsvExportUrl('abc123');
 
-        expect(url,
-            'https://www.googleapis.com/drive/v3/files/abc123/export?mimeType=text/csv');
+        expect(
+          url,
+          'https://www.googleapis.com/drive/v3/files/abc123/export?mimeType=text/csv',
+        );
       });
     });
 
     group('getSheetUri', () {
       test('returns fallback URL when drive service returns null', () async {
-        when(mockDriveService.getWebViewLink(any))
-            .thenAnswer((_) async => null);
+        when(
+          mockDriveService.getWebViewLink(any),
+        ).thenAnswer((_) async => null);
         final service = buildService();
 
         final uri = await service.getSheetUri('abc123');
 
-        expect(uri.toString(),
-            'https://docs.google.com/spreadsheets/d/abc123/edit?usp=sharing');
+        expect(
+          uri.toString(),
+          'https://docs.google.com/spreadsheets/d/abc123/edit?usp=sharing',
+        );
       });
 
       test('returns drive API URL when available', () async {
         when(mockDriveService.getWebViewLink(any)).thenAnswer(
-            (_) async => 'https://docs.google.com/spreadsheets/d/abc123/edit');
+          (_) async => 'https://docs.google.com/spreadsheets/d/abc123/edit',
+        );
         final service = buildService();
 
         final uri = await service.getSheetUri('abc123');
 
-        expect(uri.toString(),
-            'https://docs.google.com/spreadsheets/d/abc123/edit');
+        expect(
+          uri.toString(),
+          'https://docs.google.com/spreadsheets/d/abc123/edit',
+        );
       });
     });
 

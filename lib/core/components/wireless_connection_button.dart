@@ -23,7 +23,9 @@ class ConnectionButtonContainer extends StatelessWidget {
         color: Colors.white,
       ),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.lg, vertical: AppSpacing.lg),
+        horizontal: AppSpacing.lg,
+        vertical: AppSpacing.lg,
+      ),
       child: child,
     );
   }
@@ -45,15 +47,13 @@ class WirelessConnectionButton extends StatefulWidget {
     this.isLoading = false,
   });
 
-  WirelessConnectionButton get skeleton => WirelessConnectionButton(
-        device: device,
-        icon: icon,
-        isLoading: true,
-      );
+  WirelessConnectionButton get skeleton =>
+      WirelessConnectionButton(device: device, icon: icon, isLoading: true);
 
-  WirelessConnectionButton error(
-      {WirelessConnectionError error = WirelessConnectionError.unknown,
-      Function()? retryAction}) {
+  WirelessConnectionButton error({
+    WirelessConnectionError error = WirelessConnectionError.unknown,
+    Function()? retryAction,
+  }) {
     late String message;
     if (error == WirelessConnectionError.unavailable) {
       message = 'Wireless connection is not available on this device.';
@@ -106,18 +106,13 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
           height: AppSpacing.lg,
           child: CircularProgressIndicator(
             strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              Colors.grey[400]!,
-            ),
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.grey[400]!),
           ),
         ),
         const SizedBox(width: 8),
         Text(
           _getStatusText(),
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.grey[600],
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
         ),
       ],
     );
@@ -182,11 +177,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
       return ConnectionButtonContainer(
         child: Row(
           children: [
-            Icon(
-              Icons.error_outline,
-              color: Colors.red[400],
-              size: 24,
-            ),
+            Icon(Icons.error_outline, color: Colors.red[400], size: 24),
             const SizedBox(width: AppSpacing.lg),
             Expanded(
               child: Column(
@@ -204,10 +195,7 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
                   const SizedBox(height: 4),
                   Text(
                     widget.errorMessage ?? 'An unknown error occurred',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -217,7 +205,9 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
                 onPressed: widget.onRetry,
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                    horizontal: AppSpacing.md,
+                    vertical: AppSpacing.sm,
+                  ),
                   minimumSize: Size.zero,
                 ),
                 child: const Text('Retry'),
@@ -231,39 +221,25 @@ class _WirelessConnectionButtonState extends State<WirelessConnectionButton> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            widget.icon ?? Icons.person,
-            color: Colors.black54,
-            size: 24,
-          ),
+          Icon(widget.icon ?? Icons.person, color: Colors.black54, size: 24),
           const SizedBox(width: AppSpacing.lg),
           Text(
             getDeviceNameString(widget.device.name),
-            style: const TextStyle(
-              fontSize: 17,
-              color: Colors.black87,
-            ),
+            style: const TextStyle(fontSize: 17, color: Colors.black87),
           ),
           const Spacer(),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (widget.device.status == ConnectionStatus.finished) ...[
-                Icon(
-                  Icons.check_circle_outline,
-                  color: Colors.green,
-                  size: 24,
-                ),
+                Icon(Icons.check_circle_outline, color: Colors.green, size: 24),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   'Done',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.green,
-                  ),
+                  style: TextStyle(fontSize: 16, color: Colors.green),
                 ),
               ] else ...[
-                _buildStatusIndicator()
+                _buildStatusIndicator(),
               ],
             ],
           ),

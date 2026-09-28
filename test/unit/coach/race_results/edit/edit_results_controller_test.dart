@@ -11,10 +11,10 @@ import 'package:xceleration/shared/models/database/team.dart';
 const _eagles = Team(teamId: 1, name: 'Eagles');
 
 RaceRunner _runner(int id, String name) => RaceRunner(
-      raceId: 7,
-      runner: Runner(runnerId: id, name: name, bibNumber: '${100 + id}', grade: 10),
-      team: _eagles,
-    );
+  raceId: 7,
+  runner: Runner(runnerId: id, name: name, bibNumber: '${100 + id}', grade: 10),
+  team: _eagles,
+);
 
 final _ann = _runner(1, 'Ann');
 final _bo = _runner(2, 'Bo');
@@ -31,9 +31,27 @@ void main() {
         raceId: 7,
         results: [
           // Out of order on purpose: places decide the order.
-          RaceResult(raceId: 7, runner: _cy.runner, team: _eagles, place: 3, finishTime: _t(30)),
-          RaceResult(raceId: 7, runner: _ann.runner, team: _eagles, place: 1, finishTime: _t(10)),
-          RaceResult(raceId: 7, runner: _bo.runner, team: _eagles, place: 2, finishTime: _t(20)),
+          RaceResult(
+            raceId: 7,
+            runner: _cy.runner,
+            team: _eagles,
+            place: 3,
+            finishTime: _t(30),
+          ),
+          RaceResult(
+            raceId: 7,
+            runner: _ann.runner,
+            team: _eagles,
+            place: 1,
+            finishTime: _t(10),
+          ),
+          RaceResult(
+            raceId: 7,
+            runner: _bo.runner,
+            team: _eagles,
+            place: 2,
+            finishTime: _t(20),
+          ),
         ],
         raceRunners: [_di, _cy, _bo, _ann],
         save: save ?? (results) async => saved = results,
@@ -45,7 +63,7 @@ void main() {
     expect(await c.save(), isTrue);
     return [
       for (final r in saved!)
-        '${r.place} ${r.runner!.name} ${r.finishTime!.inSeconds - 900}'
+        '${r.place} ${r.runner!.name} ${r.finishTime!.inSeconds - 900}',
     ];
   }
 
@@ -67,8 +85,11 @@ void main() {
     test('someone already placed swaps with whoever was there', () async {
       final c = make()..assignRunner(0, _cy);
 
-      expect(await savedOrder(c), ['1 Cy 10', '2 Bo 20', '3 Ann 30'],
-          reason: 'times stay with the places');
+      expect(await savedOrder(c), [
+        '1 Cy 10',
+        '2 Bo 20',
+        '3 Ann 30',
+      ], reason: 'times stay with the places');
     });
 
     test('picking the same runner changes nothing', () {
@@ -132,16 +153,23 @@ void main() {
   });
 
   test('a failed save keeps the changes and says why', () async {
-    final c = make(save: (_) async => throw Exception('disk full'))
-      ..remove(0);
+    final c = make(save: (_) async => throw Exception('disk full'))..remove(0);
 
     expect(await c.save(), isFalse);
 
-    expect(c.error?.userMessage, 'Could not save the results. Please try again.');
+    expect(
+      c.error?.userMessage,
+      'Could not save the results. Please try again.',
+    );
     expect(c.hasChanges, isTrue, reason: 'so the coach can try again');
   });
 
   test('runners to choose from are listed by bib', () {
-    expect(make().raceRunners.map((r) => r.runner.name), ['Ann', 'Bo', 'Cy', 'Di']);
+    expect(make().raceRunners.map((r) => r.runner.name), [
+      'Ann',
+      'Bo',
+      'Cy',
+      'Di',
+    ]);
   });
 }

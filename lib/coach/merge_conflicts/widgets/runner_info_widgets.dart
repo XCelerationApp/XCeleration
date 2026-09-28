@@ -5,11 +5,7 @@ import '../../../core/theme/typography.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 class PlaceNumber extends StatelessWidget {
-  const PlaceNumber({
-    super.key,
-    required this.place,
-    required this.color,
-  });
+  const PlaceNumber({super.key, required this.place, required this.color});
   final int place;
   final Color color;
 
@@ -72,12 +68,15 @@ class RunnerInfo extends StatelessWidget {
           children: [
             if (raceRunner!.runner.bibNumber != null)
               InfoChip(
-                  label: 'Bib ${raceRunner!.runner.bibNumber!}',
-                  color: accentColor),
+                label: 'Bib ${raceRunner!.runner.bibNumber!}',
+                color: accentColor,
+              ),
             if (raceRunner!.team.abbreviation != null &&
                 raceRunner!.team.abbreviation!.isNotEmpty)
               InfoChip(
-                  label: raceRunner!.team.abbreviation!, color: accentColor),
+                label: raceRunner!.team.abbreviation!,
+                color: accentColor,
+              ),
           ],
         ),
       ],
@@ -86,11 +85,7 @@ class RunnerInfo extends StatelessWidget {
 }
 
 class InfoChip extends StatelessWidget {
-  const InfoChip({
-    super.key,
-    required this.label,
-    required this.color,
-  });
+  const InfoChip({super.key, required this.label, required this.color});
   final String label;
   final Color color;
 

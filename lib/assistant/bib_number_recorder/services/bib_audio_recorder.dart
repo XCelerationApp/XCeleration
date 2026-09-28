@@ -16,8 +16,8 @@ class BibAudioRecorder implements IBibAudioRecorder {
   BibAudioRecorder({
     FlutterSoundRecorder? recorder,
     Future<Directory> Function()? tempDirProvider,
-  })  : _recorder = recorder ?? FlutterSoundRecorder(logLevel: Level.warning),
-        _tempDirProvider = tempDirProvider ?? getTemporaryDirectory;
+  }) : _recorder = recorder ?? FlutterSoundRecorder(logLevel: Level.warning),
+       _tempDirProvider = tempDirProvider ?? getTemporaryDirectory;
 
   final FlutterSoundRecorder _recorder;
 
@@ -61,10 +61,13 @@ class BibAudioRecorder implements IBibAudioRecorder {
     // Without the microphone every recording is silence, which read as
     // "Didn't catch that" for each bib with no hint why.
     if (!await _micAllowed()) {
-      return const Failure(AppError(
-        userMessage: 'Voice needs the microphone. Turn on Microphone for '
-            'XCeleration in the Settings app.',
-      ));
+      return const Failure(
+        AppError(
+          userMessage:
+              'Voice needs the microphone. Turn on Microphone for '
+              'XCeleration in the Settings app.',
+        ),
+      );
     }
     try {
       await _recorder.openRecorder();
@@ -73,10 +76,12 @@ class BibAudioRecorder implements IBibAudioRecorder {
       await _warmUpAudioSession();
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not open audio recorder.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not open audio recorder.',
+          originalException: e,
+        ),
+      );
     }
   }
 

@@ -16,23 +16,32 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 /// Which mistakes the simulated devices make.
 enum SimulatedScenario {
   clean('Clean race', 'No mistakes.'),
-  missingTime('Missing time',
-      'The Timer missed a runner and pressed "missing time".'),
-  extraTime(
-      'Extra time', 'The Timer tapped twice and pressed "extra time".'),
-  timerMissedRunner('Timer missed a runner (no button)',
-      'A finisher after the last confirmation got no time, and the Timer '
-          'did not notice.'),
-  strayTap('Stray tap (no button)',
-      'An extra time after the last confirmation, and the Timer did not '
-          'notice.'),
+  missingTime(
+    'Missing time',
+    'The Timer missed a runner and pressed "missing time".',
+  ),
+  extraTime('Extra time', 'The Timer tapped twice and pressed "extra time".'),
+  timerMissedRunner(
+    'Timer missed a runner (no button)',
+    'A finisher after the last confirmation got no time, and the Timer '
+        'did not notice.',
+  ),
+  strayTap(
+    'Stray tap (no button)',
+    'An extra time after the last confirmation, and the Timer did not '
+        'notice.',
+  ),
   bibTypo('Mistyped bib', 'The Bib Recorder mistyped one bib number.'),
-  bibCollision('Bib typed as another runner',
-      "The Bib Recorder typed one runner's bib as another runner's, so that "
-          'bib appears at two finishes.'),
-  everything('Everything at once',
-      'Missing time, extra time, a runner the Timer missed, a mistyped bib '
-          "and a bib typed as another runner's.");
+  bibCollision(
+    'Bib typed as another runner',
+    "The Bib Recorder typed one runner's bib as another runner's, so that "
+        'bib appears at two finishes.',
+  ),
+  everything(
+    'Everything at once',
+    'Missing time, extra time, a runner the Timer missed, a mistyped bib '
+        "and a bib typed as another runner's.",
+  );
 
   const SimulatedScenario(this.label, this.description);
   final String label;
@@ -79,14 +88,17 @@ class RaceSimulator {
   /// Simulates a race run by [runners] (in random order). Throws
   /// [StateError] if there are fewer than [minimumRunners] with bibs.
   Future<SimulatedRace> simulate(
-      List<RaceRunner> runners, SimulatedScenario scenario) async {
-    final finishers = runners
-        .where((r) => (r.runner.bibNumber ?? '').isNotEmpty)
-        .toList()
-      ..shuffle(_random);
+    List<RaceRunner> runners,
+    SimulatedScenario scenario,
+  ) async {
+    final finishers =
+        runners.where((r) => (r.runner.bibNumber ?? '').isNotEmpty).toList()
+          ..shuffle(_random);
     if (finishers.length < minimumRunners) {
-      throw StateError('Add at least $minimumRunners runners with bib '
-          'numbers to simulate a race.');
+      throw StateError(
+        'Add at least $minimumRunners runners with bib '
+        'numbers to simulate a race.',
+      );
     }
 
     final all = scenario == SimulatedScenario.everything;
@@ -104,7 +116,7 @@ class RaceSimulator {
 
     final answerKey = [
       for (var i = 0; i < finishers.length; i++)
-        SimulatedFinisher(i + 1, finishers[i], fmt(times[i]))
+        SimulatedFinisher(i + 1, finishers[i], fmt(times[i])),
     ];
 
     // Split the finishers into chunks of 4 to 6, each ended by a button.
@@ -137,35 +149,47 @@ class RaceSimulator {
         final k = _random.nextInt(group.length);
         groupTimes.removeAt(k);
         conflict = Conflict(type: ConflictType.missingTime);
-        notes.add('Missing time: the Timer missed ${describe(group[k])}. '
-            'Move the TBD to place ${group[k] + 1} and enter '
-            '${fmt(times[group[k]])}.');
+        notes.add(
+          'Missing time: the Timer missed ${describe(group[k])}. '
+          'Move the TBD to place ${group[k] + 1} and enter '
+          '${fmt(times[group[k]])}.',
+        );
       }
-      if (has(SimulatedScenario.extraTime) && g == extraGroup &&
+      if (has(SimulatedScenario.extraTime) &&
+          g == extraGroup &&
           !(has(SimulatedScenario.missingTime) && g == missingGroup)) {
         final k = 1 + _random.nextInt(groupTimes.length - 1);
-        final stray = groupTimes[k - 1] + (groupTimes[k] - groupTimes[k - 1]) ~/ 2;
+        final stray =
+            groupTimes[k - 1] + (groupTimes[k] - groupTimes[k - 1]) ~/ 2;
         groupTimes.insert(k, _hundredths(stray));
         conflict = Conflict(type: ConflictType.extraTime);
-        notes.add('Extra time: ${fmt(groupTimes[k])} was a stray tap. '
-            'Remove it.');
+        notes.add(
+          'Extra time: ${fmt(groupTimes[k])} was a stray tap. '
+          'Remove it.',
+        );
       }
       if (g == last) {
         if (has(SimulatedScenario.timerMissedRunner)) {
           // A finisher whose time is still there (not already missing).
-          final candidates =
-              group.where((i) => groupTimes.contains(times[i])).toList();
+          final candidates = group
+              .where((i) => groupTimes.contains(times[i]))
+              .toList();
           final i = candidates[_random.nextInt(candidates.length)];
           groupTimes.remove(times[i]);
-          notes.add('The Timer missed ${describe(i)} without noticing. The '
-              'coach sees a missing time in the last group: move the TBD to '
-              'place ${i + 1} and enter ${fmt(times[i])}.');
+          notes.add(
+            'The Timer missed ${describe(i)} without noticing. The '
+            'coach sees a missing time in the last group: move the TBD to '
+            'place ${i + 1} and enter ${fmt(times[i])}.',
+          );
         } else if (has(SimulatedScenario.strayTap)) {
-          final stray = _hundredths(groupTimes.last +
-              (buttonAt - groupTimes.last) ~/ 2);
+          final stray = _hundredths(
+            groupTimes.last + (buttonAt - groupTimes.last) ~/ 2,
+          );
           groupTimes.add(stray);
-          notes.add('Stray tap: ${fmt(stray)} at the end is not a runner. '
-              'Remove it.');
+          notes.add(
+            'Stray tap: ${fmt(stray)} at the end is not a runner. '
+            'Remove it.',
+          );
         }
         // A stopped Timer closes the race with a checkpoint, unless the last
         // chunk already ends with a conflict.
@@ -191,13 +215,17 @@ class RaceSimulator {
       }
       final bib = finishers[owner].runner.bibNumber!;
       bibs[mistyped] = BibDatum(bib: bib);
-      untouched..add(owner)..add(mistyped);
+      untouched
+        ..add(owner)
+        ..add(mistyped);
       final first = owner < mistyped ? owner : mistyped;
       final second = owner < mistyped ? mistyped : owner;
-      notes.add('Bib typed as another runner: #$bib is at places '
-          '${first + 1} and ${second + 1}. Place ${owner + 1} is '
-          '${describe(owner)}, whose bib it is. The other finish is really '
-          '${describe(mistyped)} — choose them as the existing runner.');
+      notes.add(
+        'Bib typed as another runner: #$bib is at places '
+        '${first + 1} and ${second + 1}. Place ${owner + 1} is '
+        '${describe(owner)}, whose bib it is. The other finish is really '
+        '${describe(mistyped)} — choose them as the existing runner.',
+      );
     }
     if (has(SimulatedScenario.bibTypo)) {
       // Not a runner the collision already touched, or one mistake would
@@ -213,8 +241,10 @@ class RaceSimulator {
       }
       final index = bibs.indexWhere((b) => b.bib == real);
       bibs[index] = BibDatum(bib: typo);
-      notes.add('Mistyped bib: $typo is really ${describe(k)}. Choose them '
-          'as the existing runner.');
+      notes.add(
+        'Mistyped bib: $typo is really ${describe(k)}. Choose them '
+        'as the existing runner.',
+      );
     }
     if (notes.isEmpty) notes.add('No mistakes: everything should match.');
 

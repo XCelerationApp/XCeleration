@@ -69,14 +69,14 @@ class ConflictResolutionController extends ChangeNotifier {
     required Future<Result<RaceRunner>> Function(NewRunner) createRunner,
     Future<void> Function(RaceRunner)? withdrawRunner,
     this.timingConflictsNext = 0,
-  })  : _withdrawRunner = withdrawRunner,
-        _conflicts = List.unmodifiable(conflicts),
-        _candidates = List.unmodifiable(candidates),
-        _roster = List.unmodifiable(roster),
-        _knownBibs = Set.unmodifiable(knownBibs),
-        _savedBibOwners = Map.unmodifiable(savedBibOwners),
-        _teams = List.unmodifiable(teams),
-        _createRunner = createRunner;
+  }) : _withdrawRunner = withdrawRunner,
+       _conflicts = List.unmodifiable(conflicts),
+       _candidates = List.unmodifiable(candidates),
+       _roster = List.unmodifiable(roster),
+       _knownBibs = Set.unmodifiable(knownBibs),
+       _savedBibOwners = Map.unmodifiable(savedBibOwners),
+       _teams = List.unmodifiable(teams),
+       _createRunner = createRunner;
 
   final List<BibConflict> _conflicts;
 
@@ -158,10 +158,11 @@ class ConflictResolutionController extends ChangeNotifier {
 
   /// The places a conflict needs a runner for.
   static List<int> placesOf(BibConflict conflict) => switch (conflict) {
-        DuplicateBibConflict(:final occurrences) =>
-          [for (final o in occurrences) o.place],
-        UnknownBibConflict(:final occurrence) => [occurrence.place],
-      };
+    DuplicateBibConflict(:final occurrences) => [
+      for (final o in occurrences) o.place,
+    ],
+    UnknownBibConflict(:final occurrence) => [occurrence.place],
+  };
 
   bool isResolved(int index) =>
       placesOf(_conflicts[index]).every(_settled.containsKey);
@@ -202,9 +203,9 @@ class ConflictResolutionController extends ChangeNotifier {
 
   /// Runners already given a finish here, staged or settled.
   Set<String> get _usedBibs => {
-        for (final entry in _settled.values) ?entry.raceRunner.runner.bibNumber,
-        ?_pending?.runner?.runner.bibNumber,
-      };
+    for (final entry in _settled.values) ?entry.raceRunner.runner.bibNumber,
+    ?_pending?.runner?.runner.bibNumber,
+  };
 
   /// The runners still free to be given a finish, nearest bib number first:
   /// a mistyped bib is usually a digit or two from the real one.
@@ -231,19 +232,19 @@ class ConflictResolutionController extends ChangeNotifier {
   /// yet whose bib is one slip away, then the team whose bibs it falls
   /// among.
   List<RunnerSuggestion> suggestionsFor(String bib) => suggestRunnersForBib(
-        bib,
-        free: _freeRunners,
-        roster: _roster.isEmpty ? _candidates : _roster,
-      );
+    bib,
+    free: _freeRunners,
+    roster: _roster.isEmpty ? _candidates : _roster,
+  );
 
   /// Every bib already taken, so an added runner gets one of their own.
   Set<String> get allKnownBibs => {
-        ..._knownBibs,
-        for (final entry in _settled.values)
-          if (entry.kind == ResolutionKind.created)
-            ?entry.raceRunner.runner.bibNumber,
-        ?_pending?.newRunner?.bibNumber,
-      };
+    ..._knownBibs,
+    for (final entry in _settled.values)
+      if (entry.kind == ResolutionKind.created)
+        ?entry.raceRunner.runner.bibNumber,
+    ?_pending?.newRunner?.bibNumber,
+  };
 
   /// The next bib number nobody has, in this race or saved from another, for
   /// a runner added in place of a bib that turned out to be someone else's.
@@ -269,19 +270,19 @@ class ConflictResolutionController extends ChangeNotifier {
 
   /// Who finished at each settled place — what goes back into the results.
   Map<int, RaceRunner> get resolvedByPlace => {
-        for (final entry in _settled.entries) entry.key: entry.value.raceRunner,
-      };
+    for (final entry in _settled.entries) entry.key: entry.value.raceRunner,
+  };
 
   /// Who finished at each place of the conflicts fully resolved, kept when
   /// the coach leaves part way: leaving used to throw every answer away. A
   /// repeated bib half done is left out, as its runner would otherwise be
   /// in the results twice.
   Map<int, RaceRunner> get finishedByPlace => {
-        for (var i = 0; i < _conflicts.length; i++)
-          if (isResolved(i))
-            for (final place in placesOf(_conflicts[i]))
-              place: _settled[place]!.raceRunner,
-      };
+    for (var i = 0; i < _conflicts.length; i++)
+      if (isResolved(i))
+        for (final place in placesOf(_conflicts[i]))
+          place: _settled[place]!.raceRunner,
+  };
 
   // --- Navigation ---------------------------------------------------------
 
@@ -345,52 +346,78 @@ class ConflictResolutionController extends ChangeNotifier {
   void prepareAssign(RaceRunner runner, String label) {
     final conflict = _conflicts[_current];
     if (conflict is! UnknownBibConflict) return;
-    _stage(_Pending(
-      place: conflict.occurrence.place,
-      bibNumber: conflict.bibNumber,
-      label: label,
-      runner: runner,
-    ));
+    _stage(
+      _Pending(
+        place: conflict.occurrence.place,
+        bibNumber: conflict.bibNumber,
+        label: label,
+        runner: runner,
+      ),
+    );
   }
 
   /// Gives a repeated bib's leftover finish to [runner], pending the toast.
   void prepareAssignForDuplicate(RaceRunner runner, String label) {
     final leftover = currentLeftover;
     if (leftover == null) return;
-    _stage(_Pending(
-      place: leftover.place,
-      bibNumber: currentConflict.bibNumber,
-      label: label,
-      runner: runner,
-    ));
+    _stage(
+      _Pending(
+        place: leftover.place,
+        bibNumber: currentConflict.bibNumber,
+        label: label,
+        runner: runner,
+      ),
+    );
   }
 
   /// Gives an unrecognised bib's finish to a runner the coach is adding.
   void prepareCreate(
-      String name, String bib, String team, int grade, String label) {
+    String name,
+    String bib,
+    String team,
+    int grade,
+    String label,
+  ) {
     final conflict = _conflicts[_current];
     if (conflict is! UnknownBibConflict) return;
-    _stage(_Pending(
-      place: conflict.occurrence.place,
-      bibNumber: conflict.bibNumber,
-      label: label,
-      newRunner:
-          NewRunner(name: name, bibNumber: bib, teamName: team, grade: grade),
-    ));
+    _stage(
+      _Pending(
+        place: conflict.occurrence.place,
+        bibNumber: conflict.bibNumber,
+        label: label,
+        newRunner: NewRunner(
+          name: name,
+          bibNumber: bib,
+          teamName: team,
+          grade: grade,
+        ),
+      ),
+    );
   }
 
   /// Gives a repeated bib's leftover finish to a runner the coach is adding.
   void prepareCreateForDuplicate(
-      String name, String bib, String team, int grade, String label) {
+    String name,
+    String bib,
+    String team,
+    int grade,
+    String label,
+  ) {
     final leftover = currentLeftover;
     if (leftover == null) return;
-    _stage(_Pending(
-      place: leftover.place,
-      bibNumber: currentConflict.bibNumber,
-      label: label,
-      newRunner:
-          NewRunner(name: name, bibNumber: bib, teamName: team, grade: grade),
-    ));
+    _stage(
+      _Pending(
+        place: leftover.place,
+        bibNumber: currentConflict.bibNumber,
+        label: label,
+        newRunner: NewRunner(
+          name: name,
+          bibNumber: bib,
+          teamName: team,
+          grade: grade,
+        ),
+      ),
+    );
   }
 
   /// Settles the pending resolution once its toast runs out. An added runner

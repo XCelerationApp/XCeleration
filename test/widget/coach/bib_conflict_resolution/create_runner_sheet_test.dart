@@ -18,27 +18,29 @@ void main() {
       tester.view.viewInsets = FakeViewPadding(bottom: keyboard);
       addTearDown(tester.view.reset);
 
-      await tester.pumpWidget(MaterialApp(
-        home: Builder(
-          builder: (context) => Scaffold(
-            body: Center(
-              child: ElevatedButton(
-                onPressed: () => sheet(
-                  context: context,
-                  title: 'Add New Runner',
-                  body: CreateRunnerSheet(
-                    allKnownBibs: const {'101'},
-                    teams: const ['Eagles', 'Hawks', 'Owls'],
-                    autoBib: '9217',
-                    onCreated: (_, _, _, _) {},
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: Center(
+                child: ElevatedButton(
+                  onPressed: () => sheet(
+                    context: context,
+                    title: 'Add New Runner',
+                    body: CreateRunnerSheet(
+                      allKnownBibs: const {'101'},
+                      teams: const ['Eagles', 'Hawks', 'Owls'],
+                      autoBib: '9217',
+                      onCreated: (_, _, _, _) {},
+                    ),
                   ),
+                  child: const Text('open'),
                 ),
-                child: const Text('open'),
               ),
             ),
           ),
         ),
-      ));
+      );
       await tester.tap(find.text('open'));
       await tester.pumpAndSettle();
 
@@ -47,23 +49,27 @@ void main() {
     });
   }
 
-  Future<({String? name, String? bib})> open(WidgetTester tester,
-      {String initialName = ''}) async {
+  Future<({String? name, String? bib})> open(
+    WidgetTester tester, {
+    String initialName = '',
+  }) async {
     String? createdName, createdBib;
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: CreateRunnerSheet(
-          allKnownBibs: const {'101'},
-          teams: const ['Eagles'],
-          autoBib: '9217',
-          initialName: initialName,
-          onCreated: (name, bib, _, _) {
-            createdName = name;
-            createdBib = bib;
-          },
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CreateRunnerSheet(
+            allKnownBibs: const {'101'},
+            teams: const ['Eagles'],
+            autoBib: '9217',
+            initialName: initialName,
+            onCreated: (name, bib, _, _) {
+              createdName = name;
+              createdBib = bib;
+            },
+          ),
         ),
       ),
-    ));
+    );
     return (name: createdName, bib: createdBib);
   }
 
@@ -73,8 +79,9 @@ void main() {
     expect(find.text('Jane Doe'), findsOneWidget);
   });
 
-  testWidgets('shows the recorded bib, changeable with the pencil',
-      (tester) async {
+  testWidgets('shows the recorded bib, changeable with the pencil', (
+    tester,
+  ) async {
     await open(tester);
     expect(find.text('#9217'), findsOneWidget);
 
@@ -87,20 +94,24 @@ void main() {
   });
 
   group('a bib already saved for another runner', () {
-    Future<void> openOwned(WidgetTester tester,
-        {String initialName = ''}) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: CreateRunnerSheet(
-            allKnownBibs: const {'101'},
-            teams: const ['Eagles'],
-            autoBib: '9217',
-            initialName: initialName,
-            savedBibOwners: const {'9217': 'Sam Lee'},
-            onCreated: (_, _, _, _) {},
+    Future<void> openOwned(
+      WidgetTester tester, {
+      String initialName = '',
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: CreateRunnerSheet(
+              allKnownBibs: const {'101'},
+              teams: const ['Eagles'],
+              autoBib: '9217',
+              initialName: initialName,
+              savedBibOwners: const {'9217': 'Sam Lee'},
+              onCreated: (_, _, _, _) {},
+            ),
           ),
         ),
-      ));
+      );
     }
 
     testWidgets('suggests that runner by name', (tester) async {
@@ -110,12 +121,13 @@ void main() {
       expect(find.byKey(const ValueKey('bib_owner_error')), findsNothing);
     });
 
-    testWidgets('says whose it is when another name is typed',
-        (tester) async {
+    testWidgets('says whose it is when another name is typed', (tester) async {
       await openOwned(tester, initialName: 'Jane Doe');
 
-      expect(find.textContaining("Bib #9217 is already Sam Lee's"),
-          findsOneWidget);
+      expect(
+        find.textContaining("Bib #9217 is already Sam Lee's"),
+        findsOneWidget,
+      );
       final add = tester.widget<FullWidthButton>(find.byType(FullWidthButton));
       expect(add.isEnabled, isFalse);
     });
@@ -134,16 +146,18 @@ void main() {
 
   group('the Team menu', () {
     Future<void> pump(WidgetTester tester, List<String> teams) =>
-        tester.pumpWidget(MaterialApp(
-          home: Scaffold(
-            body: CreateRunnerSheet(
-              allKnownBibs: const {},
-              teams: teams,
-              autoBib: '9217',
-              onCreated: (_, _, _, _) {},
+        tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: CreateRunnerSheet(
+                allKnownBibs: const {},
+                teams: teams,
+                autoBib: '9217',
+                onCreated: (_, _, _, _) {},
+              ),
             ),
           ),
-        ));
+        );
 
     testWidgets('opens and takes a team', (tester) async {
       await pump(tester, const ['Eagles', 'Hawks']);
@@ -157,8 +171,9 @@ void main() {
       expect(find.text('Select team'), findsNothing);
     });
 
-    testWidgets('with no teams, says why instead of a dead menu',
-        (tester) async {
+    testWidgets('with no teams, says why instead of a dead menu', (
+      tester,
+    ) async {
       await pump(tester, const []);
 
       expect(find.byKey(const ValueKey('no_teams')), findsOneWidget);

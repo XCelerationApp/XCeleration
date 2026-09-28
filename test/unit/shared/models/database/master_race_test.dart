@@ -11,8 +11,12 @@ import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 
-@GenerateMocks(
-    [IRaceRepository, IRunnerRepository, ITeamRepository, IResultsRepository])
+@GenerateMocks([
+  IRaceRepository,
+  IRunnerRepository,
+  ITeamRepository,
+  IResultsRepository,
+])
 import 'master_race_test.mocks.dart';
 
 void main() {
@@ -31,13 +35,17 @@ void main() {
     ServiceLocator.register<IResultsRepository>(MockIResultsRepository());
     when(teams.getTeam(1)).thenAnswer((_) async => team);
     for (var i = 1; i <= 3; i++) {
-      when(runners.getRunner(i)).thenAnswer((_) async =>
-          Runner(runnerId: i, name: 'R$i', bibNumber: '$i', grade: 10));
+      when(runners.getRunner(i)).thenAnswer(
+        (_) async =>
+            Runner(runnerId: i, name: 'R$i', bibNumber: '$i', grade: 10),
+      );
     }
-    when(races.getRaceParticipants(7)).thenAnswer((_) async => [
-          for (var i = 1; i <= 3; i++)
-            RaceParticipant(raceId: 7, runnerId: i, teamId: 1),
-        ]);
+    when(races.getRaceParticipants(7)).thenAnswer(
+      (_) async => [
+        for (var i = 1; i <= 3; i++)
+          RaceParticipant(raceId: 7, runnerId: i, teamId: 1),
+      ],
+    );
   });
 
   tearDown(() {
@@ -52,7 +60,8 @@ void main() {
     final firstLookup = Completer<List<Team>>();
     var calls = 0;
     when(races.getRaceTeams(7)).thenAnswer(
-        (_) => ++calls == 1 ? firstLookup.future : Future.value([team]));
+      (_) => ++calls == 1 ? firstLookup.future : Future.value([team]),
+    );
     final masterRace = MasterRace.getInstance(7);
 
     final first = masterRace.teamtoRaceRunnersMap;

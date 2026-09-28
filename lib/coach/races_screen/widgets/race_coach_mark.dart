@@ -6,8 +6,11 @@ class RaceCoachMark extends StatelessWidget {
   final Widget child;
   final RacesController controller;
 
-  const RaceCoachMark(
-      {required this.child, required this.controller, super.key});
+  const RaceCoachMark({
+    required this.child,
+    required this.controller,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {

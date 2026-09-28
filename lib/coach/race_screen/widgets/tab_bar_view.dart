@@ -60,18 +60,14 @@ class TabBarViewWidget extends StatelessWidget {
             builder: (context, _) => SlidingPageView(
               showSecondPage: controller.showingRunnersManagement,
               onBackToFirst: () {
-                controller
-                    .navigateToRaceDetails(context)
-                    .catchError((error) {
+                controller.navigateToRaceDetails(context).catchError((error) {
                   debugPrint('Error navigating to race details: $error');
                 });
               },
               // No RaceHeader here: the finished-race screen already shows it
               // above the tabs, so this repeated the race's name.
               firstPage: SingleChildScrollView(
-                child: RaceDetailsTab(
-                  controller: controller,
-                ),
+                child: RaceDetailsTab(controller: controller),
               ),
               secondPage: Builder(
                 builder: (context) {
@@ -82,7 +78,8 @@ class TabBarViewWidget extends StatelessWidget {
                       onBack: () => controller
                           .navigateToRaceDetails(context)
                           .catchError((e) => debugPrint('$e')),
-                      isViewMode: true, // Always view mode when race is finished
+                      isViewMode:
+                          true, // Always view mode when race is finished
                     );
                   } else {
                     return const RunnersManagementPlaceholder(

@@ -97,21 +97,17 @@ class SpectatorStorageService {
         return existingRace['id'] as int;
       } else {
         // Insert new race
-        final id = await db.insert(
-          'spectator_races',
-          {
-            'race_uuid': raceUuid,
-            'race_name': raceName,
-            'race_date': raceDate,
-            'location': location,
-            'distance': distance,
-            'distance_unit': distanceUnit,
-            'encoded_payload': encodedPayload,
-            'received_at': DateTime.now().millisecondsSinceEpoch,
-            'race_data': raceData,
-          },
-          conflictAlgorithm: ConflictAlgorithm.replace,
-        );
+        final id = await db.insert('spectator_races', {
+          'race_uuid': raceUuid,
+          'race_name': raceName,
+          'race_date': raceDate,
+          'location': location,
+          'distance': distance,
+          'distance_unit': distanceUnit,
+          'encoded_payload': encodedPayload,
+          'received_at': DateTime.now().millisecondsSinceEpoch,
+          'race_data': raceData,
+        }, conflictAlgorithm: ConflictAlgorithm.replace);
         Logger.d('Saved new race: $raceName (id: $id)');
         return id;
       }
@@ -186,11 +182,7 @@ class SpectatorStorageService {
   Future<void> deleteRace(int id) async {
     final db = await database;
     try {
-      await db.delete(
-        'spectator_races',
-        where: 'id = ?',
-        whereArgs: [id],
-      );
+      await db.delete('spectator_races', where: 'id = ?', whereArgs: [id]);
       Logger.d('Deleted race with id: $id');
     } catch (e) {
       Logger.e('Failed to delete race: $e');

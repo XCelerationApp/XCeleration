@@ -87,14 +87,14 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     IColorPickerDialogService? colorPickerDialogService,
     Stream<SyncEvent>? syncStream,
     this.canEdit = true,
-  })  : _racesService = racesService,
-        _authService = authService,
-        _eventBus = eventBus,
-        _postFrameCallbackScheduler = postFrameCallbackScheduler,
-        _syncStream = syncStream,
-        _datePickerService = datePickerService ?? DatePickerService(),
-        _colorPickerDialogService =
-            colorPickerDialogService ?? ColorPickerDialogService();
+  }) : _racesService = racesService,
+       _authService = authService,
+       _eventBus = eventBus,
+       _postFrameCallbackScheduler = postFrameCallbackScheduler,
+       _syncStream = syncStream,
+       _datePickerService = datePickerService ?? DatePickerService(),
+       _colorPickerDialogService =
+           colorPickerDialogService ?? ColorPickerDialogService();
 
   final TutorialManager tutorialManager;
 
@@ -108,8 +108,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     });
 
     // Subscribe to race flow state change events
-    _eventSubscription =
-        _eventBus.on(EventTypes.raceFlowStateChanged, (event) {
+    _eventSubscription = _eventBus.on(EventTypes.raceFlowStateChanged, (event) {
       _debouncedLoadRaces();
     });
 
@@ -123,7 +122,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     tutorialManager.startTutorial([
       'race_swipe_tutorial',
       'role_bar_tutorial',
-      'create_race_button_tutorial'
+      'create_race_button_tutorial',
     ]);
   }
 
@@ -153,7 +152,10 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     }
   }
 
-  Future<void> _openRaceSheet(BuildContext context, MasterRace masterRace) async {
+  Future<void> _openRaceSheet(
+    BuildContext context,
+    MasterRace masterRace,
+  ) async {
     await sheet(
       context: context,
       body: ChangeNotifierProvider(
@@ -167,10 +169,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
           });
           return raceController;
         },
-        child: RaceScreen(
-          masterRace: masterRace,
-          parentController: this,
-        ),
+        child: RaceScreen(masterRace: masterRace, parentController: this),
       ),
       takeUpScreen: false,
       showHeader: true,
@@ -191,8 +190,9 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   }
 
   void validateDistance(String distanceString) {
-    form.distanceErrorNotifier.value =
-        _racesService.validateDistance(distanceString);
+    form.distanceErrorNotifier.value = _racesService.validateDistance(
+      distanceString,
+    );
   }
 
   void resetControllers() {
@@ -206,7 +206,6 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   // For simplified creation, we only validate the race name
   bool validateRaceCreation() => form.validateRaceCreation();
 
-
   Future<void> selectDate(BuildContext context) async {
     final DateTime? picked = await _datePickerService.pickDate(context);
     if (picked != null) {
@@ -216,9 +215,10 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
   }
 
   void showColorPicker(
-      BuildContext context,
-      StateSetter setSheetState,
-      TextEditingController controller) {
+    BuildContext context,
+    StateSetter setSheetState,
+    TextEditingController controller,
+  ) {
     final index = form.teamControllers.indexOf(controller);
     _colorPickerDialogService.showColorPicker(
       context,
@@ -240,8 +240,10 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     if (race.ownerUserId != null &&
         currentUserId != null &&
         race.ownerUserId != currentUserId) {
-      DialogUtils.showErrorDialog(context,
-          message: 'Only the coach who created this race can edit it.');
+      DialogUtils.showErrorDialog(
+        context,
+        message: 'Only the coach who created this race can edit it.',
+      );
       return;
     }
     final masterRace = MasterRace.getInstance(race.raceId!);
@@ -259,8 +261,10 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
     if (race.ownerUserId != null &&
         currentUserId != null &&
         race.ownerUserId != currentUserId) {
-      DialogUtils.showErrorDialog(context,
-          message: 'Only the coach who created this race can delete it.');
+      DialogUtils.showErrorDialog(
+        context,
+        message: 'Only the coach who created this race can delete it.',
+      );
       return false;
     }
     final confirmed = await DialogUtils.showConfirmationDialog(

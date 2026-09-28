@@ -8,11 +8,7 @@ import '../../../core/theme/typography.dart';
 /// Takes back the last + or X press in a conflict batch. Sits beside
 /// "Resolve Conflict" and appears only once there is something to take back.
 class UndoButton extends StatelessWidget {
-  const UndoButton({
-    super.key,
-    required this.label,
-    required this.onUndo,
-  });
+  const UndoButton({super.key, required this.label, required this.onUndo});
 
   /// What the press will take back, e.g. 'removing 15:42.64'.
   final String label;

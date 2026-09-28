@@ -15,26 +15,29 @@ class EntryModeToggle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final busy = voice.state == VoiceEntryState.listening ||
+    final busy =
+        voice.state == VoiceEntryState.listening ||
         voice.state == VoiceEntryState.processing;
     return SegmentedButton<bool>(
       segments: const [
         ButtonSegment(
-            value: false,
-            icon: Icon(Icons.dialpad, size: 18),
-            label: Text('Keypad')),
+          value: false,
+          icon: Icon(Icons.dialpad, size: 18),
+          label: Text('Keypad'),
+        ),
         ButtonSegment(
-            value: true,
-            icon: Icon(Icons.mic_none, size: 18),
-            label: Text('Voice')),
+          value: true,
+          icon: Icon(Icons.mic_none, size: 18),
+          label: Text('Voice'),
+        ),
       ],
       selected: {voice.enabled},
       showSelectedIcon: false,
-      onSelectionChanged:
-          busy ? null : (choice) => voice.setEnabled(choice.first),
+      onSelectionChanged: busy
+          ? null
+          : (choice) => voice.setEnabled(choice.first),
       style: SegmentedButton.styleFrom(
-        selectedBackgroundColor:
-            AppColors.primaryColor.withValues(alpha: 0.12),
+        selectedBackgroundColor: AppColors.primaryColor.withValues(alpha: 0.12),
         selectedForegroundColor: AppColors.primaryColor,
         visualDensity: VisualDensity.compact,
         textStyle: AppTypography.smallBodySemibold,
@@ -73,13 +76,15 @@ class VoiceEntryPanel extends StatelessWidget {
             height: 20,
             child: CircularProgressIndicator(strokeWidth: 2.5),
           ),
-          text: 'Getting voice ready. The first time, this downloads about '
+          text:
+              'Getting voice ready. The first time, this downloads about '
               '28 MB, so do it before race day.',
         );
       case VoiceEntryState.failed:
         return _Notice(
           icon: const Icon(Icons.mic_off, color: AppColors.redColor),
-          text: '${voice.error?.userMessage ?? 'Voice is not working.'} '
+          text:
+              '${voice.error?.userMessage ?? 'Voice is not working.'} '
               'Use the keypad, or try again.',
           action: TextButton(
             onPressed: voice.retry,
@@ -116,8 +121,8 @@ class _HoldToTalk extends StatelessWidget {
       label: listening
           ? 'Listening…'
           : processing
-              ? 'Checking…'
-              : 'Hold and Say Bib',
+          ? 'Checking…'
+          : 'Hold and Say Bib',
       sublabel: listening ? 'Speak after the tap, then let go' : null,
       icon: Icons.mic,
       color: listening ? AppColors.darkPrimaryColor : AppColors.primaryColor,
@@ -152,10 +157,7 @@ class _HeardLine extends StatelessWidget {
         onUndo: onUndo,
       );
     } else {
-      child = _HintLine(
-        key: ValueKey(voice.missed),
-        missed: voice.missed,
-      );
+      child = _HintLine(key: ValueKey(voice.missed), missed: voice.missed);
     }
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 180),
@@ -174,7 +176,9 @@ class _HintLine extends StatelessWidget {
     return Container(
       constraints: const BoxConstraints(minHeight: 48),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.sm,
+      ),
       alignment: Alignment.centerLeft,
       decoration: BoxDecoration(
         color: AppColors.surfaceColor,
@@ -183,13 +187,14 @@ class _HintLine extends StatelessWidget {
       child: Text(
         missed
             ? 'Didn\'t catch that. Hold the phone closer, and say it again '
-                'after the tap.'
+                  'after the tap.'
             // The phone near the mouth: the finish line is loud, and the
             // mic picks up the crowd as much as a phone held at arm's length.
             : 'Hold the phone near your mouth. Press, wait for the tap, then '
-                'say the bib, like "four one two".',
+                  'say the bib, like "four one two".',
         style: AppTypography.bodySemibold.copyWith(
-            color: missed ? AppColors.redColor : AppColors.mediumColor),
+          color: missed ? AppColors.redColor : AppColors.mediumColor,
+        ),
       ),
     );
   }
@@ -218,7 +223,11 @@ class _HeardCard extends StatelessWidget {
       label: known ? 'Heard $bib, $who' : 'Heard $bib, not on the roster',
       child: Container(
         padding: const EdgeInsets.fromLTRB(
-            AppSpacing.md, AppSpacing.sm, AppSpacing.sm, AppSpacing.sm),
+          AppSpacing.md,
+          AppSpacing.sm,
+          AppSpacing.sm,
+          AppSpacing.sm,
+        ),
         decoration: BoxDecoration(
           color: accent.withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
@@ -250,7 +259,8 @@ class _HeardCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: AppTypography.bodySemibold.copyWith(
-                    color: known ? AppColors.darkColor : AppColors.redColor),
+                  color: known ? AppColors.darkColor : AppColors.redColor,
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -290,9 +300,12 @@ class _Notice extends StatelessWidget {
           icon,
           const SizedBox(width: AppSpacing.md),
           Expanded(
-            child: Text(text,
-                style: AppTypography.bodyRegular
-                    .copyWith(color: AppColors.darkColor)),
+            child: Text(
+              text,
+              style: AppTypography.bodyRegular.copyWith(
+                color: AppColors.darkColor,
+              ),
+            ),
           ),
           ?action,
         ],

@@ -31,22 +31,28 @@ class FlowInstructions extends StatelessWidget {
                     height: 28,
                     alignment: Alignment.center,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryColor
-                          .withValues(alpha: AppOpacity.light),
-                      borderRadius:
-                          BorderRadius.circular(AppBorderRadius.full),
+                      color: AppColors.primaryColor.withValues(
+                        alpha: AppOpacity.light,
+                      ),
+                      borderRadius: BorderRadius.circular(AppBorderRadius.full),
                     ),
-                    child: Text('${i + 1}',
-                        style: AppTypography.smallBodySemibold
-                            .copyWith(color: AppColors.primaryColor)),
+                    child: Text(
+                      '${i + 1}',
+                      style: AppTypography.smallBodySemibold.copyWith(
+                        color: AppColors.primaryColor,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: AppSpacing.md),
                   Expanded(
                     child: Padding(
                       padding: const EdgeInsets.only(top: 3),
-                      child: Text(step,
-                          style: AppTypography.bodyRegular
-                              .copyWith(color: AppColors.darkColor)),
+                      child: Text(
+                        step,
+                        style: AppTypography.bodyRegular.copyWith(
+                          color: AppColors.darkColor,
+                        ),
+                      ),
                     ),
                   ),
                 ],

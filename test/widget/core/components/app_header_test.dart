@@ -38,25 +38,29 @@ void main() {
   group('AppHeader', () {
     group('title rendering', () {
       testWidgets('displays the provided title text', (tester) async {
-        await tester.pumpWidget(_wrap(
-          title: 'My Races',
-          role: Role.coach,
-          tutorialManager: tutorialManager,
-          onRoleTap: () {},
-          onSettingsTap: () {},
-        ));
+        await tester.pumpWidget(
+          _wrap(
+            title: 'My Races',
+            role: Role.coach,
+            tutorialManager: tutorialManager,
+            onRoleTap: () {},
+            onSettingsTap: () {},
+          ),
+        );
 
         expect(find.text('My Races'), findsOneWidget);
       });
 
       testWidgets('renders role-specific title correctly', (tester) async {
-        await tester.pumpWidget(_wrap(
-          title: 'Timer',
-          role: Role.timer,
-          tutorialManager: tutorialManager,
-          onRoleTap: () {},
-          onSettingsTap: () {},
-        ));
+        await tester.pumpWidget(
+          _wrap(
+            title: 'Timer',
+            role: Role.timer,
+            tutorialManager: tutorialManager,
+            onRoleTap: () {},
+            onSettingsTap: () {},
+          ),
+        );
 
         expect(find.text('Timer'), findsOneWidget);
       });
@@ -66,13 +70,15 @@ void main() {
       testWidgets('fires when the title is tapped', (tester) async {
         var tapped = false;
 
-        await tester.pumpWidget(_wrap(
-          title: 'Races',
-          role: Role.coach,
-          tutorialManager: tutorialManager,
-          onRoleTap: () => tapped = true,
-          onSettingsTap: () {},
-        ));
+        await tester.pumpWidget(
+          _wrap(
+            title: 'Races',
+            role: Role.coach,
+            tutorialManager: tutorialManager,
+            onRoleTap: () => tapped = true,
+            onSettingsTap: () {},
+          ),
+        );
 
         await tester.tap(find.text('Races'));
         expect(tapped, isTrue);
@@ -82,13 +88,15 @@ void main() {
     group('onSettingsTap callback', () {
       testWidgets('fires when the title is tapped', (tester) async {
         var tapped = 0;
-        await tester.pumpWidget(_wrap(
-          title: 'Race Timer',
-          role: Role.timer,
-          tutorialManager: tutorialManager,
-          onRoleTap: () => tapped++,
-          onSettingsTap: () {},
-        ));
+        await tester.pumpWidget(
+          _wrap(
+            title: 'Race Timer',
+            role: Role.timer,
+            tutorialManager: tutorialManager,
+            onRoleTap: () => tapped++,
+            onSettingsTap: () {},
+          ),
+        );
 
         await tester.tap(find.text('Race Timer'));
 
@@ -98,13 +106,15 @@ void main() {
       testWidgets('fires when settings button is tapped', (tester) async {
         var tapped = false;
 
-        await tester.pumpWidget(_wrap(
-          title: 'Races',
-          role: Role.coach,
-          tutorialManager: tutorialManager,
-          onRoleTap: () {},
-          onSettingsTap: () => tapped = true,
-        ));
+        await tester.pumpWidget(
+          _wrap(
+            title: 'Races',
+            role: Role.coach,
+            tutorialManager: tutorialManager,
+            onRoleTap: () {},
+            onSettingsTap: () => tapped = true,
+          ),
+        );
 
         await tester.tap(find.byIcon(Icons.settings_outlined));
         expect(tapped, isTrue);
@@ -112,15 +122,18 @@ void main() {
     });
 
     group('icon buttons', () {
-      testWidgets('renders info and settings buttons, and no person button',
-          (tester) async {
-        await tester.pumpWidget(_wrap(
-          title: 'Races',
-          role: Role.coach,
-          tutorialManager: tutorialManager,
-          onRoleTap: () {},
-          onSettingsTap: () {},
-        ));
+      testWidgets('renders info and settings buttons, and no person button', (
+        tester,
+      ) async {
+        await tester.pumpWidget(
+          _wrap(
+            title: 'Races',
+            role: Role.coach,
+            tutorialManager: tutorialManager,
+            onRoleTap: () {},
+            onSettingsTap: () {},
+          ),
+        );
 
         expect(find.byIcon(Icons.info_outline), findsOneWidget);
         // Roles switch from the title; a person icon read as an account page.

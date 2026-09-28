@@ -45,11 +45,15 @@ const _teams = [
 ];
 
 RaceRunner _runner(int i) => RaceRunner(
-      raceId: 1,
-      runner: Runner(
-          runnerId: i, name: 'Runner $i', bibNumber: '${100 + i}', grade: 10),
-      team: _teams[i % 3],
-    );
+  raceId: 1,
+  runner: Runner(
+    runnerId: i,
+    name: 'Runner $i',
+    bibNumber: '${100 + i}',
+    grade: 10,
+  ),
+  team: _teams[i % 3],
+);
 
 /// What the Timer does at the finish line, one button at a time.
 sealed class _Press {
@@ -90,15 +94,21 @@ class _Undo extends _Press {
 /// meaningless to check.
 Future<String> _runTimer(List<_Press> presses, List<Duration> times) async {
   final storage = MockIAssistantStorageService();
-  when(storage.updateRaceStatus(any, any, any))
-      .thenAnswer((_) async => const Success(null));
-  when(storage.updateRaceStartTime(any, any, any))
-      .thenAnswer((_) async => const Success(null));
-  when(storage.updateRaceDuration(any, any, any))
-      .thenAnswer((_) async => const Success(null));
-  when(storage.saveChunk(any, any)).thenAnswer((_) async => const Success(null));
-  when(storage.deleteChunk(any, any))
-      .thenAnswer((_) async => const Success(null));
+  when(
+    storage.updateRaceStatus(any, any, any),
+  ).thenAnswer((_) async => const Success(null));
+  when(
+    storage.updateRaceStartTime(any, any, any),
+  ).thenAnswer((_) async => const Success(null));
+  when(
+    storage.updateRaceDuration(any, any, any),
+  ).thenAnswer((_) async => const Success(null));
+  when(
+    storage.saveChunk(any, any),
+  ).thenAnswer((_) async => const Success(null));
+  when(
+    storage.deleteChunk(any, any),
+  ).thenAnswer((_) async => const Success(null));
   when(storage.getRaces(any)).thenAnswer((_) async => const Success([]));
   final haptics = MockIHapticFeedback();
   when(haptics.vibrate()).thenAnswer((_) async {});
@@ -167,14 +177,16 @@ Future<String> _runTimer(List<_Press> presses, List<Duration> times) async {
 String fmt(Duration d) => TimeFormatter.formatDuration(d);
 
 String _describe(List<_Press> presses) => presses
-    .map((p) => switch (p) {
-          _Finish(:final logged) => logged ? 'finish' : 'MISSED',
-          _Stray() => 'stray',
-          _Confirm() => 'CONFIRM',
-          _MissingTime() => 'missing',
-          _ExtraTime() => 'extra',
-          _Undo() => 'undo',
-        })
+    .map(
+      (p) => switch (p) {
+        _Finish(:final logged) => logged ? 'finish' : 'MISSED',
+        _Stray() => 'stray',
+        _Confirm() => 'CONFIRM',
+        _MissingTime() => 'missing',
+        _ExtraTime() => 'extra',
+        _Undo() => 'undo',
+      },
+    )
     .join(' ');
 
 UIChunk? _ui(MergeConflictsController c, int id) =>
@@ -208,8 +220,9 @@ Future<void> _resolve(MergeConflictsController c, List<String> truth) async {
       for (var guard = 0; guard <= rows; guard++) {
         final current = _ui(c, id);
         if (current == null) break;
-        final stray =
-            current.records.indexWhere((r) => !truthSet.contains(r.time));
+        final stray = current.records.indexWhere(
+          (r) => !truthSet.contains(r.time),
+        );
         if (stray == -1) break;
         if (!c.removeExtraTime(id, stray)) break;
       }
@@ -241,13 +254,17 @@ Future<void> _resolve(MergeConflictsController c, List<String> truth) async {
     // Still unresolved after a full attempt: say why rather than spinning.
     final after = _ui(c, id);
     if (after != null && after.conflict.type != ConflictType.confirmRunner) {
-      final wanted = truth.sublist(after.startingPlace - 1,
-          after.startingPlace - 1 + after.records.length);
-      fail('stuck on chunk $id (${after.conflict.type}, offBy '
-          '${after.conflict.offBy}, starts at place ${after.startingPlace})\n'
-          'rows: ${after.records.map((r) => '${r.place}:${r.time}'
-              '${r.validationError == null ? '' : '!${r.validationError}'}').join(', ')}\n'
-          'wanted: ${wanted.join(', ')}\n${_state(c)}');
+      final wanted = truth.sublist(
+        after.startingPlace - 1,
+        after.startingPlace - 1 + after.records.length,
+      );
+      fail(
+        'stuck on chunk $id (${after.conflict.type}, offBy '
+        '${after.conflict.offBy}, starts at place ${after.startingPlace})\n'
+        'rows: ${after.records.map((r) => '${r.place}:${r.time}'
+            '${r.validationError == null ? '' : '!${r.validationError}'}').join(', ')}\n'
+        'wanted: ${wanted.join(', ')}\n${_state(c)}',
+      );
     }
   }
 }
@@ -264,24 +281,29 @@ void main() {
 
   Future<BuildContext> pumpContext(WidgetTester tester) async {
     late BuildContext ctx;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(builder: (c) {
-        ctx = c;
-        return const SizedBox();
-      }),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (c) {
+            ctx = c;
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
     return ctx;
   }
 
   /// Runs [presses] end to end and returns the saved results.
   Future<List<RaceResult>> race(
-      WidgetTester tester, List<_Press> presses) async {
-    final finishers =
-        presses.whereType<_Finish>().length;
+    WidgetTester tester,
+    List<_Press> presses,
+  ) async {
+    final finishers = presses.whereType<_Finish>().length;
     final roster = [for (var i = 1; i <= finishers; i++) _runner(i)];
     final times = [
       for (var i = 0; i < finishers; i++)
-        Duration(milliseconds: (15 * 60 * 1000) + (i + 1) * 3210)
+        Duration(milliseconds: (15 * 60 * 1000) + (i + 1) * 3210),
     ];
     final truth = [for (final t in times) fmt(t)];
 
@@ -289,16 +311,17 @@ void main() {
     final byBib = {for (final r in roster) r.runner.bibNumber!: r};
     final masterRace = MockMasterRace();
     when(masterRace.raceId).thenReturn(1);
-    when(masterRace.getRaceRunnerByBib(any)).thenAnswer(
-        (i) async => byBib[i.positionalArguments.first as String]);
+    when(
+      masterRace.getRaceRunnerByBib(any),
+    ).thenAnswer((i) async => byBib[i.positionalArguments.first as String]);
     when(masterRace.saveResults(any)).thenAnswer((_) async {});
 
-    final devices =
-        DevicesManager(DeviceName.coach, DeviceType.browserDevice);
+    final devices = DevicesManager(DeviceName.coach, DeviceType.browserDevice);
     final shared = await _runTimer(presses, times);
     devices.raceTimer!.data = shared;
-    devices.bibRecorder!.data = await BibEncodeUtils.getEncodedBibData(
-        [for (final r in roster) BibDatum.fromRaceRunner(r)]);
+    devices.bibRecorder!.data = await BibEncodeUtils.getEncodedBibData([
+      for (final r in roster) BibDatum.fromRaceRunner(r),
+    ]);
 
     final controller = LoadResultsController(
       masterRace: masterRace,
@@ -306,10 +329,14 @@ void main() {
       scheduler: _NoopScheduler(),
     );
     await controller.processReceivedData(ctx);
-    expect(controller.error?.userMessage, isNull,
-        reason: 'pressed: ${_describe(presses)}\n'
-            'shared: ${decodeAndDecompress(shared)}\n'
-            'true:   ${truth.join(',')}');
+    expect(
+      controller.error?.userMessage,
+      isNull,
+      reason:
+          'pressed: ${_describe(presses)}\n'
+          'shared: ${decodeAndDecompress(shared)}\n'
+          'true:   ${truth.join(',')}',
+    );
     expect(controller.raceRunners, roster);
 
     final chunks = controller.timingChunks!;
@@ -322,22 +349,28 @@ void main() {
     );
     merge.initState();
     await _resolve(merge, truth);
-    final story = 'pressed: ${_describe(presses)}\n'
+    final story =
+        'pressed: ${_describe(presses)}\n'
         'shared: ${chunks.map((c) => c.encode()).join(' | ')}\n'
         'true:   ${truth.join(',')}';
-    expect(merge.hasConflicts, isFalse,
-        reason: 'conflicts left unresolved\n$story');
+    expect(
+      merge.hasConflicts,
+      isFalse,
+      reason: 'conflicts left unresolved\n$story',
+    );
     controller.hasTimingConflicts = controller.containsTimingConflicts();
 
     expect(await controller.saveCurrentResults(), isNull);
-    final saved = verify(masterRace.saveResults(captureAny)).captured.single
-        as List<RaceResult>;
-    expect(saved.map((r) => r.runner!.runnerId),
-        [for (var i = 1; i <= finishers; i++) i]);
+    final saved =
+        verify(masterRace.saveResults(captureAny)).captured.single
+            as List<RaceResult>;
+    expect(saved.map((r) => r.runner!.runnerId), [
+      for (var i = 1; i <= finishers; i++) i,
+    ]);
     expect(saved.map((r) => r.place), [for (var i = 1; i <= finishers; i++) i]);
-    expect(saved.map((r) => r.finishTime),
-        [for (final t in times) TimeFormatter.loadDurationFromString(fmt(t))],
-        reason: story);
+    expect(saved.map((r) => r.finishTime), [
+      for (final t in times) TimeFormatter.loadDurationFromString(fmt(t)),
+    ], reason: story);
     return saved;
   }
 
@@ -375,7 +408,15 @@ void main() {
 
   group('stacked conflicts', () {
     testWidgets('two missing times in a row', (t) async {
-      await race(t, [finish, missed, missed, missing, missing, finish, confirm]);
+      await race(t, [
+        finish,
+        missed,
+        missed,
+        missing,
+        missing,
+        finish,
+        confirm,
+      ]);
     });
 
     testWidgets('three missing times in a row', (t) async {

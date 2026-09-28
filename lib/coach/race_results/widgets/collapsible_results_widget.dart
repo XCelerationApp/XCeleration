@@ -72,7 +72,9 @@ class _CollapsibleResultsWidgetState<T>
           return Container(
             color: backgroundColor,
             padding: const EdgeInsets.symmetric(
-                vertical: AppSpacing.sm, horizontal: AppSpacing.sm),
+              vertical: AppSpacing.sm,
+              horizontal: AppSpacing.sm,
+            ),
             child: widget.rowBuilder(item),
           );
         }),
@@ -85,9 +87,7 @@ class _CollapsibleResultsWidgetState<T>
               alignment: Alignment.centerRight,
               child: TextButton(
                 onPressed: toggleExpansion,
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.grey[600],
-                ),
+                style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
                 child: Text(
                   isExpanded ? 'See Less' : 'See More',
                   style: AppTypography.smallBodyRegular,
@@ -163,15 +163,20 @@ class CollapsibleIndividualResultsWidget extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(result.name,
-                  style: AppTypography.bodyRegular,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-              Text(result.teamAbbreviation,
-                  style: AppTypography.caption
-                      .copyWith(color: AppColors.mediumColor),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
+              Text(
+                result.name,
+                style: AppTypography.bodyRegular,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                result.teamAbbreviation,
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.mediumColor,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ],
           ),
         ),
@@ -179,13 +184,20 @@ class CollapsibleIndividualResultsWidget extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            Text(result.formattedFinishTime,
-                style: AppTypography.bodySemibold
-                    .copyWith(fontFeatures: _tabular)),
+            Text(
+              result.formattedFinishTime,
+              style: AppTypography.bodySemibold.copyWith(
+                fontFeatures: _tabular,
+              ),
+            ),
             if (pace.isNotEmpty)
-              Text('$pace/mi',
-                  style: AppTypography.caption.copyWith(
-                      color: AppColors.mediumColor, fontFeatures: _tabular)),
+              Text(
+                '$pace/mi',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.mediumColor,
+                  fontFeatures: _tabular,
+                ),
+              ),
           ],
         ),
       ],
@@ -235,7 +247,7 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
         ? [
             ...team.scorers.map((scorer) => scorer.place.toString()),
             if (team.topSeven.length > 5)
-              '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})'
+              '(${team.topSeven.sublist(5, team.topSeven.length).map((runner) => runner.place.toString()).join(', ')})',
           ].join(', ')
         : 'No scorers';
 
@@ -249,31 +261,42 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
       children: [
         SizedBox(
           width: _placeWidth,
-          child: Text(team.place != null ? '${team.place}' : '-',
-              style: AppTypography.bodySemibold),
+          child: Text(
+            team.place != null ? '${team.place}' : '-',
+            style: AppTypography.bodySemibold,
+          ),
         ),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label,
-                  style: AppTypography.bodyRegular,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis),
-              Text('Scorers: $scorerPlaces',
-                  style: AppTypography.caption
-                      .copyWith(color: AppColors.mediumColor)),
+              Text(
+                label,
+                style: AppTypography.bodyRegular,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              Text(
+                'Scorers: $scorerPlaces',
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.mediumColor,
+                ),
+              ),
               if (tied)
-                Text('Tie broken by the 6th runner',
-                    style: AppTypography.caption
-                        .copyWith(color: AppColors.primaryColor)),
+                Text(
+                  'Tie broken by the 6th runner',
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.primaryColor,
+                  ),
+                ),
             ],
           ),
         ),
         const SizedBox(width: AppSpacing.sm),
-        Text('${team.score != 0 ? team.score : '-'}',
-            style: AppTypography.bodySemibold
-                .copyWith(fontFeatures: _tabular)),
+        Text(
+          '${team.score != 0 ? team.score : '-'}',
+          style: AppTypography.bodySemibold.copyWith(fontFeatures: _tabular),
+        ),
       ],
     );
   }
@@ -284,10 +307,14 @@ class CollapsibleTeamResultsWidget extends StatelessWidget {
       results: results,
       initialVisibleCount: initialVisibleCount,
       headerBuilder: _buildHeader,
-      rowBuilder: (team) => _buildRow(team,
-          tied: team.score != 0 &&
-              results.any((other) =>
-                  !identical(other, team) && other.score == team.score)),
+      rowBuilder: (team) => _buildRow(
+        team,
+        tied:
+            team.score != 0 &&
+            results.any(
+              (other) => !identical(other, team) && other.score == team.score,
+            ),
+      ),
     );
   }
 }

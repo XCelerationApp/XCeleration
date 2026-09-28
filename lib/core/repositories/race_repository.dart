@@ -15,9 +15,9 @@ class RaceRepository implements IRaceRepository {
     required IDatabaseConnectionProvider conn,
     required IRunnerRepository runnerRepo,
     DatabaseWriteBus? writeBus,
-  })  : _conn = conn,
-        _runnerRepo = runnerRepo,
-        _writeBus = writeBus;
+  }) : _conn = conn,
+       _runnerRepo = runnerRepo,
+       _writeBus = writeBus;
 
   Future<Database> get _db async => _conn.database;
 
@@ -40,16 +40,22 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<Race?> getRace(int raceId) async {
     final db = await _db;
-    final rows =
-        await db.query('races', where: 'race_id = ? AND deleted_at IS NULL', whereArgs: [raceId]);
+    final rows = await db.query(
+      'races',
+      where: 'race_id = ? AND deleted_at IS NULL',
+      whereArgs: [raceId],
+    );
     return rows.isNotEmpty ? Race.fromJson(rows.first) : null;
   }
 
   @override
   Future<List<Race>> getAllRaces() async {
     final db = await _db;
-    final rows = await db.query('races',
-        where: 'deleted_at IS NULL', orderBy: 'race_date DESC');
+    final rows = await db.query(
+      'races',
+      where: 'deleted_at IS NULL',
+      orderBy: 'race_date DESC',
+    );
     return rows.map((m) => Race.fromJson(m)).toList();
   }
 
@@ -60,8 +66,12 @@ class RaceRepository implements IRaceRepository {
     final db = await _db;
     final map = race.toMap();
     map['is_dirty'] = 1;
-    final affectedRows = await db
-        .update('races', map, where: 'race_id = ?', whereArgs: [race.raceId]);
+    final affectedRows = await db.update(
+      'races',
+      map,
+      where: 'race_id = ?',
+      whereArgs: [race.raceId],
+    );
     if (affectedRows == 0) {
       throw Exception('Race with id ${race.raceId} not found');
     }
@@ -96,31 +106,29 @@ class RaceRepository implements IRaceRepository {
     }
     if (await getRaceTeamParticipant(teamParticipant) != null) {
       throw Exception(
-          'Team ${teamParticipant.teamId} already in race ${teamParticipant.raceId}');
+        'Team ${teamParticipant.teamId} already in race ${teamParticipant.raceId}',
+      );
     }
     final db = await _db;
     // Marked dirty, or it never reaches the server: is_dirty defaults to 0,
     // so every team added to a race stayed on the phone that added it, and
     // races pulled elsewhere had runners but no teams. Replacing a removed
     // row clears its deletion.
-    await db.insert(
-      'race_team_participation',
-      {
-        'race_id': teamParticipant.raceId,
-        'team_id': teamParticipant.teamId,
-        'team_color_override': teamParticipant.colorOverride,
-        'updated_at': SyncTimestamp.now(),
-        'deleted_at': null,
-        'is_dirty': 1,
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('race_team_participation', {
+      'race_id': teamParticipant.raceId,
+      'team_id': teamParticipant.teamId,
+      'team_color_override': teamParticipant.colorOverride,
+      'updated_at': SyncTimestamp.now(),
+      'deleted_at': null,
+      'is_dirty': 1,
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
     _writeBus?.notify();
   }
 
   @override
   Future<void> removeTeamParticipantFromRace(
-      TeamParticipant teamParticipant) async {
+    TeamParticipant teamParticipant,
+  ) async {
     // No check that the team is still linked to the race: an earlier
     // removal could unlink the team but leave its runners, and then this
     // threw before reaching them, so the team could never be removed.
@@ -155,25 +163,31 @@ class RaceRepository implements IRaceRepository {
   @override
   Future<Team?> getRaceTeamParticipant(TeamParticipant teamParticipant) async {
     final db = await _db;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT t.*, rtp.team_color_override
       FROM teams t
       JOIN race_team_participation rtp ON t.team_id = rtp.team_id
       WHERE rtp.race_id = ? AND rtp.team_id = ? AND rtp.deleted_at IS NULL
-    ''', [teamParticipant.raceId!, teamParticipant.teamId!]);
+    ''',
+      [teamParticipant.raceId!, teamParticipant.teamId!],
+    );
     return rows.isNotEmpty ? Team.fromRaceParticipationMap(rows.first) : null;
   }
 
   @override
   Future<List<Team>> getRaceTeams(int raceId) async {
     final db = await _db;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT t.*, rtp.team_color_override
       FROM teams t
       JOIN race_team_participation rtp ON t.team_id = rtp.team_id
       WHERE rtp.race_id = ? AND rtp.deleted_at IS NULL
       ORDER BY t.name
-    ''', [raceId]);
+    ''',
+      [raceId],
+    );
     return rows.map((m) => Team.fromRaceParticipationMap(m)).toList();
   }
 
@@ -188,20 +202,17 @@ class RaceRepository implements IRaceRepository {
     }
     if (await getRaceParticipant(raceParticipant) != null) {
       throw Exception(
-          'Runner ${raceParticipant.runnerId} already in race ${raceParticipant.raceId}');
+        'Runner ${raceParticipant.runnerId} already in race ${raceParticipant.raceId}',
+      );
     }
     final db = await _db;
-    await db.insert(
-      'race_participants',
-      {
-        'race_id': raceParticipant.raceId,
-        'runner_id': raceParticipant.runnerId,
-        'team_id': raceParticipant.teamId,
-        'is_dirty': 1,
-        'updated_at': SyncTimestamp.now(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('race_participants', {
+      'race_id': raceParticipant.raceId,
+      'runner_id': raceParticipant.runnerId,
+      'team_id': raceParticipant.teamId,
+      'is_dirty': 1,
+      'updated_at': SyncTimestamp.now(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
     _writeBus?.notify();
   }
 
@@ -214,9 +225,12 @@ class RaceRepository implements IRaceRepository {
     final map = raceParticipant.toMap();
     map['is_dirty'] = 1;
     map['updated_at'] = SyncTimestamp.now();
-    await db.update('race_participants', map,
-        where: 'race_id = ? AND runner_id = ?',
-        whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!]);
+    await db.update(
+      'race_participants',
+      map,
+      where: 'race_id = ? AND runner_id = ?',
+      whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
+    );
     _writeBus?.notify();
   }
 
@@ -224,13 +238,18 @@ class RaceRepository implements IRaceRepository {
   Future<void> removeRaceParticipant(RaceParticipant raceParticipant) async {
     if (await getRaceParticipant(raceParticipant) == null) {
       throw Exception(
-          'Runner ${raceParticipant.runnerId} not in race ${raceParticipant.raceId}');
+        'Runner ${raceParticipant.runnerId} not in race ${raceParticipant.raceId}',
+      );
     }
     final db = await _db;
     // Tombstone rather than delete, so the removal reaches the server.
     await db.update(
       'race_participants',
-      {'deleted_at': SyncTimestamp.now(), 'updated_at': SyncTimestamp.now(), 'is_dirty': 1},
+      {
+        'deleted_at': SyncTimestamp.now(),
+        'updated_at': SyncTimestamp.now(),
+        'is_dirty': 1,
+      },
       where: 'race_id = ? AND runner_id = ?',
       whereArgs: [raceParticipant.raceId!, raceParticipant.runnerId!],
     );
@@ -239,7 +258,8 @@ class RaceRepository implements IRaceRepository {
 
   @override
   Future<RaceParticipant?> getRaceParticipant(
-      RaceParticipant raceParticipant) async {
+    RaceParticipant raceParticipant,
+  ) async {
     final db = await _db;
     final rows = await db.query(
       'race_participants',
@@ -266,39 +286,52 @@ class RaceRepository implements IRaceRepository {
 
   @override
   Future<RaceParticipant?> getRaceParticipantByBib(
-      int raceId, String bibNumber) async {
+    int raceId,
+    String bibNumber,
+  ) async {
     final db = await _db;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT rp.race_id, rp.runner_id, rp.team_id
       FROM race_participants rp
       JOIN runners r ON r.runner_id = rp.runner_id
       WHERE rp.race_id = ? AND r.bib_number = ? AND rp.deleted_at IS NULL
       LIMIT 1
-    ''', [raceId, bibNumber]);
+    ''',
+      [raceId, bibNumber],
+    );
     return rows.isNotEmpty ? RaceParticipant.fromMap(rows.first) : null;
   }
 
   @override
   Future<List<RaceParticipant>> getRaceParticipantsByBibs(
-      int raceId, List<String> bibNumbers) async {
+    int raceId,
+    List<String> bibNumbers,
+  ) async {
     if (bibNumbers.isEmpty) return [];
     final db = await _db;
     final qMarks = List.filled(bibNumbers.length, '?').join(',');
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT rp.race_id, rp.runner_id, rp.team_id
       FROM race_participants rp
       JOIN runners r ON r.runner_id = rp.runner_id
       WHERE rp.race_id = ? AND r.bib_number IN ($qMarks)
         AND rp.deleted_at IS NULL
-    ''', [raceId, ...bibNumbers]);
+    ''',
+      [raceId, ...bibNumbers],
+    );
     return rows.map((m) => RaceParticipant.fromMap(m)).toList();
   }
 
   static const _allowedRunnerColumns = {'name', 'bib_number', 'grade'};
 
   @override
-  Future<List<RaceParticipant>> searchRaceParticipants(int raceId, String query,
-      [String searchParameter = 'all']) async {
+  Future<List<RaceParticipant>> searchRaceParticipants(
+    int raceId,
+    String query, [
+    String searchParameter = 'all',
+  ]) async {
     final db = await _db;
     String whereClause;
     List<dynamic> whereArgs = [raceId];
@@ -375,11 +408,7 @@ class RaceRepository implements IRaceRepository {
     final db = await _db;
     await db.update(
       'race_participants',
-      {
-        'team_id': newTeamId,
-        'updated_at': SyncTimestamp.now(),
-        'is_dirty': 1,
-      },
+      {'team_id': newTeamId, 'updated_at': SyncTimestamp.now(), 'is_dirty': 1},
       where: 'race_id = ? AND runner_id = ?',
       whereArgs: [raceId, runnerId],
     );

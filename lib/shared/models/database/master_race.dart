@@ -30,7 +30,8 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   IRaceRepository get _raceRepo => ServiceLocator.get<IRaceRepository>();
   IRunnerRepository get _runnerRepo => ServiceLocator.get<IRunnerRepository>();
   ITeamRepository get _teamRepo => ServiceLocator.get<ITeamRepository>();
-  IResultsRepository get _resultsRepo => ServiceLocator.get<IResultsRepository>();
+  IResultsRepository get _resultsRepo =>
+      ServiceLocator.get<IResultsRepository>();
 
   // Participation mapping (cached for performance)
   Map<Team, List<RaceRunner>>? _teamRaceRunnersMap; // team -> [runners]
@@ -38,7 +39,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   Map<Team, List<RaceRunner>>? _filteredSearchResults; // team -> [race runners]
 
   Map<RaceParticipant, RaceRunner>?
-      _raceParticipantToRaceRunnerMap; // race participant -> race runner
+  _raceParticipantToRaceRunnerMap; // race participant -> race runner
 
   MasterRace._(this.raceId);
 
@@ -155,7 +156,8 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   }
 
   Future<RaceRunner?> getRaceRunnerFromRaceParticipant(
-      RaceParticipant raceParticipant) async {
+    RaceParticipant raceParticipant,
+  ) async {
     // Check cache first
     if (_raceParticipantToRaceRunnerMap != null &&
         _raceParticipantToRaceRunnerMap!.containsKey(raceParticipant)) {
@@ -168,19 +170,17 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     final runner = await _runnerRepo.getRunner(raceParticipant.runnerId!);
     if (runner == null) {
       throw Exception(
-          'Runner not found for race participant: ${raceParticipant.runnerId}');
+        'Runner not found for race participant: ${raceParticipant.runnerId}',
+      );
     }
     final team = await _teamRepo.getTeam(raceParticipant.teamId!);
     if (team == null) {
       throw Exception(
-          'Team not found for race participant: ${raceParticipant.teamId}');
+        'Team not found for race participant: ${raceParticipant.teamId}',
+      );
     }
 
-    final raceRunner = RaceRunner(
-      raceId: raceId,
-      runner: runner,
-      team: team,
-    );
+    final raceRunner = RaceRunner(raceId: raceId, runner: runner, team: team);
 
     // Cache the result
     _raceParticipantToRaceRunnerMap![raceParticipant] = raceRunner;
@@ -200,8 +200,8 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   }
 
   Future<RaceResultsData> get raceResultsData async {
-    final result =
-        await const RaceResultsService().calculateCompleteRaceResults(this);
+    final result = await const RaceResultsService()
+        .calculateCompleteRaceResults(this);
     return switch (result) {
       Success(:final value) => value,
       Failure(:final error) => throw Exception(error.userMessage),
@@ -246,7 +246,8 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   /// listeners repeatedly and causing UI flicker during bulk imports.
   @override
   Future<void> addRaceParticipantsBulk(
-      List<RaceParticipant> raceParticipants) async {
+    List<RaceParticipant> raceParticipants,
+  ) async {
     if (raceParticipants.any((rp) => rp.raceId != raceId)) {
       throw Exception('One or more race participants have mismatched race IDs');
     }
@@ -331,11 +332,13 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   /// Remove a race runner from the race
   @override
   Future<void> removeRaceRunner(RaceRunner raceRunner) async {
-    await removeRaceParticipant(RaceParticipant(
-      raceId: raceId,
-      runnerId: raceRunner.runner.runnerId!,
-      teamId: raceRunner.team.teamId!,
-    ));
+    await removeRaceParticipant(
+      RaceParticipant(
+        raceId: raceId,
+        runnerId: raceRunner.runner.runnerId!,
+        teamId: raceRunner.team.teamId!,
+      ),
+    );
   }
 
   Future<void> addResult(RaceResult result) async {
@@ -418,8 +421,10 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
   /// Search runners by query (name, bib, team, grade)
   /// Only returns runners whose teams are participating in the race
   @override
-  Future<void> searchRaceRunners(String query,
-      [String searchAttribute = 'all']) async {
+  Future<void> searchRaceRunners(
+    String query, [
+    String searchAttribute = 'all',
+  ]) async {
     Future<void> sortSearchResults() async {
       // Sort the race runners for every team in parallel
       await Future.wait(
@@ -452,8 +457,9 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
 
         if (searchAttribute == 'all') {
           final matchesName = runner.name!.toLowerCase().contains(lowerQuery);
-          final matchesBib =
-              runner.bibNumber!.toLowerCase().contains(lowerQuery);
+          final matchesBib = runner.bibNumber!.toLowerCase().contains(
+            lowerQuery,
+          );
           final matchesGrade = runner.grade!.toString().contains(lowerQuery);
 
           // Find team name for this runner
@@ -461,7 +467,7 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
           try {
             matchesTeam =
                 raceRunner.team.name?.toLowerCase().contains(lowerQuery) ??
-                    false;
+                false;
           } catch (e) {
             Logger.e('Error getting team name: $e');
           }
@@ -479,9 +485,9 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
               matches = runner.grade!.toString().contains(lowerQuery);
               break;
             case 'team':
-              matches = (raceRunner.team.name ?? '')
-                  .toLowerCase()
-                  .contains(lowerQuery);
+              matches = (raceRunner.team.name ?? '').toLowerCase().contains(
+                lowerQuery,
+              );
               break;
           }
         }
@@ -566,14 +572,19 @@ class MasterRace with ChangeNotifier implements IMasterRaceResolver {
     if (participants.isEmpty) {
       _raceRunners = [];
     } else {
-      _raceRunners = await Future.wait(participants.map((participant) async {
-        final raceRunner = await getRaceRunnerFromRaceParticipant(participant);
-        if (raceRunner == null) {
-          throw Exception(
-              'Runner not found for race participant: ${participant.runnerId}');
-        }
-        return raceRunner;
-      }));
+      _raceRunners = await Future.wait(
+        participants.map((participant) async {
+          final raceRunner = await getRaceRunnerFromRaceParticipant(
+            participant,
+          );
+          if (raceRunner == null) {
+            throw Exception(
+              'Runner not found for race participant: ${participant.runnerId}',
+            );
+          }
+          return raceRunner;
+        }),
+      );
     }
 
     notifyListeners();

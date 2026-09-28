@@ -9,20 +9,28 @@ import 'package:xceleration/core/app_error.dart';
 void main() {
   late List<Duration> moves;
   AppError? Function(Duration) onShift({AppError? refuse}) => (by) {
-        if (refuse != null) return refuse;
-        moves.add(by);
-        return null;
-      };
+    if (refuse != null) return refuse;
+    moves.add(by);
+    return null;
+  };
 
   setUp(() => moves = []);
 
-  Future<void> show(WidgetTester tester,
-      {Duration shift = Duration.zero, AppError? refuse}) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: AdjustTimesTile(shift: shift, onShift: onShift(refuse: refuse)),
+  Future<void> show(
+    WidgetTester tester, {
+    Duration shift = Duration.zero,
+    AppError? refuse,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: AdjustTimesTile(
+            shift: shift,
+            onShift: onShift(refuse: refuse),
+          ),
+        ),
       ),
-    ));
+    );
   }
 
   Future<void> enter(WidgetTester tester, String seconds) async {
@@ -65,8 +73,10 @@ void main() {
   });
 
   testWidgets('says why a move was refused', (tester) async {
-    await show(tester,
-        refuse: const AppError(userMessage: 'That would put 4.50 below zero.'));
+    await show(
+      tester,
+      refuse: const AppError(userMessage: 'That would put 4.50 below zero.'),
+    );
     await enter(tester, '9');
 
     await tester.tap(find.text('Move All Times'));

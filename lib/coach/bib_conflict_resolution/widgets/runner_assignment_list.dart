@@ -75,8 +75,8 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
   bool _isSelected(RaceRunner runner) =>
       _selectedRunner?.runner.bibNumber == runner.runner.bibNumber;
 
-  void _toggle(RaceRunner runner) => setState(
-      () => _selectedRunner = _isSelected(runner) ? null : runner);
+  void _toggle(RaceRunner runner) =>
+      setState(() => _selectedRunner = _isSelected(runner) ? null : runner);
 
   @override
   Widget build(BuildContext context) {
@@ -139,13 +139,17 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
                   )
                 : null,
             filled: true,
-            fillColor: AppColors.lightColor.withValues(alpha: AppOpacity.medium),
+            fillColor: AppColors.lightColor.withValues(
+              alpha: AppOpacity.medium,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.md, vertical: AppSpacing.md),
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.md,
+            ),
           ),
         ),
         if (!searching) ...[
@@ -162,11 +166,12 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
         const SizedBox(height: AppSpacing.sm),
         if (noMatches)
           _EmptyState(
-              message: searching
-                  ? 'No runner on the roster matches "$_query".'
-                  : candidates.isEmpty
-                      ? 'Every runner already has a finish.'
-                      : 'No runners from this school.'),
+            message: searching
+                ? 'No runner on the roster matches "$_query".'
+                : candidates.isEmpty
+                ? 'Every runner already has a finish.'
+                : 'No runners from this school.',
+          ),
         // Scrollable list, bounded so the button below stays visible.
         ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 400),
@@ -175,18 +180,20 @@ class _RunnerAssignmentListState extends State<RunnerAssignmentList> {
             padding: EdgeInsets.zero,
             itemCount: items.length,
             itemBuilder: (_, i) => switch (items[i]) {
-              _SectionHeader(:final team, :final count) =>
-                _TeamSection(team: team, count: count),
+              _SectionHeader(:final team, :final count) => _TeamSection(
+                team: team,
+                count: count,
+              ),
               _RunnerRow(:final runner) => _RunnerTile(
-                  key: ValueKey(runner.runner.bibNumber),
-                  runner: runner,
-                  isSelected: _isSelected(runner),
-                  onTap: () => _toggle(runner),
-                ),
+                key: ValueKey(runner.runner.bibNumber),
+                runner: runner,
+                isSelected: _isSelected(runner),
+                onTap: () => _toggle(runner),
+              ),
               _CreateRow(:final name) => _CreateTile(
-                  name: name,
-                  onTap: () => widget.onCreateNew!(name),
-                ),
+                name: name,
+                onTap: () => widget.onCreateNew!(name),
+              ),
             },
           ),
         ),
@@ -272,13 +279,17 @@ class _SchoolFilterPills extends StatelessWidget {
                   color: isActive ? AppColors.selectedRoleColor : Colors.white,
                   borderRadius: BorderRadius.circular(AppBorderRadius.full),
                   border: Border.all(
-                    color: isActive ? AppColors.primaryColor : AppColors.lightColor,
+                    color: isActive
+                        ? AppColors.primaryColor
+                        : AppColors.lightColor,
                   ),
                 ),
                 child: Text(
                   team ?? 'All',
                   style: AppTypography.smallBodyRegular.copyWith(
-                    color: isActive ? AppColors.primaryColor : AppColors.mediumColor,
+                    color: isActive
+                        ? AppColors.primaryColor
+                        : AppColors.mediumColor,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
@@ -315,7 +326,9 @@ class _TeamSection extends StatelessWidget {
           const SizedBox(width: AppSpacing.xs),
           Text(
             '· $count',
-            style: AppTypography.smallCaption.copyWith(color: AppColors.mediumColor),
+            style: AppTypography.smallCaption.copyWith(
+              color: AppColors.mediumColor,
+            ),
           ),
         ],
       ),
@@ -371,24 +384,25 @@ class _RunnerTile extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(runner.runner.name ?? '',
-                        style: AppTypography.smallBodySemibold),
+                    Text(
+                      runner.runner.name ?? '',
+                      style: AppTypography.smallBodySemibold,
+                    ),
                     Text(
                       [
                         runner.team.name ?? '',
                         if (grade != null) gradeLabel(grade),
                       ].where((s) => s.isNotEmpty).join(' · '),
-                      style: AppTypography.caption
-                          .copyWith(color: AppColors.mediumColor),
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.mediumColor,
+                      ),
                     ),
                   ],
                 ),
               ),
               // A clear chosen / not chosen mark; tapping again unselects.
               Icon(
-                isSelected
-                    ? Icons.check_circle
-                    : Icons.radio_button_unchecked,
+                isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
                 color: isSelected
                     ? AppColors.primaryColor
                     : AppColors.mediumColor,
@@ -424,16 +438,19 @@ class _CreateTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.person_add_outlined,
-                color: AppColors.primaryColor),
+            const Icon(
+              Icons.person_add_outlined,
+              color: AppColors.primaryColor,
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
                 name.isEmpty
                     ? 'Not on the roster? Create a new runner'
                     : 'Create new runner "$name"',
-                style: AppTypography.smallBodySemibold
-                    .copyWith(color: AppColors.primaryColor),
+                style: AppTypography.smallBodySemibold.copyWith(
+                  color: AppColors.primaryColor,
+                ),
               ),
             ),
             const Icon(Icons.chevron_right, color: AppColors.primaryColor),
@@ -539,7 +556,9 @@ class _EmptyState extends StatelessWidget {
       child: Center(
         child: Text(
           message,
-          style: AppTypography.smallBodyRegular.copyWith(color: AppColors.mediumColor),
+          style: AppTypography.smallBodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
           textAlign: TextAlign.center,
         ),
       ),

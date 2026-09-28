@@ -54,61 +54,85 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('shouldShowAsEditable', () {
-      final raceWithName =
-          Race(raceId: 1, raceName: 'Test Race', flowState: Race.FLOW_SETUP);
-      final raceEmpty =
-          Race(raceId: 1, raceName: '', flowState: Race.FLOW_SETUP);
+      final raceWithName = Race(
+        raceId: 1,
+        raceName: 'Test Race',
+        flowState: Race.FLOW_SETUP,
+      );
+      final raceEmpty = Race(
+        raceId: 1,
+        raceName: '',
+        flowState: Race.FLOW_SETUP,
+      );
       final raceNullDate = Race(raceId: 1, flowState: Race.FLOW_SETUP);
-      final raceZeroDistance =
-          Race(raceId: 1, distance: 0, flowState: Race.FLOW_SETUP);
+      final raceZeroDistance = Race(
+        raceId: 1,
+        distance: 0,
+        flowState: Race.FLOW_SETUP,
+      );
 
       test('returns false when canEdit is false regardless of field state', () {
-        expect(form.shouldShowAsEditable(RaceField.name, raceEmpty, false),
-            isFalse);
+        expect(
+          form.shouldShowAsEditable(RaceField.name, raceEmpty, false),
+          isFalse,
+        );
       });
 
       test('returns true when canEdit and currently editing', () {
         form.startEditing(RaceField.name);
-        expect(form.shouldShowAsEditable(RaceField.name, raceWithName, true),
-            isTrue);
+        expect(
+          form.shouldShowAsEditable(RaceField.name, raceWithName, true),
+          isTrue,
+        );
       });
 
       test('returns true for empty name field when canEdit is true', () {
         expect(
-            form.shouldShowAsEditable(RaceField.name, raceEmpty, true), isTrue);
+          form.shouldShowAsEditable(RaceField.name, raceEmpty, true),
+          isTrue,
+        );
       });
 
       test('returns false for non-empty name when not editing', () {
-        expect(form.shouldShowAsEditable(RaceField.name, raceWithName, true),
-            isFalse);
+        expect(
+          form.shouldShowAsEditable(RaceField.name, raceWithName, true),
+          isFalse,
+        );
       });
 
       test('returns true for null date field when canEdit is true', () {
-        expect(form.shouldShowAsEditable(RaceField.date, raceNullDate, true),
-            isTrue);
+        expect(
+          form.shouldShowAsEditable(RaceField.date, raceNullDate, true),
+          isTrue,
+        );
       });
 
       test('returns true for zero distance when canEdit is true', () {
         expect(
-            form.shouldShowAsEditable(
-                RaceField.distance, raceZeroDistance, true),
-            isTrue);
+          form.shouldShowAsEditable(RaceField.distance, raceZeroDistance, true),
+          isTrue,
+        );
       });
 
-      test('returns false for unit field always, even when canEdit is true',
-          () {
-        expect(form.shouldShowAsEditable(RaceField.unit, raceEmpty, true),
-            isFalse);
-      });
+      test(
+        'returns false for unit field always, even when canEdit is true',
+        () {
+          expect(
+            form.shouldShowAsEditable(RaceField.unit, raceEmpty, true),
+            isFalse,
+          );
+        },
+      );
     });
 
     // -------------------------------------------------------------------------
     group('trackChange', () {
       final race = Race(
-          raceId: 1,
-          raceName: 'Original',
-          location: 'Park',
-          flowState: Race.FLOW_SETUP);
+        raceId: 1,
+        raceName: 'Original',
+        location: 'Park',
+        flowState: Race.FLOW_SETUP,
+      );
 
       setUp(() {
         form.initializeFrom(race);
@@ -147,8 +171,11 @@ void main() {
       });
 
       test('returns true after a changed field is tracked', () {
-        final race =
-            Race(raceId: 1, raceName: 'Original', flowState: Race.FLOW_SETUP);
+        final race = Race(
+          raceId: 1,
+          raceName: 'Original',
+          flowState: Race.FLOW_SETUP,
+        );
         form.initializeFrom(race);
         form.storeOriginalValue(RaceField.name, race);
         form.nameController.text = 'Updated';
@@ -203,8 +230,11 @@ void main() {
     // -------------------------------------------------------------------------
     group('revertField', () {
       test('restores controller text to the stored original value', () {
-        final race =
-            Race(raceId: 1, raceName: 'Original', flowState: Race.FLOW_SETUP);
+        final race = Race(
+          raceId: 1,
+          raceName: 'Original',
+          flowState: Race.FLOW_SETUP,
+        );
         form.initializeFrom(race);
         form.storeOriginalValue(RaceField.name, race);
         form.nameController.text = 'Changed';
@@ -225,10 +255,11 @@ void main() {
     group('revertAll', () {
       test('restores all changed fields and clears changedFields', () {
         final race = Race(
-            raceId: 1,
-            raceName: 'Original',
-            location: 'Park',
-            flowState: Race.FLOW_SETUP);
+          raceId: 1,
+          raceName: 'Original',
+          location: 'Park',
+          flowState: Race.FLOW_SETUP,
+        );
         form.initializeFrom(race);
         form.storeOriginalValue(RaceField.name, race);
         form.storeOriginalValue(RaceField.location, race);
@@ -287,7 +318,8 @@ void main() {
 
       test('uses empty string when distance is null or zero', () {
         form.initializeFrom(
-            Race(raceId: 1, distance: 0, flowState: Race.FLOW_SETUP));
+          Race(raceId: 1, distance: 0, flowState: Race.FLOW_SETUP),
+        );
         expect(form.distanceController.text, '');
       });
 
@@ -301,22 +333,26 @@ void main() {
     group('updateFrom', () {
       test('updates non-editing fields when data changes', () {
         form.initializeFrom(
-            Race(raceId: 1, raceName: 'Initial', flowState: Race.FLOW_SETUP));
+          Race(raceId: 1, raceName: 'Initial', flowState: Race.FLOW_SETUP),
+        );
 
         form.updateFrom(
-            Race(raceId: 1, raceName: 'Updated', flowState: Race.FLOW_SETUP));
+          Race(raceId: 1, raceName: 'Updated', flowState: Race.FLOW_SETUP),
+        );
 
         expect(form.nameController.text, 'Updated');
       });
 
       test('does NOT update a field that is currently being edited', () {
         form.initializeFrom(
-            Race(raceId: 1, raceName: 'Initial', flowState: Race.FLOW_SETUP));
+          Race(raceId: 1, raceName: 'Initial', flowState: Race.FLOW_SETUP),
+        );
         form.startEditing(RaceField.name);
         form.nameController.text = 'User is typing...';
 
         form.updateFrom(
-            Race(raceId: 1, raceName: 'Updated', flowState: Race.FLOW_SETUP));
+          Race(raceId: 1, raceName: 'Updated', flowState: Race.FLOW_SETUP),
+        );
 
         expect(form.nameController.text, 'User is typing...');
       });

@@ -28,9 +28,7 @@ class GradeSelector extends StatelessWidget {
         final isSelected = selected == grade;
         return Expanded(
           child: Padding(
-            padding: EdgeInsets.only(
-              right: grade != 12 ? AppSpacing.sm : 0,
-            ),
+            padding: EdgeInsets.only(right: grade != 12 ? AppSpacing.sm : 0),
             child: _GradePill(
               label: gradeLabel(grade),
               isSelected: isSelected,
@@ -76,7 +74,9 @@ class _GradePill extends StatelessWidget {
           child: Text(
             label,
             style: AppTypography.smallBodySemibold.copyWith(
-              color: isSelected ? AppColors.primaryColor : AppColors.mediumColor,
+              color: isSelected
+                  ? AppColors.primaryColor
+                  : AppColors.mediumColor,
             ),
           ),
         ),
