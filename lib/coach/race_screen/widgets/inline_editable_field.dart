@@ -56,7 +56,7 @@ class InlineEditableField extends StatelessWidget {
           final isEditable = controller.form.shouldShowAsEditable(
             field,
             controller.race,
-            controller.canEdit,
+            controller.canEditDetails,
           );
 
           return isEditable
@@ -74,7 +74,7 @@ class InlineEditableField extends StatelessWidget {
   ) {
     // The whole row edits, not just the small pencil.
     return InkWell(
-      onTap: controller.canEdit
+      onTap: controller.canEditDetails
           ? () => controller.form.startEditing(field)
           : null,
       borderRadius: BorderRadius.circular(AppBorderRadius.md),
@@ -116,7 +116,7 @@ class InlineEditableField extends StatelessWidget {
           ),
           Builder(
             builder: (context) {
-              final canEdit = controller.canEdit;
+              final canEdit = controller.canEditDetails;
               if (canEdit) {
                 return Row(
                   children: [

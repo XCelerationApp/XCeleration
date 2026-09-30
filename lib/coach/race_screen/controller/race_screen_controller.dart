@@ -45,6 +45,11 @@ class RaceScreenController with ChangeNotifier {
   List<RaceRunner>? _raceRunners;
   List<Team>? _teams;
   bool? _canEdit;
+  bool _canEditDetails = false;
+
+  /// Whether the race's details (distance, date, location) can be changed:
+  /// by its owner, until the results are saved.
+  bool get canEditDetails => _canEditDetails;
 
   Race get race {
     if (_isInitialLoading) {
@@ -180,6 +185,10 @@ class RaceScreenController with ChangeNotifier {
           (flowState == Race.FLOW_SETUP ||
               flowState == Race.FLOW_SETUP_COMPLETED ||
               flowState == Race.FLOW_PRE_RACE);
+      // Details such as the distance can still be corrected on race day,
+      // until the results are saved: a course is often remeasured or changed
+      // on the day. Runners stay locked once the race has gone out.
+      _canEditDetails = roleAllowsEdit && flowState != Race.FLOW_FINISHED;
 
       if (isInitial) {
         form.initializeFrom(_race!);
