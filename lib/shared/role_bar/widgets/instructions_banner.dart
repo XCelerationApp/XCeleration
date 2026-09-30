@@ -82,8 +82,9 @@ class InstructionsBanner extends StatelessWidget {
             'Coach so your list knows the runners. When there is a break in '
             'the runners, tell the Timer how many bibs you have.\n\nIf a '
             'written list of finishers is being kept, check your count '
-            'against it at each break: add or delete bibs until they match, '
-            'so a slip doesn\'t throw off every place after it.';
+            'against it at each break: swipe a bib right to insert a missed '
+            'runner above it, or left to delete one, until they match, so a '
+            'slip doesn\'t throw off every place after it.';
       case Role.timer:
         return 'You time the race. Tap Start when the gun goes, and Log as '
             'each runner crosses the finish line. Missed the gun by a few '

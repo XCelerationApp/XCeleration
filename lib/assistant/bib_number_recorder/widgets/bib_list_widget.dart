@@ -1,3 +1,6 @@
+import '../../../core/theme/typography.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import '../controller/bib_number_controller.dart';
 import '../model/bib_datum_record.dart';
@@ -68,20 +71,37 @@ class _BibListWidgetState extends State<BibListWidget>
               padding: EdgeInsets.zero,
               itemCount: widget.controller.bibRecords.length,
               itemBuilder: (context, index) {
+                final recording = !widget.controller.raceStopped;
+                const delete = _SwipeAction(
+                  icon: Icons.delete,
+                  label: 'Delete',
+                  color: AppColors.redColor,
+                  alignment: Alignment.centerRight,
+                );
                 return Dismissible(
                   key: ValueKey(widget.controller.controllers[index]),
-                  background: Container(
-                    color: Colors.red,
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 16.0),
-                    child: const Icon(
-                      Icons.delete,
-                      color: Colors.white,
-                    ),
-                  ),
-                  direction: DismissDirection.endToStart,
+                  // Swipe right to put in a runner who was missed above this
+                  // one, as when checking against a written list; left to
+                  // delete. Inserting needs a bib typed, so only while
+                  // recording.
+                  background: recording
+                      ? const _SwipeAction(
+                          icon: Icons.add,
+                          label: 'Insert above',
+                          color: AppColors.primaryColor,
+                          alignment: Alignment.centerLeft,
+                        )
+                      : delete,
+                  secondaryBackground: recording ? delete : null,
+                  direction: recording
+                      ? DismissDirection.horizontal
+                      : DismissDirection.endToStart,
                   confirmDismiss: (direction) async {
                     if (index >= widget.controller.focusNodes.length) {
+                      return false;
+                    }
+                    if (direction == DismissDirection.startToEnd) {
+                      await widget.controller.insertBibAbove(index);
                       return false;
                     }
 
@@ -115,6 +135,40 @@ class _BibListWidgetState extends State<BibListWidget>
             ),
           ),
           const SizedBox(height: 4)
+        ],
+      ),
+    );
+  }
+}
+
+/// What a swipe on a bib does, shown behind the row as it slides.
+class _SwipeAction extends StatelessWidget {
+  const _SwipeAction({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.alignment,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: color,
+      alignment: alignment,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white),
+          const SizedBox(width: AppSpacing.sm),
+          Text(label,
+              style: AppTypography.smallBodySemibold
+                  .copyWith(color: Colors.white)),
         ],
       ),
     );

@@ -687,6 +687,18 @@ class BibNumberController extends BibNumberDataController {
     await saveBibOrder();
   }
 
+  /// Adds an empty row above [index] and puts the keypad on it, for a runner
+  /// who was missed: everyone from [index] moves down a place. Only while
+  /// recording, as bibs cannot be typed once the race is stopped.
+  Future<void> insertBibAbove(int index) async {
+    if (currentRace == null || raceStopped) return;
+    if (index < 0 || index >= bibRecords.length) return;
+    await insertBibRecord(index, BibDatumRecord.blank());
+    _scheduler.schedulePostFrame(() {
+      if (index < focusNodes.length) focusNodes[index].requestFocus();
+    });
+  }
+
   /// Saves the bib list as it stands, including a bib still being typed.
   Future<void> saveNow() => saveBibOrder();
 
