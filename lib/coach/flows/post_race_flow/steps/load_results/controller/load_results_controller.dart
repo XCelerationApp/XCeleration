@@ -26,6 +26,8 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 import 'package:xceleration/shared/models/timing_records/timing_chunk.dart';
 import '../dev/race_simulator.dart';
+import 'package:xceleration/assistant/shared/services/assistant_storage_service.dart';
+import 'package:xceleration/assistant/shared/services/i_assistant_storage_service.dart';
 
 /// Controller that manages loading and processing of race results
 class LoadResultsController with ChangeNotifier {
@@ -83,9 +85,62 @@ class LoadResultsController with ChangeNotifier {
     required this.devices,
     Future<String> Function(MasterRace)? encodeBibData,
     IPostFrameCallbackScheduler? scheduler,
+    IAssistantStorageService? assistantStorage,
   })  : _encodeBibData =
             encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData,
-        _scheduler = scheduler ?? WidgetsBindingAdapter();
+        _scheduler = scheduler ?? WidgetsBindingAdapter(),
+        _assistantStorage = assistantStorage;
+
+  /// This phone's own Timer and Bib Recorder races, for a coach who records
+  /// the bibs on this phone too.
+  final IAssistantStorageService? _assistantStorage;
+  IAssistantStorageService get _onThisPhone =>
+      _assistantStorage ?? AssistantStorageService.instance;
+
+  /// The bibs this phone's Bib Recorder recorded for this race, encoded as a
+  /// Bib Recorder sends them, or null when it has none. The race is the one
+  /// handed over from this race: same name, and the same number unless that
+  /// was taken.
+  Future<String?> bibsFromThisPhone() async {
+    try {
+      final name = (await masterRace.race).raceName ?? '';
+      final races = switch (
+          await _onThisPhone.getRaces(DeviceName.bibRecorder.toString())) {
+        Success(:final value) => value.where((r) => r.name == name).toList(),
+        Failure() => const [],
+      };
+      if (races.isEmpty) return null;
+      final race = races
+              .where((r) => r.raceId == masterRace.raceId)
+              .firstOrNull ??
+          races.first;
+      final bibs = switch (await _onThisPhone.getBibRecords(race.raceId)) {
+        Success(:final value) => [
+            for (final r in value)
+              if (r.bibNumber.isNotEmpty) BibDatum(bib: r.bibNumber),
+          ],
+        Failure() => const <BibDatum>[],
+      };
+      if (bibs.isEmpty) return null;
+      return await BibEncodeUtils.getEncodedBibData(bibs);
+    } catch (e) {
+      Logger.e('[LoadResultsController.bibsFromThisPhone] $e');
+      return null;
+    }
+  }
+
+  /// Takes [encodedBibs], recorded on this phone, as the Bib Recorder's
+  /// results. Loads them with the Timer's once the Timer has sent its times;
+  /// until then the Timer's transfer does it, as for two phones.
+  Future<void> useBibsFromThisPhone(
+      BuildContext context, String encodedBibs) async {
+    final bibRecorder = devices.bibRecorder;
+    if (bibRecorder == null) return;
+    bibRecorder.data = encodedBibs;
+    bibRecorder.status = ConnectionStatus.finished;
+    notifyListeners();
+    if (devices.allDevicesFinished()) await processReceivedData(context);
+  }
 
   void initialize() {
     _scheduler.addPostFrameCallback(() {

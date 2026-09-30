@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 import 'package:xceleration/assistant/bib_number_recorder/controller/bib_number_controller.dart';
+import 'package:xceleration/assistant/bib_number_recorder/services/race_from_coach.dart';
 import 'package:xceleration/assistant/shared/models/bib_record.dart';
 import 'package:xceleration/assistant/shared/models/race_record.dart';
 import 'package:xceleration/assistant/shared/services/assistant_storage_service.dart';
@@ -248,5 +249,24 @@ void main() {
       expect(recorder.bibRecords, isEmpty);
       expect(await savedBibs(3), ['101']);
     });
+  });
+
+  // A coach recording bibs on their own phone hands the race to its Bib
+  // Recorder, which opens it next, even over a race that was running.
+  test('opens a race the coach on this phone just handed over', () async {
+    await record(['101']);
+    final other = await send(race('Conference Finals', DateTime(2026, 9, 19)), [mia]);
+    final stored = (await storeRaceFromCoach(storage, other)
+            as Success<StoredRaceFromCoach>)
+        .value;
+    RaceHandedOver.bibRecorderRaceId = stored.race.raceId;
+
+    final reopened = build();
+    await opened(reopened);
+    addTearDown(reopened.dispose);
+
+    expect(reopened.currentRace?.name, 'Conference Finals');
+    expect(RaceHandedOver.bibRecorderRaceId, isNull,
+        reason: 'only the next time it opens');
   });
 }

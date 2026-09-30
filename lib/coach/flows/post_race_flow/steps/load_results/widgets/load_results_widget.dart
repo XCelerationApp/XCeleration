@@ -8,6 +8,7 @@ import 'package:xceleration/core/theme/typography.dart';
 import 'conflict_button.dart';
 import 'success_message.dart';
 import 'reload_button.dart';
+import 'use_bibs_from_this_phone.dart';
 import '../controller/load_results_controller.dart';
 import '../dev/simulate_results_button.dart';
 
@@ -54,6 +55,7 @@ class LoadResultsWidget extends StatelessWidget {
                   callback: () => controller.processReceivedData(context),
                   inSheet: closeWhenDone,
                 ),
+                UseBibsFromThisPhone(controller: controller),
 
                 // Test tools: in debug and profile builds, never in the store
                 // build.
