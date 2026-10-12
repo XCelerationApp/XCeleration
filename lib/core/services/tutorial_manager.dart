@@ -133,10 +133,7 @@ class _TutorialRootState extends State<TutorialRoot> {
 
               return Positioned.fill(
                 child: CustomPaint(
-                  painter: OverlayPainter(
-                    targetRect: targetRect,
-                    opacity: 0.5,
-                  ),
+                  painter: OverlayPainter(targetRect: targetRect, opacity: 0.5),
                 ),
               );
             },
@@ -153,9 +150,7 @@ class _TutorialRootState extends State<TutorialRoot> {
                 child: GestureDetector(
                   behavior: HitTestBehavior.translucent,
                   onTap: () => widget.tutorialManager.nextTutorial(),
-                  child: Container(
-                    color: Colors.transparent,
-                  ),
+                  child: Container(color: Colors.transparent),
                 ),
               );
             },
@@ -173,10 +168,7 @@ class OverlayPainter extends CustomPainter {
   static const double padding = 4.0;
   static const double borderRadius = 8.0;
 
-  OverlayPainter({
-    this.targetRect,
-    this.opacity = 0.5,
-  });
+  OverlayPainter({this.targetRect, this.opacity = 0.5});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -202,10 +194,12 @@ class OverlayPainter extends CustomPainter {
 
     // Create a hole path for the target
     final holePath = Path()
-      ..addRRect(RRect.fromRectAndRadius(
-        paddedRect,
-        const Radius.circular(borderRadius),
-      ));
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          paddedRect,
+          const Radius.circular(borderRadius),
+        ),
+      );
 
     // Combine the paths to create the overlay with hole
     final path = Path.combine(

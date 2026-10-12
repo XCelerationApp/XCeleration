@@ -63,8 +63,7 @@ class GooglePickerService {
   final GoogleSheetsService _sheetsService = GoogleSheetsService.instance;
   final GoogleDriveService _driveService = GoogleDriveService.instance;
 
-  static String get _clientId =>
-      dotenv.env['GOOGLE_IOS_OAUTH_CLIENT_ID'] ?? '';
+  static String get _clientId => dotenv.env['GOOGLE_IOS_OAUTH_CLIENT_ID'] ?? '';
 
   /// Derives the reverse-DNS URL scheme from the full iOS OAuth client ID.
   /// e.g. "529...3.apps.googleusercontent.com" → "com.googleusercontent.apps.529...3"
@@ -93,8 +92,9 @@ class GooglePickerService {
   /// On `'picked'`, the map contains `'data'` with the `id` of the selected
   /// file. Name and MIME type are resolved separately via the Drive API in
   /// [pickGoogleDriveFile].
-  static Future<Map<String, dynamic>?> showPicker(
-      {required BuildContext context}) async {
+  static Future<Map<String, dynamic>?> showPicker({
+    required BuildContext context,
+  }) async {
     final clientId = _clientId;
     if (clientId.isEmpty) {
       Logger.e('[Picker] GOOGLE_IOS_OAUTH_CLIENT_ID is not set');
@@ -226,15 +226,15 @@ class GooglePickerService {
       final fileName = fileInfo?.name;
       final mimeType = fileInfo?.mimeType;
 
-      Logger.d(
-          'Selected file: id=$fileId, name=$fileName, mimeType=$mimeType');
+      Logger.d('Selected file: id=$fileId, name=$fileName, mimeType=$mimeType');
 
       if (fileName == null || mimeType == null) {
         Logger.e('Failed to get file metadata for: $fileId');
         if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message:
-                  'Could not read file information. Please try again.');
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Could not read file information. Please try again.',
+          );
         }
         return null;
       }
@@ -273,8 +273,11 @@ class GooglePickerService {
         }
 
         if (downloaded != null) {
-          await RecentDriveSelectionService.instance
-              .record(fileId, fileName, mimeType);
+          await RecentDriveSelectionService.instance.record(
+            fileId,
+            fileName,
+            mimeType,
+          );
           return downloaded;
         }
 
@@ -345,7 +348,9 @@ class GooglePickerService {
   /// Exchanges the authorization code returned by the picker for an access
   /// token using the iOS OAuth client (public client — no secret required).
   static Future<String?> _exchangePickerCode(
-      String code, String codeVerifier) async {
+    String code,
+    String codeVerifier,
+  ) async {
     final clientId = _clientId;
     final scheme = _callbackScheme(clientId);
     final redirectUri = '$scheme:/oauthredirect';
@@ -366,12 +371,16 @@ class GooglePickerService {
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>;
         final token = json['access_token'] as String?;
-        Logger.d('[Picker] Token exchange: '
-            'access_token ${token != null ? "present (length=${token.length})" : "MISSING"}');
+        Logger.d(
+          '[Picker] Token exchange: '
+          'access_token ${token != null ? "present (length=${token.length})" : "MISSING"}',
+        );
         return token;
       } else {
-        Logger.e('[Picker] Token exchange failed: '
-            '${response.statusCode} ${response.body}');
+        Logger.e(
+          '[Picker] Token exchange failed: '
+          '${response.statusCode} ${response.body}',
+        );
         return null;
       }
     } catch (e) {

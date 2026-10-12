@@ -45,22 +45,18 @@ void main() async {
 Future<void> _initializeApp() async {
   await dotenv.load(fileName: '.env');
 
-  await SentryFlutter.init(
-    (options) async {
-      options.dsn = dotenv.env['SENTRY_DSN'] ?? '';
-      // Use 0.2 in production; override via SENTRY_TRACES_SAMPLE_RATE env var.
-      options.tracesSampleRate =
-          double.tryParse(dotenv.env['SENTRY_TRACES_SAMPLE_RATE'] ?? '') ??
-              0.2;
-      options.diagnosticLevel = SentryLevel.warning;
-      try {
-        final info = await PackageInfo.fromPlatform();
-        options.release =
-            '${info.packageName}@${info.version}+${info.buildNumber}';
-      } catch (_) {}
-    },
-    appRunner: _runApp,
-  );
+  await SentryFlutter.init((options) async {
+    options.dsn = dotenv.env['SENTRY_DSN'] ?? '';
+    // Use 0.2 in production; override via SENTRY_TRACES_SAMPLE_RATE env var.
+    options.tracesSampleRate =
+        double.tryParse(dotenv.env['SENTRY_TRACES_SAMPLE_RATE'] ?? '') ?? 0.2;
+    options.diagnosticLevel = SentryLevel.warning;
+    try {
+      final info = await PackageInfo.fromPlatform();
+      options.release =
+          '${info.packageName}@${info.version}+${info.buildNumber}';
+    } catch (_) {}
+  }, appRunner: _runApp);
 }
 
 Future<void> _runApp() async {
@@ -110,8 +106,9 @@ Future<void> _runApp() async {
     final userId = authService.currentUserId;
     if (userId == null) return;
     try {
-      await ServiceLocator.get<IDatabaseConnectionProvider>()
-          .openForUser(userId);
+      await ServiceLocator.get<IDatabaseConnectionProvider>().openForUser(
+        userId,
+      );
       await syncService.syncAll();
     } catch (_) {}
   });
@@ -136,12 +133,11 @@ class MyApp extends StatelessWidget {
   ThemeData _buildTheme() {
     return ThemeData(
       primaryColor: AppColors.backgroundColor,
-      colorScheme: ColorScheme.fromSwatch(
-        primarySwatch: Colors.deepOrange,
-      ).copyWith(
-        secondary: AppColors.backgroundColor,
-        onPrimary: AppColors.lightColor,
-      ),
+      colorScheme: ColorScheme.fromSwatch(primarySwatch: Colors.deepOrange)
+          .copyWith(
+            secondary: AppColors.backgroundColor,
+            onPrimary: AppColors.lightColor,
+          ),
       scaffoldBackgroundColor: AppColors.backgroundColor,
       textSelectionTheme: TextSelectionThemeData(
         cursorColor: AppColors.darkColor,
@@ -156,8 +152,9 @@ class MyApp extends StatelessWidget {
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         scrolledUnderElevation: 0,
-        titleTextStyle:
-            AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
+        titleTextStyle: AppTypography.titleSemibold.copyWith(
+          color: AppColors.darkColor,
+        ),
       ),
       tabBarTheme: TabBarThemeData(
         labelColor: AppColors.navBarTextColor,
@@ -179,9 +176,7 @@ class MyApp extends StatelessWidget {
       buttonTheme: ButtonThemeData(
         buttonColor: AppColors.navBarTextColor,
         textTheme: ButtonTextTheme.primary,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(8.0),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
       ),
       iconTheme: IconThemeData(color: AppColors.mediumColor),
       // Every pop-up menu (race menus, Counts differ?) white and rounded in
@@ -195,9 +190,12 @@ class MyApp extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppBorderRadius.lg),
           side: const BorderSide(color: AppColors.lightColor),
         ),
-        textStyle: AppTypography.bodyRegular.copyWith(color: AppColors.darkColor),
+        textStyle: AppTypography.bodyRegular.copyWith(
+          color: AppColors.darkColor,
+        ),
         labelTextStyle: WidgetStatePropertyAll(
-            AppTypography.bodyRegular.copyWith(color: AppColors.darkColor)),
+          AppTypography.bodyRegular.copyWith(color: AppColors.darkColor),
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

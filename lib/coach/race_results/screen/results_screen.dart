@@ -67,9 +67,7 @@ class _ResultsScreenState extends State<ResultsScreen> {
             child: Stack(
               children: [
                 if (controller.isLoading) ...[
-                  const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  const Center(child: CircularProgressIndicator()),
                 ] else if (controller.hasError) ...[
                   Center(
                     child: Text(
@@ -82,7 +80,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                     children: [
                       if (controller.raceResultsData == null ||
                           controller
-                              .raceResultsData!.individualResults.isEmpty) ...[
+                              .raceResultsData!
+                              .individualResults
+                              .isEmpty) ...[
                         const Expanded(
                           child: Center(
                             child: Text(
@@ -96,7 +96,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                           child: SingleChildScrollView(
                             child: Padding(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 0.0, vertical: 8.0),
+                                horizontal: 0.0,
+                                vertical: 8.0,
+                              ),
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
@@ -104,17 +106,18 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                   // over the list, where it covered the times.
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: AppSpacing.lg),
+                                      horizontal: AppSpacing.lg,
+                                    ),
                                     child: Row(
                                       children: [
                                         FilledButton.icon(
-                                          onPressed: () => ShareRaceController
-                                              .showShareRaceSheet(
-                                            context: context,
-                                            raceResultsData:
-                                                controller.raceResultsData!,
-                                            masterRace: widget.masterRace,
-                                          ),
+                                          onPressed: () =>
+                                              ShareRaceController.showShareRaceSheet(
+                                                context: context,
+                                                raceResultsData:
+                                                    controller.raceResultsData!,
+                                                masterRace: widget.masterRace,
+                                              ),
                                           style: FilledButton.styleFrom(
                                             backgroundColor:
                                                 AppColors.primaryColor,
@@ -126,8 +129,9 @@ class _ResultsScreenState extends State<ResultsScreen> {
                                         if (widget.canEdit)
                                           TextButton.icon(
                                             onPressed: _editResults,
-                                            icon:
-                                                const Icon(Icons.edit_outlined),
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
+                                            ),
                                             label: const Text('Edit'),
                                           ),
                                       ],

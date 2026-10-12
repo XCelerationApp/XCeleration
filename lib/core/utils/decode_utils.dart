@@ -19,7 +19,8 @@ String decodeAndDecompress(String input) {
 class BibDecodeUtils {
   /// Decodes encoded runner data
   static Future<Result<List<BibDatum>>> decodeEncodedRunners(
-      String encodedBibData) async {
+    String encodedBibData,
+  ) async {
     try {
       // Try to detect if data is already decompressed (raw JSON)
       String decompressed;
@@ -40,8 +41,9 @@ class BibDecodeUtils {
 
       final List<dynamic> teamsList = (parsed['teams'] as List?) ?? const [];
       final List<dynamic> rows = (parsed['r'] as List?) ?? const [];
-      final List<String> teams =
-          teamsList.map((e) => e?.toString() ?? '').toList();
+      final List<String> teams = teamsList
+          .map((e) => e?.toString() ?? '')
+          .toList();
 
       final List<BibDatum> bibs = [];
       for (final (index, row) in rows.indexed) {
@@ -57,23 +59,27 @@ class BibDecodeUtils {
           final String grade = row[3]?.toString() ?? '';
           final String? teamAbbrev =
               (tIdx != null && tIdx >= 0 && tIdx < teams.length)
-                  ? (teams[tIdx].isNotEmpty ? teams[tIdx] : null)
-                  : null;
-          bibs.add(BibDatum(
-            bib: bib,
-            name: name.isNotEmpty ? name : null,
-            teamAbbreviation: teamAbbrev,
-            grade: grade.isNotEmpty ? grade : null,
-          ));
+              ? (teams[tIdx].isNotEmpty ? teams[tIdx] : null)
+              : null;
+          bibs.add(
+            BibDatum(
+              bib: bib,
+              name: name.isNotEmpty ? name : null,
+              teamAbbreviation: teamAbbrev,
+              grade: grade.isNotEmpty ? grade : null,
+            ),
+          );
         }
       }
       return Success(bibs);
     } catch (e) {
       Logger.e('[BibDecodeUtils.decodeEncodedRunners] $e');
-      return Failure(AppError(
-        userMessage: 'Could not read bib data. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not read bib data. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 }
@@ -95,9 +101,10 @@ class TimingDecodeUtils {
   /// matched to bibs by position, so a silently dropped time would shift every
   /// later time onto the wrong runner.
   static Future<List<TimingDatum>> decodeEncodedTimingData(
-      String encodedTimingData,
-      {bool isFromDatabase = false,
-      bool strict = false}) async {
+    String encodedTimingData, {
+    bool isFromDatabase = false,
+    bool strict = false,
+  }) async {
     if (encodedTimingData.isEmpty) {
       return [];
     }
@@ -137,7 +144,8 @@ class TimingDecodeUtils {
       } catch (e) {
         if (strict) {
           throw FormatException(
-              'Timing entry "$encodedTimingDatum" could not be read: $e');
+            'Timing entry "$encodedTimingDatum" could not be read: $e',
+          );
         }
         Logger.d('Error processing timing datum: $e');
         return null;

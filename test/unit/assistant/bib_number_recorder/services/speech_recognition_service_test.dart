@@ -6,7 +6,10 @@ import 'package:xceleration/assistant/bib_number_recorder/services/speech_recogn
 
 void main() {
   test('a tap-length clip is not transcribed', () {
-    expect(tooShortToTranscribe(1051, 16000), isTrue); // the 0.07 s that crashed
+    expect(
+      tooShortToTranscribe(1051, 16000),
+      isTrue,
+    ); // the 0.07 s that crashed
     expect(tooShortToTranscribe(0, 16000), isTrue);
   });
 

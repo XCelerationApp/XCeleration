@@ -57,7 +57,9 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     _lifecycle = AppLifecycleListener(onInactive: _controller.saveNow);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      InstructionsBanner.showInstructionsSheet(context, Role.bibRecorder).then((_) {
+      InstructionsBanner.showInstructionsSheet(context, Role.bibRecorder).then((
+        _,
+      ) {
         if (mounted) _controller.setupTutorials();
       });
     });
@@ -100,7 +102,11 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
               'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
         );
         _controller.restoreFocusability();
-      case ShareDataHasDuplicates(:final duplicates, :final hasUnknown, :final encodedData):
+      case ShareDataHasDuplicates(
+        :final duplicates,
+        :final hasUnknown,
+        :final encodedData,
+      ):
         final okDupes = await DialogUtils.showConfirmationDialog(
           context,
           title: 'Duplicate Bib Numbers',
@@ -178,75 +184,87 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
               builder: (context, _) {
                 final live =
                     _controller.currentRace != null && !_controller.raceStopped;
-                return Column(children: [
-                  if (live)
-                    SizedBox(height: MediaQuery.paddingOf(context).top)
-                  else
-                    AppHeader(
-                      title: 'Bib Recorder',
-                      currentRole: Role.bibRecorder,
-                      tutorialManager: _controller.tutorialManager,
-                      titleStyle: AppTypography.displaySmall,
-                      onRoleTap: () => RoleSelectorSheet.showRoleSelection(
-                          context, Role.bibRecorder),
-                      onSettingsTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => SettingsScreen(
-                            currentRole: Role.bibRecorder.toValueString(),
+                return Column(
+                  children: [
+                    if (live)
+                      SizedBox(height: MediaQuery.paddingOf(context).top)
+                    else
+                      AppHeader(
+                        title: 'Bib Recorder',
+                        currentRole: Role.bibRecorder,
+                        tutorialManager: _controller.tutorialManager,
+                        titleStyle: AppTypography.displaySmall,
+                        onRoleTap: () => RoleSelectorSheet.showRoleSelection(
+                          context,
+                          Role.bibRecorder,
+                        ),
+                        onSettingsTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => SettingsScreen(
+                              currentRole: Role.bibRecorder.toValueString(),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                  Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                    child: Column(
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.lg,
+                      ),
+                      child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           _buildRaceHeader(context, live),
                           const SizedBox(height: AppSpacing.sm),
                           _buildRaceStatusWidget(),
-                        ]),
-                  ),
-                  const SizedBox(height: AppSpacing.sm),
-
-                  // BibListWidget manages its own listener.
-                  Expanded(
-                    child: Padding(
-                      padding:
-                          const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-                      child: BibListWidget(controller: _controller),
+                        ],
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: AppSpacing.sm),
 
-                  // Next Bib above the number pad while typing; otherwise the
-                  // big button in the thumb area.
-                  ValueListenableBuilder<bool>(
-                    valueListenable: _controller.keyboardVisibleNotifier,
-                    builder: (context, keyboardUp, _) {
-                      if (KeyboardAccessoryBar.isShowing(
-                          _controller, keyboardUp)) {
-                        return KeyboardAccessoryBar(
-                          controller: _controller,
-                          onDone: () => FocusScope.of(context).unfocus(),
-                        );
-                      }
-                      return SafeArea(
-                        top: false,
-                        minimum:
-                            const EdgeInsets.only(bottom: AppSpacing.lg),
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(AppSpacing.lg,
-                              AppSpacing.sm, AppSpacing.lg, 0),
-                          child: ListenableBuilder(
-                            listenable: _voice,
-                            builder: (context, _) => _buildEntryArea(),
-                          ),
+                    // BibListWidget manages its own listener.
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.lg,
                         ),
-                      );
-                    },
-                  ),
-                ]);
+                        child: BibListWidget(controller: _controller),
+                      ),
+                    ),
+
+                    // Next Bib above the number pad while typing; otherwise the
+                    // big button in the thumb area.
+                    ValueListenableBuilder<bool>(
+                      valueListenable: _controller.keyboardVisibleNotifier,
+                      builder: (context, keyboardUp, _) {
+                        if (KeyboardAccessoryBar.isShowing(
+                          _controller,
+                          keyboardUp,
+                        )) {
+                          return KeyboardAccessoryBar(
+                            controller: _controller,
+                            onDone: () => FocusScope.of(context).unfocus(),
+                          );
+                        }
+                        return SafeArea(
+                          top: false,
+                          minimum: const EdgeInsets.only(bottom: AppSpacing.lg),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.lg,
+                              AppSpacing.sm,
+                              AppSpacing.lg,
+                              0,
+                            ),
+                            child: ListenableBuilder(
+                              listenable: _voice,
+                              builder: (context, _) => _buildEntryArea(),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                );
               },
             ),
           ),
@@ -310,7 +328,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     if (_controller.currentRace == null) return const SizedBox.shrink();
     final bool voiceOn = _voice.enabled;
     final Widget main;
-    if (!voiceOn || (_controller.raceStopped && _controller.bibRecords.isNotEmpty)) {
+    if (!voiceOn ||
+        (_controller.raceStopped && _controller.bibRecords.isNotEmpty)) {
       main = RaceControlsWidget(
         controller: _controller,
         onShare: _onShareBibNumbers,
@@ -355,7 +374,8 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
     final confirmed = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Stop Recording?',
-      content: 'Stop once every runner has finished. You can resume if you '
+      content:
+          'Stop once every runner has finished. You can resume if you '
           'stop too early.',
       confirmText: 'Stop',
       cancelText: 'Cancel',

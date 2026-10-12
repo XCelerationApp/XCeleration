@@ -30,20 +30,21 @@ class ResultsRecord {
     _finishTime = finishTime;
     _formattedFinishTime = TimeFormatter.formatDuration(finishTime);
     _pacePerMile = pacePerMile;
-    _formattedPacePerMile =
-        pacePerMile == null ? '' : TimeFormatter.formatDuration(pacePerMile);
+    _formattedPacePerMile = pacePerMile == null
+        ? ''
+        : TimeFormatter.formatDuration(pacePerMile);
   }
 
   // Copy constructor to create independent copies
   ResultsRecord.copy(ResultsRecord other)
-      : place = other.place,
-        name = other.name,
-        team = other.team,
-        teamAbbreviation = other.teamAbbreviation,
-        grade = other.grade,
-        bib = other.bib,
-        raceId = other.raceId,
-        runnerId = other.runnerId {
+    : place = other.place,
+      name = other.name,
+      team = other.team,
+      teamAbbreviation = other.teamAbbreviation,
+      grade = other.grade,
+      bib = other.bib,
+      raceId = other.raceId,
+      runnerId = other.runnerId {
     _finishTime = other._finishTime;
     _formattedFinishTime = other._formattedFinishTime;
     _pacePerMile = other._pacePerMile;
@@ -62,8 +63,9 @@ class ResultsRecord {
 
   set pacePerMile(Duration? value) {
     _pacePerMile = value;
-    _formattedPacePerMile =
-        value == null ? '' : TimeFormatter.formatDuration(value);
+    _formattedPacePerMile = value == null
+        ? ''
+        : TimeFormatter.formatDuration(value);
   }
 
   Map<String, dynamic> toMap() {
@@ -86,9 +88,9 @@ class ResultsRecord {
     final Duration processedFinishTime = finishTimeValue == null
         ? Duration.zero
         : finishTimeValue.runtimeType == Duration
-            ? finishTimeValue
-            : TimeFormatter.loadDurationFromString(finishTimeValue) ??
-                Duration.zero;
+        ? finishTimeValue
+        : TimeFormatter.loadDurationFromString(finishTimeValue) ??
+              Duration.zero;
 
     return ResultsRecord(
       place: map['place'] ?? 0,

@@ -52,43 +52,49 @@ class RaceStage {
       flowState == Race.FLOW_POST_RACE;
 
   static RaceStage of(String? flowState) => switch (flowState) {
-        Race.FLOW_SETUP => _settingUp,
-        Race.FLOW_SETUP_COMPLETED => const RaceStage._(
-            step: 1,
-            label: 'Ready to send to volunteers',
-            badge: 'Ready to Send',
-            color: AppColors.statusSetup,
-            action: 'Send to Volunteers'),
-        Race.FLOW_PRE_RACE => const RaceStage._(
-            step: 2,
-            label: 'Sending to volunteers',
-            badge: 'Sending',
-            color: AppColors.statusPreRace,
-            action: 'Send to Volunteers'),
-        Race.FLOW_PRE_RACE_COMPLETED => const RaceStage._(
-            step: 2,
-            label: 'Sent. After the race, collect results',
-            badge: 'Race Ready',
-            color: AppColors.statusPreRace,
-            action: 'Collect Results'),
-        Race.FLOW_POST_RACE => const RaceStage._(
-            step: 3,
-            label: 'Collecting results',
-            badge: 'Collecting Results',
-            color: AppColors.statusPostRace,
-            action: 'Collect Results'),
-        Race.FLOW_FINISHED => const RaceStage._(
-            step: 4,
-            label: 'Race complete',
-            badge: 'Race Complete',
-            color: AppColors.statusFinished),
-        _ => _settingUp,
-      };
+    Race.FLOW_SETUP => _settingUp,
+    Race.FLOW_SETUP_COMPLETED => const RaceStage._(
+      step: 1,
+      label: 'Ready to send to volunteers',
+      badge: 'Ready to Send',
+      color: AppColors.statusSetup,
+      action: 'Send to Volunteers',
+    ),
+    Race.FLOW_PRE_RACE => const RaceStage._(
+      step: 2,
+      label: 'Sending to volunteers',
+      badge: 'Sending',
+      color: AppColors.statusPreRace,
+      action: 'Send to Volunteers',
+    ),
+    Race.FLOW_PRE_RACE_COMPLETED => const RaceStage._(
+      step: 2,
+      label: 'Sent. After the race, collect results',
+      badge: 'Race Ready',
+      color: AppColors.statusPreRace,
+      action: 'Collect Results',
+    ),
+    Race.FLOW_POST_RACE => const RaceStage._(
+      step: 3,
+      label: 'Collecting results',
+      badge: 'Collecting Results',
+      color: AppColors.statusPostRace,
+      action: 'Collect Results',
+    ),
+    Race.FLOW_FINISHED => const RaceStage._(
+      step: 4,
+      label: 'Race complete',
+      badge: 'Race Complete',
+      color: AppColors.statusFinished,
+    ),
+    _ => _settingUp,
+  };
 
   static const _settingUp = RaceStage._(
-      step: 1,
-      label: 'Set up the race',
-      badge: 'Setting Up',
-      color: AppColors.statusSetup,
-      action: 'Finish Setup');
+    step: 1,
+    label: 'Set up the race',
+    badge: 'Setting Up',
+    color: AppColors.statusSetup,
+    action: 'Finish Setup',
+  );
 }

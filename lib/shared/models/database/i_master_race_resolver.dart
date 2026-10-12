@@ -13,7 +13,10 @@ abstract interface class IMasterRaceResolver {
   Future<List<RaceParticipant>> get raceParticipants;
   Future<Map<Team, List<RaceRunner>>> get filteredSearchResults;
 
-  Future<void> searchRaceRunners(String query, [String searchAttribute = 'all']);
+  Future<void> searchRaceRunners(
+    String query, [
+    String searchAttribute = 'all',
+  ]);
 
   Future<Runner?> getRunnerByBib(String bibNumber);
   Future<int> createRunner(Runner runner);

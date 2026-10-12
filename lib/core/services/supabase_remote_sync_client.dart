@@ -10,7 +10,7 @@ class SupabaseRemoteSyncClient implements IRemoteSyncClient {
   final IRemoteApiClient _remote;
 
   SupabaseRemoteSyncClient({required IRemoteApiClient remote})
-      : _remote = remote;
+    : _remote = remote;
 
   @override
   Future<List<Map<String, dynamic>>> fetchTableRows(
@@ -20,15 +20,18 @@ class SupabaseRemoteSyncClient implements IRemoteSyncClient {
   }) async {
     // Postgrest filter methods return a new builder rather than mutating the
     // receiver, so every filter must be reassigned or it is silently dropped.
-    var query =
-        _remote.client.from(table).select().eq('owner_user_id', ownerId);
+    var query = _remote.client
+        .from(table)
+        .select()
+        .eq('owner_user_id', ownerId);
     if (cursor != null && cursor.isNotEmpty) {
       query = query.gt('updated_at', cursor);
     }
     // Ascending, so a page that hits the limit ends at the newest row it
     // contains and the next pull resumes from there without skipping rows.
-    final List data =
-        await query.order('updated_at', ascending: true).limit(1000);
+    final List data = await query
+        .order('updated_at', ascending: true)
+        .limit(1000);
     return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 
@@ -38,8 +41,10 @@ class SupabaseRemoteSyncClient implements IRemoteSyncClient {
     List<String> uuids,
   ) async {
     if (uuids.isEmpty) return [];
-    final rows =
-        await _remote.client.from(table).select().inFilter('uuid', uuids);
+    final rows = await _remote.client
+        .from(table)
+        .select()
+        .inFilter('uuid', uuids);
     return rows.map((e) => Map<String, dynamic>.from(e as Map)).toList();
   }
 

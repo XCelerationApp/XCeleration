@@ -27,14 +27,18 @@ void main() {
   setUp(() {
     final storage = MockIAssistantStorageService();
     when(storage.getRaces(any)).thenAnswer((_) async => const Success([]));
-    when(storage.updateRaceStatus(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(storage.updateRaceStartTime(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(storage.updateRaceDuration(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(storage.saveChunk(any, any))
-        .thenAnswer((_) async => const Success(null));
+    when(
+      storage.updateRaceStatus(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      storage.updateRaceStartTime(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      storage.updateRaceDuration(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      storage.saveChunk(any, any),
+    ).thenAnswer((_) async => const Success(null));
     final haptics = MockIHapticFeedback();
     when(haptics.vibrate()).thenAnswer((_) async {});
     when(haptics.lightImpact()).thenAnswer((_) async {});
@@ -58,14 +62,16 @@ void main() {
 
   tearDown(() => timing.dispose());
 
-  Future<void> pump(WidgetTester tester) => tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: ListenableBuilder(
-            listenable: timing,
-            builder: (_, _) => RaceControlsWidget(controller: timing),
-          ),
+  Future<void> pump(WidgetTester tester) => tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(
+        body: ListenableBuilder(
+          listenable: timing,
+          builder: (_, _) => RaceControlsWidget(controller: timing),
         ),
-      ));
+      ),
+    ),
+  );
 
   testWidgets('offers Start Race before the gun', (tester) async {
     await pump(tester);
@@ -74,27 +80,31 @@ void main() {
     expect(find.text('Log Finish'), findsNothing);
   });
 
-  testWidgets('starts the clock as the finger lands on Start Race',
-      (tester) async {
+  testWidgets('starts the clock as the finger lands on Start Race', (
+    tester,
+  ) async {
     await pump(tester);
 
-    final gesture = await tester
-        .startGesture(tester.getCenter(find.text('Start Race')));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('Start Race')),
+    );
     await tester.pump();
     // Still pressed: the race has already started.
     expect(timing.startTime, isNotNull);
     await gesture.up();
   });
 
-  testWidgets('logs a finish as the finger lands, before it lifts',
-      (tester) async {
+  testWidgets('logs a finish as the finger lands, before it lifts', (
+    tester,
+  ) async {
     timing.startRace();
     await pump(tester);
     expect(find.text('Runner 1'), findsOneWidget);
 
     elapsed = const Duration(minutes: 16, seconds: 2);
-    final gesture = await tester
-        .startGesture(tester.getCenter(find.text('Log Finish')));
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.text('Log Finish')),
+    );
     await tester.pump();
     expect(timing.runnerCount, 1);
     // A finger lifting a moment later does not change the time taken.
@@ -106,8 +116,7 @@ void main() {
     expect(find.text('Runner 2'), findsOneWidget);
   });
 
-  testWidgets('shows the count checks once a finish is logged',
-      (tester) async {
+  testWidgets('shows the count checks once a finish is logged', (tester) async {
     timing.startRace();
     await pump(tester);
     expect(find.text('Counts match'), findsNothing);
@@ -139,8 +148,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Missed one'), findsNothing, reason: 'back to the row');
     expect(find.text('Counts differ?'), findsOneWidget);
-    expect(find.text('Undo'), findsOneWidget,
-        reason: 'the mark just made can be taken back');
+    expect(
+      find.text('Undo'),
+      findsOneWidget,
+      reason: 'the mark just made can be taken back',
+    );
   });
 
   testWidgets('offers Resume and Share Times once stopped', (tester) async {
@@ -154,8 +166,9 @@ void main() {
     expect(find.text('Log Finish'), findsNothing);
   });
 
-  testWidgets('the practice race offers the real race, not Share Times',
-      (tester) async {
+  testWidgets('the practice race offers the real race, not Share Times', (
+    tester,
+  ) async {
     // Share Times there looked ready, then refused.
     timing.currentRace = RaceRecord(
       raceId: -1,
@@ -171,8 +184,10 @@ void main() {
 
     expect(find.text('Share Times'), findsNothing);
     expect(find.text('Get Real Race'), findsOneWidget);
-    expect(find.textContaining("Practice times can't be shared"),
-        findsOneWidget);
+    expect(
+      find.textContaining("Practice times can't be shared"),
+      findsOneWidget,
+    );
   });
 
   testWidgets('fits a small phone at a large text size', (tester) async {
@@ -182,17 +197,19 @@ void main() {
     timing.startRace();
     timing.logTime();
 
-    await tester.pumpWidget(MaterialApp(
-      home: MediaQuery(
-        data: const MediaQueryData(textScaler: TextScaler.linear(1.6)),
-        child: Scaffold(
-          body: Align(
-            alignment: Alignment.bottomCenter,
-            child: RaceControlsWidget(controller: timing),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: MediaQuery(
+          data: const MediaQueryData(textScaler: TextScaler.linear(1.6)),
+          child: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: RaceControlsWidget(controller: timing),
+            ),
           ),
         ),
       ),
-    ));
+    );
 
     expect(tester.takeException(), isNull);
   });

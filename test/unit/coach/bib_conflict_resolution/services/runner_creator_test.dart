@@ -17,10 +17,18 @@ import 'runner_creator_test.mocks.dart';
 void main() {
   late MockMasterRace masterRace;
   const eagles = Team(
-      teamId: 7, name: 'Eagles', abbreviation: 'EAG', color: Color(0xFF1565C0));
+    teamId: 7,
+    name: 'Eagles',
+    abbreviation: 'EAG',
+    color: Color(0xFF1565C0),
+  );
 
-  const newRunner =
-      NewRunner(name: 'Avery Stone', bibNumber: '412', teamName: 'Eagles', grade: 10);
+  const newRunner = NewRunner(
+    name: 'Avery Stone',
+    bibNumber: '412',
+    teamName: 'Eagles',
+    grade: 10,
+  );
 
   setUp(() {
     masterRace = MockMasterRace();
@@ -43,9 +51,9 @@ void main() {
     expect(saved.runner.bibNumber, '412');
     expect(saved.team.teamId, 7);
     verify(masterRace.addRunnerToTeam(7, 55)).called(1);
-    final entered = verify(masterRace.addRaceParticipant(captureAny))
-        .captured
-        .single as RaceParticipant;
+    final entered =
+        verify(masterRace.addRaceParticipant(captureAny)).captured.single
+            as RaceParticipant;
     expect(entered.raceId, 3);
     expect(entered.runnerId, 55);
     expect(entered.teamId, 7);
@@ -53,8 +61,14 @@ void main() {
 
   test('reuses a runner already saved with that bib', () async {
     // On the roster, just not entered in this race.
-    when(masterRace.getRunnerByBib('412')).thenAnswer((_) async =>
-        const Runner(runnerId: 9, name: 'Avery Stone', bibNumber: '412', grade: 10));
+    when(masterRace.getRunnerByBib('412')).thenAnswer(
+      (_) async => const Runner(
+        runnerId: 9,
+        name: 'Avery Stone',
+        bibNumber: '412',
+        grade: 10,
+      ),
+    );
 
     final result = await saveNewRunner(masterRace, newRunner);
 
@@ -64,8 +78,14 @@ void main() {
 
   test('refuses a bib that is already someone else\'s', () async {
     // Giving the finish to runner 9 would credit the wrong person.
-    when(masterRace.getRunnerByBib('412')).thenAnswer((_) async =>
-        const Runner(runnerId: 9, name: 'Jordan Lee', bibNumber: '412', grade: 11));
+    when(masterRace.getRunnerByBib('412')).thenAnswer(
+      (_) async => const Runner(
+        runnerId: 9,
+        name: 'Jordan Lee',
+        bibNumber: '412',
+        grade: 11,
+      ),
+    );
 
     final result = await saveNewRunner(masterRace, newRunner);
 
@@ -75,8 +95,14 @@ void main() {
   });
 
   test('reuses the saved runner whatever the capitals', () async {
-    when(masterRace.getRunnerByBib('412')).thenAnswer((_) async =>
-        const Runner(runnerId: 9, name: 'avery stone ', bibNumber: '412', grade: 10));
+    when(masterRace.getRunnerByBib('412')).thenAnswer(
+      (_) async => const Runner(
+        runnerId: 9,
+        name: 'avery stone ',
+        bibNumber: '412',
+        grade: 10,
+      ),
+    );
 
     final result = await saveNewRunner(masterRace, newRunner);
 
@@ -87,7 +113,11 @@ void main() {
     final result = await saveNewRunner(
       masterRace,
       const NewRunner(
-          name: 'Avery Stone', bibNumber: '412', teamName: 'Owls', grade: 10),
+        name: 'Avery Stone',
+        bibNumber: '412',
+        teamName: 'Owls',
+        grade: 10,
+      ),
     );
 
     expect((result as Failure).error.userMessage, contains('Owls'));
@@ -109,16 +139,20 @@ void main() {
 
     setUp(() {
       when(masterRace.teams).thenAnswer((_) async => []);
-      when(masterRace.raceRunners).thenAnswer((_) async => [
-            RaceRunner(
-                raceId: 3,
-                runner: const Runner(runnerId: 1, name: 'Mia', bibNumber: '1'),
-                team: hawks),
-            RaceRunner(
-                raceId: 3,
-                runner: const Runner(runnerId: 2, name: 'Zoe', bibNumber: '2'),
-                team: hawks),
-          ]);
+      when(masterRace.raceRunners).thenAnswer(
+        (_) async => [
+          RaceRunner(
+            raceId: 3,
+            runner: const Runner(runnerId: 1, name: 'Mia', bibNumber: '1'),
+            team: hawks,
+          ),
+          RaceRunner(
+            raceId: 3,
+            runner: const Runner(runnerId: 2, name: 'Zoe', bibNumber: '2'),
+            team: hawks,
+          ),
+        ],
+      );
     });
 
     test('is offered, once', () async {
@@ -128,14 +162,20 @@ void main() {
     });
 
     test('can be chosen, and joins the race', () async {
-      final result = await saveNewRunner(masterRace,
-          const NewRunner(
-              name: 'Avery Stone', bibNumber: '412', teamName: 'Hawks', grade: 10));
+      final result = await saveNewRunner(
+        masterRace,
+        const NewRunner(
+          name: 'Avery Stone',
+          bibNumber: '412',
+          teamName: 'Hawks',
+          grade: 10,
+        ),
+      );
 
       expect((result as Success).value.team.teamId, 8);
-      final joined = verify(masterRace.addTeamParticipant(captureAny))
-          .captured
-          .single as TeamParticipant;
+      final joined =
+          verify(masterRace.addTeamParticipant(captureAny)).captured.single
+              as TeamParticipant;
       expect((joined.raceId, joined.teamId), (3, 8));
     });
   });

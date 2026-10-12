@@ -7,29 +7,33 @@ import 'package:xceleration/coach/merge_conflicts/widgets/runner_time_cells.dart
 // must replace that, not add to it.
 
 void main() {
-  Future<TextEditingController> pump(WidgetTester tester,
-      {bool autofocus = false}) async {
+  Future<TextEditingController> pump(
+    WidgetTester tester, {
+    bool autofocus = false,
+  }) async {
     final record = UIRecord(
       place: 1,
       initialTime: 'TBD',
       isOriginallyTBD: true,
     );
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: SizedBox(
-          width: 140,
-          child: MissingTimeCell(
-            controller: record.timeController,
-            time: record.time,
-            onSubmitted: (_) {},
-            onChanged: (_) {},
-            autofocus: autofocus,
-            isOriginallyTBD: true,
-            record: record,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SizedBox(
+            width: 140,
+            child: MissingTimeCell(
+              controller: record.timeController,
+              time: record.time,
+              onSubmitted: (_) {},
+              onChanged: (_) {},
+              autofocus: autofocus,
+              isOriginallyTBD: true,
+              record: record,
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.pump();
     return record.timeController;
   }

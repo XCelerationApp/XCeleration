@@ -14,8 +14,8 @@ class ConnectivityUtils {
   /// and return `true` only when the result is non-empty.
   static Future<bool> isOnline({Connectivity? connectivity}) async {
     try {
-      final results =
-          await (connectivity ?? Connectivity()).checkConnectivity();
+      final results = await (connectivity ?? Connectivity())
+          .checkConnectivity();
       return results.any((r) => r != ConnectivityResult.none);
     } catch (_) {
       return false;

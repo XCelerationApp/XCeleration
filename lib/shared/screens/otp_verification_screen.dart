@@ -30,8 +30,8 @@ class OtpVerificationScreen extends StatefulWidget {
     required this.mode,
     required IAuthService authService,
     ProfileService? profileService,
-  })  : _authService = authService,
-        _profileService = profileService;
+  }) : _authService = authService,
+       _profileService = profileService;
 
   final String email;
   final OtpMode mode;
@@ -66,23 +66,34 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
     );
     _shakeAnimation = TweenSequence<Offset>([
       TweenSequenceItem(
-          tween: Tween(begin: Offset.zero, end: const Offset(-0.025, 0)),
-          weight: 1),
+        tween: Tween(begin: Offset.zero, end: const Offset(-0.025, 0)),
+        weight: 1,
+      ),
       TweenSequenceItem(
-          tween: Tween(
-              begin: const Offset(-0.025, 0), end: const Offset(0.025, 0)),
-          weight: 2),
+        tween: Tween(
+          begin: const Offset(-0.025, 0),
+          end: const Offset(0.025, 0),
+        ),
+        weight: 2,
+      ),
       TweenSequenceItem(
-          tween: Tween(
-              begin: const Offset(0.025, 0), end: const Offset(-0.015, 0)),
-          weight: 2),
+        tween: Tween(
+          begin: const Offset(0.025, 0),
+          end: const Offset(-0.015, 0),
+        ),
+        weight: 2,
+      ),
       TweenSequenceItem(
-          tween: Tween(
-              begin: const Offset(-0.015, 0), end: const Offset(0.015, 0)),
-          weight: 2),
+        tween: Tween(
+          begin: const Offset(-0.015, 0),
+          end: const Offset(0.015, 0),
+        ),
+        weight: 2,
+      ),
       TweenSequenceItem(
-          tween: Tween(begin: const Offset(0.015, 0), end: Offset.zero),
-          weight: 1),
+        tween: Tween(begin: const Offset(0.015, 0), end: Offset.zero),
+        weight: 1,
+      ),
     ]).animate(_shakeController);
   }
 
@@ -113,8 +124,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         if (!mounted) return;
         // Not swallowed with the sync below: without their database open the
         // races screen has nothing to show, so a failure here is reported.
-        await ServiceLocator.get<IDatabaseConnectionProvider>()
-            .openForUser(widget._authService.currentUserId!);
+        await ServiceLocator.get<IDatabaseConnectionProvider>().openForUser(
+          widget._authService.currentUserId!,
+        );
         if (!mounted) return;
         try {
           await widget._profileService?.ensureProfileUpsert();
@@ -122,16 +134,20 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         } catch (_) {}
         if (!mounted) return;
         Navigator.of(context).pushAndRemoveUntil(
-            RolePageRouteAnimation(child: const RacesScreen()),
-            (route) => false);
+          RolePageRouteAnimation(child: const RacesScreen()),
+          (route) => false,
+        );
       } else {
         await widget._authService.verifyPasswordResetOtp(widget.email, code);
         if (mounted) setState(() => _otpVerified = true);
       }
     } catch (e) {
       if (mounted) {
-        DialogUtils.showMessageDialog(context,
-            title: 'Error', message: _formatError(e));
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Error',
+          message: _formatError(e),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -158,8 +174,11 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
       );
     } catch (e) {
       if (mounted) {
-        DialogUtils.showMessageDialog(context,
-            title: 'Error', message: _formatError(e));
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Error',
+          message: _formatError(e),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -175,14 +194,19 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen>
         await widget._authService.sendPasswordResetEmail(widget.email);
       }
       if (mounted) {
-        DialogUtils.showMessageDialog(context,
-            title: 'Code sent',
-            message: 'A new code has been sent to ${widget.email}.');
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Code sent',
+          message: 'A new code has been sent to ${widget.email}.',
+        );
       }
     } catch (e) {
       if (mounted) {
-        DialogUtils.showMessageDialog(context,
-            title: 'Error', message: _formatError(e));
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Error',
+          message: _formatError(e),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -294,7 +318,11 @@ class _OtpHeader extends StatelessWidget {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.xl),
+        AppSpacing.xl,
+        AppSpacing.sm,
+        AppSpacing.xl,
+        AppSpacing.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -303,11 +331,17 @@ class _OtpHeader extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.chevron_left,
-                    color: AppColors.primaryColor, size: 22),
-                Text('Back',
-                    style: AppTypography.smallBodySemibold
-                        .copyWith(color: AppColors.primaryColor)),
+                Icon(
+                  Icons.chevron_left,
+                  color: AppColors.primaryColor,
+                  size: 22,
+                ),
+                Text(
+                  'Back',
+                  style: AppTypography.smallBodySemibold.copyWith(
+                    color: AppColors.primaryColor,
+                  ),
+                ),
               ],
             ),
           ),
@@ -358,14 +392,19 @@ class _OtpInputStep extends StatelessWidget {
         border: Border(top: BorderSide(color: AppColors.lightColor, width: 1)),
       ),
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xxl),
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.xl,
+        AppSpacing.xxl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             'We sent a 6-digit code to:',
-            style: AppTypography.bodyRegular
-                .copyWith(color: AppColors.mediumColor),
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.mediumColor,
+            ),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
@@ -402,8 +441,9 @@ class _OtpInputStep extends StatelessWidget {
               ),
               child: Text(
                 'Resend code',
-                style: AppTypography.smallBodySemibold
-                    .copyWith(color: AppColors.primaryColor),
+                style: AppTypography.smallBodySemibold.copyWith(
+                  color: AppColors.primaryColor,
+                ),
               ),
             ),
           ),
@@ -442,14 +482,19 @@ class _NewPasswordStep extends StatelessWidget {
         border: Border(top: BorderSide(color: AppColors.lightColor, width: 1)),
       ),
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xxl),
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.xl,
+        AppSpacing.xxl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             'Identity confirmed. Choose a new password.',
-            style: AppTypography.bodyRegular
-                .copyWith(color: AppColors.mediumColor),
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.mediumColor,
+            ),
           ),
           const SizedBox(height: AppSpacing.xxl),
           _PasswordField(
@@ -504,7 +549,8 @@ class _OtpTextFieldState extends State<_OtpTextField> {
   void initState() {
     super.initState();
     widget.focusNode.addListener(
-        () => setState(() => _focused = widget.focusNode.hasFocus));
+      () => setState(() => _focused = widget.focusNode.hasFocus),
+    );
   }
 
   @override
@@ -513,8 +559,8 @@ class _OtpTextFieldState extends State<_OtpTextField> {
     final borderColor = hasError
         ? AppColors.primaryColor
         : _focused
-            ? AppColors.primaryColor
-            : AppColors.borderColor;
+        ? AppColors.primaryColor
+        : AppColors.borderColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -530,8 +576,9 @@ class _OtpTextFieldState extends State<_OtpTextField> {
             boxShadow: _focused && !hasError
                 ? [
                     BoxShadow(
-                      color: AppColors.primaryColor
-                          .withValues(alpha: AppOpacity.faint * 2),
+                      color: AppColors.primaryColor.withValues(
+                        alpha: AppOpacity.faint * 2,
+                      ),
                       blurRadius: 0,
                       spreadRadius: 3,
                     ),
@@ -621,7 +668,8 @@ class _PasswordFieldState extends State<_PasswordField> {
   void initState() {
     super.initState();
     _focusNode.addListener(
-        () => setState(() => _focused = _focusNode.hasFocus));
+      () => setState(() => _focused = _focusNode.hasFocus),
+    );
   }
 
   @override
@@ -636,8 +684,8 @@ class _PasswordFieldState extends State<_PasswordField> {
     final borderColor = hasError
         ? AppColors.primaryColor
         : _focused
-            ? AppColors.primaryColor
-            : AppColors.borderColor;
+        ? AppColors.primaryColor
+        : AppColors.borderColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -662,8 +710,9 @@ class _PasswordFieldState extends State<_PasswordField> {
             boxShadow: _focused && !hasError
                 ? [
                     BoxShadow(
-                      color: AppColors.primaryColor
-                          .withValues(alpha: AppOpacity.faint * 2),
+                      color: AppColors.primaryColor.withValues(
+                        alpha: AppOpacity.faint * 2,
+                      ),
                       blurRadius: 0,
                       spreadRadius: 3,
                     ),
@@ -683,8 +732,9 @@ class _PasswordFieldState extends State<_PasswordField> {
                   enabled: !widget.disabled,
                   autocorrect: false,
                   enableSuggestions: false,
-                  style: AppTypography.bodyRegular
-                      .copyWith(color: AppColors.darkColor),
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: AppColors.darkColor,
+                  ),
                   decoration: const InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.symmetric(
@@ -697,15 +747,17 @@ class _PasswordFieldState extends State<_PasswordField> {
               TextButton(
                 onPressed: widget.onToggleObscure,
                 style: TextButton.styleFrom(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.md,
+                  ),
                   foregroundColor: AppColors.mediumColor,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                 ),
                 child: Text(
                   widget.obscure ? 'Show' : 'Hide',
-                  style: AppTypography.smallBodySemibold
-                      .copyWith(color: AppColors.mediumColor),
+                  style: AppTypography.smallBodySemibold.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
                 ),
               ),
             ],
@@ -756,8 +808,9 @@ class _SubmitButton extends StatelessWidget {
     borderRadius: BorderRadius.circular(AppBorderRadius.lg),
     boxShadow: [
       BoxShadow(
-        color: AppColors.primaryColor
-            .withValues(alpha: AppOpacity.strong + 0.05),
+        color: AppColors.primaryColor.withValues(
+          alpha: AppOpacity.strong + 0.05,
+        ),
         blurRadius: 18,
         offset: const Offset(0, 4),
       ),
@@ -794,8 +847,7 @@ class _SubmitButton extends StatelessWidget {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor:
-                                AlwaysStoppedAnimation(Colors.white),
+                            valueColor: AlwaysStoppedAnimation(Colors.white),
                           ),
                         )
                       : Text(

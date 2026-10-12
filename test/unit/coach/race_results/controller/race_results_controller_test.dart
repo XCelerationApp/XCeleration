@@ -32,26 +32,31 @@ void main() {
 
   group('RaceResultsController', () {
     group('loadRaceResults', () {
-      test('sets isLoading to true during call then false after completing',
-          () async {
-        bool wasLoadingDuringCall = false;
+      test(
+        'sets isLoading to true during call then false after completing',
+        () async {
+          bool wasLoadingDuringCall = false;
 
-        when(mockService.calculateCompleteRaceResults(any))
-            .thenAnswer((_) async {
-          wasLoadingDuringCall = controller.isLoading;
-          return Success(RaceResultsData(
-            resultsTitle: 'Test',
-            individualResults: [],
-            overallTeamResults: [],
-            headToHeadTeamResults: [],
-          ));
-        });
+          when(mockService.calculateCompleteRaceResults(any)).thenAnswer((
+            _,
+          ) async {
+            wasLoadingDuringCall = controller.isLoading;
+            return Success(
+              RaceResultsData(
+                resultsTitle: 'Test',
+                individualResults: [],
+                overallTeamResults: [],
+                headToHeadTeamResults: [],
+              ),
+            );
+          });
 
-        await controller.loadRaceResults(mockMasterRace);
+          await controller.loadRaceResults(mockMasterRace);
 
-        expect(wasLoadingDuringCall, isTrue);
-        expect(controller.isLoading, isFalse);
-      });
+          expect(wasLoadingDuringCall, isTrue);
+          expect(controller.isLoading, isFalse);
+        },
+      );
 
       test('sets raceResultsData and clears error on Success', () async {
         final data = RaceResultsData(
@@ -61,8 +66,9 @@ void main() {
           headToHeadTeamResults: [],
         );
 
-        when(mockService.calculateCompleteRaceResults(any))
-            .thenAnswer((_) async => Success(data));
+        when(
+          mockService.calculateCompleteRaceResults(any),
+        ).thenAnswer((_) async => Success(data));
 
         await controller.loadRaceResults(mockMasterRace);
 
@@ -71,34 +77,44 @@ void main() {
         expect(controller.isLoading, isFalse);
       });
 
-      test('sets hasError and error on Failure, raceResultsData remains null',
-          () async {
-        when(mockService.calculateCompleteRaceResults(any))
-            .thenAnswer((_) async => Failure(AppError(
-                  userMessage:
-                      'Could not calculate race results. Please try again.',
-                )));
+      test(
+        'sets hasError and error on Failure, raceResultsData remains null',
+        () async {
+          when(mockService.calculateCompleteRaceResults(any)).thenAnswer(
+            (_) async => Failure(
+              AppError(
+                userMessage:
+                    'Could not calculate race results. Please try again.',
+              ),
+            ),
+          );
 
-        await controller.loadRaceResults(mockMasterRace);
+          await controller.loadRaceResults(mockMasterRace);
 
-        expect(controller.hasError, isTrue);
-        expect(controller.error!.userMessage,
-            'Could not calculate race results. Please try again.');
-        expect(controller.raceResultsData, isNull);
-        expect(controller.isLoading, isFalse);
-      });
+          expect(controller.hasError, isTrue);
+          expect(
+            controller.error!.userMessage,
+            'Could not calculate race results. Please try again.',
+          );
+          expect(controller.raceResultsData, isNull);
+          expect(controller.isLoading, isFalse);
+        },
+      );
 
       test('notifies listeners at start and end of loadRaceResults', () async {
         int notifyCount = 0;
         controller.addListener(() => notifyCount++);
 
-        when(mockService.calculateCompleteRaceResults(any))
-            .thenAnswer((_) async => Success(RaceResultsData(
-                  resultsTitle: 'Test',
-                  individualResults: [],
-                  overallTeamResults: [],
-                  headToHeadTeamResults: [],
-                )));
+        when(mockService.calculateCompleteRaceResults(any)).thenAnswer(
+          (_) async => Success(
+            RaceResultsData(
+              resultsTitle: 'Test',
+              individualResults: [],
+              overallTeamResults: [],
+              headToHeadTeamResults: [],
+            ),
+          ),
+        );
 
         await controller.loadRaceResults(mockMasterRace);
 
@@ -107,106 +123,131 @@ void main() {
     });
 
     group('sync stream', () {
-      test('reloads results when syncEvents emits race_results table', () async {
-        final syncController = StreamController<SyncEvent>.broadcast();
-        controller.dispose();
-        controller = RaceResultsController(
-          service: mockService,
-          syncStream: syncController.stream,
-        );
+      test(
+        'reloads results when syncEvents emits race_results table',
+        () async {
+          final syncController = StreamController<SyncEvent>.broadcast();
+          controller.dispose();
+          controller = RaceResultsController(
+            service: mockService,
+            syncStream: syncController.stream,
+          );
 
-        // Prime the controller so it has a stored masterRace
-        when(mockService.calculateCompleteRaceResults(any))
-            .thenAnswer((_) async => Success(RaceResultsData(
-                  resultsTitle: 'Initial',
-                  individualResults: [],
-                  overallTeamResults: [],
-                  headToHeadTeamResults: [],
-                )));
-        await controller.loadRaceResults(mockMasterRace);
-        clearInteractions(mockService);
+          // Prime the controller so it has a stored masterRace
+          when(mockService.calculateCompleteRaceResults(any)).thenAnswer(
+            (_) async => Success(
+              RaceResultsData(
+                resultsTitle: 'Initial',
+                individualResults: [],
+                overallTeamResults: [],
+                headToHeadTeamResults: [],
+              ),
+            ),
+          );
+          await controller.loadRaceResults(mockMasterRace);
+          clearInteractions(mockService);
 
-        // Emit a sync event for race_results
-        when(mockService.calculateCompleteRaceResults(any))
-            .thenAnswer((_) async => Success(RaceResultsData(
-                  resultsTitle: 'Synced',
-                  individualResults: [],
-                  overallTeamResults: [],
-                  headToHeadTeamResults: [],
-                )));
-        syncController.add(SyncEvent(
-          timestamp: DateTime.now(),
-          changedTables: {'race_results'},
-        ));
-        await Future.microtask(() {});
-        await Future.microtask(() {});
+          // Emit a sync event for race_results
+          when(mockService.calculateCompleteRaceResults(any)).thenAnswer(
+            (_) async => Success(
+              RaceResultsData(
+                resultsTitle: 'Synced',
+                individualResults: [],
+                overallTeamResults: [],
+                headToHeadTeamResults: [],
+              ),
+            ),
+          );
+          syncController.add(
+            SyncEvent(
+              timestamp: DateTime.now(),
+              changedTables: {'race_results'},
+            ),
+          );
+          await Future.microtask(() {});
+          await Future.microtask(() {});
 
-        verify(mockService.calculateCompleteRaceResults(any)).called(1);
-        expect(controller.raceResultsData?.resultsTitle, 'Synced');
+          verify(mockService.calculateCompleteRaceResults(any)).called(1);
+          expect(controller.raceResultsData?.resultsTitle, 'Synced');
 
-        await syncController.close();
-      });
+          await syncController.close();
+        },
+      );
 
-      test('reads the results afresh rather than from what the race cached',
-          () async {
-        // The race keeps its results in memory; recalculating from those
-        // would show the same results the sync just replaced.
-        final syncController = StreamController<SyncEvent>.broadcast();
-        controller.dispose();
-        controller = RaceResultsController(
-          service: mockService,
-          syncStream: syncController.stream,
-        );
-        when(mockService.calculateCompleteRaceResults(any))
-            .thenAnswer((_) async => Success(RaceResultsData(
-                  resultsTitle: 'Initial',
-                  individualResults: [],
-                  overallTeamResults: [],
-                  headToHeadTeamResults: [],
-                )));
-        await controller.loadRaceResults(mockMasterRace);
-        clearInteractions(mockMasterRace);
+      test(
+        'reads the results afresh rather than from what the race cached',
+        () async {
+          // The race keeps its results in memory; recalculating from those
+          // would show the same results the sync just replaced.
+          final syncController = StreamController<SyncEvent>.broadcast();
+          controller.dispose();
+          controller = RaceResultsController(
+            service: mockService,
+            syncStream: syncController.stream,
+          );
+          when(mockService.calculateCompleteRaceResults(any)).thenAnswer(
+            (_) async => Success(
+              RaceResultsData(
+                resultsTitle: 'Initial',
+                individualResults: [],
+                overallTeamResults: [],
+                headToHeadTeamResults: [],
+              ),
+            ),
+          );
+          await controller.loadRaceResults(mockMasterRace);
+          clearInteractions(mockMasterRace);
 
-        syncController.add(SyncEvent(
-          timestamp: DateTime.now(),
-          changedTables: {'race_results'},
-        ));
-        await Future.microtask(() {});
+          syncController.add(
+            SyncEvent(
+              timestamp: DateTime.now(),
+              changedTables: {'race_results'},
+            ),
+          );
+          await Future.microtask(() {});
 
-        verify(mockMasterRace.invalidateCache()).called(1);
+          verify(mockMasterRace.invalidateCache()).called(1);
 
-        await syncController.close();
-      });
+          await syncController.close();
+        },
+      );
 
-      test('does not reload when syncEvents emits without race_results table',
-          () async {
-        final syncController = StreamController<SyncEvent>.broadcast();
-        controller.dispose();
-        controller = RaceResultsController(
-          service: mockService,
-          syncStream: syncController.stream,
-        );
+      test(
+        'does not reload when syncEvents emits without race_results table',
+        () async {
+          final syncController = StreamController<SyncEvent>.broadcast();
+          controller.dispose();
+          controller = RaceResultsController(
+            service: mockService,
+            syncStream: syncController.stream,
+          );
 
-        when(mockService.calculateCompleteRaceResults(any))
-            .thenAnswer((_) async => Success(RaceResultsData(
-                  resultsTitle: 'Initial',
-                  individualResults: [],
-                  overallTeamResults: [],
-                  headToHeadTeamResults: [],
-                )));
-        await controller.loadRaceResults(mockMasterRace);
-        clearInteractions(mockService);
+          when(mockService.calculateCompleteRaceResults(any)).thenAnswer(
+            (_) async => Success(
+              RaceResultsData(
+                resultsTitle: 'Initial',
+                individualResults: [],
+                overallTeamResults: [],
+                headToHeadTeamResults: [],
+              ),
+            ),
+          );
+          await controller.loadRaceResults(mockMasterRace);
+          clearInteractions(mockService);
 
-        syncController.add(SyncEvent(
-          timestamp: DateTime.now(),
-          changedTables: {'races', 'runners'},
-        ));
-        await Future.microtask(() {});
+          syncController.add(
+            SyncEvent(
+              timestamp: DateTime.now(),
+              changedTables: {'races', 'runners'},
+            ),
+          );
+          await Future.microtask(() {});
 
-        verifyNever(mockService.calculateCompleteRaceResults(any));
+          verifyNever(mockService.calculateCompleteRaceResults(any));
 
-        await syncController.close();
-      });
+          await syncController.close();
+        },
+      );
 
       test('does not reload before loadRaceResults is called', () async {
         final syncController = StreamController<SyncEvent>.broadcast();
@@ -216,10 +257,9 @@ void main() {
           syncStream: syncController.stream,
         );
 
-        syncController.add(SyncEvent(
-          timestamp: DateTime.now(),
-          changedTables: {'race_results'},
-        ));
+        syncController.add(
+          SyncEvent(timestamp: DateTime.now(), changedTables: {'race_results'}),
+        );
         await Future.microtask(() {});
 
         verifyNever(mockService.calculateCompleteRaceResults(any));
@@ -229,36 +269,43 @@ void main() {
     });
 
     group('dispose', () {
-      test('cancels sync subscription so no reload occurs after dispose',
-          () async {
-        final syncController = StreamController<SyncEvent>.broadcast();
-        controller.dispose();
-        controller = RaceResultsController(
-          service: mockService,
-          syncStream: syncController.stream,
-        );
+      test(
+        'cancels sync subscription so no reload occurs after dispose',
+        () async {
+          final syncController = StreamController<SyncEvent>.broadcast();
+          controller.dispose();
+          controller = RaceResultsController(
+            service: mockService,
+            syncStream: syncController.stream,
+          );
 
-        when(mockService.calculateCompleteRaceResults(any))
-            .thenAnswer((_) async => Success(RaceResultsData(
-                  resultsTitle: 'Initial',
-                  individualResults: [],
-                  overallTeamResults: [],
-                  headToHeadTeamResults: [],
-                )));
-        await controller.loadRaceResults(mockMasterRace);
-        controller.dispose();
-        clearInteractions(mockService);
+          when(mockService.calculateCompleteRaceResults(any)).thenAnswer(
+            (_) async => Success(
+              RaceResultsData(
+                resultsTitle: 'Initial',
+                individualResults: [],
+                overallTeamResults: [],
+                headToHeadTeamResults: [],
+              ),
+            ),
+          );
+          await controller.loadRaceResults(mockMasterRace);
+          controller.dispose();
+          clearInteractions(mockService);
 
-        syncController.add(SyncEvent(
-          timestamp: DateTime.now(),
-          changedTables: {'race_results'},
-        ));
-        await Future.microtask(() {});
+          syncController.add(
+            SyncEvent(
+              timestamp: DateTime.now(),
+              changedTables: {'race_results'},
+            ),
+          );
+          await Future.microtask(() {});
 
-        verifyNever(mockService.calculateCompleteRaceResults(any));
+          verifyNever(mockService.calculateCompleteRaceResults(any));
 
-        await syncController.close();
-      });
+          await syncController.close();
+        },
+      );
     });
   });
 }
