@@ -25,8 +25,10 @@ class FakeGoogleSignInPlatform extends Fake
     _shouldLightweightSucceed = true;
   }
 
-  static const _fakeUser =
-      GoogleSignInUserData(id: 'user-id', email: 'user@example.com');
+  static const _fakeUser = GoogleSignInUserData(
+    id: 'user-id',
+    email: 'user@example.com',
+  );
   static const _fakeTokens = AuthenticationTokenData(idToken: 'id-token');
 
   @override
@@ -47,20 +49,24 @@ class FakeGoogleSignInPlatform extends Fake
   ) {
     lightweightCallCount++;
     if (!_shouldLightweightSucceed) return Future.value(null);
-    return Future.value(const AuthenticationResults(
-      user: _fakeUser,
-      authenticationTokens: _fakeTokens,
-    ));
+    return Future.value(
+      const AuthenticationResults(
+        user: _fakeUser,
+        authenticationTokens: _fakeTokens,
+      ),
+    );
   }
 
   @override
   Future<AuthenticationResults> authenticate(
-      AuthenticateParameters params) async {
+    AuthenticateParameters params,
+  ) async {
     authenticateCallCount++;
     if (shouldThrowGenericException) throw Exception('sign-in error');
     if (!_shouldSucceed) {
       throw const GoogleSignInException(
-          code: GoogleSignInExceptionCode.canceled);
+        code: GoogleSignInExceptionCode.canceled,
+      );
     }
     return const AuthenticationResults(
       user: _fakeUser,
@@ -95,5 +101,6 @@ class FakeGoogleSignInPlatform extends Fake
 
   @override
   Future<void> clearAuthorizationToken(
-      ClearAuthorizationTokenParams params) async {}
+    ClearAuthorizationTokenParams params,
+  ) async {}
 }

@@ -6,7 +6,8 @@ import 'package:xceleration/coach/race_results/model/results_record.dart';
 
 abstract interface class IRaceResultsService {
   Future<Result<RaceResultsData>> calculateCompleteRaceResults(
-      MasterRace masterRace);
+    MasterRace masterRace,
+  );
 
   List<ResultsRecord> convertToResultsRecords(
     List<RaceResult> raceResults, {

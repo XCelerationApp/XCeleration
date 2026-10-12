@@ -8,10 +8,7 @@ import 'wireless_connection_button.dart';
 class WirelessConnectionWidget extends StatefulWidget {
   final WirelessConnectionController controller;
 
-  const WirelessConnectionWidget({
-    super.key,
-    required this.controller,
-  });
+  const WirelessConnectionWidget({super.key, required this.controller});
 
   @override
   State<WirelessConnectionWidget> createState() => _WirelessConnectionState();
@@ -51,12 +48,13 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
         children: [
           Padding(
             padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-            child: WirelessConnectionButton(
-              device: ConnectedDevice(DeviceName.coach),
-            ).error(
-              error: controller.wirelessConnectionError!,
-              retryAction: controller.retry,
-            ),
+            child:
+                WirelessConnectionButton(
+                  device: ConnectedDevice(DeviceName.coach),
+                ).error(
+                  error: controller.wirelessConnectionError!,
+                  retryAction: controller.retry,
+                ),
           ),
         ],
       );
@@ -73,7 +71,8 @@ class _WirelessConnectionState extends State<WirelessConnectionWidget> {
                 : WirelessConnectionButton(
                     device: device,
                     // Shown only if transfers with this phone kept failing.
-                    errorMessage: 'The transfer did not finish. Tap Retry '
+                    errorMessage:
+                        'The transfer did not finish. Tap Retry '
                         'to look for the phone again.',
                     onRetry: controller.retry,
                   ),

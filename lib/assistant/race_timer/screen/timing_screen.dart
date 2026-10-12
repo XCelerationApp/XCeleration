@@ -91,7 +91,9 @@ class _TimingScreenState extends State<TimingScreen>
                     currentRole: Role.timer,
                     tutorialManager: tutorialManager,
                     onRoleTap: () => RoleSelectorSheet.showRoleSelection(
-                        context, Role.timer),
+                      context,
+                      Role.timer,
+                    ),
                     onSettingsTap: () => Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => SettingsScreen(
@@ -102,7 +104,8 @@ class _TimingScreenState extends State<TimingScreen>
                   ),
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.lg),
+                    horizontal: AppSpacing.lg,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -132,7 +135,11 @@ class _TimingScreenState extends State<TimingScreen>
                   // Records list: rebuilds only when records change.
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                      AppSpacing.lg,
+                      0,
+                    ),
                     child: ListenableBuilder(
                       listenable: _controller.recordsSignal,
                       builder: (context, child) =>
@@ -146,7 +153,11 @@ class _TimingScreenState extends State<TimingScreen>
                   minimum: const EdgeInsets.only(bottom: AppSpacing.lg),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, 0),
+                      AppSpacing.lg,
+                      AppSpacing.sm,
+                      AppSpacing.lg,
+                      0,
+                    ),
                     child: ListenableBuilder(
                       listenable: _raceStateAndRecords,
                       builder: (context, child) =>
@@ -194,8 +205,10 @@ class _TimingScreenState extends State<TimingScreen>
             onDeleteRace: () async {
               final error = await _controller.deleteCurrentRace();
               if (error != null && context.mounted) {
-                DialogUtils.showErrorDialog(context,
-                    message: error.userMessage);
+                DialogUtils.showErrorDialog(
+                  context,
+                  message: error.userMessage,
+                );
               }
             },
             onAdjustStart: () => _controller.showAdjustStartSheet(context),
@@ -224,7 +237,8 @@ class _TimingScreenState extends State<TimingScreen>
 
   /// The screen stays on while the clock runs.
   void _keepScreenOnWhileLive() {
-    final live = _controller.currentRace != null &&
+    final live =
+        _controller.currentRace != null &&
         _controller.startTime != null &&
         !_controller.raceStopped;
     ScreenAwake.set(live);
@@ -265,9 +279,12 @@ class _LoadErrorBanner extends StatelessWidget {
           const Icon(Icons.error_outline, color: AppColors.redColor),
           const SizedBox(width: 8),
           Expanded(
-            child: Text(message,
-                style: AppTypography.bodySmall
-                    .copyWith(color: AppColors.darkColor)),
+            child: Text(
+              message,
+              style: AppTypography.bodySmall.copyWith(
+                color: AppColors.darkColor,
+              ),
+            ),
           ),
           TextButton(onPressed: onRetry, child: const Text('Try again')),
         ],

@@ -33,12 +33,15 @@ class Team {
       name: map['name'],
       abbreviation: map['abbreviation'],
       color: Color(map['color'] ?? 0xFF2196F3), // Default blue if null
-      createdAt:
-          map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
-      updatedAt:
-          map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null,
-      deletedAt:
-          map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null,
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'])
+          : null,
+      updatedAt: map['updated_at'] != null
+          ? DateTime.parse(map['updated_at'])
+          : null,
+      deletedAt: map['deleted_at'] != null
+          ? DateTime.parse(map['deleted_at'])
+          : null,
       isDirty: map['is_dirty'],
     );
   }
@@ -47,9 +50,7 @@ class Team {
   factory Team.fromRaceParticipationMap(Map<String, dynamic> map) {
     final colorOverride = map['team_color_override'];
     if (colorOverride is int) {
-      return Team.fromMap(map).copyWith(
-        color: Color(colorOverride),
-      );
+      return Team.fromMap(map).copyWith(color: Color(colorOverride));
     }
     return Team.fromMap(map);
   }
@@ -100,8 +101,9 @@ class Team {
 
     // Split by spaces and take first letter of each word
     final words = teamName.trim().split(' ');
-    final initials =
-        words.map((word) => word.isNotEmpty ? word[0] : '').join('');
+    final initials = words
+        .map((word) => word.isNotEmpty ? word[0] : '')
+        .join('');
 
     // Return up to 3 characters, converted to uppercase
     return initials.length >= 3

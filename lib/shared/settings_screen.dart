@@ -19,10 +19,7 @@ import 'role_screen.dart';
 class SettingsScreen extends StatelessWidget {
   final String currentRole;
 
-  const SettingsScreen({
-    super.key,
-    required this.currentRole,
-  });
+  const SettingsScreen({super.key, required this.currentRole});
 
   @override
   Widget build(BuildContext context) {
@@ -44,42 +41,67 @@ class SettingsScreen extends StatelessWidget {
           _buildSectionHeader('Account'),
           if (signedIn) ...[
             _buildNote(
-                'Signed in as ${AuthService.instance.currentEmail ?? 'a coach'}'),
+              'Signed in as ${AuthService.instance.currentEmail ?? 'a coach'}',
+            ),
             _buildSyncNowButton(context),
             if (kDebugMode) _buildChangePasswordButton(context),
             _buildSignOutButton(context),
             _buildDeleteAccountButton(context),
           ] else
-            _buildNote('Not signed in. Coaches sign in to keep their races '
-                'and runners in the cloud. Timers, Bib Recorders and '
-                'Spectators do not need an account.'),
+            _buildNote(
+              'Not signed in. Coaches sign in to keep their races '
+              'and runners in the cloud. Timers, Bib Recorders and '
+              'Spectators do not need an account.',
+            ),
           const SizedBox(height: 24),
           _buildSectionHeader('About'),
           FutureBuilder<PackageInfo>(
             future: PackageInfo.fromPlatform(),
             builder: (context, snapshot) {
               final info = snapshot.data;
-              return _buildNote(info == null
-                  ? 'XCeleration'
-                  : 'XCeleration ${info.version} (${info.buildNumber})');
+              return _buildNote(
+                info == null
+                    ? 'XCeleration'
+                    : 'XCeleration ${info.version} (${info.buildNumber})',
+              );
             },
           ),
           // The App Store expects the privacy policy to be reachable from
           // inside the app, not only from its listing.
-          _buildLinkItem(context, 'Privacy Policy', 'What the app keeps and why',
-              Icons.privacy_tip_outlined, AppConstants.privacyPolicyUrl),
-          _buildLinkItem(context, 'Terms of Service', 'The terms of using the app',
-              Icons.description_outlined, AppConstants.termsUrl),
-          _buildLinkItem(context, 'Help & Support', 'Questions, problems, ideas',
-              Icons.help_outline, AppConstants.supportUrl),
+          _buildLinkItem(
+            context,
+            'Privacy Policy',
+            'What the app keeps and why',
+            Icons.privacy_tip_outlined,
+            AppConstants.privacyPolicyUrl,
+          ),
+          _buildLinkItem(
+            context,
+            'Terms of Service',
+            'The terms of using the app',
+            Icons.description_outlined,
+            AppConstants.termsUrl,
+          ),
+          _buildLinkItem(
+            context,
+            'Help & Support',
+            'Questions, problems, ideas',
+            Icons.help_outline,
+            AppConstants.supportUrl,
+          ),
           const SizedBox(height: 24),
         ],
       ),
     );
   }
 
-  Widget _buildLinkItem(BuildContext context, String title, String description,
-      IconData icon, String url) {
+  Widget _buildLinkItem(
+    BuildContext context,
+    String title,
+    String description,
+    IconData icon,
+    String url,
+  ) {
     return _buildRoleItem(
       context,
       title,
@@ -89,14 +111,18 @@ class SettingsScreen extends StatelessWidget {
       onTap: () async {
         var opened = false;
         try {
-          opened = await launchUrl(Uri.parse(url),
-              mode: LaunchMode.externalApplication);
+          opened = await launchUrl(
+            Uri.parse(url),
+            mode: LaunchMode.externalApplication,
+          );
         } catch (e) {
           Logger.e('Could not open $url: $e');
         }
         if (!opened && context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Could not open the page. It is at $url');
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Could not open the page. It is at $url',
+          );
         }
       },
     );
@@ -117,9 +143,7 @@ class SettingsScreen extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
       child: Text(
         title,
-        style: AppTypography.titleSemibold.copyWith(
-          color: AppColors.darkColor,
-        ),
+        style: AppTypography.titleSemibold.copyWith(color: AppColors.darkColor),
       ),
     );
   }
@@ -163,10 +187,7 @@ class SettingsScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    title,
-                    style: AppTypography.bodySemibold,
-                  ),
+                  Text(title, style: AppTypography.bodySemibold),
                   const SizedBox(height: 2),
                   Text(
                     description,
@@ -219,8 +240,10 @@ class SettingsScreen extends StatelessWidget {
         } catch (e) {
           if (!context.mounted) return;
           Logger.e('Sync failed: $e');
-          DialogUtils.showErrorDialog(context,
-              message: 'Could not sync. Check you are online and try again.');
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Could not sync. Check you are online and try again.',
+          );
           return;
         }
         if (!context.mounted) return;
@@ -273,10 +296,13 @@ class SettingsScreen extends StatelessWidget {
         final userId = AuthService.instance.currentUserId;
         if (userId == null) return;
         try {
-          await DialogUtils.executeWithLoadingDialog(context,
-              loadingMessage: 'Deleting account...', operation: () async {
-            await AuthService.instance.deleteCurrentUserAccount();
-          });
+          await DialogUtils.executeWithLoadingDialog(
+            context,
+            loadingMessage: 'Deleting account...',
+            operation: () async {
+              await AuthService.instance.deleteCurrentUserAccount();
+            },
+          );
           if (!context.mounted) return;
           // The account is gone from the server; the races must not stay on
           // the phone, where the next person to sign in would find them.
@@ -294,7 +320,8 @@ class SettingsScreen extends StatelessWidget {
           Logger.e('Account deletion failed: $e');
           DialogUtils.showErrorDialog(
             context,
-            message: 'Could not delete your account. Check you are online '
+            message:
+                'Could not delete your account. Check you are online '
                 'and try again.',
           );
         }

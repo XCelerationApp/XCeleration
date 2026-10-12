@@ -49,8 +49,7 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
   Future<void> deleteUserData(String userId) async => deleteDatabase();
 }
 
-Map<String, dynamic> _row(String name, int grade, String bib,
-        {String? team}) =>
+Map<String, dynamic> _row(String name, int grade, String bib, {String? team}) =>
     {'name': name, 'grade': grade, 'bib': bib, 'team': ?team};
 
 void main() {
@@ -69,16 +68,22 @@ void main() {
     runners = RunnerRepository(conn: conn);
     teams = TeamRepository(conn: conn);
     races = RaceRepository(conn: conn, runnerRepo: runners);
-    raceId = await races.createRace(Race(
-      raceId: 0,
-      raceName: 'Invitational',
-      location: 'Park',
-      distance: 5,
-      distanceUnit: 'km',
-      flowState: Race.FLOW_SETUP,
-    ));
+    raceId = await races.createRace(
+      Race(
+        raceId: 0,
+        raceName: 'Invitational',
+        location: 'Park',
+        distance: 5,
+        distanceUnit: 'km',
+        flowState: Race.FLOW_SETUP,
+      ),
+    );
     importer = RosterImporter(
-        raceId: raceId, runners: runners, teams: teams, races: races);
+      raceId: raceId,
+      runners: runners,
+      teams: teams,
+      races: races,
+    );
   });
 
   tearDown(() async => conn.close());
@@ -96,42 +101,51 @@ void main() {
   }
 
   Future<int> makeTeam(String name, String abbreviation) => teams.createTeam(
-      Team(name: name, abbreviation: abbreviation, color: const Color(0xFF2196F3)));
+    Team(
+      name: name,
+      abbreviation: abbreviation,
+      color: const Color(0xFF2196F3),
+    ),
+  );
 
   Future<List<String>> raceTeams() async =>
       [for (final t in await races.getRaceTeams(raceId)) t.name ?? '']..sort();
 
   group('a sheet with a Team column', () {
-    test('creates each team, puts it in the race, and its runners on it',
-        () async {
-      final result = await importer.importRows([
-        _row('Ann Lee', 10, '101', team: 'Eagles'),
-        _row('Bo Park', 11, '102', team: 'Hawks'),
-        _row('Cy Diaz', 12, '103', team: 'Eagles'),
-      ]);
+    test(
+      'creates each team, puts it in the race, and its runners on it',
+      () async {
+        final result = await importer.importRows([
+          _row('Ann Lee', 10, '101', team: 'Eagles'),
+          _row('Bo Park', 11, '102', team: 'Hawks'),
+          _row('Cy Diaz', 12, '103', team: 'Eagles'),
+        ]);
 
-      expect(await inRace(), [
-        '101 Ann Lee Eagles',
-        '102 Bo Park Hawks',
-        '103 Cy Diaz Eagles',
-      ]);
-      expect(await raceTeams(), ['Eagles', 'Hawks']);
-      expect(result.added, 3);
-      expect(result.teamsCreated, ['Eagles', 'Hawks']);
-      expect(result.conflicts, isEmpty);
-    });
+        expect(await inRace(), [
+          '101 Ann Lee Eagles',
+          '102 Bo Park Hawks',
+          '103 Cy Diaz Eagles',
+        ]);
+        expect(await raceTeams(), ['Eagles', 'Hawks']);
+        expect(result.added, 3);
+        expect(result.teamsCreated, ['Eagles', 'Hawks']);
+        expect(result.conflicts, isEmpty);
+      },
+    );
 
-    test('gives a created team an abbreviation and its runners\' teams',
-        () async {
-      await importer.importRows([
-        _row('Ann Lee', 10, '101', team: 'Redwood High School'),
-      ]);
+    test(
+      'gives a created team an abbreviation and its runners\' teams',
+      () async {
+        await importer.importRows([
+          _row('Ann Lee', 10, '101', team: 'Redwood High School'),
+        ]);
 
-      final team = await teams.getTeamByName('Redwood High School');
-      expect(team?.abbreviation, 'RHS');
-      final roster = await runners.getTeamRunners(team!.teamId!);
-      expect(roster.map((r) => r.name), ['Ann Lee']);
-    });
+        final team = await teams.getTeamByName('Redwood High School');
+        expect(team?.abbreviation, 'RHS');
+        final roster = await runners.getTeamRunners(team!.teamId!);
+        expect(roster.map((r) => r.name), ['Ann Lee']);
+      },
+    );
 
     test('uses a team the coach already has, by name or abbreviation, '
         'ignoring case', () async {
@@ -170,31 +184,39 @@ void main() {
       expect(await raceTeams(), ['Eagles - Girls']);
       final boys = await teams.getTeamByName('Eagles - Boys');
       expect(
-          (await runners.getTeamRunners(boys!.teamId!)).map((r) => r.name),
-          unorderedEquals(['Bo Park', 'Cy Diaz']));
+        (await runners.getTeamRunners(boys!.teamId!)).map((r) => r.name),
+        unorderedEquals(['Bo Park', 'Cy Diaz']),
+      );
       expect(result.added, 1);
       expect(result.savedOnly, 2);
       expect(result.teamsSavedOnly, ['Eagles - Boys']);
       expect(result.teamsAdded, ['Eagles - Girls']);
     });
 
-    test('a runner the app already has goes on the team, not in the race',
-        () async {
-      await runners.createRunner(
-          const Runner(name: 'Bo Park', bibNumber: '102', grade: 11));
+    test(
+      'a runner the app already has goes on the team, not in the race',
+      () async {
+        await runners.createRunner(
+          const Runner(name: 'Bo Park', bibNumber: '102', grade: 11),
+        );
 
-      final result = await importer.importRows([
-        {..._row('Bo Park', 11, '102', team: 'Eagles - Boys'), 'inRace': false},
-      ]);
+        final result = await importer.importRows([
+          {
+            ..._row('Bo Park', 11, '102', team: 'Eagles - Boys'),
+            'inRace': false,
+          },
+        ]);
 
-      expect(await inRace(), isEmpty);
-      final boys = await teams.getTeamByName('Eagles - Boys');
-      expect(
+        expect(await inRace(), isEmpty);
+        final boys = await teams.getTeamByName('Eagles - Boys');
+        expect(
           (await runners.getTeamRunners(boys!.teamId!)).map((r) => r.name),
-          ['Bo Park']);
-      expect(result.alreadyKnown, 0);
-      expect(result.savedOnly, 1);
-    });
+          ['Bo Park'],
+        );
+        expect(result.alreadyKnown, 0);
+        expect(result.savedOnly, 1);
+      },
+    );
   });
 
   group('rows without a team', () {
@@ -231,47 +253,60 @@ void main() {
   });
 
   group('runners the app already has', () {
-    test('are not duplicated, and join this race on the sheet\'s team',
-        () async {
-      await runners.createRunner(
-          const Runner(name: 'Ann Lee', bibNumber: '101', grade: 10));
+    test(
+      'are not duplicated, and join this race on the sheet\'s team',
+      () async {
+        await runners.createRunner(
+          const Runner(name: 'Ann Lee', bibNumber: '101', grade: 10),
+        );
 
-      final result =
-          await importer.importRows([_row('Ann Lee', 10, '101', team: 'Eagles')]);
+        final result = await importer.importRows([
+          _row('Ann Lee', 10, '101', team: 'Eagles'),
+        ]);
 
-      expect(result.added, 0);
-      expect(result.alreadyKnown, 1);
-      expect(result.conflicts, isEmpty);
-      expect((await runners.getAllRunners()).length, 1);
-      expect(await inRace(), ['101 Ann Lee Eagles']);
-    });
+        expect(result.added, 0);
+        expect(result.alreadyKnown, 1);
+        expect(result.conflicts, isEmpty);
+        expect((await runners.getAllRunners()).length, 1);
+        expect(await inRace(), ['101 Ann Lee Eagles']);
+      },
+    );
 
-    test('keep their saved details until the coach chooses the sheet\'s',
-        () async {
-      await runners.createRunner(
-          const Runner(name: 'Ann Lee', bibNumber: '101', grade: 10));
+    test(
+      'keep their saved details until the coach chooses the sheet\'s',
+      () async {
+        await runners.createRunner(
+          const Runner(name: 'Ann Lee', bibNumber: '101', grade: 10),
+        );
 
-      final result = await importer
-          .importRows([_row('Annie Lee', 11, '101', team: 'Eagles')]);
+        final result = await importer.importRows([
+          _row('Annie Lee', 11, '101', team: 'Eagles'),
+        ]);
 
-      expect(result.conflicts, hasLength(1));
-      expect((await runners.getRunnerByBib('101'))?.name, 'Ann Lee',
-          reason: 'nothing is renamed without asking');
+        expect(result.conflicts, hasLength(1));
+        expect(
+          (await runners.getRunnerByBib('101'))?.name,
+          'Ann Lee',
+          reason: 'nothing is renamed without asking',
+        );
 
-      await importer.useSpreadsheetDetails(result.conflicts.single);
+        await importer.useSpreadsheetDetails(result.conflicts.single);
 
-      final updated = await runners.getRunnerByBib('101');
-      expect(updated?.name, 'Annie Lee');
-      expect(updated?.grade, 11);
-      expect((await runners.getAllRunners()).length, 1);
-    });
+        final updated = await runners.getRunnerByBib('101');
+        expect(updated?.name, 'Annie Lee');
+        expect(updated?.grade, 11);
+        expect((await runners.getAllRunners()).length, 1);
+      },
+    );
 
     test('already in the race move to the sheet\'s team', () async {
       final hawks = await makeTeam('Hawks', 'HAW');
       final runnerId = await runners.createRunner(
-          const Runner(name: 'Ann Lee', bibNumber: '101', grade: 10));
+        const Runner(name: 'Ann Lee', bibNumber: '101', grade: 10),
+      );
       await races.addRaceParticipant(
-          RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: hawks));
+        RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: hawks),
+      );
 
       await importer.importRows([_row('Ann Lee', 10, '101', team: 'Eagles')]);
 
@@ -280,24 +315,26 @@ void main() {
     });
   });
 
-  test('importing the same sheet twice changes nothing the second time',
-      () async {
-    final sheet = [
-      _row('Ann Lee', 10, '101', team: 'Eagles'),
-      _row('Bo Park', 11, '102', team: 'Hawks'),
-    ];
-    await importer.importRows(sheet);
-    final before = await inRace();
+  test(
+    'importing the same sheet twice changes nothing the second time',
+    () async {
+      final sheet = [
+        _row('Ann Lee', 10, '101', team: 'Eagles'),
+        _row('Bo Park', 11, '102', team: 'Hawks'),
+      ];
+      await importer.importRows(sheet);
+      final before = await inRace();
 
-    final again = await importer.importRows(sheet);
+      final again = await importer.importRows(sheet);
 
-    expect(await inRace(), before);
-    expect(again.added, 0);
-    expect(again.alreadyKnown, 2);
-    expect(again.teamsCreated, isEmpty);
-    expect(again.conflicts, isEmpty);
-    expect((await teams.getAllTeams()).length, 2);
-  });
+      expect(await inRace(), before);
+      expect(again.added, 0);
+      expect(again.alreadyKnown, 2);
+      expect(again.teamsCreated, isEmpty);
+      expect(again.conflicts, isEmpty);
+      expect((await teams.getAllTeams()).length, 2);
+    },
+  );
 
   test('leaves out rows the database would refuse', () async {
     final result = await importer.importRows([
@@ -340,8 +377,10 @@ void main() {
         {'name': 'Bo', 'team': 'Archie Williams', 'gender': 'M'},
       ]);
 
-      expect(rows.map((r) => r['team']),
-          ['Archie Williams - Girls', 'Archie Williams - Boys']);
+      expect(rows.map((r) => r['team']), [
+        'Archie Williams - Girls',
+        'Archie Williams - Boys',
+      ]);
     });
 
     test('leaves a runner with no gender, or no team, where they were', () {

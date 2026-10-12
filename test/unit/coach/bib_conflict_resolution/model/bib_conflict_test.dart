@@ -13,41 +13,49 @@ import 'package:xceleration/shared/models/database/team.dart';
 const _eagles = Team(teamId: 1, name: 'Eagles', abbreviation: 'EAG');
 
 RaceRunner _runner(int id, String bib, {String? name}) => RaceRunner(
-      raceId: 1,
-      runner: Runner(
-          runnerId: id, name: name ?? 'Runner $id', bibNumber: bib, grade: 10),
-      team: _eagles,
-    );
+  raceId: 1,
+  runner: Runner(
+    runnerId: id,
+    name: name ?? 'Runner $id',
+    bibNumber: bib,
+    grade: 10,
+  ),
+  team: _eagles,
+);
 
 Future<RaceRunner?> Function(String) _lookup(Map<String, RaceRunner> known) =>
     (bib) async => known[bib];
 
 void main() {
   group('a bib recorded at more than one finish', () {
-    test('asks about every place it was recorded, not just the later ones',
-        () async {
-      // Bib 12 was recorded 2nd and 4th. Neither is automatically the right
-      // one — that is the question being put to the coach.
-      final alice = _runner(1, '12', name: 'Alice');
-      final conflicts = await detectBibConflicts(
-        entries: [_runner(2, '11'), alice, _runner(3, '13'), alice],
-        timesByPlace: const {
-          1: '15:00.00',
-          2: '15:02.00',
-          3: '15:04.00',
-          4: '15:06.00',
-        },
-        lookupBib: _lookup({'12': alice}),
-      );
+    test(
+      'asks about every place it was recorded, not just the later ones',
+      () async {
+        // Bib 12 was recorded 2nd and 4th. Neither is automatically the right
+        // one — that is the question being put to the coach.
+        final alice = _runner(1, '12', name: 'Alice');
+        final conflicts = await detectBibConflicts(
+          entries: [_runner(2, '11'), alice, _runner(3, '13'), alice],
+          timesByPlace: const {
+            1: '15:00.00',
+            2: '15:02.00',
+            3: '15:04.00',
+            4: '15:06.00',
+          },
+          lookupBib: _lookup({'12': alice}),
+        );
 
-      expect(conflicts, hasLength(1));
-      final duplicate = conflicts.single as DuplicateBibConflict;
-      expect(duplicate.bibNumber, '12');
-      expect(duplicate.runner.runner.name, 'Alice');
-      expect(duplicate.occurrences.map((o) => o.place), [2, 4]);
-      expect(duplicate.occurrences.map((o) => o.time),
-          ['15:02.00', '15:06.00']);
-    });
+        expect(conflicts, hasLength(1));
+        final duplicate = conflicts.single as DuplicateBibConflict;
+        expect(duplicate.bibNumber, '12');
+        expect(duplicate.runner.runner.name, 'Alice');
+        expect(duplicate.occurrences.map((o) => o.place), [2, 4]);
+        expect(duplicate.occurrences.map((o) => o.time), [
+          '15:02.00',
+          '15:06.00',
+        ]);
+      },
+    );
 
     test('handles a bib recorded three times', () async {
       final alice = _runner(1, '12', name: 'Alice');
@@ -78,10 +86,16 @@ void main() {
 
       final duplicate = conflicts.single as DuplicateBibConflict;
       // Each finish's own neighbourhood, skipping the other disputed place.
-      expect(duplicate.occurrences[0].nearby.map((f) => f.name),
-          ['First', 'Third', 'Fifth']);
-      expect(duplicate.occurrences[1].nearby.map((f) => f.name),
-          ['First', 'Third', 'Fifth']);
+      expect(duplicate.occurrences[0].nearby.map((f) => f.name), [
+        'First',
+        'Third',
+        'Fifth',
+      ]);
+      expect(duplicate.occurrences[1].nearby.map((f) => f.name), [
+        'First',
+        'Third',
+        'Fifth',
+      ]);
       expect(duplicate.occurrences[0].nearby.map((f) => f.place), [1, 3, 5]);
     });
 
@@ -102,37 +116,53 @@ void main() {
       // Four ahead of 7th (3–6), four behind it (9–12), skipping disputed 8th.
       expect(first.nearby.map((f) => f.place), [3, 4, 5, 6, 9, 10, 11, 12]);
       // "Show all finishers": the whole field, less the disputed places.
-      expect(first.allFinishers.map((f) => f.place),
-          [1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14]);
+      expect(first.allFinishers.map((f) => f.place), [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+      ]);
     });
 
-    test('pairs an unresolved entry with the runner that holds the bib',
-        () async {
-      // The second recording of bib 12 never got matched to a runner, so it
-      // arrives as bare text; it is still the same duplicate.
-      final alice = _runner(1, '12', name: 'Alice');
-      final conflicts = await detectBibConflicts(
-        entries: [alice, '12'],
-        timesByPlace: const {},
-        lookupBib: _lookup({'12': alice}),
-      );
+    test(
+      'pairs an unresolved entry with the runner that holds the bib',
+      () async {
+        // The second recording of bib 12 never got matched to a runner, so it
+        // arrives as bare text; it is still the same duplicate.
+        final alice = _runner(1, '12', name: 'Alice');
+        final conflicts = await detectBibConflicts(
+          entries: [alice, '12'],
+          timesByPlace: const {},
+          lookupBib: _lookup({'12': alice}),
+        );
 
-      final duplicate = conflicts.single as DuplicateBibConflict;
-      expect(duplicate.occurrences.map((o) => o.place), [1, 2]);
-    });
+        final duplicate = conflicts.single as DuplicateBibConflict;
+        expect(duplicate.occurrences.map((o) => o.place), [1, 2]);
+      },
+    );
 
-    test('leaves the time out where the Timer has not settled that place',
-        () async {
-      final alice = _runner(1, '12', name: 'Alice');
-      final conflicts = await detectBibConflicts(
-        entries: [alice, alice],
-        timesByPlace: const {1: '15:00.00'},
-        lookupBib: _lookup({'12': alice}),
-      );
+    test(
+      'leaves the time out where the Timer has not settled that place',
+      () async {
+        final alice = _runner(1, '12', name: 'Alice');
+        final conflicts = await detectBibConflicts(
+          entries: [alice, alice],
+          timesByPlace: const {1: '15:00.00'},
+          lookupBib: _lookup({'12': alice}),
+        );
 
-      final duplicate = conflicts.single as DuplicateBibConflict;
-      expect(duplicate.occurrences.map((o) => o.time), ['15:00.00', null]);
-    });
+        final duplicate = conflicts.single as DuplicateBibConflict;
+        expect(duplicate.occurrences.map((o) => o.time), ['15:00.00', null]);
+      },
+    );
   });
 
   group('a finish whose time is not settled yet', () {
@@ -141,7 +171,13 @@ void main() {
     test('shows the range between the known times either side', () async {
       final alice = _runner(1, '12', name: 'Alice');
       final conflicts = await detectBibConflicts(
-        entries: [_runner(2, '10'), alice, _runner(3, '11'), alice, _runner(4, '13')],
+        entries: [
+          _runner(2, '10'),
+          alice,
+          _runner(3, '11'),
+          alice,
+          _runner(4, '13'),
+        ],
         timesByPlace: const {1: '15:00.00', 3: '15:05.00', 5: '15:09.00'},
         lookupBib: _lookup({'12': alice}),
       );
@@ -154,15 +190,23 @@ void main() {
     });
 
     test('says only after or before at either end, or nothing', () {
-      expect(const ConflictOccurrence(place: 9, after: '15:00.00').timeLabel,
-          'After 15:00.00');
-      expect(const ConflictOccurrence(place: 1, before: '15:00.00').timeLabel,
-          'Before 15:00.00');
+      expect(
+        const ConflictOccurrence(place: 9, after: '15:00.00').timeLabel,
+        'After 15:00.00',
+      );
+      expect(
+        const ConflictOccurrence(place: 1, before: '15:00.00').timeLabel,
+        'Before 15:00.00',
+      );
       expect(const ConflictOccurrence(place: 1).timeLabel, isNull);
       expect(
-          const ConflictOccurrence(place: 1, time: '15:01.00', after: 'x')
-              .timeLabel,
-          '15:01.00');
+        const ConflictOccurrence(
+          place: 1,
+          time: '15:01.00',
+          after: 'x',
+        ).timeLabel,
+        '15:01.00',
+      );
     });
   });
 
@@ -238,7 +282,11 @@ void main() {
     test('leaves other conflicts out of the nearby finishers', () async {
       // A runner whose own bib is in question is no help in placing someone.
       final conflicts = await detectBibConflicts(
-        entries: ['98', '99', _runner(1, '13', name: 'Known')],
+        entries: [
+          '98',
+          '99',
+          _runner(1, '13', name: 'Known'),
+        ],
         timesByPlace: const {},
         lookupBib: _lookup({}),
       );

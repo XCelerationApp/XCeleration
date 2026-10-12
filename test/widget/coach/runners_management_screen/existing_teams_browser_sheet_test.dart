@@ -15,39 +15,57 @@ void main() {
 
   Future<void> pump(WidgetTester tester) async {
     popped = null;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: Center(
-            child: ElevatedButton(
-              onPressed: () async => popped = await showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                builder: (_) => ExistingTeamsBrowserSheet(
-                  raceId: 1,
-                  availableTeams: {
-                    _eagles: const [
-                      Runner(runnerId: 1, name: 'Ann Lee', bibNumber: '101', grade: 10),
-                      Runner(runnerId: 2, name: 'Bo Park', bibNumber: '102', grade: 11),
-                    ],
-                    _owls: const [
-                      Runner(runnerId: 3, name: 'Cy Moss', bibNumber: '201', grade: 12),
-                    ],
-                  },
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () async => popped = await showModalBottomSheet(
+                  context: context,
+                  isScrollControlled: true,
+                  builder: (_) => ExistingTeamsBrowserSheet(
+                    raceId: 1,
+                    availableTeams: {
+                      _eagles: const [
+                        Runner(
+                          runnerId: 1,
+                          name: 'Ann Lee',
+                          bibNumber: '101',
+                          grade: 10,
+                        ),
+                        Runner(
+                          runnerId: 2,
+                          name: 'Bo Park',
+                          bibNumber: '102',
+                          grade: 11,
+                        ),
+                      ],
+                      _owls: const [
+                        Runner(
+                          runnerId: 3,
+                          name: 'Cy Moss',
+                          bibNumber: '201',
+                          grade: 12,
+                        ),
+                      ],
+                    },
+                  ),
                 ),
+                child: const Text('open'),
               ),
-              child: const Text('open'),
             ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }
 
-  testWidgets('teams start closed, and open to show their runners',
-      (tester) async {
+  testWidgets('teams start closed, and open to show their runners', (
+    tester,
+  ) async {
     await pump(tester);
 
     expect(find.text('Eagles'), findsOneWidget);
@@ -60,8 +78,9 @@ void main() {
     expect(find.text('Cy Moss'), findsNothing);
   });
 
-  testWidgets('the checkbox picks the whole team without opening it',
-      (tester) async {
+  testWidgets('the checkbox picks the whole team without opening it', (
+    tester,
+  ) async {
     await pump(tester);
 
     await tester.tap(find.byKey(const ValueKey('import_team_1')));
@@ -80,7 +99,9 @@ void main() {
     await pump(tester);
 
     await tester.enterText(
-        find.byKey(const ValueKey('import_team_search')), 'moss');
+      find.byKey(const ValueKey('import_team_search')),
+      'moss',
+    );
     await tester.pumpAndSettle();
 
     expect(find.text('Eagles'), findsNothing);

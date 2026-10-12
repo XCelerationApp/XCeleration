@@ -65,9 +65,9 @@ class TimingController extends TimingData {
     IHapticFeedback? hapticFeedback,
     super.now,
     super.monotonic,
-  })  : _storage = storage,
-        _audioPlayer = audioPlayer,
-        _hapticFeedback = hapticFeedback ?? HapticFeedbackService() {
+  }) : _storage = storage,
+       _audioPlayer = audioPlayer,
+       _hapticFeedback = hapticFeedback ?? HapticFeedbackService() {
     _initializeControllers();
   }
 
@@ -111,7 +111,8 @@ class TimingController extends TimingData {
     try {
       // Ensure demo race exists if no races are present
       await DemoRaceGenerator.ensureDemoRaceExists(
-          DeviceName.raceTimer.toString());
+        DeviceName.raceTimer.toString(),
+      );
 
       final result = await _storage.getRaces(DeviceName.raceTimer.toString());
       final races = switch (result) {
@@ -151,26 +152,29 @@ class TimingController extends TimingData {
             ),
           ),
           DeviceConnectionWidget(
-        devices: devices,
-        callback: () async {
-          final data = devices.coach?.data;
-          if (data == null ||
-              !await loadRaceFromCoach(
-                data,
-                ask: (here) async => context.mounted
-                    ? askAboutRace(context, here, what: 'times')
-                    : ReceivedRaceChoice.update,
-              )) {
-            if (context.mounted) {
-              DialogUtils.showErrorDialog(context,
-                  message: 'The race from the coach could not be opened. '
-                      'Ask the coach to send it again.');
-            }
-            return false;
-          }
-          return true;
-        },
-      ),
+            devices: devices,
+            callback: () async {
+              final data = devices.coach?.data;
+              if (data == null ||
+                  !await loadRaceFromCoach(
+                    data,
+                    ask: (here) async => context.mounted
+                        ? askAboutRace(context, here, what: 'times')
+                        : ReceivedRaceChoice.update,
+                  )) {
+                if (context.mounted) {
+                  DialogUtils.showErrorDialog(
+                    context,
+                    message:
+                        'The race from the coach could not be opened. '
+                        'Ask the coach to send it again.',
+                  );
+                }
+                return false;
+              }
+              return true;
+            },
+          ),
         ],
       ),
     );
@@ -203,8 +207,10 @@ class TimingController extends TimingData {
       // The coach shows one QR code for both volunteers, the Bib Recorder's:
       // the race, then '---' and the roster. The Timer needs only the race.
       // Read whole, it failed to parse, so the Timer never got the race.
-      sent = RaceRecord.fromEncodedString(data.split('---').first,
-          type: DeviceName.raceTimer.toString());
+      sent = RaceRecord.fromEncodedString(
+        data.split('---').first,
+        type: DeviceName.raceTimer.toString(),
+      );
     } catch (e) {
       Logger.e('Error parsing race data: $e');
       return false;
@@ -217,8 +223,10 @@ class TimingController extends TimingData {
       ask: ask,
     )) {
       case Failure(:final error):
-        Logger.e('[TimingController.loadRaceFromCoach] '
-            '${error.originalException}');
+        Logger.e(
+          '[TimingController.loadRaceFromCoach] '
+          '${error.originalException}',
+        );
         return false;
       case Success(:final value):
         clearRecords();
@@ -236,8 +244,9 @@ class TimingController extends TimingData {
   Future<int> _countRecordedTimes(RaceRecord race) async =>
       switch (await _storage.getChunks(race.raceId)) {
         Success(:final value) => [
-            for (final c in value) ...c.timingData.where((d) => d.conflict == null)
-          ].length,
+          for (final c in value)
+            ...c.timingData.where((d) => d.conflict == null),
+        ].length,
         Failure() => 0,
       };
 
@@ -268,7 +277,8 @@ class TimingController extends TimingData {
         currentRace = null;
         _failedRace = raceRecord;
         loadError = AppError(
-          userMessage: 'Could not read the saved times for '
+          userMessage:
+              'Could not read the saved times for '
               '"${raceRecord.name}". They have not been changed. Try again, '
               'or restart the app.',
           originalException: error.originalException,
@@ -402,11 +412,11 @@ class TimingController extends TimingData {
   AppError? logTime() {
     if (startTime == null || raceStopped) {
       return const AppError(
-          userMessage: 'Start time cannot be null or race stopped.');
+        userMessage: 'Start time cannot be null or race stopped.',
+      );
     }
 
-    final time = TimeFormatter.formatDuration(
-        raceElapsed);
+    final time = TimeFormatter.formatDuration(raceElapsed);
     addRunnerTimeRecord(TimingDatum(time: time));
     scrollToBottom(scrollController);
     notifyListeners();
@@ -416,14 +426,17 @@ class TimingController extends TimingData {
   AppError? confirmTimes() {
     if (startTime == null || raceStopped) {
       return const AppError(
-          userMessage: 'Race must be started to confirm a time.');
+        userMessage: 'Race must be started to confirm a time.',
+      );
     }
-    final time = TimeFormatter.formatDuration(
-        raceElapsed);
+    final time = TimeFormatter.formatDuration(raceElapsed);
 
-    addConfirmRecord(TimingDatum(
+    addConfirmRecord(
+      TimingDatum(
         time: time,
-        conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1)));
+        conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+      ),
+    );
     scrollToBottom(scrollController);
     notifyListeners();
     return null;
@@ -432,15 +445,18 @@ class TimingController extends TimingData {
   Future<AppError?> addMissingTime() async {
     if (startTime == null) {
       return const AppError(
-          userMessage: 'Race must be started to mark a missing time.');
+        userMessage: 'Race must be started to mark a missing time.',
+      );
     }
 
-    final time = TimeFormatter.formatDuration(
-        raceElapsed);
+    final time = TimeFormatter.formatDuration(raceElapsed);
 
-    addMissingTimeRecord(TimingDatum(
+    addMissingTimeRecord(
+      TimingDatum(
         time: time,
-        conflict: Conflict(type: ConflictType.missingTime, offBy: 1)));
+        conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
+      ),
+    );
     scrollToBottom(scrollController);
     notifyListeners();
     return null;
@@ -449,13 +465,15 @@ class TimingController extends TimingData {
   Future<RemoveExtraTimeResult> removeExtraTime() async {
     if (startTime == null || raceStopped) {
       return const RemoveExtraTimeError(
-          AppError(userMessage: 'Race must be started to mark an extra time.'));
+        AppError(userMessage: 'Race must be started to mark an extra time.'),
+      );
     }
     final currentDuration = raceElapsed;
 
     final extraTimeRecord = TimingDatum(
-        time: TimeFormatter.formatDuration(currentDuration),
-        conflict: Conflict(type: ConflictType.extraTime, offBy: 1));
+      time: TimeFormatter.formatDuration(currentDuration),
+      conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+    );
 
     final result = _checkRemoveExtraTimeConflict(extraTimeRecord);
     if (result != null) return result;
@@ -473,15 +491,20 @@ class TimingController extends TimingData {
     // could never see or resolve.
     if (currentType == ConflictType.confirmRunner) {
       return const RemoveExtraTimeError(
-          AppError(userMessage: 'You cannot remove a confirmed time.'));
+        AppError(userMessage: 'You cannot remove a confirmed time.'),
+      );
     }
     // An extra time marks one of the times recorded since the last button,
     // and there are none since the missing time. (This used to cancel the
     // missing time, which threw away both the missed runner and the stray.)
     if (currentType == ConflictType.missingTime) {
-      return const RemoveExtraTimeError(AppError(
-          userMessage: 'There is no time to remove yet. Undo the missing '
-              'time first, or log the time and then remove it.'));
+      return const RemoveExtraTimeError(
+        AppError(
+          userMessage:
+              'There is no time to remove yet. Undo the missing '
+              'time first, or log the time and then remove it.',
+        ),
+      );
     }
 
     // Calculate the total offBy that would result after adding this record
@@ -499,7 +522,8 @@ class TimingController extends TimingData {
       return RemoveExtraTimeConfirmRequired(totalOffBy);
     } else {
       return const RemoveExtraTimeError(
-          AppError(userMessage: "You can't remove any more unconfirmed times"));
+        AppError(userMessage: "You can't remove any more unconfirmed times"),
+      );
     }
   }
 
@@ -509,13 +533,15 @@ class TimingController extends TimingData {
   }
 
   String get undoDialogTitle {
-    final isConflict = currentChunk.conflictRecord?.conflict?.type !=
+    final isConflict =
+        currentChunk.conflictRecord?.conflict?.type !=
         ConflictType.confirmRunner;
     return isConflict ? 'Undo Conflict' : 'Undo Confirmation';
   }
 
   String get undoDialogContent {
-    final isConflict = currentChunk.conflictRecord?.conflict?.type !=
+    final isConflict =
+        currentChunk.conflictRecord?.conflict?.type !=
         ConflictType.confirmRunner;
     return isConflict
         ? 'Are you sure you want to undo the last conflict?'
@@ -544,15 +570,19 @@ class TimingController extends TimingData {
       // Queued, so a save still waiting to run can't bring the times back.
       final race = currentRace!;
       await enqueueWrite(
-          () => _storage.deleteChunks(race.raceId), 'clear race ${race.raceId}');
+        () => _storage.deleteChunks(race.raceId),
+        'clear race ${race.raceId}',
+      );
       // The saved clock goes too. Otherwise reopening the race brings back the
       // old start, and the Timer can only resume that clock, not start anew.
       await enqueueWrite(
-          () => _storage.updateRaceStartTime(race.raceId, race.type, null),
-          'clear the start of race ${race.raceId}');
+        () => _storage.updateRaceStartTime(race.raceId, race.type, null),
+        'clear the start of race ${race.raceId}',
+      );
       await enqueueWrite(
-          () => _storage.updateRaceDuration(race.raceId, race.type, null),
-          'clear the length of race ${race.raceId}');
+        () => _storage.updateRaceDuration(race.raceId, race.type, null),
+        'clear the length of race ${race.raceId}',
+      );
     }
   }
 
@@ -565,9 +595,11 @@ class TimingController extends TimingData {
 
   bool get isLastRecordUndoable {
     // Show undo button for confirmations or conflicts
-    final isUndoable = currentChunk.conflictRecord != null ||
+    final isUndoable =
+        currentChunk.conflictRecord != null ||
         currentChunk.timingData.any(
-            (record) => record.conflict?.type == ConflictType.confirmRunner);
+          (record) => record.conflict?.type == ConflictType.confirmRunner,
+        );
     return isUndoable;
   }
 
@@ -577,8 +609,9 @@ class TimingController extends TimingData {
     final bool isUnconfirmed = record.textColor == Colors.black;
 
     if (isUnconfirmed) {
-      final int index =
-          currentChunk.timingData.indexOf(TimingDatum(time: record.time));
+      final int index = currentChunk.timingData.indexOf(
+        TimingDatum(time: record.time),
+      );
       if (index == -1) {
         return const AppError(userMessage: 'Record not found.');
       }
@@ -590,7 +623,8 @@ class TimingController extends TimingData {
     final bool isLast = recordIndex == uiRecords.length - 1;
     if (!isLast) {
       return const AppError(
-          userMessage: 'Cannot delete a record when there are later records.');
+        userMessage: 'Cannot delete a record when there are later records.',
+      );
     }
 
     if (record.type == RecordType.runnerTime) {
@@ -606,8 +640,9 @@ class TimingController extends TimingData {
     final bool isUnconfirmed = record.textColor == Colors.black;
 
     if (isUnconfirmed) {
-      final int index =
-          currentChunk.timingData.indexOf(TimingDatum(time: record.time));
+      final int index = currentChunk.timingData.indexOf(
+        TimingDatum(time: record.time),
+      );
       if (index == -1) return false;
 
       currentChunk.timingData.removeAt(index);
@@ -663,10 +698,10 @@ class TimingController extends TimingData {
       body: AdjustTimesForm(
         explanation: timeShift == Duration.zero
             ? 'Pressed Start after the gun? Every time is short by the same '
-                'amount. Say how many seconds and the clock and every time '
-                'are corrected, so your coach gets times from the gun.'
+                  'amount. Say how many seconds and the clock and every time '
+                  'are corrected, so your coach gets times from the gun.'
             : 'Times already moved ${describeShift(timeShift)}. Any change '
-                'here is added to that.',
+                  'here is added to that.',
         onShift: (by) {
           final refused = shiftAllTimes(by);
           return refused == null ? null : AppError(userMessage: refused);
@@ -702,7 +737,9 @@ class TimingController extends TimingData {
       // waiting to run can't recreate them.
       final raceId = currentRace!.raceId;
       await enqueueWrite(
-          () => _storage.deleteChunks(raceId), 'delete chunks of $raceId');
+        () => _storage.deleteChunks(raceId),
+        'delete chunks of $raceId',
+      );
 
       // Delete the race from the database
       await _storage.deleteRace(currentRace!.raceId, currentRace!.type);
@@ -721,7 +758,9 @@ class TimingController extends TimingData {
     } catch (e) {
       Logger.e('Error deleting race: $e');
       return AppError(
-          userMessage: 'Failed to delete race.', originalException: e);
+        userMessage: 'Failed to delete race.',
+        originalException: e,
+      );
     }
   }
 

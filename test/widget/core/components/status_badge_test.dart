@@ -4,8 +4,7 @@ import 'package:xceleration/core/components/status_badge.dart';
 import 'package:xceleration/core/theme/app_colors.dart';
 import 'package:xceleration/shared/models/database/race.dart';
 
-Widget _wrap(Widget child) =>
-    MaterialApp(home: Scaffold(body: child));
+Widget _wrap(Widget child) => MaterialApp(home: Scaffold(body: child));
 
 void main() {
   group('StatusBadge', () {
@@ -21,14 +20,12 @@ void main() {
 
       for (final entry in cases.entries) {
         testWidgets('shows "${entry.value}" for ${entry.key}', (tester) async {
-          await tester.pumpWidget(
-              _wrap(StatusBadge(flowState: entry.key)));
+          await tester.pumpWidget(_wrap(StatusBadge(flowState: entry.key)));
           expect(find.text(entry.value), findsOneWidget);
         });
       }
 
-      testWidgets('treats an unrecognised flow state as setup',
-          (tester) async {
+      testWidgets('treats an unrecognised flow state as setup', (tester) async {
         await tester.pumpWidget(_wrap(const StatusBadge(flowState: 'bogus')));
         expect(find.text('Setting Up'), findsOneWidget);
       });
@@ -37,32 +34,35 @@ void main() {
     group('colors', () {
       testWidgets('setup state uses statusSetup color', (tester) async {
         await tester.pumpWidget(
-            _wrap(const StatusBadge(flowState: Race.FLOW_SETUP)));
+          _wrap(const StatusBadge(flowState: Race.FLOW_SETUP)),
+        );
         await tester.pump();
 
         final container = tester.widget<Container>(
-          find.descendant(
-            of: find.byType(StatusBadge),
-            matching: find.byType(Container),
-          ).first,
+          find
+              .descendant(
+                of: find.byType(StatusBadge),
+                matching: find.byType(Container),
+              )
+              .first,
         );
         final decoration = container.decoration as BoxDecoration;
-        expect(
-          decoration.color,
-          AppColors.statusSetup.withValues(alpha: 0.10),
-        );
+        expect(decoration.color, AppColors.statusSetup.withValues(alpha: 0.10));
       });
 
       testWidgets('finished state uses statusFinished color', (tester) async {
         await tester.pumpWidget(
-            _wrap(const StatusBadge(flowState: Race.FLOW_FINISHED)));
+          _wrap(const StatusBadge(flowState: Race.FLOW_FINISHED)),
+        );
         await tester.pump();
 
         final container = tester.widget<Container>(
-          find.descendant(
-            of: find.byType(StatusBadge),
-            matching: find.byType(Container),
-          ).first,
+          find
+              .descendant(
+                of: find.byType(StatusBadge),
+                matching: find.byType(Container),
+              )
+              .first,
         );
         final decoration = container.decoration as BoxDecoration;
         expect(
@@ -72,8 +72,9 @@ void main() {
       });
     });
 
-    testWidgets('renders for every known flow state without error',
-        (tester) async {
+    testWidgets('renders for every known flow state without error', (
+      tester,
+    ) async {
       for (final state in Race.FLOW_SEQUENCE) {
         await tester.pumpWidget(_wrap(StatusBadge(flowState: state)));
         expect(find.byType(StatusBadge), findsOneWidget);

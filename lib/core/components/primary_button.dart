@@ -21,10 +21,10 @@ class PrimaryButton extends ActionButton {
     super.fontSize,
     super.fontWeight,
   }) : super(
-          isPrimary: true,
-          backgroundColor: AppColors.primaryColor,
-          textColor: Colors.white,
-        );
+         isPrimary: true,
+         backgroundColor: AppColors.primaryColor,
+         textColor: Colors.white,
+       );
 }
 
 /// Secondary action button with default styling (outlined)
@@ -45,10 +45,10 @@ class SecondaryButton extends ActionButton {
     super.fontWeight,
     super.height,
   }) : super(
-          isPrimary: false,
-          backgroundColor: Colors.white,
-          textColor: AppColors.primaryColor,
-        );
+         isPrimary: false,
+         backgroundColor: Colors.white,
+         textColor: AppColors.primaryColor,
+       );
 }
 
 /// Full width action button for flow-type actions
@@ -70,7 +70,7 @@ class FullWidthButton extends ActionButton {
     super.fontSize,
     super.fontWeight,
   }) : super(
-          size: ButtonSize.fullWidth,
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
-        );
+         size: ButtonSize.fullWidth,
+         padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
+       );
 }

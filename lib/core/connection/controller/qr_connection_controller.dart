@@ -29,10 +29,10 @@ class QRConnectionController extends ChangeNotifier {
     required Function callback,
     BarcodeScannerInterface barcodeScanner = const DefaultBarcodeScanner(),
     this.inSheet = false,
-  })  : _devices = devices,
-        _platformChecker = platformChecker,
-        _barcodeScanner = barcodeScanner,
-        _callback = callback;
+  }) : _devices = devices,
+       _platformChecker = platformChecker,
+       _barcodeScanner = barcodeScanner,
+       _callback = callback;
 
   Future<void> handleTap(BuildContext context) async {
     _clearError();
@@ -77,11 +77,7 @@ class QRConnectionController extends ChangeNotifier {
               style: const TextStyle(fontSize: 15, color: Color(0xFF606060)),
             ),
           ),
-          QrImageView(
-            data: qrData,
-            version: QrVersions.auto,
-            size: 250.0,
-          ),
+          QrImageView(data: qrData, version: QrVersions.auto, size: 250.0),
         ],
       ),
     );
@@ -92,9 +88,9 @@ class QRConnectionController extends ChangeNotifier {
     if (_devices.currentDeviceName == DeviceName.coach) {
       return _devices.toSpectator
           ? 'On each spectator\'s phone, tap Receive Race, then Coach, '
-              'then Scan QR Code.'
+                'then Scan QR Code.'
           : 'On each volunteer\'s phone, tap Get Race from Coach, then '
-              'Scan QR Code.';
+                'Scan QR Code.';
     }
     return 'On the coach\'s phone, tap Scan QR Code on the Load Results '
         'page.';
@@ -102,10 +98,12 @@ class QRConnectionController extends ChangeNotifier {
 
   Future<void> _scanQRCodes() async {
     if (!_platformChecker.isIOS && !_platformChecker.isAndroid) {
-      _setError(const AppError(
-        userMessage:
-            'QR scanner is not available on this device. Please use a mobile device.',
-      ));
+      _setError(
+        const AppError(
+          userMessage:
+              'QR scanner is not available on this device. Please use a mobile device.',
+        ),
+      );
       return;
     }
 
@@ -117,8 +115,9 @@ class QRConnectionController extends ChangeNotifier {
 
         DeviceName? scannedDeviceName;
         try {
-          scannedDeviceName =
-              _devices.getDevice(getDeviceNameFromString(parts[0]))?.name;
+          scannedDeviceName = _devices
+              .getDevice(getDeviceNameFromString(parts[0]))
+              ?.name;
         } catch (_) {
           // No match found, scannedDeviceName remains null
         }
@@ -130,10 +129,12 @@ class QRConnectionController extends ChangeNotifier {
 
         _devices.getDevice(scannedDeviceName)!.status =
             ConnectionStatus.finished;
-        _devices.getDevice(scannedDeviceName)!.data =
-            parts.sublist(1).join(':');
+        _devices.getDevice(scannedDeviceName)!.data = parts
+            .sublist(1)
+            .join(':');
         Logger.d(
-            'Data received: ${_devices.getDevice(scannedDeviceName)!.data}');
+          'Data received: ${_devices.getDevice(scannedDeviceName)!.data}',
+        );
 
         if (_devices.allDevicesFinished()) {
           _callback();
@@ -141,24 +142,30 @@ class QRConnectionController extends ChangeNotifier {
       }
     } on PlatformException catch (e) {
       if (e.code == 'PERMISSION_NOT_GRANTED') {
-        _setError(const AppError(
-          userMessage: 'Camera permission is required to scan QR codes.',
-        ));
+        _setError(
+          const AppError(
+            userMessage: 'Camera permission is required to scan QR codes.',
+          ),
+        );
       } else if (e.code == 'MissingPluginException') {
-        _setError(const AppError(
-          userMessage:
-              'QR scanner is not available on this device. Please use a different connection method.',
-        ));
+        _setError(
+          const AppError(
+            userMessage:
+                'QR scanner is not available on this device. Please use a different connection method.',
+          ),
+        );
       } else {
         Logger.e('[QRConnectionController] PlatformException: ${e.message}');
         _setError(const AppError(userMessage: 'Error scanning QR code'));
       }
     } catch (e) {
       Logger.e('[QRConnectionController] $e');
-      _setError(const AppError(
-        userMessage:
-            'An error occurred while scanning the QR code. Please try again.',
-      ));
+      _setError(
+        const AppError(
+          userMessage:
+              'An error occurred while scanning the QR code. Please try again.',
+        ),
+      );
     }
   }
 

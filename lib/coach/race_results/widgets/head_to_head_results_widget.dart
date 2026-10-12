@@ -61,9 +61,7 @@ class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
@@ -74,10 +72,11 @@ class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
               children: [
                 Expanded(
                   child: _buildTeamHeader(
-                      teamA,
-                      teamA.place == 1
-                          ? AppColors.primaryColor
-                          : Colors.grey.shade600),
+                    teamA,
+                    teamA.place == 1
+                        ? AppColors.primaryColor
+                        : Colors.grey.shade600,
+                  ),
                 ),
                 Container(
                   height: 24,
@@ -97,10 +96,11 @@ class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
                 ),
                 Expanded(
                   child: _buildTeamHeader(
-                      teamB,
-                      teamB.place == 1
-                          ? AppColors.primaryColor
-                          : Colors.grey.shade600),
+                    teamB,
+                    teamB.place == 1
+                        ? AppColors.primaryColor
+                        : Colors.grey.shade600,
+                  ),
                 ),
               ],
             ),
@@ -130,9 +130,7 @@ class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
           child: Center(
             child: Text(
               '${team.place}',
-              style: AppTypography.bodySemibold.copyWith(
-                color: Colors.white,
-              ),
+              style: AppTypography.bodySemibold.copyWith(color: Colors.white),
             ),
           ),
         ),
@@ -145,9 +143,7 @@ class _HeadToHeadResultsWidgetState extends State<HeadToHeadResultsWidget> {
         ),
         Text(
           'Score: ${team.score}',
-          style: AppTypography.bodyRegular.copyWith(
-            color: Colors.black54,
-          ),
+          style: AppTypography.bodyRegular.copyWith(color: Colors.black54),
         ),
       ],
     );

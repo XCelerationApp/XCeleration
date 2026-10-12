@@ -16,14 +16,15 @@ import '../../../../core/utils/sheet_utils.dart';
 
 /// Function type that matches the [showFlow] top-level function signature,
 /// used to allow injection in tests.
-typedef ShowFlowFn = Future<bool> Function({
-  required BuildContext context,
-  required List<FlowStep> steps,
-  bool showProgressIndicator,
-  int initialIndex,
-  StepChangedCallback? onStepChanged,
-  void Function(int lastIndex)? onDismiss,
-});
+typedef ShowFlowFn =
+    Future<bool> Function({
+      required BuildContext context,
+      required List<FlowStep> steps,
+      bool showProgressIndicator,
+      int initialIndex,
+      StepChangedCallback? onStepChanged,
+      void Function(int lastIndex)? onDismiss,
+    });
 
 class PreRaceController {
   final MasterRace masterRace;
@@ -40,17 +41,16 @@ class PreRaceController {
     Future<String> Function(MasterRace)? encodeRaceData,
     Future<String> Function(MasterRace)? encodeBibData,
     ShowFlowFn? showFlowFn,
-  })  : devices = devices ??
-            DeviceConnectionService.createDevices(
-              DeviceName.coach,
-              DeviceType.advertiserDevice,
-              data: '',
-            ),
-        encodeRaceData =
-            encodeRaceData ?? RaceEncodeUtils.getEncodedRaceData,
-        encodeBibData =
-            encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData,
-        _showFlow = showFlowFn ?? showFlow {
+  }) : devices =
+           devices ??
+           DeviceConnectionService.createDevices(
+             DeviceName.coach,
+             DeviceType.advertiserDevice,
+             data: '',
+           ),
+       encodeRaceData = encodeRaceData ?? RaceEncodeUtils.getEncodedRaceData,
+       encodeBibData = encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData,
+       _showFlow = showFlowFn ?? showFlow {
     _initializeSteps();
   }
 
@@ -78,7 +78,9 @@ class PreRaceController {
   /// in the confirmation before this, that they are at the race with the
   /// roster checked, so the flow is just the connection page and Done.
   Future<bool> showPreRaceFlow(
-      BuildContext context, bool showProgressIndicator) async {
+    BuildContext context,
+    bool showProgressIndicator,
+  ) async {
     // Encoded each time it opens: the roster may have changed since.
     await _prepareShareData();
     if (!context.mounted) {
@@ -103,8 +105,10 @@ class PreRaceController {
     if (encodedRaceData == '' || encodedBibData == '') {
       Logger.e('Failed to encode the race to send again');
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Could not prepare the race to send. Try again.');
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Could not prepare the race to send. Try again.',
+        );
       }
       return;
     }
@@ -122,8 +126,9 @@ class PreRaceController {
           Text(
             'On the volunteer\'s phone, tap Get Race from Coach. Times and '
             'bibs already recorded for this race stay on their phone.',
-            style: AppTypography.bodyRegular
-                .copyWith(color: AppColors.mediumColor),
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.mediumColor,
+            ),
           ),
           const SizedBox(height: AppSpacing.lg),
           DeviceConnectionWidget(devices: again),

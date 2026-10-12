@@ -11,17 +11,26 @@ import 'package:xceleration/core/services/service_locator.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/models/database/base_models.dart';
 
-@GenerateMocks([MasterRace, IRunnerRepository, ITeamRepository, IRaceRepository])
+@GenerateMocks([
+  MasterRace,
+  IRunnerRepository,
+  ITeamRepository,
+  IRaceRepository,
+])
 import 'runners_management_controller_test.mocks.dart';
 
 Future<BuildContext> _buildContext(WidgetTester tester) async {
   BuildContext? ctx;
-  await tester.pumpWidget(MaterialApp(
-    home: Builder(builder: (context) {
-      ctx = context;
-      return const SizedBox();
-    }),
-  ));
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Builder(
+        builder: (context) {
+          ctx = context;
+          return const SizedBox();
+        },
+      ),
+    ),
+  );
   return ctx!;
 }
 
@@ -96,7 +105,9 @@ void main() {
       });
 
       test('sets isLoading to false on error', () async {
-        when(mockMasterRace.raceRunners).thenAnswer((_) async => throw Exception('db error'));
+        when(
+          mockMasterRace.raceRunners,
+        ).thenAnswer((_) async => throw Exception('db error'));
 
         await controller.loadData();
 
@@ -123,7 +134,9 @@ void main() {
         controller.filterRaceRunners('alice');
         await Future.delayed(Duration.zero);
 
-        verify(mockMasterRace.searchRaceRunners('alice', 'all')).called(greaterThanOrEqualTo(1));
+        verify(
+          mockMasterRace.searchRaceRunners('alice', 'all'),
+        ).called(greaterThanOrEqualTo(1));
       });
     });
 
@@ -152,8 +165,9 @@ void main() {
       });
 
       test('throws exception when removeRaceRunner fails', () async {
-        when(mockMasterRace.removeRaceRunner(any))
-            .thenAnswer((_) async => throw Exception('delete failed'));
+        when(
+          mockMasterRace.removeRaceRunner(any),
+        ).thenAnswer((_) async => throw Exception('delete failed'));
 
         await expectLater(
           controller.deleteRaceRunner(testRaceRunner),
@@ -179,15 +193,25 @@ void main() {
       test('says so when the name is already taken', () async {
         // Names are unique across the whole app, so this happens to a coach
         // who already has the name on another race.
-        const existingTeam = Team(teamId: 1, name: 'Team A', abbreviation: 'TA');
-        when(mockMasterRace.getTeamByName('Team A')).thenAnswer((_) async => existingTeam);
+        const existingTeam = Team(
+          teamId: 1,
+          name: 'Team A',
+          abbreviation: 'TA',
+        );
+        when(
+          mockMasterRace.getTeamByName('Team A'),
+        ).thenAnswer((_) async => existingTeam);
 
-        final error = await controller
-            .createTeam(const Team(name: 'Team A', abbreviation: 'TA'));
+        final error = await controller.createTeam(
+          const Team(name: 'Team A', abbreviation: 'TA'),
+        );
 
         verifyNever(mockTeams.createTeam(any));
-        expect(error, isNotNull,
-            reason: 'the sheet used to close as though it had worked');
+        expect(
+          error,
+          isNotNull,
+          reason: 'the sheet used to close as though it had worked',
+        );
         expect(error!.userMessage, contains('Team A'));
       });
 
@@ -198,31 +222,40 @@ void main() {
         expect(error, isNotNull);
       });
 
-      test('creates team and adds team participant when team does not exist', () async {
-        when(mockMasterRace.getTeamByName('New Team')).thenAnswer((_) async => null);
-        when(mockTeams.createTeam(any)).thenAnswer((_) async => 2);
-        when(mockMasterRace.addTeamParticipant(any)).thenAnswer((_) async {});
+      test(
+        'creates team and adds team participant when team does not exist',
+        () async {
+          when(
+            mockMasterRace.getTeamByName('New Team'),
+          ).thenAnswer((_) async => null);
+          when(mockTeams.createTeam(any)).thenAnswer((_) async => 2);
+          when(mockMasterRace.addTeamParticipant(any)).thenAnswer((_) async {});
 
-        final error = await controller.createTeam(const Team(
-          teamId: 2,
-          name: 'New Team',
-          abbreviation: 'NT',
-          color: Color(0xFF2196F3),
-        ));
+          final error = await controller.createTeam(
+            const Team(
+              teamId: 2,
+              name: 'New Team',
+              abbreviation: 'NT',
+              color: Color(0xFF2196F3),
+            ),
+          );
 
-        expect(error, isNull, reason: 'success reports no error');
-        verify(mockTeams.createTeam(any)).called(1);
-        verify(mockMasterRace.addTeamParticipant(any)).called(1);
+          expect(error, isNull, reason: 'success reports no error');
+          verify(mockTeams.createTeam(any)).called(1);
+          verify(mockMasterRace.addTeamParticipant(any)).called(1);
 
-        // forceRefresh() is awaited inside createTeam, so no extra pump needed.
-        await Future.delayed(Duration.zero);
-      });
+          // forceRefresh() is awaited inside createTeam, so no extra pump needed.
+          await Future.delayed(Duration.zero);
+        },
+      );
     });
 
     // -------------------------------------------------------------------------
     group('handleRunnerSubmission', () {
       group('new runner path (runnerId == null)', () {
-        testWidgets('creates runner, adds to team roster and race', (tester) async {
+        testWidgets('creates runner, adds to team roster and race', (
+          tester,
+        ) async {
           final ctx = await _buildContext(tester);
           final newRaceRunner = RaceRunner(
             raceId: 1,
@@ -234,7 +267,9 @@ void main() {
           when(mockRunners.createRunner(any)).thenAnswer((_) async => 5);
           when(mockRunners.addRunnerToTeam(any, any)).thenAnswer((_) async {});
           when(mockMasterRace.addRaceParticipant(any)).thenAnswer((_) async {});
-          when(mockMasterRace.searchRaceRunners(any, any)).thenAnswer((_) async {});
+          when(
+            mockMasterRace.searchRaceRunners(any, any),
+          ).thenAnswer((_) async {});
 
           await controller.handleRunnerSubmission(ctx, newRaceRunner);
 
@@ -245,167 +280,242 @@ void main() {
       });
 
       group('existing runner path (runnerId != null, same bib)', () {
-        testWidgets('updates existing runner and race participant', (tester) async {
+        testWidgets('updates existing runner and race participant', (
+          tester,
+        ) async {
           final ctx = await _buildContext(tester);
           final existingRaceRunner = RaceRunner(
             raceId: 1,
-            runner: Runner(runnerId: 3, name: 'Carol Updated', bibNumber: '303', grade: 12),
+            runner: Runner(
+              runnerId: 3,
+              name: 'Carol Updated',
+              bibNumber: '303',
+              grade: 12,
+            ),
             team: testTeam,
           );
           // Same runner (runnerId matches) → no bib conflict
-          when(mockRunners.getRunnerByBib('303')).thenAnswer((_) async =>
-              Runner(runnerId: 3, name: 'Carol', bibNumber: '303', grade: 12));
-          when(mockRaces.updateRunnerWithTeams(
-            runner: anyNamed('runner'),
-            newTeamId: anyNamed('newTeamId'),
-            raceIdForTeamUpdate: anyNamed('raceIdForTeamUpdate'),
-          )).thenAnswer((_) async {});
-          when(mockRunners.getRunnersByBibAll('303')).thenAnswer((_) async => []);
-          when(mockMasterRace.updateRaceParticipant(any)).thenAnswer((_) async {});
-          when(mockMasterRace.searchRaceRunners(any, any)).thenAnswer((_) async {});
+          when(mockRunners.getRunnerByBib('303')).thenAnswer(
+            (_) async =>
+                Runner(runnerId: 3, name: 'Carol', bibNumber: '303', grade: 12),
+          );
+          when(
+            mockRaces.updateRunnerWithTeams(
+              runner: anyNamed('runner'),
+              newTeamId: anyNamed('newTeamId'),
+              raceIdForTeamUpdate: anyNamed('raceIdForTeamUpdate'),
+            ),
+          ).thenAnswer((_) async {});
+          when(
+            mockRunners.getRunnersByBibAll('303'),
+          ).thenAnswer((_) async => []);
+          when(
+            mockMasterRace.updateRaceParticipant(any),
+          ).thenAnswer((_) async {});
+          when(
+            mockMasterRace.searchRaceRunners(any, any),
+          ).thenAnswer((_) async {});
 
           await controller.handleRunnerSubmission(ctx, existingRaceRunner);
 
-          verify(mockRaces.updateRunnerWithTeams(
-            runner: anyNamed('runner'),
-            newTeamId: anyNamed('newTeamId'),
-            raceIdForTeamUpdate: anyNamed('raceIdForTeamUpdate'),
-          )).called(1);
+          verify(
+            mockRaces.updateRunnerWithTeams(
+              runner: anyNamed('runner'),
+              newTeamId: anyNamed('newTeamId'),
+              raceIdForTeamUpdate: anyNamed('raceIdForTeamUpdate'),
+            ),
+          ).called(1);
           verify(mockMasterRace.updateRaceParticipant(any)).called(1);
         });
       });
 
       group('bib conflict path (bib owned by different runner)', () {
-        testWidgets('updates conflict runner and deletes the old distinct runner', (tester) async {
-          final ctx = await _buildContext(tester);
-          // raceRunner has runnerId=1, but bib 404 is already owned by runnerId=9
-          final conflictingRaceRunner = RaceRunner(
-            raceId: 1,
-            runner: Runner(runnerId: 1, name: 'Dave', bibNumber: '404', grade: 10),
-            team: testTeam,
-          );
-          final conflictRunner = Runner(runnerId: 9, name: 'Eve', bibNumber: '404', grade: 11);
+        testWidgets(
+          'updates conflict runner and deletes the old distinct runner',
+          (tester) async {
+            final ctx = await _buildContext(tester);
+            // raceRunner has runnerId=1, but bib 404 is already owned by runnerId=9
+            final conflictingRaceRunner = RaceRunner(
+              raceId: 1,
+              runner: Runner(
+                runnerId: 1,
+                name: 'Dave',
+                bibNumber: '404',
+                grade: 10,
+              ),
+              team: testTeam,
+            );
+            final conflictRunner = Runner(
+              runnerId: 9,
+              name: 'Eve',
+              bibNumber: '404',
+              grade: 11,
+            );
 
-          when(mockRunners.getRunnerByBib('404')).thenAnswer((_) async => conflictRunner);
-          // Race participant lookup for old runner (runnerId=1)
-          when(mockRaces.getRaceParticipant(any)).thenAnswer((_) async => null);
-          when(mockRunners.updateRunner(any)).thenAnswer((_) async {});
-          when(mockRunners.setRunnerTeam(any, any)).thenAnswer((_) async {});
-          when(mockMasterRace.addRaceParticipant(any)).thenAnswer((_) async {});
-          when(mockRunners.deleteRunnerEverywhere(any)).thenAnswer((_) async {});
-          when(mockMasterRace.searchRaceRunners(any, any)).thenAnswer((_) async {});
+            when(
+              mockRunners.getRunnerByBib('404'),
+            ).thenAnswer((_) async => conflictRunner);
+            // Race participant lookup for old runner (runnerId=1)
+            when(
+              mockRaces.getRaceParticipant(any),
+            ).thenAnswer((_) async => null);
+            when(mockRunners.updateRunner(any)).thenAnswer((_) async {});
+            when(mockRunners.setRunnerTeam(any, any)).thenAnswer((_) async {});
+            when(
+              mockMasterRace.addRaceParticipant(any),
+            ).thenAnswer((_) async {});
+            when(
+              mockRunners.deleteRunnerEverywhere(any),
+            ).thenAnswer((_) async {});
+            when(
+              mockMasterRace.searchRaceRunners(any, any),
+            ).thenAnswer((_) async {});
 
-          await controller.handleRunnerSubmission(ctx, conflictingRaceRunner);
+            await controller.handleRunnerSubmission(ctx, conflictingRaceRunner);
 
-          // Existing conflict runner (9) was updated with submitted details
-          verify(mockRunners.updateRunner(any)).called(1);
-          // Old distinct runner (1) was deleted globally
-          verify(mockRunners.deleteRunnerEverywhere(1)).called(1);
-        });
+            // Existing conflict runner (9) was updated with submitted details
+            verify(mockRunners.updateRunner(any)).called(1);
+            // Old distinct runner (1) was deleted globally
+            verify(mockRunners.deleteRunnerEverywhere(1)).called(1);
+          },
+        );
 
-        testWidgets('refuses the merge, changing nothing, when the edited runner has results',
-            (tester) async {
-          // Deleting the edited runner would cascade away their results.
-          final ctx = await _buildContext(tester);
-          final editedRunner = RaceRunner(
-            raceId: 1,
-            runner: Runner(runnerId: 1, name: 'Dave', bibNumber: '404', grade: 10),
-            team: testTeam,
-          );
-          when(mockRunners.getRunnerByBib('404')).thenAnswer((_) async =>
-              Runner(runnerId: 9, name: 'Eve', bibNumber: '404', grade: 11));
-          when(mockRunners.countRaceResults(1)).thenAnswer((_) async => 3);
+        testWidgets(
+          'refuses the merge, changing nothing, when the edited runner has results',
+          (tester) async {
+            // Deleting the edited runner would cascade away their results.
+            final ctx = await _buildContext(tester);
+            final editedRunner = RaceRunner(
+              raceId: 1,
+              runner: Runner(
+                runnerId: 1,
+                name: 'Dave',
+                bibNumber: '404',
+                grade: 10,
+              ),
+              team: testTeam,
+            );
+            when(mockRunners.getRunnerByBib('404')).thenAnswer(
+              (_) async =>
+                  Runner(runnerId: 9, name: 'Eve', bibNumber: '404', grade: 11),
+            );
+            when(mockRunners.countRaceResults(1)).thenAnswer((_) async => 3);
 
-          await expectLater(
-            controller.handleRunnerSubmission(ctx, editedRunner),
-            throwsA(isA<DataInUseException>()),
-          );
+            await expectLater(
+              controller.handleRunnerSubmission(ctx, editedRunner),
+              throwsA(isA<DataInUseException>()),
+            );
 
-          verifyNever(mockRunners.updateRunner(any));
-          verifyNever(mockRunners.deleteRunnerEverywhere(any));
-          verifyNever(mockMasterRace.removeRaceParticipant(any));
-        });
+            verifyNever(mockRunners.updateRunner(any));
+            verifyNever(mockRunners.deleteRunnerEverywhere(any));
+            verifyNever(mockMasterRace.removeRaceParticipant(any));
+          },
+        );
       });
     });
 
     // -------------------------------------------------------------------------
     group('confirmAndDeleteTeam', () {
-      testWidgets('removes team from race, calls forceRefresh, returns true on confirm', (tester) async {
-        when(mockMasterRace.removeTeamFromRace(any)).thenAnswer((_) async {});
-        var called = false;
-        final ctrl = RunnersManagementController(
-          masterRace: mockMasterRace,
-          onContentChanged: () => called = true,
-        );
-        addTearDown(ctrl.dispose);
+      testWidgets(
+        'removes team from race, calls forceRefresh, returns true on confirm',
+        (tester) async {
+          when(mockMasterRace.removeTeamFromRace(any)).thenAnswer((_) async {});
+          var called = false;
+          final ctrl = RunnersManagementController(
+            masterRace: mockMasterRace,
+            onContentChanged: () => called = true,
+          );
+          addTearDown(ctrl.dispose);
 
-        late Future<bool> result;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            return TextButton(
-              onPressed: () {
-                result = ctrl.confirmAndDeleteTeam(context, testTeam);
-              },
-              child: const Text('trigger'),
-            );
-          }),
-        ));
+          late Future<bool> result;
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Builder(
+                builder: (context) {
+                  return TextButton(
+                    onPressed: () {
+                      result = ctrl.confirmAndDeleteTeam(context, testTeam);
+                    },
+                    child: const Text('trigger'),
+                  );
+                },
+              ),
+            ),
+          );
 
-        await tester.tap(find.text('trigger'));
-        await tester.pump(); // show dialog
-        await tester.tap(find.text('Remove'));
-        await tester.pump(); // process tap — dialog starts closing
-        await tester.pump(const Duration(milliseconds: 300)); // finish close animation
+          await tester.tap(find.text('trigger'));
+          await tester.pump(); // show dialog
+          await tester.tap(find.text('Remove'));
+          await tester.pump(); // process tap — dialog starts closing
+          await tester.pump(
+            const Duration(milliseconds: 300),
+          ); // finish close animation
 
-        expect(await result, isTrue);
-        expect(called, isTrue);
-        verify(mockMasterRace.removeTeamFromRace(any)).called(1);
-      });
+          expect(await result, isTrue);
+          expect(called, isTrue);
+          verify(mockMasterRace.removeTeamFromRace(any)).called(1);
+        },
+      );
 
       testWidgets('returns false when user cancels dialog', (tester) async {
         late Future<bool> result;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            return TextButton(
-              onPressed: () {
-                result = controller.confirmAndDeleteTeam(context, testTeam);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                return TextButton(
+                  onPressed: () {
+                    result = controller.confirmAndDeleteTeam(context, testTeam);
+                  },
+                  child: const Text('trigger'),
+                );
               },
-              child: const Text('trigger'),
-            );
-          }),
-        ));
+            ),
+          ),
+        );
 
         await tester.tap(find.text('trigger'));
         await tester.pump(); // show dialog
         await tester.tap(find.text('Cancel'));
         await tester.pump(); // process tap
-        await tester.pump(const Duration(milliseconds: 300)); // finish close animation
+        await tester.pump(
+          const Duration(milliseconds: 300),
+        ); // finish close animation
 
         expect(await result, isFalse);
         verifyNever(mockMasterRace.removeTeamFromRace(any));
       });
 
-      testWidgets('returns false when removeTeamFromRace throws', (tester) async {
-        when(mockMasterRace.removeTeamFromRace(any))
-            .thenAnswer((_) async => throw Exception('delete failed'));
+      testWidgets('returns false when removeTeamFromRace throws', (
+        tester,
+      ) async {
+        when(
+          mockMasterRace.removeTeamFromRace(any),
+        ).thenAnswer((_) async => throw Exception('delete failed'));
 
         late Future<bool> result;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            return TextButton(
-              onPressed: () {
-                result = controller.confirmAndDeleteTeam(context, testTeam);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                return TextButton(
+                  onPressed: () {
+                    result = controller.confirmAndDeleteTeam(context, testTeam);
+                  },
+                  child: const Text('trigger'),
+                );
               },
-              child: const Text('trigger'),
-            );
-          }),
-        ));
+            ),
+          ),
+        );
 
         await tester.tap(find.text('trigger'));
         await tester.pump(); // show dialog
         await tester.tap(find.text('Remove'));
         await tester.pump(); // process tap
-        await tester.pump(const Duration(milliseconds: 300)); // finish close animation
+        await tester.pump(
+          const Duration(milliseconds: 300),
+        ); // finish close animation
 
         expect(await result, isFalse);
       });
@@ -424,8 +534,9 @@ void main() {
         await ctrl.forceRefresh();
 
         verify(mockMasterRace.invalidateCache()).called(1);
-        verify(mockMasterRace.searchRaceRunners(any, any))
-            .called(greaterThanOrEqualTo(1));
+        verify(
+          mockMasterRace.searchRaceRunners(any, any),
+        ).called(greaterThanOrEqualTo(1));
         expect(called, isTrue);
       });
     });

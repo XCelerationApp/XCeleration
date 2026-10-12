@@ -125,9 +125,9 @@ class RaceScreenController with ChangeNotifier {
     IEventBus? eventBus,
     IDeviceConnectionFactory? devicesFactory,
     IRaceService? raceService,
-  })  : _datePickerService = datePickerService ?? DatePickerService(),
-        _eventBus = eventBus ?? EventBus.instance,
-        _devicesFactory = devicesFactory ?? const DeviceConnectionFactoryImpl() {
+  }) : _datePickerService = datePickerService ?? DatePickerService(),
+       _eventBus = eventBus ?? EventBus.instance,
+       _devicesFactory = devicesFactory ?? const DeviceConnectionFactoryImpl() {
     _raceService = raceService ?? ServiceLocator.get<IRaceService>();
     this.flowController =
         flowController ?? MasterFlowController(raceController: this);
@@ -155,8 +155,10 @@ class RaceScreenController with ChangeNotifier {
     await _loadData(isInitial: true, context: context);
   }
 
-  Future<void> _loadData(
-      {required bool isInitial, BuildContext? context}) async {
+  Future<void> _loadData({
+    required bool isInitial,
+    BuildContext? context,
+  }) async {
     try {
       if (isInitial) {
         _isInitialLoading = true;
@@ -176,7 +178,8 @@ class RaceScreenController with ChangeNotifier {
 
       final flowState = _race!.flowState;
       final roleAllowsEdit = parentController.canEdit;
-      _canEdit = roleAllowsEdit &&
+      _canEdit =
+          roleAllowsEdit &&
           (flowState == Race.FLOW_SETUP ||
               flowState == Race.FLOW_SETUP_COMPLETED ||
               flowState == Race.FLOW_PRE_RACE);
@@ -185,7 +188,8 @@ class RaceScreenController with ChangeNotifier {
         form.initializeFrom(_race!);
 
         if ((_race!.flowState == null || _race!.flowState!.isEmpty) &&
-            context != null && context.mounted) {
+            context != null &&
+            context.mounted) {
           await updateRaceFlowState(context, Race.FLOW_SETUP);
         }
 
@@ -252,7 +256,9 @@ class RaceScreenController with ChangeNotifier {
   }
 
   Future<void> handleFieldFocusLoss(
-      BuildContext context, RaceField field) async {
+    BuildContext context,
+    RaceField field,
+  ) async {
     trackFieldChange(field);
     if (form.hasUnsavedChanges && shouldAutosave && context.mounted) {
       await saveAllChanges(context);
@@ -306,7 +312,9 @@ class RaceScreenController with ChangeNotifier {
   /// Updates the race flow state in the database, notifies listeners, and
   /// fires the raceFlowStateChanged event.
   Future<void> updateRaceFlowState(
-      BuildContext context, String newState) async {
+    BuildContext context,
+    String newState,
+  ) async {
     final race = await masterRace.race;
     final String previousState = race.flowState ?? '';
 
@@ -318,14 +326,16 @@ class RaceScreenController with ChangeNotifier {
         newState == Race.FLOW_SETUP_COMPLETED) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (context.mounted) {
-          DialogUtils.showMessageDialog(context,
-              title: 'Setup Complete',
-              message:
-                  'Your race is set up.\n\nOn race day you need two volunteers '
-                  'with XCeleration on their phones: a Timer and a Bib '
-                  'Recorder. Once you are at the race together, tap Send to '
-                  'Volunteers.',
-              doneText: 'Got it');
+          DialogUtils.showMessageDialog(
+            context,
+            title: 'Setup Complete',
+            message:
+                'Your race is set up.\n\nOn race day you need two volunteers '
+                'with XCeleration on their phones: a Timer and a Bib '
+                'Recorder. Once you are at the race together, tap Send to '
+                'Volunteers.',
+            doneText: 'Got it',
+          );
         }
       });
     }
@@ -356,8 +366,10 @@ class RaceScreenController with ChangeNotifier {
   // ---------------------------------------------------------------------------
   // Navigation
 
-  Future<void> loadRunnersManagementScreenWithConfirmation(BuildContext context,
-      {bool isViewMode = false}) async {
+  Future<void> loadRunnersManagementScreenWithConfirmation(
+    BuildContext context, {
+    bool isViewMode = false,
+  }) async {
     final canEditValue = canEdit;
     if (canEditValue &&
         !isViewMode &&
@@ -385,7 +397,9 @@ class RaceScreenController with ChangeNotifier {
 
   Future<void> navigateToRaceDetails(BuildContext context) async {
     _showingRunnersManagement = false;
-    await refreshRaceData(context); // _loadData inside already calls notifyListeners
+    await refreshRaceData(
+      context,
+    ); // _loadData inside already calls notifyListeners
   }
 
   Future<void> refreshRaceData(BuildContext context) async {
@@ -425,12 +439,11 @@ class RaceScreenController with ChangeNotifier {
   // ---------------------------------------------------------------------------
   // Devices
 
-  DevicesManager createDevices(DeviceType deviceType,
-      {DeviceName deviceName = DeviceName.coach, String data = ''}) {
-    return _devicesFactory.createDevices(
-      deviceName,
-      deviceType,
-      data: data,
-    );
+  DevicesManager createDevices(
+    DeviceType deviceType, {
+    DeviceName deviceName = DeviceName.coach,
+    String data = '',
+  }) {
+    return _devicesFactory.createDevices(deviceName, deviceType, data: data);
   }
 }

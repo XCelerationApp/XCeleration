@@ -30,30 +30,37 @@ void main() {
     browserDevicesManager = MockDevicesManager();
 
     // Configure the mock device managers
-    when(advertiserDevicesManager.currentDeviceName)
-        .thenReturn(DeviceName.coach);
-    when(advertiserDevicesManager.currentDeviceType)
-        .thenReturn(DeviceType.advertiserDevice);
+    when(
+      advertiserDevicesManager.currentDeviceName,
+    ).thenReturn(DeviceName.coach);
+    when(
+      advertiserDevicesManager.currentDeviceType,
+    ).thenReturn(DeviceType.advertiserDevice);
     when(browserDevicesManager.currentDeviceName).thenReturn(DeviceName.coach);
-    when(browserDevicesManager.currentDeviceType)
-        .thenReturn(DeviceType.browserDevice);
+    when(
+      browserDevicesManager.currentDeviceType,
+    ).thenReturn(DeviceType.browserDevice);
 
     // Set up default behaviors for the mocks
     when(mockConnectionService.isActive).thenReturn(true);
-    when(mockConnectionService.monitorDevicesConnectionStatus(
-            deviceFoundCallback: anyNamed('deviceFoundCallback'),
-            deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
-            deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
-            timeout: anyNamed('timeout'),
-            timeoutCallback: anyNamed('timeoutCallback')))
-        .thenAnswer((_) async {});
+    when(
+      mockConnectionService.monitorDevicesConnectionStatus(
+        deviceFoundCallback: anyNamed('deviceFoundCallback'),
+        deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
+        deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
+        timeout: anyNamed('timeout'),
+        timeoutCallback: anyNamed('timeoutCallback'),
+      ),
+    ).thenAnswer((_) async {});
   });
 
   group('Complete data transfer flow', () {
     test('Successful data transfer between advertiser and browser', () async {
       // Test devices
-      final advertiserDevice =
-          ConnectedDevice(DeviceName.coach, data: 'test_data_to_send');
+      final advertiserDevice = ConnectedDevice(
+        DeviceName.coach,
+        data: 'test_data_to_send',
+      );
       advertiserDevice.status = ConnectionStatus.found;
 
       final browserDevice = ConnectedDevice(DeviceName.bibRecorder);
@@ -62,24 +69,28 @@ void main() {
       // Setup mock device lists
       final List<ConnectedDevice> advertiserDevices = [advertiserDevice];
       when(advertiserDevicesManager.devices).thenReturn(advertiserDevices);
-      when(advertiserDevicesManager.getDevice(DeviceName.coach))
-          .thenReturn(advertiserDevice);
+      when(
+        advertiserDevicesManager.getDevice(DeviceName.coach),
+      ).thenReturn(advertiserDevice);
       final List<ConnectedDevice> browserDevices = [browserDevice];
       when(browserDevicesManager.devices).thenReturn(browserDevices);
-      when(browserDevicesManager.getDevice(DeviceName.bibRecorder))
-          .thenReturn(browserDevice);
+      when(
+        browserDevicesManager.getDevice(DeviceName.bibRecorder),
+      ).thenReturn(browserDevice);
 
       // Set up protocols
       final advertiserProtocol = MockProtocol();
       final browserProtocol = MockProtocol();
 
       // Configure advertiser (sending data)
-      when(advertiserProtocol.handleDataTransfer(
-              deviceId: anyNamed('deviceId'),
-              dataToSend: anyNamed('dataToSend'),
-              isReceiving: false,
-              shouldContinueTransfer: anyNamed('shouldContinueTransfer')))
-          .thenAnswer((_) async {
+      when(
+        advertiserProtocol.handleDataTransfer(
+          deviceId: anyNamed('deviceId'),
+          dataToSend: anyNamed('dataToSend'),
+          isReceiving: false,
+          shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
+        ),
+      ).thenAnswer((_) async {
         // Simulate sending the data
         advertiserDevice.status = ConnectionStatus.sending;
         await Future.delayed(Duration(milliseconds: 50));
@@ -91,12 +102,14 @@ void main() {
       });
 
       // Configure browser (receiving data)
-      when(browserProtocol.handleDataTransfer(
-              deviceId: anyNamed('deviceId'),
-              dataToSend: null,
-              isReceiving: true,
-              shouldContinueTransfer: anyNamed('shouldContinueTransfer')))
-          .thenAnswer((_) async {
+      when(
+        browserProtocol.handleDataTransfer(
+          deviceId: anyNamed('deviceId'),
+          dataToSend: null,
+          isReceiving: true,
+          shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
+        ),
+      ).thenAnswer((_) async {
         // Simulate receiving data
         browserDevice.status = ConnectionStatus.receiving;
         await Future.delayed(Duration(milliseconds: 50));
@@ -113,42 +126,48 @@ void main() {
       final browserCompleted = Completer<void>();
 
       // Simulate advertiser side
-      unawaited(Future(() async {
-        try {
-          final result = await advertiserProtocol.handleDataTransfer(
+      unawaited(
+        Future(() async {
+          try {
+            final result = await advertiserProtocol.handleDataTransfer(
               deviceId: 'Browser',
               dataToSend: advertiserDevice.data,
               isReceiving: false,
               shouldContinueTransfer: () =>
-                  advertiserDevice.status != ConnectionStatus.found);
+                  advertiserDevice.status != ConnectionStatus.found,
+            );
 
-          expect(result, isA<Success<String?>>());
-          expect((result as Success<String?>).value, null);
-          expect(advertiserDevice.status, ConnectionStatus.finished);
-          advertiserCompleted.complete();
-        } catch (e) {
-          advertiserCompleted.completeError(e);
-        }
-      }));
+            expect(result, isA<Success<String?>>());
+            expect((result as Success<String?>).value, null);
+            expect(advertiserDevice.status, ConnectionStatus.finished);
+            advertiserCompleted.complete();
+          } catch (e) {
+            advertiserCompleted.completeError(e);
+          }
+        }),
+      );
 
       // Simulate browser side
-      unawaited(Future(() async {
-        try {
-          final result = await browserProtocol.handleDataTransfer(
+      unawaited(
+        Future(() async {
+          try {
+            final result = await browserProtocol.handleDataTransfer(
               deviceId: 'Advertiser',
               dataToSend: null,
               isReceiving: true,
               shouldContinueTransfer: () =>
-                  browserDevice.status != ConnectionStatus.found);
+                  browserDevice.status != ConnectionStatus.found,
+            );
 
-          expect(result, isA<Success<String?>>());
-          expect((result as Success<String?>).value, 'test_data_to_send');
-          expect(browserDevice.status, ConnectionStatus.finished);
-          browserCompleted.complete();
-        } catch (e) {
-          browserCompleted.completeError(e);
-        }
-      }));
+            expect(result, isA<Success<String?>>());
+            expect((result as Success<String?>).value, 'test_data_to_send');
+            expect(browserDevice.status, ConnectionStatus.finished);
+            browserCompleted.complete();
+          } catch (e) {
+            browserCompleted.completeError(e);
+          }
+        }),
+      );
 
       // Wait for both sides to complete
       await Future.wait([advertiserCompleted.future, browserCompleted.future]);
@@ -161,8 +180,10 @@ void main() {
 
     test('Handles premature disconnection gracefully', () async {
       // Test devices
-      final advertiserDevice =
-          ConnectedDevice(DeviceName.coach, data: 'test_data_to_send');
+      final advertiserDevice = ConnectedDevice(
+        DeviceName.coach,
+        data: 'test_data_to_send',
+      );
       advertiserDevice.status = ConnectionStatus.found;
 
       final browserDevice = ConnectedDevice(DeviceName.bibRecorder);
@@ -171,24 +192,28 @@ void main() {
       // Setup mock device lists
       final List<ConnectedDevice> advertiserDevices = [advertiserDevice];
       when(advertiserDevicesManager.devices).thenReturn(advertiserDevices);
-      when(advertiserDevicesManager.getDevice(DeviceName.coach))
-          .thenReturn(advertiserDevice);
+      when(
+        advertiserDevicesManager.getDevice(DeviceName.coach),
+      ).thenReturn(advertiserDevice);
       final List<ConnectedDevice> browserDevices = [browserDevice];
       when(browserDevicesManager.devices).thenReturn(browserDevices);
-      when(browserDevicesManager.getDevice(DeviceName.bibRecorder))
-          .thenReturn(browserDevice);
+      when(
+        browserDevicesManager.getDevice(DeviceName.bibRecorder),
+      ).thenReturn(browserDevice);
 
       // Set up protocols
       final advertiserProtocol = MockProtocol();
       final browserProtocol = MockProtocol();
 
       // Configure advertiser to disconnect before sending FIN
-      when(advertiserProtocol.handleDataTransfer(
-              deviceId: anyNamed('deviceId'),
-              dataToSend: anyNamed('dataToSend'),
-              isReceiving: false,
-              shouldContinueTransfer: anyNamed('shouldContinueTransfer')))
-          .thenAnswer((_) async {
+      when(
+        advertiserProtocol.handleDataTransfer(
+          deviceId: anyNamed('deviceId'),
+          dataToSend: anyNamed('dataToSend'),
+          isReceiving: false,
+          shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
+        ),
+      ).thenAnswer((_) async {
         // Simulate sending data
         advertiserDevice.status = ConnectionStatus.sending;
         await Future.delayed(Duration(milliseconds: 50));
@@ -196,20 +221,25 @@ void main() {
         // Simulate premature disconnection
         advertiserDevice.status = ConnectionStatus.found;
 
-        return Failure(AppError(
-          userMessage: 'Data transfer failed. Please try again.',
-          originalException: ProtocolTerminatedException(
-              'Transfer aborted: device status changed'),
-        ));
+        return Failure(
+          AppError(
+            userMessage: 'Data transfer failed. Please try again.',
+            originalException: ProtocolTerminatedException(
+              'Transfer aborted: device status changed',
+            ),
+          ),
+        );
       });
 
       // Configure browser to handle disconnection
-      when(browserProtocol.handleDataTransfer(
-              deviceId: anyNamed('deviceId'),
-              dataToSend: null,
-              isReceiving: true,
-              shouldContinueTransfer: anyNamed('shouldContinueTransfer')))
-          .thenAnswer((_) async {
+      when(
+        browserProtocol.handleDataTransfer(
+          deviceId: anyNamed('deviceId'),
+          dataToSend: null,
+          isReceiving: true,
+          shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
+        ),
+      ).thenAnswer((_) async {
         // Simulate receiving some data
         browserDevice.status = ConnectionStatus.receiving;
         await Future.delayed(Duration(milliseconds: 50));
@@ -217,29 +247,34 @@ void main() {
         // Simulate disconnection detected
         browserDevice.status = ConnectionStatus.error;
 
-        return Failure(AppError(
-          userMessage: 'Data transfer failed. Please try again.',
-          originalException: ProtocolTerminatedException(
-              'Transfer aborted: device status changed'),
-        ));
+        return Failure(
+          AppError(
+            userMessage: 'Data transfer failed. Please try again.',
+            originalException: ProtocolTerminatedException(
+              'Transfer aborted: device status changed',
+            ),
+          ),
+        );
       });
 
       // Test advertiser side returns Failure
       final advertiserResult = await advertiserProtocol.handleDataTransfer(
-          deviceId: 'Browser',
-          dataToSend: advertiserDevice.data,
-          isReceiving: false,
-          shouldContinueTransfer: () =>
-              advertiserDevice.status == ConnectionStatus.sending);
+        deviceId: 'Browser',
+        dataToSend: advertiserDevice.data,
+        isReceiving: false,
+        shouldContinueTransfer: () =>
+            advertiserDevice.status == ConnectionStatus.sending,
+      );
       expect(advertiserResult, isA<Failure<String?>>());
 
       // Test browser side returns Failure
       final browserResult = await browserProtocol.handleDataTransfer(
-          deviceId: 'Advertiser',
-          dataToSend: null,
-          isReceiving: true,
-          shouldContinueTransfer: () =>
-              browserDevice.status == ConnectionStatus.receiving);
+        deviceId: 'Advertiser',
+        dataToSend: null,
+        isReceiving: true,
+        shouldContinueTransfer: () =>
+            browserDevice.status == ConnectionStatus.receiving,
+      );
       expect(browserResult, isA<Failure<String?>>());
     });
   });
@@ -249,14 +284,16 @@ void main() {
       // Create a function that mimics the _shouldRescan method
       bool shouldRescan(String token) {
         // Logic from _shouldRescan
-        if (advertiserDevicesManager.devices.any((device) =>
-            !device.isFinished &&
-            device.status != ConnectionStatus.searching)) {
+        if (advertiserDevicesManager.devices.any(
+          (device) =>
+              !device.isFinished && device.status != ConnectionStatus.searching,
+        )) {
           return false;
         }
 
-        return !advertiserDevicesManager.devices
-            .every((device) => device.isFinished);
+        return !advertiserDevicesManager.devices.every(
+          (device) => device.isFinished,
+        );
       }
 
       // Add a device in receiving state
@@ -266,8 +303,9 @@ void main() {
       // Configure the mock to return this device
       final List<ConnectedDevice> devices = [device];
       when(advertiserDevicesManager.devices).thenReturn(devices);
-      when(advertiserDevicesManager.getDevice(DeviceName.coach))
-          .thenReturn(device);
+      when(
+        advertiserDevicesManager.getDevice(DeviceName.coach),
+      ).thenReturn(device);
 
       // Should not rescan with a device in receiving state
       expect(shouldRescan('test_token'), false);

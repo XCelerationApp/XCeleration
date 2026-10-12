@@ -35,7 +35,9 @@ class LoadResultsWidget extends StatelessWidget {
     // page title.
     return Padding(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xl, vertical: AppSpacing.lg),
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.lg,
+      ),
       child: AnimatedBuilder(
         animation: controller,
         builder: (context, _) {
@@ -73,8 +75,9 @@ class LoadResultsWidget extends StatelessWidget {
                   child: Text(
                     error.userMessage,
                     textAlign: TextAlign.center,
-                    style: AppTypography.bodyRegular
-                        .copyWith(color: AppColors.redColor),
+                    style: AppTypography.bodyRegular.copyWith(
+                      color: AppColors.redColor,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -89,12 +92,14 @@ class LoadResultsWidget extends StatelessWidget {
                         controller.hasTimingConflicts)
                       ConflictButton(
                         title: 'Some Results Need Checking',
-                        description: 'Tap here and the app walks you '
+                        description:
+                            'Tap here and the app walks you '
                             'through each one: bib numbers first, then '
                             'times. Next opens once they are done.',
                         onPressed: () {
                           debugPrint(
-                              'Conflict button pressed - Bib conflicts: ${controller.hasBibConflicts}, Timing conflicts: ${controller.hasTimingConflicts}');
+                            'Conflict button pressed - Bib conflicts: ${controller.hasBibConflicts}, Timing conflicts: ${controller.hasTimingConflicts}',
+                          );
                           if (controller.hasBibConflicts) {
                             controller.showBibConflictsSheet(context);
                           } else {
