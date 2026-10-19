@@ -45,7 +45,6 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> deleteUserData(String userId) async => deleteDatabase();
-
 }
 
 void main() {
@@ -72,10 +71,13 @@ void main() {
 
   group('TeamRepository', () {
     group('updated_at stamps', () {
-      Future<String> teamUpdatedAt(int id) async => (await (await connProvider
-                  .database)
-              .query('teams', where: 'team_id = ?', whereArgs: [id]))
-          .single['updated_at'] as String;
+      Future<String> teamUpdatedAt(int id) async =>
+          (await (await connProvider.database).query(
+                'teams',
+                where: 'team_id = ?',
+                whereArgs: [id],
+              )).single['updated_at']
+              as String;
 
       test('createTeam stamps updated_at in UTC', () async {
         final id = await repo.createTeam(validTeam);
@@ -84,12 +86,14 @@ void main() {
 
       test('updateTeam stamps updated_at in UTC', () async {
         final id = await repo.createTeam(validTeam);
-        await repo.updateTeam(Team(
-          teamId: id,
-          name: 'Eagles',
-          abbreviation: 'EGL',
-          color: const Color(0xFFFF0000),
-        ));
+        await repo.updateTeam(
+          Team(
+            teamId: id,
+            name: 'Eagles',
+            abbreviation: 'EGL',
+            color: const Color(0xFFFF0000),
+          ),
+        );
         expect(await teamUpdatedAt(id), endsWith('Z'));
       });
     });
@@ -101,12 +105,20 @@ void main() {
       });
 
       test('throws when team name is empty', () async {
-        const invalid = Team(name: '', abbreviation: 'X', color: Color(0xFF2196F3));
+        const invalid = Team(
+          name: '',
+          abbreviation: 'X',
+          color: Color(0xFF2196F3),
+        );
         expect(() => repo.createTeam(invalid), throwsException);
       });
 
       test('throws when abbreviation is empty', () async {
-        const invalid = Team(name: 'Eagles', abbreviation: '', color: Color(0xFF2196F3));
+        const invalid = Team(
+          name: 'Eagles',
+          abbreviation: '',
+          color: Color(0xFF2196F3),
+        );
         expect(() => repo.createTeam(invalid), throwsException);
       });
 
@@ -158,7 +170,12 @@ void main() {
 
       test('returns teams ordered by name', () async {
         await repo.createTeam(
-            const Team(name: 'Zephyrs', abbreviation: 'ZEP', color: Color(0xFF2196F3)));
+          const Team(
+            name: 'Zephyrs',
+            abbreviation: 'ZEP',
+            color: Color(0xFF2196F3),
+          ),
+        );
         await repo.createTeam(validTeam);
         final teams = await repo.getAllTeams();
         expect(teams.length, 2);
@@ -171,7 +188,12 @@ void main() {
       setUp(() async {
         await repo.createTeam(validTeam);
         await repo.createTeam(
-            const Team(name: 'Hawks', abbreviation: 'HWK', color: Color(0xFF2196F3)));
+          const Team(
+            name: 'Hawks',
+            abbreviation: 'HWK',
+            color: Color(0xFF2196F3),
+          ),
+        );
       });
 
       test('matches teams by name substring', () async {
@@ -194,12 +216,14 @@ void main() {
     group('updateTeam', () {
       test('updates team fields successfully', () async {
         final id = await repo.createTeam(validTeam);
-        await repo.updateTeam(Team(
-          teamId: id,
-          name: 'Eagles',
-          abbreviation: 'EGL',
-          color: const Color(0xFFFF0000),
-        ));
+        await repo.updateTeam(
+          Team(
+            teamId: id,
+            name: 'Eagles',
+            abbreviation: 'EGL',
+            color: const Color(0xFFFF0000),
+          ),
+        );
         final updated = await repo.getTeam(id);
         expect(updated!.abbreviation, 'EGL');
       });
@@ -216,12 +240,14 @@ void main() {
           'team_color_override': 0xFF2196F3,
         });
 
-        await repo.updateTeam(Team(
-          teamId: id,
-          name: 'Eagles',
-          abbreviation: 'EAG',
-          color: const Color(0xFFFF0000),
-        ));
+        await repo.updateTeam(
+          Team(
+            teamId: id,
+            name: 'Eagles',
+            abbreviation: 'EAG',
+            color: const Color(0xFFFF0000),
+          ),
+        );
 
         final row = (await db.query('race_team_participation')).single;
         expect(row['team_color_override'], isNull);
@@ -241,12 +267,14 @@ void main() {
       test('throws when team name is empty', () async {
         final id = await repo.createTeam(validTeam);
         expect(
-          () => repo.updateTeam(Team(
-            teamId: id,
-            name: '',
-            abbreviation: 'EAG',
-            color: const Color(0xFF2196F3),
-          )),
+          () => repo.updateTeam(
+            Team(
+              teamId: id,
+              name: '',
+              abbreviation: 'EAG',
+              color: const Color(0xFF2196F3),
+            ),
+          ),
           throwsException,
         );
       });
@@ -270,9 +298,16 @@ void main() {
         // results from every race.
         final teamId = await repo.createTeam(validTeam);
         final db = await connProvider.database;
-        final runnerId = await db.insert('runners',
-            {'name': 'A', 'bib_number': '1', 'grade': 11, 'is_dirty': 0});
-        final raceId = await db.insert('races', {'name': 'Meet', 'is_dirty': 0});
+        final runnerId = await db.insert('runners', {
+          'name': 'A',
+          'bib_number': '1',
+          'grade': 11,
+          'is_dirty': 0,
+        });
+        final raceId = await db.insert('races', {
+          'name': 'Meet',
+          'is_dirty': 0,
+        });
         await db.insert('race_results', {
           'race_id': raceId,
           'runner_id': runnerId,
@@ -283,7 +318,9 @@ void main() {
         });
 
         await expectLater(
-            repo.deleteTeam(teamId), throwsA(isA<DataInUseException>()));
+          repo.deleteTeam(teamId),
+          throwsA(isA<DataInUseException>()),
+        );
 
         expect(await repo.getTeam(teamId), isNotNull);
         expect(await db.query('race_results'), hasLength(1));

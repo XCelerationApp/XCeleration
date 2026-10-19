@@ -21,14 +21,15 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   tearDown(MasterRace.clearAllInstances);
 
-  testWidgets('shows the race and progress, and closes once resolved',
-      (tester) async {
+  testWidgets('shows the race and progress, and closes once resolved', (
+    tester,
+  ) async {
     final chunks = [
       TimingChunk(
         id: 0,
         timingData: [
           for (final t in ['0:10.00', '0:11.00', '0:12.00'])
-            TimingDatum(time: t)
+            TimingDatum(time: t),
         ],
         conflictRecord: TimingDatum(
           time: '0:13.00',
@@ -45,34 +46,38 @@ void main() {
         ),
     ];
     var closed = false;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: ElevatedButton(
-            onPressed: () async {
-              await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => ChangeNotifierProvider(
-                  create: (_) => MergeConflictsController(
-                    masterRace: MasterRace.getInstance(1),
-                    timingChunks: chunks,
-                    raceRunners: runners,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () async {
+                await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => ChangeNotifierProvider(
+                      create: (_) => MergeConflictsController(
+                        masterRace: MasterRace.getInstance(1),
+                        timingChunks: chunks,
+                        raceRunners: runners,
+                      ),
+                      child: TimingConflictsPage(
+                        masterRace: MasterRace.getInstance(1),
+                        timingChunks: chunks,
+                        raceRunners: runners,
+                        raceName: 'County Meet',
+                        total: 1,
+                      ),
+                    ),
                   ),
-                  child: TimingConflictsPage(
-                    masterRace: MasterRace.getInstance(1),
-                    timingChunks: chunks,
-                    raceRunners: runners,
-                    raceName: 'County Meet',
-                    total: 1,
-                  ),
-                ),
-              ));
-              closed = true;
-            },
-            child: const Text('open'),
+                );
+                closed = true;
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 

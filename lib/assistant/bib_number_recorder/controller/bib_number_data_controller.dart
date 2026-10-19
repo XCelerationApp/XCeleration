@@ -125,7 +125,8 @@ class BibNumberDataController extends ChangeNotifier {
     final result = await storage.saveBibRecords(race.raceId, records);
     if (result case Failure(:final error)) {
       Logger.e(
-          '[BibNumberDataController._persistBibOrder] ${error.originalException}');
+        '[BibNumberDataController._persistBibOrder] ${error.originalException}',
+      );
     }
   }
 
@@ -173,19 +174,23 @@ class BibNumberDataController extends ChangeNotifier {
     for (var i = 0; i < _rows.length; i++) {
       final record = _rows[i].record;
       final places = placesByBib[record.bib];
-      final others = record.bib.isEmpty ||
-              record.flags.notInDatabase ||
-              places == null
+      final others =
+          record.bib.isEmpty || record.flags.notInDatabase || places == null
           ? const <int>[]
-          : [for (final p in places) if (p != i + 1) p];
+          : [
+              for (final p in places)
+                if (p != i + 1) p,
+            ];
       final duplicate = others.isNotEmpty;
       if (record.flags.duplicateBibNumber == duplicate &&
           listEquals(record.flags.duplicatePlaces, others)) {
         continue;
       }
       final updated = record.copyWith(
-        flags: record.flags
-            .copyWith(duplicateBibNumber: duplicate, duplicatePlaces: others),
+        flags: record.flags.copyWith(
+          duplicateBibNumber: duplicate,
+          duplicatePlaces: others,
+        ),
       );
       _rows[i].record = updated;
       _rows[i].notifier.value = updated;
@@ -243,13 +248,15 @@ class BibNumberDataController extends ChangeNotifier {
 
     focusNode.addListener(focusListener);
 
-    _rows.add(_BibRow(
-      record: record,
-      controller: controller,
-      focusNode: focusNode,
-      focusListener: focusListener,
-      notifier: ValueNotifier(record),
-    ));
+    _rows.add(
+      _BibRow(
+        record: record,
+        controller: controller,
+        focusNode: focusNode,
+        focusListener: focusListener,
+        notifier: ValueNotifier(record),
+      ),
+    );
 
     return newIndex;
   }
@@ -303,29 +310,34 @@ class BibNumberDataController extends ChangeNotifier {
         final record = row.record;
         if (record.bib.isNotEmpty) {
           // Save bib record
-          dbBibRecords.add(db_models.BibRecord(
-            raceId: raceId,
-            bibId: bibId++,
-            bibNumber: record.bib,
-            createdAt: DateTime.now(),
-          ));
+          dbBibRecords.add(
+            db_models.BibRecord(
+              raceId: raceId,
+              bibId: bibId++,
+              bibNumber: record.bib,
+              createdAt: DateTime.now(),
+            ),
+          );
 
           // Save runner data if we have it
           if ((record.name?.isNotEmpty ?? false) ||
               (record.teamAbbreviation?.isNotEmpty ?? false) ||
               (record.grade?.isNotEmpty ?? false)) {
-            dbRunners.add(db_models.Runner(
-              raceId: raceId,
-              bibNumber: record.bib,
-              name: (record.name?.isNotEmpty ?? false) ? record.name : null,
-              teamAbbreviation: (record.teamAbbreviation?.isNotEmpty ?? false)
-                  ? record.teamAbbreviation
-                  : null,
-              grade:
-                  (record.grade?.isNotEmpty ?? false) ? record.grade : null,
-              teamColor: record.teamColor,
-              createdAt: DateTime.now(),
-            ));
+            dbRunners.add(
+              db_models.Runner(
+                raceId: raceId,
+                bibNumber: record.bib,
+                name: (record.name?.isNotEmpty ?? false) ? record.name : null,
+                teamAbbreviation: (record.teamAbbreviation?.isNotEmpty ?? false)
+                    ? record.teamAbbreviation
+                    : null,
+                grade: (record.grade?.isNotEmpty ?? false)
+                    ? record.grade
+                    : null,
+                teamColor: record.teamColor,
+                createdAt: DateTime.now(),
+              ),
+            );
           }
         }
       }
@@ -349,7 +361,8 @@ class BibNumberDataController extends ChangeNotifier {
   /// Gets the encoded bib data for sharing
   Future<String> getEncodedBibData() async {
     return await BibEncodeUtils.getEncodedBibData(
-        _rows.map((r) => r.record).toList());
+      _rows.map((r) => r.record).toList(),
+    );
   }
 
   /// Returns all unique bib numbers and the corresponding runner records

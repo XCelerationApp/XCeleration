@@ -25,6 +25,7 @@ class FlowStep {
   /// Why Next is greyed out, shown under it. Checked whenever [canProceed]
   /// is false.
   final String? Function()? blockedReason;
+
   /// Runs before moving past this step. Throw [FlowStepBlocked] to stay on
   /// the step.
   final Future<void> Function()? onNext;

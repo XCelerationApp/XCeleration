@@ -20,13 +20,16 @@ bool tooShortToTranscribe(int samples, int sampleRate) =>
 
 /// Long-lived inference isolate. Loads the model once, then processes
 /// transcription requests until a shutdown signal is received.
-void _inferenceIsolateEntry(({
-  String encoder,
-  String decoder,
-  String joiner,
-  String tokens,
-  SendPort mainSendPort,
-}) args) {
+void _inferenceIsolateEntry(
+  ({
+    String encoder,
+    String decoder,
+    String joiner,
+    String tokens,
+    SendPort mainSendPort,
+  })
+  args,
+) {
   sherpa.initBindings();
 
   final config = sherpa.OfflineRecognizerConfig(
@@ -69,10 +72,12 @@ void _inferenceIsolateEntry(({
             ? 0.0
             : wave.samples.length / wave.sampleRate;
         // ignore: avoid_print — Logger.d is unavailable in isolates.
-        print('[SherpaOnnx] WAV loaded: '
-            '${wave.samples.length} samples, '
-            'rate=${wave.sampleRate} Hz, '
-            'duration=${durationSec.toStringAsFixed(2)}s');
+        print(
+          '[SherpaOnnx] WAV loaded: '
+          '${wave.samples.length} samples, '
+          'rate=${wave.sampleRate} Hz, '
+          'duration=${durationSec.toStringAsFixed(2)}s',
+        );
         return true;
       }());
 
@@ -88,7 +93,9 @@ void _inferenceIsolateEntry(({
       final stream = recognizer.createStream();
       try {
         stream.acceptWaveform(
-            samples: wave.samples, sampleRate: wave.sampleRate);
+          samples: wave.samples,
+          sampleRate: wave.sampleRate,
+        );
         recognizer.decode(stream);
         final rawResult = recognizer.getResult(stream);
         final transcript = rawResult.text.trim().toLowerCase();
@@ -137,16 +144,13 @@ class SpeechRecognitionService implements ISpeechRecognitionService {
 
     final ready = ReceivePort();
 
-    await Isolate.spawn(
-      _inferenceIsolateEntry,
-      (
-        encoder: p.join(assets.modelDir, 'encoder-epoch-99-avg-1.int8.onnx'),
-        decoder: p.join(assets.modelDir, 'decoder-epoch-99-avg-1.int8.onnx'),
-        joiner: p.join(assets.modelDir, 'joiner-epoch-99-avg-1.int8.onnx'),
-        tokens: p.join(assets.modelDir, 'tokens.txt'),
-        mainSendPort: ready.sendPort,
-      ),
-    );
+    await Isolate.spawn(_inferenceIsolateEntry, (
+      encoder: p.join(assets.modelDir, 'encoder-epoch-99-avg-1.int8.onnx'),
+      decoder: p.join(assets.modelDir, 'decoder-epoch-99-avg-1.int8.onnx'),
+      joiner: p.join(assets.modelDir, 'joiner-epoch-99-avg-1.int8.onnx'),
+      tokens: p.join(assets.modelDir, 'tokens.txt'),
+      mainSendPort: ready.sendPort,
+    ));
 
     // Wait until the isolate signals it has loaded the model.
     _cachedSendPort = await ready.first as SendPort;
@@ -160,8 +164,8 @@ class SpeechRecognitionService implements ISpeechRecognitionService {
     final reply = ReceivePort();
     try {
       _cachedSendPort!.send((wavPath: wavPath, replyPort: reply.sendPort));
-      final result = await reply.first
-          .timeout(const Duration(seconds: 30)) as String;
+      final result =
+          await reply.first.timeout(const Duration(seconds: 30)) as String;
       return result;
     } catch (_) {
       // Isolate may have crashed — clear the stale SendPort so the next

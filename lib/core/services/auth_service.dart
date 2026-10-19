@@ -8,7 +8,7 @@ export 'i_auth_service.dart';
 
 class AuthService implements IAuthService {
   AuthService({IRemoteApiClient? remoteApi})
-      : _remoteApi = remoteApi ?? RemoteApiClient();
+    : _remoteApi = remoteApi ?? RemoteApiClient();
   static final AuthService instance = AuthService();
 
   final IRemoteApiClient _remoteApi;
@@ -64,16 +64,22 @@ class AuthService implements IAuthService {
   /// Email + Password sign up
   @override
   Future<AuthResponse> signUpWithEmailPassword(
-      String email, String password) async {
+    String email,
+    String password,
+  ) async {
     return await _client.auth.signUp(email: email, password: password);
   }
 
   /// Email + Password sign in
   @override
   Future<AuthResponse> signInWithEmailPassword(
-      String email, String password) async {
-    return await _client.auth
-        .signInWithPassword(email: email, password: password);
+    String email,
+    String password,
+  ) async {
+    return await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
   }
 
   /// Verifies the code emailed after sign-up.
@@ -85,8 +91,11 @@ class AuthService implements IAuthService {
   /// what lets [updatePassword] run.
   @override
   Future<AuthResponse> verifyPasswordResetOtp(String email, String token) =>
-      _client.auth
-          .verifyOTP(email: email, token: token, type: OtpType.recovery);
+      _client.auth.verifyOTP(
+        email: email,
+        token: token,
+        type: OtpType.recovery,
+      );
 
   /// Sets a new password for the signed-in user.
   @override

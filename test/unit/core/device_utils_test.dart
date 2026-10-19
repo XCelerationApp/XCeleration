@@ -25,36 +25,39 @@ void main() {
       expect(devices.otherDevices.first.data, 'payload');
     });
 
-    test('spectator browser receiving from coach only when toSpectator=false',
-        () {
-      final devices = DeviceConnectionService.createDevices(
-        DeviceName.spectator,
-        DeviceType.browserDevice,
-        toSpectator: false,
-      );
+    test(
+      'spectator browser receiving from coach only when toSpectator=false',
+      () {
+        final devices = DeviceConnectionService.createDevices(
+          DeviceName.spectator,
+          DeviceType.browserDevice,
+          toSpectator: false,
+        );
 
-      expect(devices.coach, isNotNull);
-      expect(devices.spectator, isNull);
-      final names = devices.otherDevices.map((d) => d.name).toList();
-      expect(names.contains(DeviceName.coach), isTrue);
-      expect(names.contains(DeviceName.spectator), isFalse);
-    });
+        expect(devices.coach, isNotNull);
+        expect(devices.spectator, isNull);
+        final names = devices.otherDevices.map((d) => d.name).toList();
+        expect(names.contains(DeviceName.coach), isTrue);
+        expect(names.contains(DeviceName.spectator), isFalse);
+      },
+    );
 
     test(
-        'spectator browser receiving from spectator only when toSpectator=true',
-        () {
-      final devices = DeviceConnectionService.createDevices(
-        DeviceName.spectator,
-        DeviceType.browserDevice,
-        toSpectator: true,
-      );
+      'spectator browser receiving from spectator only when toSpectator=true',
+      () {
+        final devices = DeviceConnectionService.createDevices(
+          DeviceName.spectator,
+          DeviceType.browserDevice,
+          toSpectator: true,
+        );
 
-      expect(devices.spectator, isNotNull);
-      expect(devices.coach, isNull);
-      final names = devices.otherDevices.map((d) => d.name).toList();
-      expect(names.contains(DeviceName.spectator), isTrue);
-      expect(names.contains(DeviceName.coach), isFalse);
-    });
+        expect(devices.spectator, isNotNull);
+        expect(devices.coach, isNull);
+        final names = devices.otherDevices.map((d) => d.name).toList();
+        expect(names.contains(DeviceName.spectator), isTrue);
+        expect(names.contains(DeviceName.coach), isFalse);
+      },
+    );
   });
 
   // ===========================================================================

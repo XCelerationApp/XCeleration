@@ -33,7 +33,8 @@ void _stubMasterRace(MockMasterRace mockMasterRace) {
 }
 
 void _stubLoadResultsController(
-    MockLoadResultsController mockLoadResultsController) {
+  MockLoadResultsController mockLoadResultsController,
+) {
   when(mockLoadResultsController.initialize()).thenReturn(null);
   when(mockLoadResultsController.addListener(any)).thenReturn(null);
   when(mockLoadResultsController.removeListener(any)).thenReturn(null);
@@ -85,46 +86,52 @@ void main() {
     // -----------------------------------------------------------------------
     group('showPostRaceFlow', () {
       testWidgets(
-          'starts at 0 on the first call and uses persisted index on the next call',
-          (tester) async {
-        final capturedIndices = <int>[];
+        'starts at 0 on the first call and uses persisted index on the next call',
+        (tester) async {
+          final capturedIndices = <int>[];
 
-        Future<bool> fakeShowFlow({
-          required BuildContext context,
-          required List<FlowStep> steps,
-          bool showProgressIndicator = true,
-          int initialIndex = 0,
-          StepChangedCallback? onStepChanged,
-          void Function(int lastIndex)? onDismiss,
-        }) async {
-          capturedIndices.add(initialIndex);
-          onDismiss?.call(1); // simulate dismissal at step index 1
-          return false;
-        }
+          Future<bool> fakeShowFlow({
+            required BuildContext context,
+            required List<FlowStep> steps,
+            bool showProgressIndicator = true,
+            int initialIndex = 0,
+            StepChangedCallback? onStepChanged,
+            void Function(int lastIndex)? onDismiss,
+          }) async {
+            capturedIndices.add(initialIndex);
+            onDismiss?.call(1); // simulate dismissal at step index 1
+            return false;
+          }
 
-        final controller = _buildController(
-          mockMasterRace,
-          showFlowFn: fakeShowFlow,
-          loadResultsController: mockLoadResultsController,
-        );
+          final controller = _buildController(
+            mockMasterRace,
+            showFlowFn: fakeShowFlow,
+            loadResultsController: mockLoadResultsController,
+          );
 
-        BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            ctx = context;
-            return const SizedBox();
-          }),
-        ));
+          BuildContext? ctx;
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Builder(
+                builder: (context) {
+                  ctx = context;
+                  return const SizedBox();
+                },
+              ),
+            ),
+          );
 
-        await controller.showPostRaceFlow(ctx!, true);
-        await controller.showPostRaceFlow(ctx!, true);
+          await controller.showPostRaceFlow(ctx!, true);
+          await controller.showPostRaceFlow(ctx!, true);
 
-        expect(capturedIndices[0], 0); // first call: starts at default 0
-        expect(capturedIndices[1], 1); // second call: resumes at persisted 1
-      });
+          expect(capturedIndices[0], 0); // first call: starts at default 0
+          expect(capturedIndices[1], 1); // second call: resumes at persisted 1
+        },
+      );
 
-      testWidgets('forwards dismissible as showProgressIndicator',
-          (tester) async {
+      testWidgets('forwards dismissible as showProgressIndicator', (
+        tester,
+      ) async {
         final captured = <bool>[];
 
         Future<bool> fakeShowFlow({
@@ -147,12 +154,16 @@ void main() {
         );
 
         BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            ctx = context;
-            return const SizedBox();
-          }),
-        ));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                ctx = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
 
         await controller.showPostRaceFlow(ctx!, true);
         await controller.showPostRaceFlow(ctx!, false);
@@ -184,12 +195,16 @@ void main() {
         );
 
         BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            ctx = context;
-            return const SizedBox();
-          }),
-        ));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                ctx = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
 
         await controller.showPostRaceFlow(ctx!, false);
 

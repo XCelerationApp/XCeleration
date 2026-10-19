@@ -6,16 +6,16 @@ import 'package:xceleration/coach/race_results/model/results_record.dart';
 
 void main() {
   ResultsRecord record(Duration finish) => ResultsRecord(
-        place: 1,
-        name: 'Alice',
-        team: 'Eagles',
-        teamAbbreviation: 'EAG',
-        grade: 10,
-        bib: '101',
-        raceId: 1,
-        runnerId: 1,
-        finishTime: finish,
-      );
+    place: 1,
+    name: 'Alice',
+    team: 'Eagles',
+    teamAbbreviation: 'EAG',
+    grade: 10,
+    bib: '101',
+    raceId: 1,
+    runnerId: 1,
+    finishTime: finish,
+  );
 
   for (final finish in const [
     Duration(minutes: 16, seconds: 3, milliseconds: 780),

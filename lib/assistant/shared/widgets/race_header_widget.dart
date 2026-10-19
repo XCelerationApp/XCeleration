@@ -66,43 +66,44 @@ class RaceHeaderWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-        padding: EdgeInsets.symmetric(vertical: compact ? 4 : 8),
-        child: AnimatedBuilder(
-          animation: Listenable.merge([
-            if (currentRace != null) _RaceNotifier(currentRace!),
-          ]),
-          builder: (context, child) {
-            if (currentRace == null) {
-              if (loading) {
-                return const SizedBox(
-                  height: 56,
-                  child: Center(
-                    child: SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
+      padding: EdgeInsets.symmetric(vertical: compact ? 4 : 8),
+      child: AnimatedBuilder(
+        animation: Listenable.merge([
+          if (currentRace != null) _RaceNotifier(currentRace!),
+        ]),
+        builder: (context, child) {
+          if (currentRace == null) {
+            if (loading) {
+              return const SizedBox(
+                height: 56,
+                child: Center(
+                  child: SizedBox.square(
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
                   ),
-                );
-              }
-              return _buildNoRaceBanner(context);
-            }
-            // The practice race opens by default, and nothing said it was
-            // not the real one.
-            if (!compact &&
-                onLoadRace != null &&
-                DemoRaceGenerator.isDemoRace(currentRace!)) {
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  _buildRaceHeader(context),
-                  const SizedBox(height: AppSpacing.sm),
-                  _PracticeRaceBanner(onGetRace: onLoadRace!),
-                ],
+                ),
               );
             }
-            return _buildRaceHeader(context);
-          },
-        ));
+            return _buildNoRaceBanner(context);
+          }
+          // The practice race opens by default, and nothing said it was
+          // not the real one.
+          if (!compact &&
+              onLoadRace != null &&
+              DemoRaceGenerator.isDemoRace(currentRace!)) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildRaceHeader(context),
+                const SizedBox(height: AppSpacing.sm),
+                _PracticeRaceBanner(onGetRace: onLoadRace!),
+              ],
+            );
+          }
+          return _buildRaceHeader(context);
+        },
+      ),
+    );
   }
 
   Widget _buildNoRaceBanner(BuildContext context) {
@@ -111,18 +112,11 @@ class RaceHeaderWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.orange.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: Colors.orange,
-          width: 1,
-        ),
+        border: Border.all(color: Colors.orange, width: 1),
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.error_outline,
-            color: Colors.orange,
-            size: 24,
-          ),
+          Icon(Icons.error_outline, color: Colors.orange, size: 24),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
@@ -141,8 +135,10 @@ class RaceHeaderWidget extends StatelessWidget {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 8,
+                ),
               ),
               child: Text(
                 'Get Race from Coach',
@@ -163,10 +159,7 @@ class RaceHeaderWidget extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.lightColor,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.lightColor, width: 1),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -177,11 +170,7 @@ class RaceHeaderWidget extends StatelessWidget {
       ),
       child: Row(
         children: [
-          Icon(
-            Icons.flag,
-            color: AppColors.primaryColor,
-            size: 20,
-          ),
+          Icon(Icons.flag, color: AppColors.primaryColor, size: 20),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
@@ -198,20 +187,25 @@ class RaceHeaderWidget extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
               decoration: BoxDecoration(
-                color: AppColors.primaryColor
-                    .withValues(alpha: AppOpacity.light),
+                color: AppColors.primaryColor.withValues(
+                  alpha: AppOpacity.light,
+                ),
                 borderRadius: BorderRadius.circular(AppBorderRadius.full),
               ),
-              child: Text('Practice',
-                  style: AppTypography.captionBold
-                      .copyWith(color: AppColors.primaryColor)),
+              child: Text(
+                'Practice',
+                style: AppTypography.captionBold.copyWith(
+                  color: AppColors.primaryColor,
+                ),
+              ),
             ),
           ],
           const SizedBox(width: 4),
           FutureBuilder<List<dynamic>>(
             future: _getOtherRaces(),
             builder: (context, snapshot) {
-              final hasOtherRaces = snapshot.hasData &&
+              final hasOtherRaces =
+                  snapshot.hasData &&
                   snapshot.data!.isNotEmpty &&
                   snapshot.data!.length > 1;
 
@@ -331,11 +325,16 @@ class RaceHeaderWidget extends StatelessWidget {
                         value: 'delete_race',
                         child: Row(
                           children: [
-                            Icon(Icons.delete_outline,
-                                size: 18, color: Colors.red),
+                            Icon(
+                              Icons.delete_outline,
+                              size: 18,
+                              color: Colors.red,
+                            ),
                             SizedBox(width: 8),
-                            Text('Delete Race',
-                                style: TextStyle(color: Colors.red)),
+                            Text(
+                              'Delete Race',
+                              style: TextStyle(color: Colors.red),
+                            ),
                           ],
                         ),
                       ),
@@ -382,7 +381,8 @@ class RaceHeaderWidget extends StatelessWidget {
     final confirmed = await DialogUtils.showConfirmationDialog(
       context,
       title: 'Delete Race?',
-      content: 'This deletes "${currentRace!.formattedTitle}" and everything '
+      content:
+          'This deletes "${currentRace!.formattedTitle}" and everything '
           'recorded for it from this phone. It cannot be undone.',
       confirmText: 'Delete',
       cancelText: 'Cancel',
@@ -392,8 +392,9 @@ class RaceHeaderWidget extends StatelessWidget {
   }
 
   Future<List<RaceRecord>> _getOtherRaces() async {
-    final result =
-        await AssistantStorageService.instance.getRaces(role.toString());
+    final result = await AssistantStorageService.instance.getRaces(
+      role.toString(),
+    );
     return switch (result) {
       Success(:final value) => value,
       Failure() => [],

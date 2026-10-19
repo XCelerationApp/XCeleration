@@ -111,8 +111,10 @@ class _EditTeamSheetState extends State<EditTeamSheet> {
                   label: const Text('Change Color'),
                   style: OutlinedButton.styleFrom(
                     minimumSize: const Size(0, 36),
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     foregroundColor: AppColors.primaryColor,
                     side: BorderSide(color: AppColors.primaryColor),
                     shape: RoundedRectangleBorder(
@@ -154,7 +156,8 @@ class _EditTeamSheetState extends State<EditTeamSheet> {
 
   bool get _canSave {
     final currentName = _nameController.text.trim();
-    final changed = currentName != _originalName.trim() ||
+    final changed =
+        currentName != _originalName.trim() ||
         _color.toARGB32() != _originalColor.toARGB32();
     return changed && currentName.isNotEmpty;
   }

@@ -40,12 +40,15 @@ class Runner {
       name: map['name'],
       bibNumber: map['bib_number'],
       grade: map['grade'],
-      createdAt:
-          map['created_at'] != null ? DateTime.parse(map['created_at']) : null,
-      updatedAt:
-          map['updated_at'] != null ? DateTime.parse(map['updated_at']) : null,
-      deletedAt:
-          map['deleted_at'] != null ? DateTime.parse(map['deleted_at']) : null,
+      createdAt: map['created_at'] != null
+          ? DateTime.parse(map['created_at'])
+          : null,
+      updatedAt: map['updated_at'] != null
+          ? DateTime.parse(map['updated_at'])
+          : null,
+      deletedAt: map['deleted_at'] != null
+          ? DateTime.parse(map['deleted_at'])
+          : null,
       isDirty: map['is_dirty'],
     );
   }

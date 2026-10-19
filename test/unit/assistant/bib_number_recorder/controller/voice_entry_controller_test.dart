@@ -101,20 +101,25 @@ void main() {
     c.dispose();
   });
 
-  test('once turned off, stays off but fetches the model ahead of the race',
-      () async {
-    SharedPreferences.setMockInitialValues({
-      VoiceEntryController.prefKey: false,
-    });
-    final c = build();
-    await c.restore();
+  test(
+    'once turned off, stays off but fetches the model ahead of the race',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        VoiceEntryController.prefKey: false,
+      });
+      final c = build();
+      await c.restore();
 
-    expect(c.state, VoiceEntryState.off);
-    expect(created, 0, reason: 'volunteers who type never load the model');
-    expect(fetched, 1,
-        reason: 'downloaded when the Bib Recorder opens, not mid-race');
-    c.dispose();
-  });
+      expect(c.state, VoiceEntryState.off);
+      expect(created, 0, reason: 'volunteers who type never load the model');
+      expect(
+        fetched,
+        1,
+        reason: 'downloaded when the Bib Recorder opens, not mid-race',
+      );
+      c.dispose();
+    },
+  );
 
   test('clears its loading mark once the model is loaded', () async {
     final c = build();
@@ -125,27 +130,29 @@ void main() {
     c.dispose();
   });
 
-  test('stays off, and says why, if loading voice closed the app last time',
-      () async {
-    SharedPreferences.setMockInitialValues({
-      VoiceEntryController.prefKey: true,
-      VoiceEntryController.loadingKey: true,
-    });
-    final c = build();
-    await c.restore();
+  test(
+    'stays off, and says why, if loading voice closed the app last time',
+    () async {
+      SharedPreferences.setMockInitialValues({
+        VoiceEntryController.prefKey: true,
+        VoiceEntryController.loadingKey: true,
+      });
+      final c = build();
+      await c.restore();
 
-    expect(created, 0, reason: 'not loaded again, to crash again');
-    expect(c.state, VoiceEntryState.failed);
-    expect(c.error?.userMessage, contains('closed the app'));
-    final prefs = await SharedPreferences.getInstance();
-    expect(prefs.getBool(VoiceEntryController.prefKey), isFalse);
-    expect(prefs.getBool(VoiceEntryController.loadingKey), isFalse);
+      expect(created, 0, reason: 'not loaded again, to crash again');
+      expect(c.state, VoiceEntryState.failed);
+      expect(c.error?.userMessage, contains('closed the app'));
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getBool(VoiceEntryController.prefKey), isFalse);
+      expect(prefs.getBool(VoiceEntryController.loadingKey), isFalse);
 
-    // Trying again is the volunteer's choice.
-    await c.retry();
-    expect(c.state, VoiceEntryState.ready);
-    c.dispose();
-  });
+      // Trying again is the volunteer's choice.
+      await c.retry();
+      expect(c.state, VoiceEntryState.ready);
+      c.dispose();
+    },
+  );
 
   test('adds the bib heard when the mic is let go', () async {
     final c = build();
@@ -179,18 +186,20 @@ void main() {
     c.dispose();
   });
 
-  test('taps only once the mic is recording, a moment after the press',
-      () async {
-    final c = build();
-    await c.setEnabled(true);
+  test(
+    'taps only once the mic is recording, a moment after the press',
+    () async {
+      final c = build();
+      await c.setEnabled(true);
 
-    final pressing = c.startListening();
-    expect(haptics.presses, 0, reason: 'not on the press itself');
-    await pressing;
-    expect(haptics.presses, 1, reason: 'felt once the mic is live');
-    await c.stopListening();
-    c.dispose();
-  });
+      final pressing = c.startListening();
+      expect(haptics.presses, 0, reason: 'not on the press itself');
+      await pressing;
+      expect(haptics.presses, 1, reason: 'felt once the mic is live');
+      await c.stopListening();
+      c.dispose();
+    },
+  );
 
   test('no press tap if the mic is let go before it is recording', () async {
     final c = build();
@@ -274,8 +283,10 @@ void main() {
 
   test('says why when voice cannot be set up, and can try again', () async {
     final c = build(
-        init: const Failure(
-            AppError(userMessage: 'Could not load speech recognition model.')));
+      init: const Failure(
+        AppError(userMessage: 'Could not load speech recognition model.'),
+      ),
+    );
     await c.setEnabled(true);
 
     expect(c.state, VoiceEntryState.failed);

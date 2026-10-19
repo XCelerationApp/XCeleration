@@ -58,7 +58,6 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> deleteUserData(String userId) async => deleteDatabase();
-
 }
 
 /// A stand-in for the server: holds rows per table, honours the pull cursor
@@ -105,7 +104,9 @@ class _FakeSyncClient implements IRemoteSyncClient {
 
   @override
   Future<List<Map<String, dynamic>>> fetchByUuids(
-      String table, List<String> uuids) async {
+    String table,
+    List<String> uuids,
+  ) async {
     final rows = tables[table] ?? const [];
     return rows
         .where((r) => uuids.contains(r['uuid']))
@@ -114,8 +115,11 @@ class _FakeSyncClient implements IRemoteSyncClient {
   }
 
   @override
-  Future<void> upsertRows(String table, List<Map<String, dynamic>> rows,
-      {required String onConflict}) async {
+  Future<void> upsertRows(
+    String table,
+    List<Map<String, dynamic>> rows, {
+    required String onConflict,
+  }) async {
     await whileUploading?.call(table);
     if (rows.any((row) => rejects?.call(row) ?? false)) {
       throw StateError('duplicate key value violates unique constraint');
@@ -126,8 +130,9 @@ class _FakeSyncClient implements IRemoteSyncClient {
     final stored = tables.putIfAbsent(table, () => []);
     for (final row in rows) {
       final copy = Map<String, dynamic>.from(row);
-      final existing = stored
-          .indexWhere((e) => keyColumns.every((k) => e[k] == copy[k]));
+      final existing = stored.indexWhere(
+        (e) => keyColumns.every((k) => e[k] == copy[k]),
+      );
       if (existing >= 0) {
         stored[existing] = {...stored[existing], ...copy};
       } else {
@@ -231,7 +236,7 @@ void main() {
         'created_at': updatedAt,
         'updated_at': updatedAt,
         'deleted_at': null,
-      }
+      },
     ];
     remote.tables['runners'] = [
       {
@@ -244,7 +249,7 @@ void main() {
         'created_at': updatedAt,
         'updated_at': updatedAt,
         'deleted_at': null,
-      }
+      },
     ];
     remote.tables['teams'] = [
       {
@@ -257,7 +262,7 @@ void main() {
         'created_at': updatedAt,
         'updated_at': updatedAt,
         'deleted_at': null,
-      }
+      },
     ];
   }
 
@@ -268,17 +273,16 @@ void main() {
     String? deletedAt,
     String? team = teamUuid,
     String uuid = 'participant-uuid-1',
-  }) =>
-      {
-        'uuid': uuid,
-        'race_uuid': raceUuid,
-        'runner_uuid': runnerUuid,
-        'team_uuid': team,
-        'owner_user_id': 'owner-1',
-        'created_at': '2026-01-02T00:00:00Z',
-        'updated_at': updatedAt,
-        'deleted_at': deletedAt,
-      };
+  }) => {
+    'uuid': uuid,
+    'race_uuid': raceUuid,
+    'runner_uuid': runnerUuid,
+    'team_uuid': team,
+    'owner_user_id': 'owner-1',
+    'created_at': '2026-01-02T00:00:00Z',
+    'updated_at': updatedAt,
+    'deleted_at': deletedAt,
+  };
 
   Future<List<Map<String, Object?>>> participantRows() async {
     final db = await conn.database;
@@ -328,7 +332,9 @@ void main() {
       });
       remote.tables['race_participants'] = [
         remoteParticipant(
-            updatedAt: '2026-01-03T00:00:00Z', team: 'team-uuid-2')
+          updatedAt: '2026-01-03T00:00:00Z',
+          team: 'team-uuid-2',
+        ),
       ];
 
       await service.syncAll();
@@ -338,37 +344,41 @@ void main() {
       expect(rows.first['team_uuid'], 'team-uuid-2');
     });
 
-    test('matches the local row even when the server row is a stranger',
-        () async {
-      // The row was created on this device, so it has never seen the uuid the
-      // server generated for it. It is still the same participant.
-      seedRemoteParents();
-      await service.syncAll();
+    test(
+      'matches the local row even when the server row is a stranger',
+      () async {
+        // The row was created on this device, so it has never seen the uuid the
+        // server generated for it. It is still the same participant.
+        seedRemoteParents();
+        await service.syncAll();
 
-      final db = await conn.database;
-      final raceId = (await db.query('races')).single['race_id'];
-      final runnerId = (await db.query('runners')).single['runner_id'];
-      final teamId = (await db.query('teams')).single['team_id'];
-      await db.insert('race_participants', {
-        'race_id': raceId,
-        'runner_id': runnerId,
-        'team_id': teamId,
-        'race_uuid': raceUuid,
-        'runner_uuid': runnerUuid,
-        'team_uuid': teamUuid,
-        'updated_at': '2026-01-01T00:00:00Z',
-        'is_dirty': 0,
-      });
+        final db = await conn.database;
+        final raceId = (await db.query('races')).single['race_id'];
+        final runnerId = (await db.query('runners')).single['runner_id'];
+        final teamId = (await db.query('teams')).single['team_id'];
+        await db.insert('race_participants', {
+          'race_id': raceId,
+          'runner_id': runnerId,
+          'team_id': teamId,
+          'race_uuid': raceUuid,
+          'runner_uuid': runnerUuid,
+          'team_uuid': teamUuid,
+          'updated_at': '2026-01-01T00:00:00Z',
+          'is_dirty': 0,
+        });
 
-      remote.tables['race_participants'] = [
-        remoteParticipant(
-            updatedAt: '2026-01-04T00:00:00Z', uuid: 'never-seen-here')
-      ];
+        remote.tables['race_participants'] = [
+          remoteParticipant(
+            updatedAt: '2026-01-04T00:00:00Z',
+            uuid: 'never-seen-here',
+          ),
+        ];
 
-      await service.syncAll();
+        await service.syncAll();
 
-      expect(await participantRows(), hasLength(1));
-    });
+        expect(await participantRows(), hasLength(1));
+      },
+    );
 
     test('applies a deletion made on another device', () async {
       seedRemoteParents();
@@ -377,8 +387,9 @@ void main() {
 
       remote.tables['race_participants'] = [
         remoteParticipant(
-            updatedAt: '2026-01-05T00:00:00Z',
-            deletedAt: '2026-01-05T00:00:00Z')
+          updatedAt: '2026-01-05T00:00:00Z',
+          deletedAt: '2026-01-05T00:00:00Z',
+        ),
       ];
       await service.syncAll();
 
@@ -387,17 +398,19 @@ void main() {
       expect(rows.first['deleted_at'], '2026-01-05T00:00:00Z');
     });
 
-    test('ignores a deletion for a participant this device never had',
-        () async {
-      seedRemoteParents();
-      remote.tables['race_participants'] = [
-        remoteParticipant(deletedAt: '2026-01-05T00:00:00Z')
-      ];
+    test(
+      'ignores a deletion for a participant this device never had',
+      () async {
+        seedRemoteParents();
+        remote.tables['race_participants'] = [
+          remoteParticipant(deletedAt: '2026-01-05T00:00:00Z'),
+        ];
 
-      await service.syncAll();
+        await service.syncAll();
 
-      expect(await participantRows(), isEmpty);
-    });
+        expect(await participantRows(), isEmpty);
+      },
+    );
 
     test('keeps a local change that is newer than the server copy', () async {
       seedRemoteParents();
@@ -412,13 +425,14 @@ void main() {
         'color': 0,
         'updated_at': '2026-06-01T00:00:00Z',
       });
-      await db.update(
-        'race_participants',
-        {'team_id': chosen, 'updated_at': '2026-06-01T00:00:00Z', 'is_dirty': 1},
-      );
+      await db.update('race_participants', {
+        'team_id': chosen,
+        'updated_at': '2026-06-01T00:00:00Z',
+        'is_dirty': 1,
+      });
 
       remote.tables['race_participants'] = [
-        remoteParticipant(updatedAt: '2026-03-01T00:00:00Z', team: 'stale')
+        remoteParticipant(updatedAt: '2026-03-01T00:00:00Z', team: 'stale'),
       ];
       await service.syncAll();
 
@@ -458,7 +472,9 @@ void main() {
         remoteParticipant(team: null),
         {
           ...remoteParticipant(
-              updatedAt: '2026-01-06T00:00:00Z', uuid: 'participant-uuid-2'),
+            updatedAt: '2026-01-06T00:00:00Z',
+            uuid: 'participant-uuid-2',
+          ),
           'runner_uuid': 'runner-uuid-2',
         },
       ];
@@ -529,82 +545,94 @@ void main() {
 
       await service.syncAll();
 
-      final pushed =
-          remote.upserts.where((u) => u.table == 'race_participants').toList();
+      final pushed = remote.upserts
+          .where((u) => u.table == 'race_participants')
+          .toList();
       expect(pushed, hasLength(1));
       expect(pushed.single.rows.single['race_uuid'], raceUuid);
       expect(pushed.single.rows.single['runner_uuid'], runnerUuid);
 
       final rows = await participantRows();
-      expect(rows.single['is_dirty'], 0,
-          reason: 'a pushed row must not stay dirty');
+      expect(
+        rows.single['is_dirty'],
+        0,
+        reason: 'a pushed row must not stay dirty',
+      );
     });
 
-    test('does not send the same participant again on the next sync',
-        () async {
+    test('does not send the same participant again on the next sync', () async {
       await seedLocalDirtyParticipant();
       await service.syncAll();
       remote.upserts.clear();
 
       await service.syncAll();
 
-      expect(remote.upserts.where((u) => u.table == 'race_participants'),
-          isEmpty);
+      expect(
+        remote.upserts.where((u) => u.table == 'race_participants'),
+        isEmpty,
+      );
     });
   });
 
   group('moving a runner to another team in a race', () {
-    test('sends the new team, not the one the row was first synced with',
-        () async {
-      final db = await conn.database;
-      final raceId = await db.insert('races', {
-        'uuid': raceUuid,
-        'name': 'Invitational',
-        'updated_at': '2026-01-01T00:00:00Z',
-      });
-      final runnerId = await db.insert('runners', {
-        'uuid': runnerUuid,
-        'name': 'Alice',
-        'grade': 10,
-        'bib_number': '101',
-        'updated_at': '2026-01-01T00:00:00Z',
-      });
-      final eagles = await db.insert('teams', {
-        'uuid': teamUuid,
-        'name': 'Eagles',
-        'color': 0,
-        'updated_at': '2026-01-01T00:00:00Z',
-      });
-      final hawks = await db.insert('teams', {
-        'uuid': 'team-uuid-2',
-        'name': 'Hawks',
-        'color': 0,
-        'updated_at': '2026-01-01T00:00:00Z',
-      });
-      await db.insert('race_participants', {
-        'race_id': raceId,
-        'runner_id': runnerId,
-        'team_id': eagles,
-        'updated_at': '2026-01-01T00:00:00Z',
-        'is_dirty': 1,
-      });
-      await service.syncAll();
+    test(
+      'sends the new team, not the one the row was first synced with',
+      () async {
+        final db = await conn.database;
+        final raceId = await db.insert('races', {
+          'uuid': raceUuid,
+          'name': 'Invitational',
+          'updated_at': '2026-01-01T00:00:00Z',
+        });
+        final runnerId = await db.insert('runners', {
+          'uuid': runnerUuid,
+          'name': 'Alice',
+          'grade': 10,
+          'bib_number': '101',
+          'updated_at': '2026-01-01T00:00:00Z',
+        });
+        final eagles = await db.insert('teams', {
+          'uuid': teamUuid,
+          'name': 'Eagles',
+          'color': 0,
+          'updated_at': '2026-01-01T00:00:00Z',
+        });
+        final hawks = await db.insert('teams', {
+          'uuid': 'team-uuid-2',
+          'name': 'Hawks',
+          'color': 0,
+          'updated_at': '2026-01-01T00:00:00Z',
+        });
+        await db.insert('race_participants', {
+          'race_id': raceId,
+          'runner_id': runnerId,
+          'team_id': eagles,
+          'updated_at': '2026-01-01T00:00:00Z',
+          'is_dirty': 1,
+        });
+        await service.syncAll();
 
-      await db.update(
+        await db.update(
           'race_participants',
-          {'team_id': hawks, 'updated_at': '2026-01-02T00:00:00Z', 'is_dirty': 1},
+          {
+            'team_id': hawks,
+            'updated_at': '2026-01-02T00:00:00Z',
+            'is_dirty': 1,
+          },
           where: 'runner_id = ?',
-          whereArgs: [runnerId]);
-      remote.upserts.clear();
-      await service.syncAll();
+          whereArgs: [runnerId],
+        );
+        remote.upserts.clear();
+        await service.syncAll();
 
-      final pushed = remote.upserts
-          .where((u) => u.table == 'race_participants')
-          .single
-          .rows
-          .single;
-      expect(pushed['team_uuid'], 'team-uuid-2');
-    });
+        final pushed = remote.upserts
+            .where((u) => u.table == 'race_participants')
+            .single
+            .rows
+            .single;
+        expect(pushed['team_uuid'], 'team-uuid-2');
+      },
+    );
   });
 
   group('another coach\'s data', () {
@@ -620,7 +648,7 @@ void main() {
           'created_at': '2026-01-01T00:00:00Z',
           'updated_at': '2026-01-01T00:00:00Z',
           'deleted_at': null,
-        }
+        },
       ];
 
       await service.syncAll();
@@ -628,37 +656,39 @@ void main() {
       expect(await (await conn.database).query('runners'), isEmpty);
     });
 
-    test('cannot take the place of the coach\'s own runner with that bib',
-        () async {
-      // Bibs are unique per coach on the server, but on the phone across
-      // everything it holds, so saving Blake would have replaced Alice.
-      final db = await conn.database;
-      await db.insert('runners', {
-        'uuid': runnerUuid,
-        'name': 'Alice',
-        'grade': 10,
-        'bib_number': '101',
-        'updated_at': '2026-01-01T00:00:00Z',
-        'is_dirty': 0,
-      });
-      remote.tables['runners'] = [
-        {
-          'runner_id': 950,
-          'uuid': 'someone-elses-runner',
-          'owner_user_id': 'another-coach',
-          'name': 'Blake',
-          'grade': 11,
+    test(
+      'cannot take the place of the coach\'s own runner with that bib',
+      () async {
+        // Bibs are unique per coach on the server, but on the phone across
+        // everything it holds, so saving Blake would have replaced Alice.
+        final db = await conn.database;
+        await db.insert('runners', {
+          'uuid': runnerUuid,
+          'name': 'Alice',
+          'grade': 10,
           'bib_number': '101',
-          'created_at': '2026-01-02T00:00:00Z',
-          'updated_at': '2026-01-02T00:00:00Z',
-          'deleted_at': null,
-        }
-      ];
+          'updated_at': '2026-01-01T00:00:00Z',
+          'is_dirty': 0,
+        });
+        remote.tables['runners'] = [
+          {
+            'runner_id': 950,
+            'uuid': 'someone-elses-runner',
+            'owner_user_id': 'another-coach',
+            'name': 'Blake',
+            'grade': 11,
+            'bib_number': '101',
+            'created_at': '2026-01-02T00:00:00Z',
+            'updated_at': '2026-01-02T00:00:00Z',
+            'deleted_at': null,
+          },
+        ];
 
-      await service.syncAll();
+        await service.syncAll();
 
-      expect((await db.query('runners')).single['name'], 'Alice');
-    });
+        expect((await db.query('runners')).single['name'], 'Alice');
+      },
+    );
   });
 
   group('a row the server refuses', () {
@@ -685,37 +715,42 @@ void main() {
       expect(sent, {'101', '103'});
       final dirty = {
         for (final r in await (await conn.database).query('runners'))
-          r['bib_number']: r['is_dirty']
+          r['bib_number']: r['is_dirty'],
       };
-      expect(dirty, {'101': 0, '102': 1, '103': 0},
-          reason: 'the refused row waits to be tried again');
+      expect(dirty, {
+        '101': 0,
+        '102': 1,
+        '103': 0,
+      }, reason: 'the refused row waits to be tried again');
     });
 
-    test('the other phone\'s runner with that bib does not replace this one',
-        () async {
-      // Both phones added bib 102 offline. The server keeps the first to
-      // arrive; this phone's runner, and the results pointing at it, stay.
-      await addRunner('r2', '102');
-      remote.rejects = (row) => row['uuid'] == 'r2';
-      remote.tables['runners'] = [
-        {
-          'runner_id': 950,
-          'uuid': 'other-phones-runner',
-          'owner_user_id': 'owner-1',
-          'name': 'Blake',
-          'grade': 11,
-          'bib_number': '102',
-          'created_at': '2026-01-01T00:00:00Z',
-          'updated_at': '2026-01-01T00:00:00Z',
-          'deleted_at': null,
-        }
-      ];
+    test(
+      'the other phone\'s runner with that bib does not replace this one',
+      () async {
+        // Both phones added bib 102 offline. The server keeps the first to
+        // arrive; this phone's runner, and the results pointing at it, stay.
+        await addRunner('r2', '102');
+        remote.rejects = (row) => row['uuid'] == 'r2';
+        remote.tables['runners'] = [
+          {
+            'runner_id': 950,
+            'uuid': 'other-phones-runner',
+            'owner_user_id': 'owner-1',
+            'name': 'Blake',
+            'grade': 11,
+            'bib_number': '102',
+            'created_at': '2026-01-01T00:00:00Z',
+            'updated_at': '2026-01-01T00:00:00Z',
+            'deleted_at': null,
+          },
+        ];
 
-      await service.syncAll();
+        await service.syncAll();
 
-      final runners = await (await conn.database).query('runners');
-      expect([for (final r in runners) r['uuid']], ['r2']);
-    });
+        final runners = await (await conn.database).query('runners');
+        expect([for (final r in runners) r['uuid']], ['r2']);
+      },
+    );
 
     test('does not stop the rest of the sync', () async {
       await addRunner('r2', '102');
@@ -725,8 +760,11 @@ void main() {
 
       await service.syncAll();
 
-      expect(await (await conn.database).query('teams'), hasLength(1),
-          reason: 'pulling still happens after a refused upload');
+      expect(
+        await (await conn.database).query('teams'),
+        hasLength(1),
+        reason: 'pulling still happens after a refused upload',
+      );
     });
   });
 
@@ -745,16 +783,26 @@ void main() {
         if (table != 'runners') return;
         remote.whileUploading = null;
         await db.update(
-            'runners', {'name': 'Alicia', 'updated_at': '2026-01-01T00:00:05Z', 'is_dirty': 1},
-            where: 'uuid = ?', whereArgs: [runnerUuid]);
+          'runners',
+          {
+            'name': 'Alicia',
+            'updated_at': '2026-01-01T00:00:05Z',
+            'is_dirty': 1,
+          },
+          where: 'uuid = ?',
+          whereArgs: [runnerUuid],
+        );
       };
 
       await service.syncAll();
 
       final row = (await db.query('runners')).single;
       expect(row['name'], 'Alicia');
-      expect(row['is_dirty'], 1,
-          reason: 'the upload carried the old name, so the new one is unsent');
+      expect(
+        row['is_dirty'],
+        1,
+        reason: 'the upload carried the old name, so the new one is unsent',
+      );
 
       await service.syncAll();
       expect(remote.tables['runners']!.single['name'], 'Alicia');
@@ -787,14 +835,20 @@ void main() {
         if (table != 'team_rosters') return;
         remote.whileUploading = null;
         // The coach takes Alice off the team while the add is uploading.
-        await db.update('team_rosters',
-            {'deleted_at': '2026-01-01T00:00:05Z', 'updated_at': '2026-01-01T00:00:05Z', 'is_dirty': 1});
+        await db.update('team_rosters', {
+          'deleted_at': '2026-01-01T00:00:05Z',
+          'updated_at': '2026-01-01T00:00:05Z',
+          'is_dirty': 1,
+        });
       };
 
       await service.syncAll();
 
-      expect((await db.query('team_rosters')).single['is_dirty'], 1,
-          reason: 'the removal has not been sent');
+      expect(
+        (await db.query('team_rosters')).single['is_dirty'],
+        1,
+        reason: 'the removal has not been sent',
+      );
     });
   });
 
@@ -803,16 +857,15 @@ void main() {
     Map<String, dynamic> remoteRoster({
       String updatedAt = '2026-01-02T00:00:00Z',
       String? deletedAt,
-    }) =>
-        {
-          'uuid': 'roster-uuid-1',
-          'team_uuid': teamUuid,
-          'runner_uuid': runnerUuid,
-          'owner_user_id': 'owner-1',
-          'created_at': '2026-01-02T00:00:00Z',
-          'updated_at': updatedAt,
-          'deleted_at': deletedAt,
-        };
+    }) => {
+      'uuid': 'roster-uuid-1',
+      'team_uuid': teamUuid,
+      'runner_uuid': runnerUuid,
+      'owner_user_id': 'owner-1',
+      'created_at': '2026-01-02T00:00:00Z',
+      'updated_at': updatedAt,
+      'deleted_at': deletedAt,
+    };
 
     test('brings a team roster down onto a device that has none', () async {
       seedRemoteParents();
@@ -822,11 +875,19 @@ void main() {
 
       final db = await conn.database;
       final rows = await db.query('team_rosters');
-      expect(rows, hasLength(1),
-          reason: 'which runners are on which team has to travel');
-      expect(rows.single['team_id'], (await db.query('teams')).single['team_id']);
       expect(
-          rows.single['runner_id'], (await db.query('runners')).single['runner_id']);
+        rows,
+        hasLength(1),
+        reason: 'which runners are on which team has to travel',
+      );
+      expect(
+        rows.single['team_id'],
+        (await db.query('teams')).single['team_id'],
+      );
+      expect(
+        rows.single['runner_id'],
+        (await db.query('runners')).single['runner_id'],
+      );
       expect(rows.single['is_dirty'], 0);
     });
 
@@ -856,14 +917,21 @@ void main() {
 
       await service.syncAll();
 
-      final pushed =
-          remote.upserts.where((u) => u.table == 'team_rosters').toList();
+      final pushed = remote.upserts
+          .where((u) => u.table == 'team_rosters')
+          .toList();
       expect(pushed, hasLength(1));
-      expect(pushed.single.rows.single['team_uuid'], teamUuid,
-          reason: 'the parents have to be named by uuid, not local id');
+      expect(
+        pushed.single.rows.single['team_uuid'],
+        teamUuid,
+        reason: 'the parents have to be named by uuid, not local id',
+      );
       expect(pushed.single.rows.single['runner_uuid'], runnerUuid);
-      expect(pushed.single.rows.single.containsKey('team_id'), isFalse,
-          reason: 'a local id means nothing on another device');
+      expect(
+        pushed.single.rows.single.containsKey('team_id'),
+        isFalse,
+        reason: 'a local id means nothing on another device',
+      );
 
       final rows = await db.query('team_rosters');
       expect(rows.single['is_dirty'], 0);
@@ -876,8 +944,9 @@ void main() {
 
       remote.tables['team_rosters'] = [
         remoteRoster(
-            updatedAt: '2026-01-05T00:00:00Z',
-            deletedAt: '2026-01-05T00:00:00Z')
+          updatedAt: '2026-01-05T00:00:00Z',
+          deletedAt: '2026-01-05T00:00:00Z',
+        ),
       ];
       await service.syncAll();
 
@@ -904,8 +973,7 @@ void main() {
   });
 
   group('teams in a race', () {
-    test('brings the race\'s teams down, with their colour override',
-        () async {
+    test('brings the race\'s teams down, with their colour override', () async {
       seedRemoteParents();
       remote.tables['race_team_participation'] = [
         {
@@ -917,7 +985,7 @@ void main() {
           'created_at': '2026-01-02T00:00:00Z',
           'updated_at': '2026-01-02T00:00:00Z',
           'deleted_at': null,
-        }
+        },
       ];
 
       await service.syncAll();
@@ -926,7 +994,10 @@ void main() {
       final rows = await db.query('race_team_participation');
       expect(rows, hasLength(1));
       expect(rows.single['team_color_override'], 4283215696);
-      expect(rows.single['race_id'], (await db.query('races')).single['race_id']);
+      expect(
+        rows.single['race_id'],
+        (await db.query('races')).single['race_id'],
+      );
     });
   });
 
@@ -948,10 +1019,13 @@ void main() {
       'is_dirty': 0,
     });
     final races = RaceRepository(
-        conn: conn, runnerRepo: RunnerRepository(conn: conn));
+      conn: conn,
+      runnerRepo: RunnerRepository(conn: conn),
+    );
 
     await races.addTeamParticipantToRace(
-        TeamParticipant(raceId: raceId, teamId: teamId));
+      TeamParticipant(raceId: raceId, teamId: teamId),
+    );
     await service.syncAll();
 
     final pushed = remote.upserts
@@ -959,109 +1033,131 @@ void main() {
         .expand((u) => u.rows)
         .toList();
     expect(pushed, hasLength(1));
-    expect((pushed.single['race_uuid'], pushed.single['team_uuid']),
-        (raceUuid, teamUuid));
+    expect(
+      (pushed.single['race_uuid'], pushed.single['team_uuid']),
+      (raceUuid, teamUuid),
+    );
   });
 
   group('the rest of the sync', () {
-    test('a result gets its team from the participant pulled alongside it',
-        () async {
-      seedRemoteParents();
-      remote.tables['race_participants'] = [remoteParticipant()];
-      remote.tables['race_results'] = [
-        {
-          'result_id': 500,
+    test(
+      'a result gets its team from the participant pulled alongside it',
+      () async {
+        seedRemoteParents();
+        remote.tables['race_participants'] = [remoteParticipant()];
+        remote.tables['race_results'] = [
+          {
+            'result_id': 500,
+            'uuid': 'result-uuid-1',
+            'race_uuid': raceUuid,
+            'runner_uuid': runnerUuid,
+            'race_id': 900,
+            'runner_id': 901,
+            'team_id': 902,
+            'owner_user_id': 'owner-1',
+            'place': 1,
+            'finish_time': 900000,
+            'created_at': '2026-01-02T00:00:00Z',
+            'updated_at': '2026-01-02T00:00:00Z',
+            'deleted_at': null,
+          },
+        ];
+
+        await service.syncAll();
+
+        final db = await conn.database;
+        final result = (await db.query('race_results')).single;
+        final team = (await db.query('teams')).single;
+        expect(
+          result['team_id'],
+          team['team_id'],
+          reason:
+              'team scoring needs the result to know which team the runner ran for',
+        );
+      },
+    );
+
+    test(
+      'does not treat a result it just pushed as changed on the way back',
+      () async {
+        final db = await conn.database;
+        final raceId = await db.insert('races', {
+          'uuid': raceUuid,
+          'name': 'Invitational',
+          'updated_at': '2026-01-01T00:00:00Z',
+          'is_dirty': 0,
+        });
+        final runnerId = await db.insert('runners', {
+          'uuid': runnerUuid,
+          'name': 'Alice',
+          'grade': 10,
+          'bib_number': '101',
+          'updated_at': '2026-01-01T00:00:00Z',
+          'is_dirty': 0,
+        });
+        await db.insert('race_results', {
           'uuid': 'result-uuid-1',
+          'race_id': raceId,
+          'runner_id': runnerId,
           'race_uuid': raceUuid,
           'runner_uuid': runnerUuid,
-          'race_id': 900,
-          'runner_id': 901,
-          'team_id': 902,
-          'owner_user_id': 'owner-1',
           'place': 1,
           'finish_time': 900000,
-          'created_at': '2026-01-02T00:00:00Z',
           'updated_at': '2026-01-02T00:00:00Z',
-          'deleted_at': null,
-        }
-      ];
+          'is_dirty': 1,
+        });
 
-      await service.syncAll();
+        final events = <SyncEvent>[];
+        final sub = service.syncEvents.listen(events.add);
+        await service.syncAll();
+        await Future<void>.delayed(Duration.zero);
+        await sub.cancel();
 
-      final db = await conn.database;
-      final result = (await db.query('race_results')).single;
-      final team = (await db.query('teams')).single;
-      expect(result['team_id'], team['team_id'],
-          reason:
-              'team scoring needs the result to know which team the runner ran for');
-    });
+        // result_id is this device's own key and is stripped before pushing, so
+        // finding it absent from the row that comes back is not a change.
+        expect(
+          events.expand((e) => e.changedTables),
+          isNot(contains('race_results')),
+          reason: 'a row this device just pushed has not changed',
+        );
 
-    test('does not treat a result it just pushed as changed on the way back',
-        () async {
-      final db = await conn.database;
-      final raceId = await db.insert('races', {
-        'uuid': raceUuid,
-        'name': 'Invitational',
-        'updated_at': '2026-01-01T00:00:00Z',
-        'is_dirty': 0,
-      });
-      final runnerId = await db.insert('runners', {
-        'uuid': runnerUuid,
-        'name': 'Alice',
-        'grade': 10,
-        'bib_number': '101',
-        'updated_at': '2026-01-01T00:00:00Z',
-        'is_dirty': 0,
-      });
-      await db.insert('race_results', {
-        'uuid': 'result-uuid-1',
-        'race_id': raceId,
-        'runner_id': runnerId,
-        'race_uuid': raceUuid,
-        'runner_uuid': runnerUuid,
-        'place': 1,
-        'finish_time': 900000,
-        'updated_at': '2026-01-02T00:00:00Z',
-        'is_dirty': 1,
-      });
+        final result = (await db.query('race_results')).single;
+        expect(
+          result['result_id'],
+          isNotNull,
+          reason: 'the local key must survive the round trip',
+        );
+      },
+    );
 
-      final events = <SyncEvent>[];
-      final sub = service.syncEvents.listen(events.add);
-      await service.syncAll();
-      await Future<void>.delayed(Duration.zero);
-      await sub.cancel();
+    test(
+      'moves the cursor on for a timestamp written a different way',
+      () async {
+        // '...05Z' and '...05.5+00:00' are half a second apart, but as text the
+        // '.' sorts before the 'Z', so the later row looks earlier. A cursor
+        // that does not move re-fetches the same rows on every sync for good.
+        seedRemoteParents(updatedAt: '2026-02-01T00:00:05Z');
+        await service.syncAll();
 
-      // result_id is this device's own key and is stripped before pushing, so
-      // finding it absent from the row that comes back is not a change.
-      expect(events.expand((e) => e.changedTables), isNot(contains('race_results')),
-          reason: 'a row this device just pushed has not changed');
+        remote.tables['runners']!.single['name'] = 'Alice Renamed';
+        remote.tables['runners']!.single['updated_at'] =
+            '2026-02-01T00:00:05.500+00:00';
+        await service.syncAll();
 
-      final result = (await db.query('race_results')).single;
-      expect(result['result_id'], isNotNull,
-          reason: 'the local key must survive the round trip');
-    });
-
-    test('moves the cursor on for a timestamp written a different way',
-        () async {
-      // '...05Z' and '...05.5+00:00' are half a second apart, but as text the
-      // '.' sorts before the 'Z', so the later row looks earlier. A cursor
-      // that does not move re-fetches the same rows on every sync for good.
-      seedRemoteParents(updatedAt: '2026-02-01T00:00:05Z');
-      await service.syncAll();
-
-      remote.tables['runners']!.single['name'] = 'Alice Renamed';
-      remote.tables['runners']!.single['updated_at'] =
-          '2026-02-01T00:00:05.500+00:00';
-      await service.syncAll();
-
-      final db = await conn.database;
-      final cursor = (await db.query('sync_state',
-              where: 'key = ?', whereArgs: ['cursor.runners']))
-          .single['value'];
-      expect(cursor, '2026-02-01T00:00:05.500+00:00',
-          reason: 'the cursor has to move past the row it just applied');
-      expect((await db.query('runners')).single['name'], 'Alice Renamed');
-    });
+        final db = await conn.database;
+        final cursor = (await db.query(
+          'sync_state',
+          where: 'key = ?',
+          whereArgs: ['cursor.runners'],
+        )).single['value'];
+        expect(
+          cursor,
+          '2026-02-01T00:00:05.500+00:00',
+          reason: 'the cursor has to move past the row it just applied',
+        );
+        expect((await db.query('runners')).single['name'], 'Alice Renamed');
+      },
+    );
 
     test('fetches a parent that will never be sent again', () async {
       // The runner was last edited a season ago and is added to a race today.
@@ -1076,12 +1172,15 @@ void main() {
       expect(await db.query('runners'), isEmpty);
 
       remote.tables['race_participants'] = [
-        remoteParticipant(updatedAt: '2026-06-01T00:00:00Z')
+        remoteParticipant(updatedAt: '2026-06-01T00:00:00Z'),
       ];
       await service.syncAll();
 
-      expect(await db.query('runners'), hasLength(1),
-          reason: 'the runner the participant needs has to be fetched');
+      expect(
+        await db.query('runners'),
+        hasLength(1),
+        reason: 'the runner the participant needs has to be fetched',
+      );
       expect(await participantRows(), hasLength(1));
     });
 
@@ -1096,8 +1195,11 @@ void main() {
 
       conn.opened = true;
       await service.syncAll();
-      expect(await participantRows(), hasLength(1),
-          reason: 'the sync that was skipped has to happen once it can');
+      expect(
+        await participantRows(),
+        hasLength(1),
+        reason: 'the sync that was skipped has to happen once it can',
+      );
     });
 
     test('still reports what did arrive when a later table fails', () async {
@@ -1112,8 +1214,11 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       await sub.cancel();
 
-      expect(events, hasLength(1),
-          reason: 'screens must still refresh for the tables that pulled');
+      expect(
+        events,
+        hasLength(1),
+        reason: 'screens must still refresh for the tables that pulled',
+      );
       expect(events.single.changedTables, contains('runners'));
     });
   });

@@ -29,7 +29,8 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     await databaseFactory.setDatabasesPath(
-        Directory.systemTemp.createTempSync('bib_data_controller').path);
+      Directory.systemTemp.createTempSync('bib_data_controller').path,
+    );
   });
 
   setUp(() async {
@@ -37,14 +38,16 @@ void main() {
     await db.delete('bib_records');
     await db.delete('race_history');
     bibs = BibNumberDataController(
-        storage: storage, textInputFactory: const TextInputFactory());
+      storage: storage,
+      textInputFactory: const TextInputFactory(),
+    );
     bibs.setCurrentRace(race);
   });
 
   tearDown(() => bibs.dispose());
 
-  BibDatumRecord bib(String number) => BibDatumRecord(
-      bib: number, name: '', teamAbbreviation: '', grade: '');
+  BibDatumRecord bib(String number) =>
+      BibDatumRecord(bib: number, name: '', teamAbbreviation: '', grade: '');
 
   Future<List<String>> saved() async {
     final records =
@@ -54,17 +57,19 @@ void main() {
     return [for (final r in records) r.bibNumber];
   }
 
-  test('removing a bib from the middle closes the gap in what is saved',
-      () async {
-    for (final n in ['101', '102', '103', '104']) {
-      await bibs.addBibRecord(bib(n));
-    }
+  test(
+    'removing a bib from the middle closes the gap in what is saved',
+    () async {
+      for (final n in ['101', '102', '103', '104']) {
+        await bibs.addBibRecord(bib(n));
+      }
 
-    await bibs.removeBibRecord(1);
+      await bibs.removeBibRecord(1);
 
-    expect(await saved(), ['101', '103', '104']);
-    expect(bibs.bibRecords.map((r) => r.bib), ['101', '103', '104']);
-  });
+      expect(await saved(), ['101', '103', '104']);
+      expect(bibs.bibRecords.map((r) => r.bib), ['101', '103', '104']);
+    },
+  );
 
   test('a row not filled in yet takes no place in the finish order', () async {
     await bibs.addBibRecord(bib('101'));

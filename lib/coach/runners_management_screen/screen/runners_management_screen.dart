@@ -69,45 +69,46 @@ class _TeamsAndRunnersManagementWidgetState
       // fields those sections actually read. RunnersList subscribes to the
       // controller independently, so it is placed outside the Selector —
       // search/filter notifications no longer cause a full-column rebuild.
-      child: Selector<RunnersManagementController,
-          ({bool showHeader, bool isLoading, int totalRunnerCount})>(
-        selector: (_, c) => (
-          showHeader: c.showHeader,
-          isLoading: c.isLoading,
-          totalRunnerCount: c.totalRunnerCount,
-        ),
-        builder: (context, data, _) {
-          return Material(
-            color: AppColors.backgroundColor,
-            child: Column(
-              mainAxisSize: MainAxisSize.max,
-              children: [
-                if (data.showHeader)
-                  ColoredBox(
-                    color: AppColors.backgroundColor,
-                    child: _buildHeader(_controller),
-                  ),
-                if (!data.isLoading && data.totalRunnerCount > 0)
-                  ColoredBox(
-                    color: AppColors.backgroundColor,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg,
-                        AppSpacing.sm,
-                        AppSpacing.lg,
-                        AppSpacing.md,
-                      ),
-                      child: _buildSearchSection(),
-                    ),
-                  ),
-                Expanded(
-                  child: RunnersList(controller: _controller),
-                ),
-              ],
+      child:
+          Selector<
+            RunnersManagementController,
+            ({bool showHeader, bool isLoading, int totalRunnerCount})
+          >(
+            selector: (_, c) => (
+              showHeader: c.showHeader,
+              isLoading: c.isLoading,
+              totalRunnerCount: c.totalRunnerCount,
             ),
-          );
-        },
-      ),
+            builder: (context, data, _) {
+              return Material(
+                color: AppColors.backgroundColor,
+                child: Column(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    if (data.showHeader)
+                      ColoredBox(
+                        color: AppColors.backgroundColor,
+                        child: _buildHeader(_controller),
+                      ),
+                    if (!data.isLoading && data.totalRunnerCount > 0)
+                      ColoredBox(
+                        color: AppColors.backgroundColor,
+                        child: Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.lg,
+                            AppSpacing.sm,
+                            AppSpacing.lg,
+                            AppSpacing.md,
+                          ),
+                          child: _buildSearchSection(),
+                        ),
+                      ),
+                    Expanded(child: RunnersList(controller: _controller)),
+                  ],
+                ),
+              );
+            },
+          ),
     );
   }
 
@@ -176,8 +177,7 @@ class _TeamsAndRunnersManagementWidgetState
               const SizedBox(width: AppSpacing.sm),
               if (!controller.isViewMode)
                 _AddTeamButton(
-                  onTap: () =>
-                      _controller.showAddTeamChoiceSheet(context),
+                  onTap: () => _controller.showAddTeamChoiceSheet(context),
                 ),
             ],
           ),
@@ -189,8 +189,9 @@ class _TeamsAndRunnersManagementWidgetState
   Widget _buildSearchSection() {
     return RunnerSearchBar(
       controller: _controller.searchController,
-      onSearchChanged: () => _controller
-          .filterRaceRunners(_controller.searchController.text.trim()),
+      onSearchChanged: () => _controller.filterRaceRunners(
+        _controller.searchController.text.trim(),
+      ),
     );
   }
 }
@@ -212,10 +213,7 @@ class _AddTeamButton extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
           borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-          border: Border.all(
-            color: AppColors.primaryColor,
-            width: 1.5,
-          ),
+          border: Border.all(color: AppColors.primaryColor, width: 1.5),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,

@@ -44,7 +44,6 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> deleteUserData(String userId) async => deleteDatabase();
-
 }
 
 void main() {
@@ -95,26 +94,31 @@ void main() {
 
   // A valid Race for creation (raceId: 0 satisfies isValid for 'setup' flow).
   Race validRace({String name = 'Test Race'}) => Race(
-        raceId: 0,
-        raceName: name,
-        location: '',
-        distance: 0,
-        distanceUnit: 'mi',
-        flowState: Race.FLOW_SETUP,
-      );
+    raceId: 0,
+    raceName: name,
+    location: '',
+    distance: 0,
+    distanceUnit: 'mi',
+    flowState: Race.FLOW_SETUP,
+  );
 
   group('RaceRepository', () {
     group('updated_at stamps', () {
-      Future<String> raceUpdatedAt(int id) async => (await (await connProvider
-                  .database)
-              .query('races', where: 'race_id = ?', whereArgs: [id]))
-          .single['updated_at'] as String;
+      Future<String> raceUpdatedAt(int id) async =>
+          (await (await connProvider.database).query(
+                'races',
+                where: 'race_id = ?',
+                whereArgs: [id],
+              )).single['updated_at']
+              as String;
 
       Future<String> participantUpdatedAt(int raceId, int runnerId) async =>
-          (await (await connProvider.database).query('race_participants',
-                  where: 'race_id = ? AND runner_id = ?',
-                  whereArgs: [raceId, runnerId]))
-              .single['updated_at'] as String;
+          (await (await connProvider.database).query(
+                'race_participants',
+                where: 'race_id = ? AND runner_id = ?',
+                whereArgs: [raceId, runnerId],
+              )).single['updated_at']
+              as String;
 
       test('createRace stamps updated_at in UTC', () async {
         final id = await repo.createRace(validRace());
@@ -132,7 +136,8 @@ void main() {
         final runnerId = await insertRunner();
         final teamId = await insertTeam('Eagles');
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId));
+          RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId),
+        );
         expect(await participantUpdatedAt(raceId, runnerId), endsWith('Z'));
       });
 
@@ -142,9 +147,11 @@ void main() {
         final t1 = await insertTeam('Eagles');
         final t2 = await insertTeam('Hawks');
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1));
+          RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1),
+        );
         await repo.updateRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t2));
+          RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t2),
+        );
         expect(await participantUpdatedAt(raceId, runnerId), endsWith('Z'));
       });
 
@@ -154,9 +161,13 @@ void main() {
         final t1 = await insertTeam('Eagles');
         final t2 = await insertTeam('Hawks');
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1));
+          RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1),
+        );
         await repo.updateRaceParticipantTeam(
-            raceId: raceId, runnerId: runnerId, newTeamId: t2);
+          raceId: raceId,
+          runnerId: runnerId,
+          newTeamId: t2,
+        );
         expect(await participantUpdatedAt(raceId, runnerId), endsWith('Z'));
       });
     });
@@ -209,10 +220,18 @@ void main() {
         final id2 = await repo.createRace(validRace(name: 'Race B'));
         final db = await connProvider.database;
         // Set different dates so ordering is deterministic.
-        await db.update('races', {'race_date': '2024-01-01'},
-            where: 'race_id = ?', whereArgs: [id1]);
-        await db.update('races', {'race_date': '2024-06-01'},
-            where: 'race_id = ?', whereArgs: [id2]);
+        await db.update(
+          'races',
+          {'race_date': '2024-01-01'},
+          where: 'race_id = ?',
+          whereArgs: [id1],
+        );
+        await db.update(
+          'races',
+          {'race_date': '2024-06-01'},
+          where: 'race_id = ?',
+          whereArgs: [id2],
+        );
         final races = await repo.getAllRaces();
         expect(races.length, 2);
         expect(races.first.raceName, 'Race B');
@@ -222,18 +241,21 @@ void main() {
     group('updateRace', () {
       test('updates race name successfully', () async {
         final id = await repo.createRace(validRace());
-        await repo.updateRace(Race(
-          raceId: id,
-          raceName: 'Updated Race',
-          flowState: Race.FLOW_SETUP,
-        ));
+        await repo.updateRace(
+          Race(
+            raceId: id,
+            raceName: 'Updated Race',
+            flowState: Race.FLOW_SETUP,
+          ),
+        );
         final updated = await repo.getRace(id);
         expect(updated!.raceName, 'Updated Race');
       });
 
       test('throws when raceId is null', () async {
         expect(
-          () => repo.updateRace(Race(raceName: 'X', flowState: Race.FLOW_SETUP)),
+          () =>
+              repo.updateRace(Race(raceName: 'X', flowState: Race.FLOW_SETUP)),
           throwsException,
         );
       });
@@ -242,15 +264,17 @@ void main() {
         final id = await repo.createRace(validRace());
         expect(
           () => repo.updateRace(
-              Race(raceId: id, raceName: '', flowState: Race.FLOW_SETUP)),
+            Race(raceId: id, raceName: '', flowState: Race.FLOW_SETUP),
+          ),
           throwsException,
         );
       });
 
       test('throws when race does not exist', () async {
         expect(
-          () => repo.updateRace(Race(
-              raceId: 9999, raceName: 'Ghost', flowState: Race.FLOW_SETUP)),
+          () => repo.updateRace(
+            Race(raceId: 9999, raceName: 'Ghost', flowState: Race.FLOW_SETUP),
+          ),
           throwsException,
         );
       });
@@ -288,13 +312,15 @@ void main() {
         final raceId = await repo.createRace(validRace());
         final teamId = await insertTeam('Eagles');
         await repo.addTeamParticipantToRace(
-            TeamParticipant(raceId: raceId, teamId: teamId));
+          TeamParticipant(raceId: raceId, teamId: teamId),
+        );
 
         final db = await connProvider.database;
-        final row = (await db.query('race_team_participation',
-                where: 'race_id = ? AND team_id = ?',
-                whereArgs: [raceId, teamId]))
-            .single;
+        final row = (await db.query(
+          'race_team_participation',
+          where: 'race_id = ? AND team_id = ?',
+          whereArgs: [raceId, teamId],
+        )).single;
         expect(row['is_dirty'], 1);
         expect(row['updated_at'], isNotNull);
       });
@@ -335,16 +361,18 @@ void main() {
         expect(await repo.getRaceTeamParticipant(tp), isNull);
       });
 
-      test('does nothing, without throwing, for a team not in the race',
-          () async {
-        // A team half removed by an older version (unlinked, runners left)
-        // must still be removable.
-        final raceId = await repo.createRace(validRace());
-        final teamId = await insertTeam('Eagles');
-        final tp = TeamParticipant(raceId: raceId, teamId: teamId);
-        await repo.removeTeamParticipantFromRace(tp);
-        expect(await repo.getRaceTeamParticipant(tp), isNull);
-      });
+      test(
+        'does nothing, without throwing, for a team not in the race',
+        () async {
+          // A team half removed by an older version (unlinked, runners left)
+          // must still be removable.
+          final raceId = await repo.createRace(validRace());
+          final teamId = await insertTeam('Eagles');
+          final tp = TeamParticipant(raceId: raceId, teamId: teamId);
+          await repo.removeTeamParticipantFromRace(tp);
+          expect(await repo.getRaceTeamParticipant(tp), isNull);
+        },
+      );
     });
 
     group('getRaceTeamParticipant', () {
@@ -372,9 +400,11 @@ void main() {
         final t1 = await insertTeam('Eagles');
         final t2 = await insertTeam('Hawks');
         await repo.addTeamParticipantToRace(
-            TeamParticipant(raceId: raceId, teamId: t1));
+          TeamParticipant(raceId: raceId, teamId: t1),
+        );
         await repo.addTeamParticipantToRace(
-            TeamParticipant(raceId: raceId, teamId: t2));
+          TeamParticipant(raceId: raceId, teamId: t2),
+        );
         final teams = await repo.getRaceTeams(raceId);
         expect(teams.length, 2);
       });
@@ -394,8 +424,11 @@ void main() {
         final raceId = await repo.createRace(validRace());
         final runnerId = await insertRunner();
         final teamId = await insertTeam('Eagles');
-        final rp =
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId);
+        final rp = RaceParticipant(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         await repo.addRaceParticipant(rp);
         expect(await repo.getRaceParticipant(rp), isNotNull);
       });
@@ -404,8 +437,11 @@ void main() {
         final raceId = await repo.createRace(validRace());
         final runnerId = await insertRunner();
         final teamId = await insertTeam('Eagles');
-        final rp =
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId);
+        final rp = RaceParticipant(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         await repo.addRaceParticipant(rp);
         expect(() => repo.addRaceParticipant(rp), throwsException);
       });
@@ -422,11 +458,17 @@ void main() {
         final runnerId = await insertRunner();
         final t1 = await insertTeam('Eagles');
         final t2 = await insertTeam('Hawks');
-        final rp =
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1);
+        final rp = RaceParticipant(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: t1,
+        );
         await repo.addRaceParticipant(rp);
-        final updated =
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t2);
+        final updated = RaceParticipant(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: t2,
+        );
         await repo.updateRaceParticipant(updated);
         final result = await repo.getRaceParticipant(updated);
         expect(result!.teamId, t2);
@@ -443,8 +485,11 @@ void main() {
         final raceId = await repo.createRace(validRace());
         final runnerId = await insertRunner();
         final teamId = await insertTeam('Eagles');
-        final rp =
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId);
+        final rp = RaceParticipant(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         await repo.addRaceParticipant(rp);
         await repo.removeRaceParticipant(rp);
         expect(await repo.getRaceParticipant(rp), isNull);
@@ -461,8 +506,11 @@ void main() {
         final raceId = await repo.createRace(validRace());
         final runnerId = await insertRunner();
         final teamId = await insertTeam('Eagles');
-        final rp =
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId);
+        final rp = RaceParticipant(
+          raceId: raceId,
+          runnerId: runnerId,
+          teamId: teamId,
+        );
         await repo.addRaceParticipant(rp);
         expect(await repo.getRaceParticipant(rp), isNotNull);
       });
@@ -480,9 +528,11 @@ void main() {
         final r2 = await insertRunner(name: 'Bob', bib: '2');
         final teamId = await insertTeam('Eagles');
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: r1, teamId: teamId));
+          RaceParticipant(raceId: raceId, runnerId: r1, teamId: teamId),
+        );
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: r2, teamId: teamId));
+          RaceParticipant(raceId: raceId, runnerId: r2, teamId: teamId),
+        );
         final participants = await repo.getRaceParticipants(raceId);
         expect(participants.length, 2);
       });
@@ -498,7 +548,8 @@ void main() {
         final runnerId = await insertRunner(bib: '42');
         final teamId = await insertTeam('Eagles');
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId));
+          RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId),
+        );
         final rp = await repo.getRaceParticipantByBib(raceId, '42');
         expect(rp, isNotNull);
         expect(rp!.runnerId, runnerId);
@@ -517,11 +568,16 @@ void main() {
         final r2 = await insertRunner(name: 'Bob', bib: '2');
         final teamId = await insertTeam('Eagles');
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: r1, teamId: teamId));
+          RaceParticipant(raceId: raceId, runnerId: r1, teamId: teamId),
+        );
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: r2, teamId: teamId));
-        final participants =
-            await repo.getRaceParticipantsByBibs(raceId, ['1', '2', '99']);
+          RaceParticipant(raceId: raceId, runnerId: r2, teamId: teamId),
+        );
+        final participants = await repo.getRaceParticipantsByBibs(raceId, [
+          '1',
+          '2',
+          '99',
+        ]);
         expect(participants.length, 2);
       });
     });
@@ -535,30 +591,43 @@ void main() {
         teamId = await insertTeam('Eagles');
         final runnerId = await insertRunner(name: 'Alice', bib: '100');
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId));
+          RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId),
+        );
       });
 
       test('finds participant by name', () async {
-        final results =
-            await repo.searchRaceParticipants(raceId, 'Ali', 'name');
+        final results = await repo.searchRaceParticipants(
+          raceId,
+          'Ali',
+          'name',
+        );
         expect(results, hasLength(1));
       });
 
       test('finds participant by bib_number', () async {
-        final results =
-            await repo.searchRaceParticipants(raceId, '10', 'bib_number');
+        final results = await repo.searchRaceParticipants(
+          raceId,
+          '10',
+          'bib_number',
+        );
         expect(results, hasLength(1));
       });
 
       test('finds participant by team_name', () async {
-        final results =
-            await repo.searchRaceParticipants(raceId, 'Eag', 'team_name');
+        final results = await repo.searchRaceParticipants(
+          raceId,
+          'Eag',
+          'team_name',
+        );
         expect(results, hasLength(1));
       });
 
       test('returns empty list when no match', () async {
-        final results =
-            await repo.searchRaceParticipants(raceId, 'XYZ', 'name');
+        final results = await repo.searchRaceParticipants(
+          raceId,
+          'XYZ',
+          'name',
+        );
         expect(results, isEmpty);
       });
 
@@ -588,13 +657,16 @@ void main() {
     });
 
     group('updateRaceFlowState', () {
-      test('updates only the flow_state column without touching other fields', () async {
-        final id = await repo.createRace(validRace());
-        await repo.updateRaceFlowState(id, Race.FLOW_PRE_RACE);
-        final updated = await repo.getRace(id);
-        expect(updated!.flowState, Race.FLOW_PRE_RACE);
-        expect(updated.raceName, validRace().raceName);
-      });
+      test(
+        'updates only the flow_state column without touching other fields',
+        () async {
+          final id = await repo.createRace(validRace());
+          await repo.updateRaceFlowState(id, Race.FLOW_PRE_RACE);
+          final updated = await repo.getRace(id);
+          expect(updated!.flowState, Race.FLOW_PRE_RACE);
+          expect(updated.raceName, validRace().raceName);
+        },
+      );
 
       test('throws for unknown race id', () async {
         expect(
@@ -615,45 +687,66 @@ void main() {
         final t1 = await insertTeam('Eagles');
         final t2 = await insertTeam('Hawks');
         await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1));
+          RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1),
+        );
         await repo.updateRaceParticipantTeam(
-            raceId: raceId, runnerId: runnerId, newTeamId: t2);
+          raceId: raceId,
+          runnerId: runnerId,
+          newTeamId: t2,
+        );
         final rp = await repo.getRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t2));
+          RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t2),
+        );
         expect(rp!.teamId, t2);
       });
     });
 
     group('updateRunnerWithTeams', () {
       test('updates runner fields without changing team', () async {
-        final runnerId = await runnerRepo
-            .createRunner(const Runner(name: 'Alice', bibNumber: '1', grade: 11));
+        final runnerId = await runnerRepo.createRunner(
+          const Runner(name: 'Alice', bibNumber: '1', grade: 11),
+        );
         await repo.updateRunnerWithTeams(
-          runner: Runner(runnerId: runnerId, name: 'Alicia', bibNumber: '1', grade: 12),
+          runner: Runner(
+            runnerId: runnerId,
+            name: 'Alicia',
+            bibNumber: '1',
+            grade: 12,
+          ),
         );
         final updated = await runnerRepo.getRunner(runnerId);
         expect(updated!.name, 'Alicia');
       });
 
-      test('updates runner and reassigns team when newTeamId is provided',
-          () async {
-        final runnerId = await runnerRepo
-            .createRunner(const Runner(name: 'Alice', bibNumber: '1', grade: 11));
-        final raceId = await repo.createRace(validRace());
-        final t1 = await insertTeam('Eagles');
-        final t2 = await insertTeam('Hawks');
-        await runnerRepo.addRunnerToTeam(t1, runnerId);
-        await repo.addRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1));
-        await repo.updateRunnerWithTeams(
-          runner: Runner(runnerId: runnerId, name: 'Alice', bibNumber: '1', grade: 11),
-          newTeamId: t2,
-          raceIdForTeamUpdate: raceId,
-        );
-        final rp = await repo.getRaceParticipant(
-            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t2));
-        expect(rp!.teamId, t2);
-      });
+      test(
+        'updates runner and reassigns team when newTeamId is provided',
+        () async {
+          final runnerId = await runnerRepo.createRunner(
+            const Runner(name: 'Alice', bibNumber: '1', grade: 11),
+          );
+          final raceId = await repo.createRace(validRace());
+          final t1 = await insertTeam('Eagles');
+          final t2 = await insertTeam('Hawks');
+          await runnerRepo.addRunnerToTeam(t1, runnerId);
+          await repo.addRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t1),
+          );
+          await repo.updateRunnerWithTeams(
+            runner: Runner(
+              runnerId: runnerId,
+              name: 'Alice',
+              bibNumber: '1',
+              grade: 11,
+            ),
+            newTeamId: t2,
+            raceIdForTeamUpdate: raceId,
+          );
+          final rp = await repo.getRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: t2),
+          );
+          expect(rp!.teamId, t2);
+        },
+      );
     });
   });
 }

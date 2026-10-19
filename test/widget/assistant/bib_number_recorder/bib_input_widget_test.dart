@@ -18,29 +18,34 @@ void main() {
   setUp(() {
     controller = MockBibNumberController();
     when(controller.raceStopped).thenReturn(false);
-    when(controller.controllers)
-        .thenReturn([TextEditingController(text: '7')]);
+    when(controller.controllers).thenReturn([TextEditingController(text: '7')]);
     when(controller.focusNodes).thenReturn([FocusNode()]);
   });
 
   Future<void> pumpRow(WidgetTester tester, BibDatumRecord record) =>
-      tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: BibInputWidget(index: 0, record: record, controller: controller),
-        ),
-      ));
-
-  BibDatumRecord duplicate(List<int> places) => BibDatumRecord(
-        bib: '7',
-        name: 'John Peter',
-        teamAbbreviation: 'TIG',
-        grade: '11',
-        flags: BibDatumRecordFlags(
-          notInDatabase: false,
-          duplicateBibNumber: true,
-          duplicatePlaces: places,
+      tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: BibInputWidget(
+              index: 0,
+              record: record,
+              controller: controller,
+            ),
+          ),
         ),
       );
+
+  BibDatumRecord duplicate(List<int> places) => BibDatumRecord(
+    bib: '7',
+    name: 'John Peter',
+    teamAbbreviation: 'TIG',
+    grade: '11',
+    flags: BibDatumRecordFlags(
+      notInDatabase: false,
+      duplicateBibNumber: true,
+      duplicatePlaces: places,
+    ),
+  );
 
   testWidgets('shows the other place and the runner\'s name', (tester) async {
     await pumpRow(tester, duplicate([4]));
@@ -64,7 +69,9 @@ void main() {
         teamAbbreviation: '',
         grade: '',
         flags: const BibDatumRecordFlags(
-            notInDatabase: true, duplicateBibNumber: false),
+          notInDatabase: true,
+          duplicateBibNumber: false,
+        ),
       ),
     );
 
