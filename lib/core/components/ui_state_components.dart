@@ -35,10 +35,7 @@ class AsyncContentSwitcher extends StatelessWidget {
               key: const ValueKey('loading'),
               child: loadingWidget ?? const LoadingWidget(),
             )
-          : KeyedSubtree(
-              key: const ValueKey('content'),
-              child: child,
-            ),
+          : KeyedSubtree(key: const ValueKey('content'), child: child),
     );
   }
 }
@@ -48,11 +45,7 @@ class LoadingWidget extends StatelessWidget {
   final String? message;
   final bool isCompact;
 
-  const LoadingWidget({
-    super.key,
-    this.message,
-    this.isCompact = false,
-  });
+  const LoadingWidget({super.key, this.message, this.isCompact = false});
 
   @override
   Widget build(BuildContext context) {
@@ -67,8 +60,9 @@ class LoadingWidget extends StatelessWidget {
             SizedBox(height: isCompact ? AppSpacing.md : AppSpacing.lg),
             Text(
               message!,
-              style: AppTypography.bodyRegular
-                  .copyWith(color: AppColors.mediumColor),
+              style: AppTypography.bodyRegular.copyWith(
+                color: AppColors.mediumColor,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -115,8 +109,9 @@ class AppErrorWidget extends StatelessWidget {
             SizedBox(height: isCompact ? AppSpacing.sm : AppSpacing.md),
             Text(
               message,
-              style: AppTypography.bodyRegular
-                  .copyWith(color: AppColors.mediumColor),
+              style: AppTypography.bodyRegular.copyWith(
+                color: AppColors.mediumColor,
+              ),
               textAlign: TextAlign.center,
             ),
             if (onRetry != null) ...[
@@ -182,8 +177,9 @@ class EmptyStateWidget extends StatelessWidget {
               SizedBox(height: isCompact ? AppSpacing.sm : AppSpacing.md),
               Text(
                 subtitle!,
-                style: AppTypography.bodyRegular
-                    .copyWith(color: AppColors.mediumColor),
+                style: AppTypography.bodyRegular.copyWith(
+                  color: AppColors.mediumColor,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],

@@ -23,18 +23,26 @@ final race = RaceRecord(
   name: 'Invitational',
   type: 'race',
 ).encode();
-final raceWithRoster = '$race---{"teams":["NHS"],"rows":[["101","Ava Lee",0,"11"]]}';
+final raceWithRoster =
+    '$race---{"teams":["NHS"],"rows":[["101","Ava Lee",0,"11"]]}';
 
 /// Long enough to need many packets, so a transfer can be cut partway.
-final longTimes = List.generate(600, (i) => '${i + 1},15:${(i % 60).toString().padLeft(2, '0')}.${i % 100}').join(';');
+final longTimes = List.generate(
+  600,
+  (i) => '${i + 1},15:${(i % 60).toString().padLeft(2, '0')}.${i % 100}',
+).join(';');
 
 void main() {
   late FakeNearbyNetwork net;
 
   setUp(() => net = FakeNearbyNetwork());
 
-  SharingSession coachSends(FakePhone phone) => openSharing(phone, coach, advertiser,
-      dataFor: {timer: race, bibRecorder: raceWithRoster});
+  SharingSession coachSends(FakePhone phone) => openSharing(
+    phone,
+    coach,
+    advertiser,
+    dataFor: {timer: race, bibRecorder: raceWithRoster},
+  );
 
   test('the coach sends the race to the Timer', () {
     fakeAsync((fake) {
@@ -129,8 +137,12 @@ void main() {
       final coachPhone = net.phone('coach');
       final timerPhone = net.phone('timer');
       // The Timer sends its times to the coach, as at Load Results.
-      final t = openSharing(timerPhone, timer, advertiser,
-          dataFor: {coach: longTimes});
+      final t = openSharing(
+        timerPhone,
+        timer,
+        advertiser,
+        dataFor: {coach: longTimes},
+      );
       final c = openSharing(coachPhone, coach, browser);
 
       // Cut the connection once some packets are through.
@@ -171,8 +183,12 @@ void main() {
     fakeAsync((fake) {
       final t = openSharing(net.phone('timer'), timer, browser);
       fake.elapse(
-          WirelessConnectionController.searchTimeout + const Duration(minutes: 1));
-      expect(t.controller.wirelessConnectionError, WirelessConnectionError.timeout);
+        WirelessConnectionController.searchTimeout + const Duration(minutes: 1),
+      );
+      expect(
+        t.controller.wirelessConnectionError,
+        WirelessConnectionError.timeout,
+      );
 
       final c = coachSends(net.phone('coach'));
       t.controller.retry();
@@ -187,8 +203,12 @@ void main() {
 
   test('the Timer sends its times to the coach', () {
     fakeAsync((fake) {
-      final t = openSharing(net.phone('timer'), timer, advertiser,
-          dataFor: {coach: longTimes});
+      final t = openSharing(
+        net.phone('timer'),
+        timer,
+        advertiser,
+        dataFor: {coach: longTimes},
+      );
       final c = openSharing(net.phone('coach'), coach, browser);
 
       fake.elapse(const Duration(minutes: 1));
@@ -204,7 +224,12 @@ void main() {
   test('a Timer on 1.1.1 still gets the race', () {
     fakeAsync((fake) {
       final c = coachSends(net.phone('coach'));
-      final t = openSharing(net.phone('timer'), timer, browser, wireName: 'Timer');
+      final t = openSharing(
+        net.phone('timer'),
+        timer,
+        browser,
+        wireName: 'Timer',
+      );
 
       fake.elapse(const Duration(seconds: 30));
 

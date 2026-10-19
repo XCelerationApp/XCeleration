@@ -33,8 +33,9 @@ class ShareFormatSelectionWidget extends StatelessWidget {
                 Text(
                   'Parents and runners open Spectator on their phones and '
                   'tap Receive Race.',
-                  style: AppTypography.bodyRegular
-                      .copyWith(color: AppColors.mediumColor),
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 SizedBox(
@@ -47,7 +48,9 @@ class ShareFormatSelectionWidget extends StatelessWidget {
                       backgroundColor: AppColors.primaryColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          vertical: 14, horizontal: 16),
+                        vertical: 14,
+                        horizontal: 16,
+                      ),
                       shape: const StadiumBorder(),
                     ),
                     icon: const Icon(Icons.wifi_tethering),
@@ -58,20 +61,14 @@ class ShareFormatSelectionWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 24),
-          Text(
-            'Or Save a Copy',
-            style: AppTypography.titleRegular,
-          ),
+          Text('Or Save a Copy', style: AppTypography.titleRegular),
           const SizedBox(height: 16),
           // Format Selection
           Container(
             decoration: BoxDecoration(
               color: AppColors.backgroundColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: AppColors.lightColor,
-                width: 1,
-              ),
+              border: Border.all(color: AppColors.lightColor, width: 1),
             ),
             child: FormatSelectionWidget(
               onShareSelected: (format) {

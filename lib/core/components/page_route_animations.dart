@@ -8,33 +8,30 @@ class BasePageRouteAnimation extends PageRouteBuilder {
     required this.child,
     this.duration = const Duration(milliseconds: 500),
   }) : super(
-          transitionDuration: duration,
-          pageBuilder: (context, animation, secondaryAnimation) => child,
-          transitionsBuilder: (context, animation, secondaryAnimation, child) {
-            const curve = Curves.easeInOut;
-            var fadeAnimation = animation.drive(CurveTween(curve: curve));
+         transitionDuration: duration,
+         pageBuilder: (context, animation, secondaryAnimation) => child,
+         transitionsBuilder: (context, animation, secondaryAnimation, child) {
+           const curve = Curves.easeInOut;
+           var fadeAnimation = animation.drive(CurveTween(curve: curve));
 
-            return FadeTransition(
-              opacity: fadeAnimation,
-              child: child,
-            );
-          },
-        );
+           return FadeTransition(opacity: fadeAnimation, child: child);
+         },
+       );
 }
 
 class RolePageRouteAnimation extends BasePageRouteAnimation {
   RolePageRouteAnimation({required super.child})
-      : super(duration: const Duration(milliseconds: 300));
+    : super(duration: const Duration(milliseconds: 300));
 }
 
 class SettingsPageRouteAnimation extends BasePageRouteAnimation {
   SettingsPageRouteAnimation({required super.child})
-      : super(duration: const Duration(milliseconds: 300));
+    : super(duration: const Duration(milliseconds: 300));
 }
 
 class InitialPageRouteAnimation extends BasePageRouteAnimation {
   InitialPageRouteAnimation({required super.child})
-      : super(duration: const Duration(milliseconds: 500));
+    : super(duration: const Duration(milliseconds: 500));
 }
 
 class DefaultPageRouteAnimation extends BasePageRouteAnimation {

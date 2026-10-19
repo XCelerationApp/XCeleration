@@ -57,7 +57,7 @@ class TimeFormatter {
         1 => '00:00:$input',
         2 => '00:$input',
         3 => input,
-        _ => null
+        _ => null,
       };
 
       if (timeString == null) return null;

@@ -59,7 +59,8 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
   Future<void> _loadSavedRaces() async {
     try {
-      final races = await ServiceLocator.get<SpectatorStorageService>().getAllRaces();
+      final races = await ServiceLocator.get<SpectatorStorageService>()
+          .getAllRaces();
       if (mounted) {
         setState(() {
           _savedRaces = races;
@@ -78,17 +79,22 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
 
   Future<void> _viewRace(Map<String, dynamic> race) async {
     final raceId = race['id'] as int;
-    final fullRace = await ServiceLocator.get<SpectatorStorageService>().getRace(raceId);
+    final fullRace = await ServiceLocator.get<SpectatorStorageService>()
+        .getRace(raceId);
     final encodedPayload = fullRace?['encoded_payload'] as String?;
     if (encodedPayload == null) {
       if (mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Could not load race data.');
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Could not load race data.',
+        );
       }
       return;
     }
-    final result =
-        await compute(RaceShareDecoder.decodeWithRaw, encodedPayload);
+    final result = await compute(
+      RaceShareDecoder.decodeWithRaw,
+      encodedPayload,
+    );
 
     if (!mounted) return;
     switch (result) {
@@ -119,12 +125,15 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
   Future<void> _shareRace(Map<String, dynamic> race) async {
     try {
       final raceId = race['id'] as int;
-      final fullRace = await ServiceLocator.get<SpectatorStorageService>().getRace(raceId);
+      final fullRace = await ServiceLocator.get<SpectatorStorageService>()
+          .getRace(raceId);
       final encodedPayload = fullRace?['encoded_payload'] as String?;
       if (encodedPayload == null) {
         if (mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Could not load race data.');
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Could not load race data.',
+          );
         }
         return;
       }
@@ -189,8 +198,10 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
       } catch (e) {
         Logger.e('Failed to delete race: $e');
         if (mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Failed to delete race');
+          DialogUtils.showErrorDialog(
+            context,
+            message: 'Failed to delete race',
+          );
         }
       }
     }
@@ -206,7 +217,9 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
             currentRole: role_enums.Role.spectator,
             tutorialManager: _tutorialManager,
             onRoleTap: () => RoleSelectorSheet.showRoleSelection(
-                context, role_enums.Role.spectator),
+              context,
+              role_enums.Role.spectator,
+            ),
             onSettingsTap: () => Navigator.of(context).push(
               MaterialPageRoute(
                 builder: (_) => SettingsScreen(
@@ -221,56 +234,55 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : _savedRaces.isEmpty
-                      ? Center(
-                          child: Padding(
-                            padding:
-                                const EdgeInsets.symmetric(horizontal: 24.0),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              crossAxisAlignment: CrossAxisAlignment.center,
-                              children: const [
-                                Text(
-                                  'No races received yet',
-                                  style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600),
-                                  textAlign: TextAlign.center,
-                                ),
-                                SizedBox(height: 8),
-                                Text(
-                                  'Tap Receive Race to get a race from a nearby coach or spectator.',
-                                  style: TextStyle(
-                                      fontSize: 14, color: Colors.black54),
-                                  textAlign: TextAlign.center,
-                                ),
-                              ],
+                  ? Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: const [
+                            Text(
+                              'No races received yet',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                          ),
-                        )
-                      : RefreshIndicator(
-                          onRefresh: _loadSavedRaces,
-                          child: ListView.builder(
-                            physics: const AlwaysScrollableScrollPhysics(),
-                            padding:
-                                const EdgeInsets.symmetric(vertical: 16.0),
-                            itemCount: _savedRaces.length,
-                            itemBuilder: (context, index) {
-                              final race = _savedRaces[index];
-                              final raceName =
-                                  race['race_name'] as String? ??
-                                      'Unnamed Race';
-                              final raceId = race['id'] as int;
-
-                              return SpectatorRaceCard(
-                                race: race,
-                                onTap: () => _viewRace(race),
-                                onShare: () => _shareRace(race),
-                                onDelete: () =>
-                                    _deleteRace(raceId, raceName),
-                              );
-                            },
-                          ),
+                            SizedBox(height: 8),
+                            Text(
+                              'Tap Receive Race to get a race from a nearby coach or spectator.',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.black54,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ],
                         ),
+                      ),
+                    )
+                  : RefreshIndicator(
+                      onRefresh: _loadSavedRaces,
+                      child: ListView.builder(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        itemCount: _savedRaces.length,
+                        itemBuilder: (context, index) {
+                          final race = _savedRaces[index];
+                          final raceName =
+                              race['race_name'] as String? ?? 'Unnamed Race';
+                          final raceId = race['id'] as int;
+
+                          return SpectatorRaceCard(
+                            race: race,
+                            onTap: () => _viewRace(race),
+                            onShare: () => _shareRace(race),
+                            onDelete: () => _deleteRace(raceId, raceName),
+                          );
+                        },
+                      ),
+                    ),
             ),
           ),
         ],
@@ -299,12 +311,15 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color:
-                                AppColors.primaryColor.withValues(alpha: 0.1),
+                            color: AppColors.primaryColor.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.person,
-                              color: AppColors.primaryColor),
+                          child: const Icon(
+                            Icons.person,
+                            color: AppColors.primaryColor,
+                          ),
                         ),
                         title: const Text(
                           'Coach',
@@ -321,12 +336,15 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                         leading: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color:
-                                AppColors.primaryColor.withValues(alpha: 0.1),
+                            color: AppColors.primaryColor.withValues(
+                              alpha: 0.1,
+                            ),
                             borderRadius: BorderRadius.circular(8),
                           ),
-                          child: const Icon(Icons.visibility,
-                              color: AppColors.primaryColor),
+                          child: const Icon(
+                            Icons.visibility,
+                            color: AppColors.primaryColor,
+                          ),
                         ),
                         title: const Text(
                           'Another Spectator',
@@ -335,8 +353,9 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                             fontSize: 16,
                           ),
                         ),
-                        subtitle:
-                            const Text('Receive race from another spectator'),
+                        subtitle: const Text(
+                          'Receive race from another spectator',
+                        ),
                         onTap: () => Navigator.of(context).pop(true),
                       ),
                     ],
@@ -351,10 +370,11 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
           if (!context.mounted) return;
 
           await sheet(
-              context: context,
-              title: 'Receive Race',
-              body: ReceiveRaceScreen(fromSpectator: fromSpectator),
-              takeUpScreen: false);
+            context: context,
+            title: 'Receive Race',
+            body: ReceiveRaceScreen(fromSpectator: fromSpectator),
+            takeUpScreen: false,
+          );
 
           // Refresh the list after receiving a race
           _loadSavedRaces();

@@ -37,9 +37,10 @@ class _ShareActionButtonState extends State<ShareActionButton>
       duration: const Duration(milliseconds: 150),
       vsync: this,
     );
-    _scaleAnimation = Tween<double>(begin: 1.0, end: 0.95).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -61,7 +62,9 @@ class _ShareActionButtonState extends State<ShareActionButton>
       message: widget.tooltip ?? '',
       child: Container(
         margin: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        ),
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: widget.isPrimary
@@ -71,7 +74,9 @@ class _ShareActionButtonState extends State<ShareActionButton>
                   borderRadius: AppBorderRadius.md,
                   elevation: 0,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm, vertical: AppSpacing.md),
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.md,
+                  ),
                   iconSize: 18,
                   onPressed: handlePress,
                 )
@@ -81,7 +86,9 @@ class _ShareActionButtonState extends State<ShareActionButton>
                   borderRadius: AppBorderRadius.md,
                   elevation: 2,
                   padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.sm, vertical: AppSpacing.md),
+                    horizontal: AppSpacing.sm,
+                    vertical: AppSpacing.md,
+                  ),
                   iconSize: 18,
                   onPressed: handlePress,
                 ),

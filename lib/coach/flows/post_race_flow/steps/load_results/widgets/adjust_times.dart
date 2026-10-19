@@ -34,24 +34,26 @@ class AdjustTimesTile extends StatelessWidget {
             moved
                 ? 'All times moved ${describeShift(shift)}.'
                 : 'Timer started late or early?',
-            style: AppTypography.bodyRegular
-                .copyWith(color: AppColors.mediumColor),
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.mediumColor,
+            ),
           ),
         ),
         TextButton(
           onPressed: moved
               ? () => onShift(-shift)
               : () => sheet(
-                    context: context,
-                    title: 'Adjust All Times',
-                    body: AdjustTimesForm(
-                      onShift: onShift,
-                      explanation: 'If the Timer pressed Start after the gun, '
-                          'every time is short by the same amount. Started '
-                          'late adds the seconds to every time; started '
-                          'early takes them off.',
-                    ),
+                  context: context,
+                  title: 'Adjust All Times',
+                  body: AdjustTimesForm(
+                    onShift: onShift,
+                    explanation:
+                        'If the Timer pressed Start after the gun, '
+                        'every time is short by the same amount. Started '
+                        'late adds the seconds to every time; started '
+                        'early takes them off.',
                   ),
+                ),
           child: Text(moved ? 'Undo' : 'Adjust Times'),
         ),
       ],

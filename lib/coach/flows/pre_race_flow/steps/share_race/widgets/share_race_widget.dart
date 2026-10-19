@@ -12,7 +12,8 @@ class ShareRaceWidget extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
       child: Center(
-          child: DeviceConnectionWidget(devices: devices, inSheet: false)),
+        child: DeviceConnectionWidget(devices: devices, inSheet: false),
+      ),
     );
   }
 }

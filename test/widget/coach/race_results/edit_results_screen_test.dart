@@ -15,10 +15,10 @@ import 'package:xceleration/shared/models/database/team.dart';
 const _eagles = Team(teamId: 1, name: 'Eagles');
 
 RaceRunner _runner(int id, String name) => RaceRunner(
-      raceId: 7,
-      runner: Runner(runnerId: id, name: name, bibNumber: '${100 + id}', grade: 10),
-      team: _eagles,
-    );
+  raceId: 7,
+  runner: Runner(runnerId: id, name: name, bibNumber: '${100 + id}', grade: 10),
+  team: _eagles,
+);
 
 final _ann = _runner(1, 'Ann');
 final _bo = _runner(2, 'Bo');
@@ -35,50 +35,67 @@ void main() {
     saved = null;
     popped = null;
     created = [];
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: ElevatedButton(
-            onPressed: () async {
-              popped = await Navigator.of(context).push<bool>(
-                MaterialPageRoute(
-                  builder: (_) => EditResultsScreen(
-                    create: () => EditResultsController(
-                      raceId: 7,
-                      results: [
-                        RaceResult(raceId: 7, runner: _ann.runner, team: _eagles,
-                            place: 1, finishTime: const Duration(minutes: 15)),
-                        RaceResult(raceId: 7, runner: _bo.runner, team: _eagles,
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: ElevatedButton(
+              onPressed: () async {
+                popped = await Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => EditResultsScreen(
+                      create: () => EditResultsController(
+                        raceId: 7,
+                        results: [
+                          RaceResult(
+                            raceId: 7,
+                            runner: _ann.runner,
+                            team: _eagles,
+                            place: 1,
+                            finishTime: const Duration(minutes: 15),
+                          ),
+                          RaceResult(
+                            raceId: 7,
+                            runner: _bo.runner,
+                            team: _eagles,
                             place: 2,
-                            finishTime: const Duration(minutes: 15, seconds: 20)),
-                      ],
-                      raceRunners: [_ann, _bo, _di],
-                      save: (results) async => saved = results,
-                    ),
-                    newRunners: NewRunnerSetup(
-                      teams: const ['Eagles'],
-                      create: (runner) async {
-                        created.add(runner);
-                        return Success(RaceRunner(
-                          raceId: 7,
-                          runner: Runner(
-                              runnerId: 9,
-                              name: runner.name,
-                              bibNumber: runner.bibNumber,
-                              grade: runner.grade),
-                          team: _eagles,
-                        ));
-                      },
+                            finishTime: const Duration(
+                              minutes: 15,
+                              seconds: 20,
+                            ),
+                          ),
+                        ],
+                        raceRunners: [_ann, _bo, _di],
+                        save: (results) async => saved = results,
+                      ),
+                      newRunners: NewRunnerSetup(
+                        teams: const ['Eagles'],
+                        create: (runner) async {
+                          created.add(runner);
+                          return Success(
+                            RaceRunner(
+                              raceId: 7,
+                              runner: Runner(
+                                runnerId: 9,
+                                name: runner.name,
+                                bibNumber: runner.bibNumber,
+                                grade: runner.grade,
+                              ),
+                              team: _eagles,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
-                ),
-              );
-            },
-            child: const Text('open'),
+                );
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }
@@ -162,8 +179,9 @@ void main() {
 
   // A tester could only change a finish to a runner already in the system:
   // someone missing from the roster could not be added.
-  testWidgets('a finish can go to a runner who is not on the roster',
-      (tester) async {
+  testWidgets('a finish can go to a runner who is not on the roster', (
+    tester,
+  ) async {
     await open(tester);
 
     await tester.tap(find.text('Bo'));

@@ -8,10 +8,7 @@ import '../controller/races_controller.dart';
 class ActionButton extends StatelessWidget {
   final RacesController controller;
 
-  const ActionButton({
-    required this.controller,
-    super.key,
-  });
+  const ActionButton({required this.controller, super.key});
 
   void _handleAction(BuildContext context) async {
     // Clear any validation errors
@@ -46,8 +43,10 @@ class ActionButton extends StatelessWidget {
 
       // Only show error dialog if context is still mounted
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Could not save the race. Please try again.');
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Could not save the race. Please try again.',
+        );
       }
     }
   }

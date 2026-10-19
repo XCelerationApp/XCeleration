@@ -15,10 +15,7 @@ import '../../../shared/models/database/race.dart';
 class RaceDetailsTab extends StatelessWidget {
   final RaceScreenController controller;
 
-  const RaceDetailsTab({
-    super.key,
-    required this.controller,
-  });
+  const RaceDetailsTab({super.key, required this.controller});
 
   Widget _buildLocationEditWidget(BuildContext context) {
     // Typed, like "Crystal Springs". A locate button used to fill in the
@@ -178,7 +175,8 @@ class RaceDetailsTab extends StatelessWidget {
 
           Builder(
             builder: (context) {
-              final isViewMode = !canEdit ||
+              final isViewMode =
+                  !canEdit ||
                   race.flowState == Race.FLOW_FINISHED ||
                   race.flowState == Race.FLOW_POST_RACE;
               return _TeamsRow(
@@ -186,8 +184,9 @@ class RaceDetailsTab extends StatelessWidget {
                 runnerCount: runnerCount,
                 onTap: () =>
                     controller.loadRunnersManagementScreenWithConfirmation(
-                        context,
-                        isViewMode: isViewMode),
+                      context,
+                      isViewMode: isViewMode,
+                    ),
               );
             },
           ),
@@ -239,11 +238,16 @@ class _TeamsRowState extends State<_TeamsRow> {
             Container(
               padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppColors.primaryColor.withValues(alpha: AppOpacity.light),
+                color: AppColors.primaryColor.withValues(
+                  alpha: AppOpacity.light,
+                ),
                 borderRadius: BorderRadius.circular(AppBorderRadius.md),
               ),
-              child: Icon(Icons.group_rounded,
-                  color: AppColors.primaryColor, size: 22),
+              child: Icon(
+                Icons.group_rounded,
+                color: AppColors.primaryColor,
+                size: 22,
+              ),
               // Same size as the other rows' icons, so they line up.
             ),
             const SizedBox(width: AppSpacing.lg),

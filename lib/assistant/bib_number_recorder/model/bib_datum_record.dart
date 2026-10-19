@@ -17,12 +17,7 @@ class BibDatumRecord extends BibDatum {
   });
 
   factory BibDatumRecord.blank() {
-    return BibDatumRecord(
-      bib: '',
-      name: '',
-      teamAbbreviation: '',
-      grade: '',
-    );
+    return BibDatumRecord(bib: '', name: '', teamAbbreviation: '', grade: '');
   }
 
   factory BibDatumRecord.fromBibDatum(
