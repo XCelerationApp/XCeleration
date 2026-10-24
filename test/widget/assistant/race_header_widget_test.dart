@@ -56,7 +56,7 @@ void main() {
     await openMenu(tester, canClear: false);
 
     expect(find.text('Clear Times'), findsNothing);
-    expect(find.text('Get Race from Coach'), findsOneWidget);
+    expect(find.text('Get Race from Results Manager'), findsOneWidget);
   });
 
   group('the practice race', () {
@@ -86,7 +86,7 @@ void main() {
       await show(tester, practice, onLoad: () => asked = true);
 
       expect(find.textContaining('This is a practice race'), findsOneWidget);
-      await tester.tap(find.text('Get Race from Coach'));
+      await tester.tap(find.text('Get Race from Results Manager'));
 
       expect(asked, isTrue);
     });

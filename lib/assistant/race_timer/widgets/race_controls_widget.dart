@@ -117,8 +117,8 @@ class RaceControlsWidget extends StatelessWidget {
         row,
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Practice times can\'t be shared. Get the real race from your '
-          'coach to time it.',
+          'Practice times can\'t be shared. Get the real race from the '
+          'Results Manager to time it.',
           textAlign: TextAlign.center,
           style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
         ),
@@ -135,7 +135,7 @@ class RaceControlsWidget extends StatelessWidget {
         title: 'Practice Race',
         message:
             'Times from the practice race cannot be shared. Get the real race '
-            'from your coach, then time it.',
+            'from the Results Manager, then time it.',
       );
       return;
     }

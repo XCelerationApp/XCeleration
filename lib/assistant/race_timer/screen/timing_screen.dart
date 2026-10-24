@@ -173,7 +173,7 @@ class _TimingScreenState extends State<TimingScreen>
           config: const CoachMarkConfig(
             title: 'Race Information',
             description:
-                'This shows your current race. A practice race is loaded so you can try things out. Tap Get Race from Coach for the real one.',
+                'This shows your current race. A practice race is loaded so you can try things out. Tap Get Race from Results Manager for the real one.',
             icon: Icons.info_outline,
             alignmentY: AlignmentY.bottom,
             type: CoachMarkType.targeted,

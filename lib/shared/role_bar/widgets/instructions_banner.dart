@@ -78,8 +78,8 @@ class InstructionsBanner extends StatelessWidget {
       case Role.bibRecorder:
         return 'You record each runner\'s bib number as they finish, in the '
             'order they cross the line: hold the button and say it, or type '
-            'it.\n\nBefore the race, tap Get Race from '
-            'Coach so your list knows the runners. When there is a break in '
+            'it.\n\nBefore the race, tap Get Race from Results Manager so '
+            'your list knows the runners. When there is a break in '
             'the runners, tell the Timer how many bibs you have.\n\nIf a '
             'written list of finishers is being kept, check your count '
             'against it at each break: swipe a bib right to insert a missed '
@@ -106,8 +106,8 @@ class InstructionsBanner extends StatelessWidget {
             'Then tap Share Results on the Results tab: as text, a Google '
             'Sheet or a PDF, or to spectators nearby.';
       case Role.spectator:
-        return 'You see the results of races a coach shares with you.\n\n'
-            'Tap Receive Race, then choose Coach. On the coach\'s '
+        return 'You see the results of races shared with you.\n\n'
+            'Tap Receive Race, then choose Results Manager. On the Results Manager\'s '
             'phone, they tap Share Results, then Send to Spectators. You can '
             'also get a race from another spectator who already has it.';
     }

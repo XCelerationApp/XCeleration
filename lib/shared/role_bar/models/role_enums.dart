@@ -24,7 +24,7 @@ enum Role {
       case Role.bibRecorder:
         return 'Bib Recorder';
       case Role.coach:
-        return 'Coach';
+        return 'Results Manager';
       case Role.spectator:
         return 'Spectator';
     }
@@ -39,7 +39,7 @@ enum Role {
       case Role.coach:
         return 'Manage races';
       case Role.spectator:
-        return 'See results a coach shares';
+        return 'See results shared with you';
     }
   }
 

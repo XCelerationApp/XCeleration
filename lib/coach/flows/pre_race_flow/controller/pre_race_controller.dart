@@ -120,7 +120,7 @@ class PreRaceController {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
-            'On the volunteer\'s phone, tap Get Race from Coach. Times and '
+            'On the volunteer\'s phone, tap Get Race from Results Manager. Times and '
             'bibs already recorded for this race stay on their phone.',
             style: AppTypography.bodyRegular
                 .copyWith(color: AppColors.mediumColor),
