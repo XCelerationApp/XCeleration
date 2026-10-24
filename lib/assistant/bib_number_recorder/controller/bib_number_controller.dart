@@ -9,7 +9,6 @@ import '../../../core/utils/logger.dart';
 import '../../../core/utils/sheet_utils.dart';
 import '../../../core/components/device_connection_widget.dart';
 import '../../../core/services/i_device_connection_factory.dart';
-import '../../../core/utils/decode_utils.dart';
 import 'package:xceleration/shared/models/timing_records/bib_datum.dart';
 import '../model/bib_datum_record.dart';
 import '../../shared/models/race_record.dart';
@@ -17,13 +16,13 @@ import '../../shared/services/i_demo_race_generator.dart';
 import '../../shared/utils/race_to_reopen.dart';
 import '../../shared/models/bib_record.dart' as db_models;
 import '../../shared/models/runner.dart' as db_models;
-import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/result.dart';
 import '../../shared/widgets/other_races_sheet.dart';
 import '../../shared/services/race_copy.dart';
 import '../../shared/services/assistant_export_service.dart';
 import '../widgets/runners_loaded_sheet.dart';
 import '../../shared/services/received_race_resolver.dart';
+import '../services/race_from_coach.dart';
 import '../../shared/widgets/race_already_here_dialog.dart';
 import 'bib_number_data_controller.dart';
 
@@ -145,7 +144,11 @@ class BibNumberController extends BibNumberDataController {
 
       final result = await storage.getRaces(DeviceName.bibRecorder.toString());
       if (result case Success(:final value)) {
-        final race = raceToReopen(value);
+        // A race the coach on this phone just handed over opens first.
+        final handed = RaceHandedOver.bibRecorderRaceId;
+        RaceHandedOver.bibRecorderRaceId = null;
+        final race = value.where((r) => r.raceId == handed).firstOrNull ??
+            raceToReopen(value);
         if (race != null) await _loadRace(race);
       }
     } finally {
@@ -364,102 +367,20 @@ class BibNumberController extends BibNumberDataController {
 
   Future<Result<void>> _processLoadedRaceData(
       String data, AskAboutRace? ask) async {
-    late RaceRecord raceRecord;
-    List<BibDatum> loadedRunners = [];
-
-    try {
-      // Coach sends: raceData---runnerData (runners section is optional)
-      final parts = data.split('---');
-      if (parts.length == 2) {
-        raceRecord = RaceRecord.fromEncodedString(parts[0],
-            type: DeviceName.bibRecorder.toString());
-
-        final runnersResult =
-            await BibDecodeUtils.decodeEncodedRunners(parts[1]);
-        switch (runnersResult) {
-          case Success(:final value):
-            loadedRunners = value;
-          case Failure(:final error):
-            Logger.e(
-                '[BibNumberController.processLoadedRaceData] ${error.originalException}');
-            return Failure(error);
-        }
-      } else {
-        raceRecord = RaceRecord.fromEncodedString(data,
-            type: DeviceName.bibRecorder.toString());
-      }
-    } catch (e) {
-      Logger.e('Error parsing race data: $e');
-      return Failure(AppError(userMessage: 'Failed to parse race data: $e'));
-    }
-
-    // The coach may send the same race again, for instance with runners
-    // added since: that opens the race already here, bibs and all, unless
-    // the volunteer asks for a copy.
-    final RaceRecord race;
-    switch (await resolveReceivedRace(
-      storage: storage,
-      sent: raceRecord,
-      countRecorded: _countRecordedBibs,
-      rosterChanges: loadedRunners.isEmpty
-          ? null
-          : (existing) => _rosterChanges(existing, loadedRunners),
-      ask: ask,
-    )) {
-      case Success(:final value):
-        race = value.race;
+    final StoredRaceFromCoach stored;
+    switch (await storeRaceFromCoach(storage, data, ask: ask)) {
       case Failure(:final error):
-        Logger.e(
-            '[BibNumberController.processLoadedRaceData] ${error.originalException}');
         return Failure(error);
-    }
-
-    if (loadedRunners.isEmpty) {
-      await loadOtherRace(race);
-      return const Success(null);
-    }
-
-    final dbRunners = loadedRunners
-        .map((runner) => db_models.Runner(
-              raceId: race.raceId,
-              bibNumber: runner.bib,
-              name: runner.name,
-              teamAbbreviation: runner.teamAbbreviation,
-              grade: runner.grade,
-              teamColor: runner.teamColor,
-              createdAt: DateTime.now(),
-            ))
-        .toList();
-    await storage.saveRunners(race.raceId, dbRunners);
-
-    clearBibRecords();
-    await _loadRaceWithRunners(race, loadedRunners);
-    return const Success(null);
-  }
-
-  Future<int> _countRecordedBibs(RaceRecord race) async =>
-      switch (await storage.getBibRecords(race.raceId)) {
-        Success(:final value) =>
-          value.where((r) => r.bibNumber.isNotEmpty).length,
-        Failure() => 0,
-      };
-
-  Future<RosterChanges?> _rosterChanges(
-      RaceRecord race, List<BibDatum> sent) async {
-    switch (await storage.getRunners(race.raceId)) {
-      case Failure():
-        return null;
       case Success(:final value):
-        return RosterChanges.between([
-          for (final r in value)
-            BibDatum(
-              bib: r.bibNumber,
-              name: r.name,
-              teamAbbreviation: r.teamAbbreviation,
-              grade: r.grade,
-            ),
-        ], sent);
+        stored = value;
     }
+    if (stored.runners.isEmpty) {
+      await loadOtherRace(stored.race);
+    } else {
+      clearBibRecords();
+      await _loadRaceWithRunners(stored.race, stored.runners);
+    }
+    return const Success(null);
   }
 
   Future<void> showLoadRaceSheet(BuildContext context) async {
@@ -469,7 +390,7 @@ class BibNumberController extends BibNumberDataController {
     );
     sheet(
       context: context,
-      title: 'Get Race from Coach',
+      title: 'Get Race from Results Manager',
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -477,7 +398,7 @@ class BibNumberController extends BibNumberDataController {
           const Padding(
             padding: EdgeInsets.only(bottom: 16),
             child: Text(
-              'On the coach\'s phone, open the race and tap Send to '
+              'On the Results Manager\'s phone, open the race and tap Send to '
               'Volunteers.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 15, color: Color(0xFF606060)),
@@ -685,6 +606,18 @@ class BibNumberController extends BibNumberDataController {
     // A second runner with the same bib flags both.
     await validateBibNumber(index, bib);
     await saveBibOrder();
+  }
+
+  /// Adds an empty row above [index] and puts the keypad on it, for a runner
+  /// who was missed: everyone from [index] moves down a place. Only while
+  /// recording, as bibs cannot be typed once the race is stopped.
+  Future<void> insertBibAbove(int index) async {
+    if (currentRace == null || raceStopped) return;
+    if (index < 0 || index >= bibRecords.length) return;
+    await insertBibRecord(index, BibDatumRecord.blank());
+    _scheduler.schedulePostFrame(() {
+      if (index < focusNodes.length) focusNodes[index].requestFocus();
+    });
   }
 
   /// Saves the bib list as it stands, including a bib still being typed.

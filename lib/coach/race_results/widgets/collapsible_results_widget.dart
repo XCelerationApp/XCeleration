@@ -1,3 +1,4 @@
+import 'package:xceleration/core/utils/grade_utils.dart';
 import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_spacing.dart';
@@ -167,7 +168,13 @@ class CollapsibleIndividualResultsWidget extends StatelessWidget {
                   style: AppTypography.bodyRegular,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis),
-              Text(result.teamAbbreviation,
+              // Team and grade, as coaches read results: "NHS · So".
+              Text(
+                  [
+                    result.teamAbbreviation,
+                    if (result.grade >= 9 && result.grade <= 12)
+                      gradeLabel(result.grade),
+                  ].where((s) => s.isNotEmpty).join(' · '),
                   style: AppTypography.caption
                       .copyWith(color: AppColors.mediumColor),
                   maxLines: 1,

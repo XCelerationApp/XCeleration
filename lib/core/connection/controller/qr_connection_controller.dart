@@ -91,12 +91,12 @@ class QRConnectionController extends ChangeNotifier {
   String get _scanHint {
     if (_devices.currentDeviceName == DeviceName.coach) {
       return _devices.toSpectator
-          ? 'On each spectator\'s phone, tap Receive Race, then Coach, '
+          ? 'On each spectator\'s phone, tap Receive Race, then Results Manager, '
               'then Scan QR Code.'
-          : 'On each volunteer\'s phone, tap Get Race from Coach, then '
+          : 'On each volunteer\'s phone, tap Get Race from Results Manager, then '
               'Scan QR Code.';
     }
-    return 'On the coach\'s phone, tap Scan QR Code on the Load Results '
+    return 'On the Results Manager\'s phone, tap Scan QR Code on the Load Results '
         'page.';
   }
 

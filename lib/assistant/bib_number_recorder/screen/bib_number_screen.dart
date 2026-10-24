@@ -97,7 +97,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
           context,
           title: 'Demo Race',
           message:
-              'The demo race is for practice only and cannot be shared. Please load a real race from your coach to share results.',
+              'The demo race is for practice only and cannot be shared. Please load a real race from the Results Manager to share results.',
         );
         _controller.restoreFocusability();
       case ShareDataHasDuplicates(:final duplicates, :final hasUnknown, :final encodedData):
@@ -265,7 +265,7 @@ class _BibNumberScreenState extends State<BibNumberScreen> {
         config: const CoachMarkConfig(
           title: 'Race Information',
           description:
-              'This shows your current race. A practice race is loaded so you can try things out. Tap Get Race from Coach for the real one.',
+              'This shows your current race. A practice race is loaded so you can try things out. Tap Get Race from Results Manager for the real one.',
           icon: Icons.info_outline,
           alignmentY: AlignmentY.bottom,
           type: CoachMarkType.targeted,

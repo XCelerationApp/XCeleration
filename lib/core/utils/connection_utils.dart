@@ -1,7 +1,7 @@
 import 'enums.dart';
 
 const Map<DeviceName, String> _deviceNameStrings = {
-  DeviceName.coach: 'Coach',
+  DeviceName.coach: 'Results Manager',
   DeviceName.bibRecorder: 'Bib Recorder',
   DeviceName.raceTimer: 'Timer',
   DeviceName.spectator: 'Spectator',
@@ -21,6 +21,9 @@ String getDeviceNameString(DeviceName deviceName) {
 /// wording. See test/fixtures/wire/README.md.
 String getDeviceWireName(DeviceName deviceName) {
   if (deviceName == DeviceName.raceTimer) return 'Race Timer';
+  // On screen the coach's role is now the Results Manager; every phone out
+  // there still looks for 'Coach'.
+  if (deviceName == DeviceName.coach) return 'Coach';
   return getDeviceNameString(deviceName);
 }
 
@@ -29,6 +32,7 @@ String getDeviceWireName(DeviceName deviceName) {
 DeviceName getDeviceNameFromString(String deviceName) {
   switch (deviceName.toLowerCase()) {
     case 'coach':
+    case 'results manager':
       return DeviceName.coach;
     case 'bib recorder':
       return DeviceName.bibRecorder;

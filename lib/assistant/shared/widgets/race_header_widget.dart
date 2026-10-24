@@ -145,7 +145,7 @@ class RaceHeaderWidget extends StatelessWidget {
                     const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
               ),
               child: Text(
-                'Get Race from Coach',
+                'Get Race from Results Manager',
                 style: AppTypography.smallBodySemibold.copyWith(
                   color: Colors.white,
                 ),
@@ -268,7 +268,7 @@ class RaceHeaderWidget extends StatelessWidget {
                             SizedBox(width: 8),
                             // Wraps rather than overflowing the menu at
                             // larger text sizes.
-                            Flexible(child: Text('Get Race from Coach')),
+                            Flexible(child: Text('Get Race from Results Manager')),
                           ],
                         ),
                       ),
@@ -423,14 +423,14 @@ class _PracticeRaceBanner extends StatelessWidget {
         children: [
           Text(
             'This is a practice race. Before the race starts, get the real '
-            'one from your coach.',
+            'one from the Results Manager.',
             style: AppTypography.bodyRegular.copyWith(
               color: AppColors.darkColor,
             ),
           ),
           const SizedBox(height: AppSpacing.md),
           PrimaryButton(
-            text: 'Get Race from Coach',
+            text: 'Get Race from Results Manager',
             icon: Icons.download,
             size: ButtonSize.fullWidth,
             onPressed: onGetRace,

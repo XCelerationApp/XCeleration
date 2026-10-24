@@ -55,6 +55,14 @@ anything odd, even if it worked in the end.
       non-developer Google account. The sheet opens with the results.
 - [ ] Send the results to a spectator's phone.
 
+## One phone as coach and Bib Recorder
+
+- [ ] Coach: on Send to Volunteers, tap **Record bibs on this phone too**.
+      Switch to Assistant → Bib Recorder: the race opens, with its runners.
+- [ ] Record a few bibs, swipe one right to **Insert above**, then stop.
+- [ ] Coach: on Load Results, tap **Use Bibs From This Phone**, then have
+      the Timer share its times. The results load with those bibs.
+
 ## Clean-up and other
 
 - [ ] Timer and Bib Recorder: delete the race. The practice race (or another

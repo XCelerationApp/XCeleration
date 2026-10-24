@@ -505,6 +505,26 @@ class MockLoadResultsController extends _i1.Mock
           as _i11.AppError?);
 
   @override
+  _i6.Future<String?> bibsFromThisPhone() =>
+      (super.noSuchMethod(
+            Invocation.method(#bibsFromThisPhone, []),
+            returnValue: _i6.Future<String?>.value(),
+          )
+          as _i6.Future<String?>);
+
+  @override
+  _i6.Future<void> useBibsFromThisPhone(
+    _i12.BuildContext? context,
+    String? encodedBibs,
+  ) =>
+      (super.noSuchMethod(
+            Invocation.method(#useBibsFromThisPhone, [context, encodedBibs]),
+            returnValue: _i6.Future<void>.value(),
+            returnValueForMissingStub: _i6.Future<void>.value(),
+          )
+          as _i6.Future<void>);
+
+  @override
   void initialize() => super.noSuchMethod(
     Invocation.method(#initialize, []),
     returnValueForMissingStub: null,
