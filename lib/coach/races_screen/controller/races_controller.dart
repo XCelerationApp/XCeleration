@@ -241,7 +241,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
         currentUserId != null &&
         race.ownerUserId != currentUserId) {
       DialogUtils.showErrorDialog(context,
-          message: 'Only the coach who created this race can edit it.');
+          message: 'Only the person who created this race can edit it.');
       return;
     }
     final masterRace = MasterRace.getInstance(race.raceId!);
@@ -260,7 +260,7 @@ class RacesController extends ChangeNotifier implements IParentRaceController {
         currentUserId != null &&
         race.ownerUserId != currentUserId) {
       DialogUtils.showErrorDialog(context,
-          message: 'Only the coach who created this race can delete it.');
+          message: 'Only the person who created this race can delete it.');
       return false;
     }
     final confirmed = await DialogUtils.showConfirmationDialog(

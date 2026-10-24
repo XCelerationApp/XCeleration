@@ -44,13 +44,13 @@ class SettingsScreen extends StatelessWidget {
           _buildSectionHeader('Account'),
           if (signedIn) ...[
             _buildNote(
-                'Signed in as ${AuthService.instance.currentEmail ?? 'a coach'}'),
+                'Signed in as ${AuthService.instance.currentEmail ?? 'a Results Manager'}'),
             _buildSyncNowButton(context),
             if (kDebugMode) _buildChangePasswordButton(context),
             _buildSignOutButton(context),
             _buildDeleteAccountButton(context),
           ] else
-            _buildNote('Not signed in. Coaches sign in to keep their races '
+            _buildNote('Not signed in. Results Managers sign in to keep their races '
                 'and runners in the cloud. Timers, Bib Recorders and '
                 'Spectators do not need an account.'),
           const SizedBox(height: 24),

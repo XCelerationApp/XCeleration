@@ -780,6 +780,37 @@ void main() {
         controller.dispose();
       });
 
+      // Checking against a written list of finishers can show a runner was
+      // missed: they go in above, and everyone after moves down a place.
+      group('insert above', () {
+        test('puts an empty row above and moves the rest down', () async {
+          final controller = running();
+          for (final bib in ['42', '901', '42']) {
+            await controller.addHeardBib(bib);
+          }
+
+          await controller.insertBibAbove(1);
+
+          expect(controller.bibRecords.map((r) => r.bib),
+              ['42', '', '901', '42']);
+          expect(controller.bibRecords[0].flags.duplicatePlaces, [4],
+              reason: 'the other copy moved from 3rd to 4th');
+          verify(mockStorage.saveBibRecords(testRace.raceId, any));
+          controller.dispose();
+        });
+
+        test('does nothing once the race is stopped', () async {
+          final controller = running();
+          await controller.addHeardBib('42');
+          controller.setRaceStopped(true);
+
+          await controller.insertBibAbove(0);
+
+          expect(controller.bibRecords.map((r) => r.bib), ['42']);
+          controller.dispose();
+        });
+      });
+
       test('fill an empty row left from the keypad', () async {
         final controller = running();
         await controller.addBib();

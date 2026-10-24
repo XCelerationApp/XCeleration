@@ -36,6 +36,15 @@ void main() {
     expect(getDeviceNameFromString('Race Timer'), DeviceName.raceTimer);
   });
 
+  // The coach's role is the Results Manager on screen, but every phone out
+  // there looks for 'Coach'.
+  test('the Results Manager still sends Coach', () {
+    expect(getDeviceNameString(DeviceName.coach), 'Results Manager');
+    expect(getDeviceWireName(DeviceName.coach), 'Coach');
+    expect(getDeviceNameFromString('Coach'), DeviceName.coach);
+    expect(getDeviceNameFromString('Results Manager'), DeviceName.coach);
+  });
+
   test('a name from another app is not a device', () {
     expect(tryDeviceNameFromString("Sam's iPhone"), isNull);
     expect(() => getDeviceNameFromString("Sam's iPhone"), throwsArgumentError);

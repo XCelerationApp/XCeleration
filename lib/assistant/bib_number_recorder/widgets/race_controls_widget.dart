@@ -93,7 +93,7 @@ class RaceControlsWidget extends StatelessWidget {
         row,
         const SizedBox(height: AppSpacing.sm),
         Text(
-          'Practice bibs can\'t be shared. Get the real race from your coach '
+          'Practice bibs can\'t be shared. Get the real race from the Results Manager '
           'to record it.',
           textAlign: TextAlign.center,
           style: AppTypography.caption.copyWith(color: AppColors.mediumColor),

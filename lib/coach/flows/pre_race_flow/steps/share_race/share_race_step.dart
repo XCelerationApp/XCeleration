@@ -12,7 +12,7 @@ class ShareRaceStep extends FlowStep {
           title: 'Send to Volunteers',
           description:
               'On each volunteer\'s phone, open XCeleration, choose Assistant, '
-              'then Timer or Bib Recorder, and tap Get Race from Coach.',
+              'then Timer or Bib Recorder, and tap Get Race from Results Manager.',
           content: ShareRaceWidget(devices: devices),
           canProceed: () => true,
           nextLabel: 'Done',

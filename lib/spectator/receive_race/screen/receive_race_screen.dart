@@ -120,7 +120,7 @@ class _ReceiveRaceScreenState extends State<ReceiveRaceScreen> {
             Text(
               widget.fromSpectator
                   ? 'Searching for nearby spectators...\nThis will automatically connect and receive a race.'
-                  : 'Searching for nearby coaches...\nThis will automatically connect and receive a race.',
+                  : 'Searching for a nearby Results Manager...\nThis will automatically connect and receive a race.',
             ),
             const SizedBox(height: 16),
             WirelessConnectionWidget(

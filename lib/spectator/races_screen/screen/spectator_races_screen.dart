@@ -238,7 +238,7 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                                 ),
                                 SizedBox(height: 8),
                                 Text(
-                                  'Tap Receive Race to get a race from a nearby coach or spectator.',
+                                  'Tap Receive Race to get a race from a nearby Results Manager or spectator.',
                                   style: TextStyle(
                                       fontSize: 14, color: Colors.black54),
                                   textAlign: TextAlign.center,
@@ -307,13 +307,13 @@ class _SpectatorRacesScreenState extends State<SpectatorRacesScreen> {
                               color: AppColors.primaryColor),
                         ),
                         title: const Text(
-                          'Coach',
+                          'Results Manager',
                           style: TextStyle(
                             fontWeight: FontWeight.w600,
                             fontSize: 16,
                           ),
                         ),
-                        subtitle: const Text('Receive race from a coach'),
+                        subtitle: const Text('Receive race from the Results Manager'),
                         onTap: () => Navigator.of(context).pop(false),
                       ),
                       Divider(height: 1, color: Colors.grey.shade200),

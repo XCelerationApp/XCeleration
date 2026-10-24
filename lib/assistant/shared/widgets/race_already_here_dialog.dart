@@ -49,10 +49,10 @@ Future<ReceivedRaceChoice> askAboutRace(
   if (here.renamed) {
     return (
       title: 'Is this the same race?',
-      content: 'The coach sent "${sent.name}" (${sent.formattedDate}). This '
+      content: 'The Results Manager sent "${sent.name}" (${sent.formattedDate}). This '
           'phone already has "${old.name}" (${old.formattedDate}) under the '
           'same race number$recorded.\n\n'
-          'If the coach renamed it, update it and keep your $what. If it is '
+          'If the Results Manager renamed it, update it and keep your $what. If it is '
           'a different race, keep both.',
       update: 'Same race',
       keep: 'Keep both',
@@ -62,7 +62,7 @@ Future<ReceivedRaceChoice> askAboutRace(
     title: 'Race already on this phone',
     content: '"${old.name}" is already here$recorded.\n\n'
         'Update it to keep your $what'
-        '${roster == null ? '' : ' and use the coach\'s new roster ($roster)'}'
+        '${roster == null ? '' : ' and use the Results Manager\'s new roster ($roster)'}'
         ', or make a separate copy.',
     update: 'Update race',
     keep: 'Make a copy',
