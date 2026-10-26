@@ -20,9 +20,9 @@ class ChunkCacher {
 
   /// The cached chunks, oldest first, without removing them from the cache.
   List<TimingChunk> get cachedTimingChunks => [
-        for (var i = 0; i < _hashedChunks.length; i++)
-          TimingChunk.decode(_encodedChunks[_hashedChunks[i]]!, i),
-      ];
+    for (var i = 0; i < _hashedChunks.length; i++)
+      TimingChunk.decode(_encodedChunks[_hashedChunks[i]]!, i),
+  ];
 
   void cacheChunk(TimingChunk chunk) {
     final hashCode = chunk.hashCode;
@@ -32,8 +32,10 @@ class ChunkCacher {
     // Use current startingPlace for this chunk, then update to ending place
     final int chunkStartingPlace = startingPlace == 0 ? 1 : startingPlace;
     _encodedChunks[hashCode] = chunk.encode();
-    UIChunk uiChunk =
-        RaceTimerDataConverter.convertToUIChunk(chunk, chunkStartingPlace);
+    UIChunk uiChunk = RaceTimerDataConverter.convertToUIChunk(
+      chunk,
+      chunkStartingPlace,
+    );
     _cachedChunks[hashCode] = uiChunk;
     _hashedChunks.add(hashCode);
     startingPlace = uiChunk.endingPlace;
@@ -60,8 +62,10 @@ class ChunkCacher {
       }
 
       // return decoded chunk
-      final TimingChunk decoded =
-          TimingChunk.decode(encodedChunk, currentId - 1);
+      final TimingChunk decoded = TimingChunk.decode(
+        encodedChunk,
+        currentId - 1,
+      );
       return decoded;
     } catch (e) {
       return null;

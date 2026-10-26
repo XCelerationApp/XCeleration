@@ -23,7 +23,9 @@ class RecordListItem extends StatelessWidget {
         color: isEven ? AppColors.surfaceColor : Colors.white,
       ),
       padding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.md, horizontal: AppSpacing.lg),
+        vertical: AppSpacing.md,
+        horizontal: AppSpacing.lg,
+      ),
       child: _buildRecordContent(context),
     );
   }

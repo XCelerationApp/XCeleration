@@ -46,7 +46,9 @@ class BasicAlertDialog extends StatelessWidget {
       backgroundColor: AppColors.backgroundColor,
       surfaceTintColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.xl, vertical: AppSpacing.xl),
+        horizontal: AppSpacing.xl,
+        vertical: AppSpacing.xl,
+      ),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: SingleChildScrollView(
@@ -57,8 +59,9 @@ class BasicAlertDialog extends StatelessWidget {
             children: [
               Text(
                 title,
-                style: AppTypography.titleSemibold
-                    .copyWith(color: AppColors.darkColor),
+                style: AppTypography.titleSemibold.copyWith(
+                  color: AppColors.darkColor,
+                ),
               ),
               if (content.isNotEmpty) ...[
                 const SizedBox(height: AppSpacing.sm),
@@ -105,24 +108,30 @@ class DialogButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = destructive ? AppColors.redColor : AppColors.primaryColor;
-    final shape = WidgetStatePropertyAll(RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppBorderRadius.md)));
+    final shape = WidgetStatePropertyAll(
+      RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+      ),
+    );
     const minSize = WidgetStatePropertyAll(Size(0, 48));
     // One line, shrunk to fit if need be: "Collect Results" wrapped onto two
     // lines in a half-width button.
     final label = FittedBox(
       fit: BoxFit.scaleDown,
-      child: Text(text,
-          maxLines: 1,
-          textAlign: TextAlign.center,
-          style: AppTypography.bodySemibold),
+      child: Text(
+        text,
+        maxLines: 1,
+        textAlign: TextAlign.center,
+        style: AppTypography.bodySemibold,
+      ),
     );
     if (primary) {
       return FilledButton(
         onPressed: onPressed,
         style: FilledButton.styleFrom(
-                backgroundColor: color, foregroundColor: Colors.white)
-            .copyWith(shape: shape, minimumSize: minSize),
+          backgroundColor: color,
+          foregroundColor: Colors.white,
+        ).copyWith(shape: shape, minimumSize: minSize),
         child: label,
       );
     }
@@ -190,20 +199,23 @@ class DialogUtils {
                           ? Icons.check_circle_rounded
                           : Icons.radio_button_unchecked,
                       size: 22,
-                      color: done ? Colors.green.shade600 : AppColors.primaryColor,
+                      color: done
+                          ? Colors.green.shade600
+                          : AppColors.primaryColor,
                     ),
                     const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Text(
                         item,
-                        style: (done
-                                ? AppTypography.bodyRegular
-                                : AppTypography.bodySemibold)
-                            .copyWith(
-                          color: done
-                              ? AppColors.mediumColor
-                              : AppColors.darkColor,
-                        ),
+                        style:
+                            (done
+                                    ? AppTypography.bodyRegular
+                                    : AppTypography.bodySemibold)
+                                .copyWith(
+                                  color: done
+                                      ? AppColors.mediumColor
+                                      : AppColors.darkColor,
+                                ),
                       ),
                     ),
                   ],
@@ -415,7 +427,9 @@ class DialogUtils {
       color: backgroundColor,
       child: Padding(
         padding: const EdgeInsets.symmetric(
-            vertical: AppSpacing.md, horizontal: AppSpacing.lg),
+          vertical: AppSpacing.md,
+          horizontal: AppSpacing.lg,
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -426,9 +440,7 @@ class DialogUtils {
             Flexible(
               child: Text(
                 message,
-                style: AppTypography.bodyRegular.copyWith(
-                  color: textColor,
-                ),
+                style: AppTypography.bodyRegular.copyWith(color: textColor),
               ),
             ),
           ],
@@ -489,18 +501,25 @@ class LoadingDialog extends StatelessWidget {
       key: dialogKey,
       title: Text(
         title,
-        style: AppTypography.titleSemibold.copyWith(
-          color: indicatorColor,
-        ),
+        style: AppTypography.titleSemibold.copyWith(color: indicatorColor),
         textAlign: TextAlign.center,
       ),
       titlePadding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.sm),
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.sm,
+      ),
       contentPadding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xl),
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.xl,
+        AppSpacing.xl,
+      ),
       backgroundColor: AppColors.lightColor,
       shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppBorderRadius.md)),
+        borderRadius: BorderRadius.circular(AppBorderRadius.md),
+      ),
       content: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -545,7 +564,11 @@ class LoadingDialog extends StatelessWidget {
           : null,
       actionsPadding: showCancelButton
           ? const EdgeInsets.fromLTRB(
-              AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg)
+              AppSpacing.lg,
+              0,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            )
           : EdgeInsets.zero,
     );
   }
@@ -587,8 +610,9 @@ class _DialogContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final style =
-        AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor);
+    final style = AppTypography.bodyRegular.copyWith(
+      color: AppColors.mediumColor,
+    );
     final lines = content.split('\n');
     if (!lines.any((l) => l.startsWith('• '))) {
       return Text(content, style: style);

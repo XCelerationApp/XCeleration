@@ -151,13 +151,15 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
       // Only do this if the team has a valid teamId (placeholder teams for unknown conflicts don't)
       if (_selectedTeam != null && _selectedTeam!.teamId != null) {
         try {
-          final match = _currentTeamOptions
-              .firstWhere((t) => t.teamId == _selectedTeam!.teamId);
+          final match = _currentTeamOptions.firstWhere(
+            (t) => t.teamId == _selectedTeam!.teamId,
+          );
           _selectedTeam = match;
         } catch (_) {
           // For placeholder teams from unknown conflicts, just keep the original team
           Logger.d(
-              'Team not found in options, keeping original team (likely placeholder)');
+            'Team not found in options, keeping original team (likely placeholder)',
+          );
         }
       }
     } else {
@@ -391,7 +393,9 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
     nextNameError = RunnerFormValidator.validateName(name);
 
     // Grade
-    nextGradeError = RunnerFormValidator.validateGrade(gradeController.text.trim());
+    nextGradeError = RunnerFormValidator.validateGrade(
+      gradeController.text.trim(),
+    );
 
     // Team (Creation requires runnerTeam; Editing requires a selection present)
     if (!_isEditing) {
@@ -467,8 +471,10 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         error: teamError,
         onChanged: (value) {
           // Create a temporary team object for validation
-          final tempTeam =
-              Team(name: value, abbreviation: Team.generateAbbreviation(value));
+          final tempTeam = Team(
+            name: value,
+            abbreviation: Team.generateAbbreviation(value),
+          );
           _handleTeamChange(tempTeam);
         },
       );
@@ -494,9 +500,10 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
                   ? Colors.red.withValues(alpha: AppOpacity.faint)
                   : Colors.grey.withValues(alpha: AppOpacity.faint),
               border: Border.all(
-                  color: teamError != null
-                      ? Colors.red.withValues(alpha: AppOpacity.solid)
-                      : Colors.grey.withValues(alpha: AppOpacity.solid)),
+                color: teamError != null
+                    ? Colors.red.withValues(alpha: AppOpacity.solid)
+                    : Colors.grey.withValues(alpha: AppOpacity.solid),
+              ),
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
             ),
             child: DropdownButtonHideUnderline(
@@ -504,31 +511,39 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
                 alignedDropdown: true,
                 // Rounded and white, like the app's other menus.
                 child: DropdownButton<Team?>(
-                    dropdownColor: Colors.white,
-                    borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-                    elevation: 4,
-                    menuMaxHeight: 360,
-                    icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                        color: AppColors.mediumColor),
-                    style: AppTypography.bodyRegular
-                        .copyWith(color: AppColors.darkColor),
-                    value: _selectedTeam != null &&
-                            _currentTeamOptions.contains(_selectedTeam)
-                        ? _selectedTeam
-                        : null,
-                    hint: Text('Select Team',
-                        style: TextStyle(color: Colors.grey)),
-                    isExpanded: true,
-                    items: [
-                      // Existing teams
-                      ..._currentTeamOptions
-                          .map((team) => DropdownMenuItem<Team?>(
-                                value: team,
-                                child: Text(team.name ?? ''),
-                              )),
-                      // Add new team option only if team creation is allowed
-                    ],
-                    onChanged: _handleTeamChange),
+                  dropdownColor: Colors.white,
+                  borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+                  elevation: 4,
+                  menuMaxHeight: 360,
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.mediumColor,
+                  ),
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: AppColors.darkColor,
+                  ),
+                  value:
+                      _selectedTeam != null &&
+                          _currentTeamOptions.contains(_selectedTeam)
+                      ? _selectedTeam
+                      : null,
+                  hint: Text(
+                    'Select Team',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                  isExpanded: true,
+                  items: [
+                    // Existing teams
+                    ..._currentTeamOptions.map(
+                      (team) => DropdownMenuItem<Team?>(
+                        value: team,
+                        child: Text(team.name ?? ''),
+                      ),
+                    ),
+                    // Add new team option only if team creation is allowed
+                  ],
+                  onChanged: _handleTeamChange,
+                ),
               ),
             ),
           ),
@@ -536,13 +551,12 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
         if (teamError != null)
           Padding(
             padding: const EdgeInsets.only(
-                top: AppSpacing.xs, left: AppSpacing.md),
+              top: AppSpacing.xs,
+              left: AppSpacing.md,
+            ),
             child: Text(
               teamError!,
-              style: const TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.red, fontSize: 12),
             ),
           ),
       ],
@@ -624,11 +638,14 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
                 if (gradeError != null)
                   Padding(
                     padding: const EdgeInsets.only(
-                        top: AppSpacing.xs, left: AppSpacing.md),
+                      top: AppSpacing.xs,
+                      left: AppSpacing.md,
+                    ),
                     child: Text(
                       gradeError!,
-                      style: AppTypography.caption
-                          .copyWith(color: AppColors.redColor),
+                      style: AppTypography.caption.copyWith(
+                        color: AppColors.redColor,
+                      ),
                     ),
                   ),
               ],
@@ -636,10 +653,7 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
           ),
           if (_isEditing) ...[
             const SizedBox(height: AppSpacing.md),
-            buildInputField(
-              'Team',
-              _buildTeamField(),
-            ),
+            buildInputField('Team', _buildTeamField()),
           ],
           const SizedBox(height: AppSpacing.xl),
           FullWidthButton(
@@ -647,7 +661,8 @@ class _RunnerInputFormState extends State<RunnerInputForm> {
             fontSize: 16,
             fontWeight: FontWeight.w600,
             borderRadius: AppBorderRadius.sm,
-            isEnabled: !_isSubmitting &&
+            isEnabled:
+                !_isSubmitting &&
                 !hasErrors() &&
                 (!_isEditing || _hasChanges()),
             onPressed: !_isSubmitting ? handleSubmit : null,

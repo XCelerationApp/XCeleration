@@ -28,7 +28,8 @@ PreRaceController _buildController(
 }) {
   return PreRaceController(
     masterRace: mockMasterRace,
-    devices: devices ??
+    devices:
+        devices ??
         DevicesManager(DeviceName.coach, DeviceType.advertiserDevice, data: ''),
     encodeRaceData: encodeRaceData,
     encodeBibData: encodeBibData,
@@ -53,8 +54,11 @@ void main() {
     ServiceLocator.register<IRaceService>(RaceService());
     mockMasterRace = MockMasterRace();
     _stubCheckRunners(mockMasterRace);
-    devices =
-        DevicesManager(DeviceName.coach, DeviceType.advertiserDevice, data: '');
+    devices = DevicesManager(
+      DeviceName.coach,
+      DeviceType.advertiserDevice,
+      data: '',
+    );
   });
 
   tearDown(() {
@@ -65,10 +69,8 @@ void main() {
   group('PreRaceController', () {
     // -----------------------------------------------------------------------
     group('_initializeSteps', () {
-      test('is just the send page: the coach confirmed they were ready',
-          () {
-        final controller =
-            _buildController(mockMasterRace, devices: devices);
+      test('is just the send page: the coach confirmed they were ready', () {
+        final controller = _buildController(mockMasterRace, devices: devices);
 
         final steps = controller.buildSteps();
 
@@ -78,8 +80,9 @@ void main() {
 
     // -----------------------------------------------------------------------
     group('showPreRaceFlow', () {
-      testWidgets('sends the roster as it is each time it opens',
-          (tester) async {
+      testWidgets('sends the roster as it is each time it opens', (
+        tester,
+      ) async {
         // Closed, a runner added, then opened again: the assistants must get
         // the roster with that runner.
         var roster = 'roster-before';
@@ -105,12 +108,16 @@ void main() {
           showFlowFn: close,
         );
         BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            ctx = context;
-            return const SizedBox();
-          }),
-        ));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                ctx = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
         await controller.showPreRaceFlow(ctx!, false);
         expect(devices.bibRecorder!.data, 'race---roster-before');
 
@@ -146,12 +153,16 @@ void main() {
         );
 
         BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            ctx = context;
-            return const SizedBox();
-          }),
-        ));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                ctx = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
 
         await controller.showPreRaceFlow(ctx!, true);
         await controller.showPreRaceFlow(ctx!, false);
@@ -185,12 +196,16 @@ void main() {
         );
 
         BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            ctx = context;
-            return const SizedBox();
-          }),
-        ));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                ctx = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
 
         await controller.showPreRaceFlow(ctx!, false);
 
@@ -208,38 +223,47 @@ void main() {
         int initialIndex = 0,
         StepChangedCallback? onStepChanged,
         void Function(int lastIndex)? onDismiss,
-      }) async =>
-          false;
+      }) async => false;
 
-      Future<void> open(WidgetTester tester, PreRaceController controller) async {
+      Future<void> open(
+        WidgetTester tester,
+        PreRaceController controller,
+      ) async {
         BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            ctx = context;
-            return const SizedBox();
-          }),
-        ));
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (context) {
+                ctx = context;
+                return const SizedBox();
+              },
+            ),
+          ),
+        );
         await controller.showPreRaceFlow(ctx!, false);
       }
 
-      testWidgets('gives each device the race, and the Bib Recorder the roster',
-          (tester) async {
-        final controller = _buildController(
-          mockMasterRace,
-          devices: devices,
-          encodeRaceData: (_) async => 'encoded_race',
-          encodeBibData: (_) async => 'encoded_bib',
-          showFlowFn: noFlow,
-        );
+      testWidgets(
+        'gives each device the race, and the Bib Recorder the roster',
+        (tester) async {
+          final controller = _buildController(
+            mockMasterRace,
+            devices: devices,
+            encodeRaceData: (_) async => 'encoded_race',
+            encodeBibData: (_) async => 'encoded_bib',
+            showFlowFn: noFlow,
+          );
 
-        await open(tester, controller);
+          await open(tester, controller);
 
-        expect(devices.raceTimer!.data, 'encoded_race');
-        expect(devices.bibRecorder!.data, 'encoded_race---encoded_bib');
-      });
+          expect(devices.raceTimer!.data, 'encoded_race');
+          expect(devices.bibRecorder!.data, 'encoded_race---encoded_bib');
+        },
+      );
 
-      testWidgets('sends nothing when the race cannot be encoded',
-          (tester) async {
+      testWidgets('sends nothing when the race cannot be encoded', (
+        tester,
+      ) async {
         final controller = _buildController(
           mockMasterRace,
           devices: devices,
@@ -276,18 +300,25 @@ void main() {
   group('showSendAgainSheet', () {
     Future<BuildContext> host(WidgetTester tester) async {
       late BuildContext context;
-      await tester.pumpWidget(MaterialApp(
-        home: Builder(builder: (c) {
-          context = c;
-          return const Scaffold();
-        }),
-      ));
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (c) {
+              context = c;
+              return const Scaffold();
+            },
+          ),
+        ),
+      );
       return context;
     }
 
     testWidgets('sends the race and roster as they are now', (tester) async {
-      final again =
-          DevicesManager(DeviceName.coach, DeviceType.advertiserDevice, data: '');
+      final again = DevicesManager(
+        DeviceName.coach,
+        DeviceType.advertiserDevice,
+        data: '',
+      );
       final controller = _buildController(
         mockMasterRace,
         devices: devices,
@@ -307,8 +338,9 @@ void main() {
       expect(devices.raceTimer!.data, '');
     });
 
-    testWidgets('says so and opens nothing when the race cannot be prepared',
-        (tester) async {
+    testWidgets('says so and opens nothing when the race cannot be prepared', (
+      tester,
+    ) async {
       final controller = _buildController(
         mockMasterRace,
         devices: devices,

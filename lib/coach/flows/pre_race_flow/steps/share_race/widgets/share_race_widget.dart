@@ -25,7 +25,8 @@ class ShareRaceWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Center(
-              child: DeviceConnectionWidget(devices: devices, inSheet: false)),
+            child: DeviceConnectionWidget(devices: devices, inSheet: false),
+          ),
           if (devices.bibRecorder != null) ...[
             const SizedBox(height: AppSpacing.md),
             RecordBibsOnThisPhone(devices: devices),
@@ -54,8 +55,10 @@ class _RecordBibsOnThisPhoneState extends State<RecordBibsOnThisPhone> {
     final bibRecorder = widget.devices.bibRecorder!;
     final data = bibRecorder.data;
     if (data == null || data.isEmpty) {
-      DialogUtils.showErrorDialog(context,
-          message: 'The race is not ready to send yet. Try again.');
+      DialogUtils.showErrorDialog(
+        context,
+        message: 'The race is not ready to send yet. Try again.',
+      );
       return;
     }
     setState(() => _busy = true);
@@ -78,7 +81,8 @@ class _RecordBibsOnThisPhoneState extends State<RecordBibsOnThisPhone> {
         await DialogUtils.showMessageDialog(
           context,
           title: 'Ready on This Phone',
-          message: 'The race is on this phone\'s Bib Recorder. When the '
+          message:
+              'The race is on this phone\'s Bib Recorder. When the '
               'race starts, switch to Assistant and choose '
               '${getDeviceNameString(DeviceName.bibRecorder)}: the race '
               'opens there.\n\nAfter the race, on Load Results, tap Use '

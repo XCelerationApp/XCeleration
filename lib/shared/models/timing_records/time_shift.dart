@@ -14,10 +14,7 @@ import 'timing_datum.dart';
 /// are never left half-moved.
 String? shiftTimes(List<TimingChunk> chunks, Duration by) {
   final data = [
-    for (final chunk in chunks) ...[
-      ...chunk.timingData,
-      ?chunk.conflictRecord,
-    ],
+    for (final chunk in chunks) ...[...chunk.timingData, ?chunk.conflictRecord],
   ];
 
   final moved = <TimingDatum, Duration>{};

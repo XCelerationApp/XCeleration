@@ -30,18 +30,26 @@ void main() {
   late BuildContext ctx;
 
   Future<void> load(WidgetTester tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(builder: (c) {
-        ctx = c;
-        return const Scaffold();
-      }),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (c) {
+            ctx = c;
+            return const Scaffold();
+          },
+        ),
+      ),
+    );
     final roster = [
       for (var i = 1; i <= 8; i++)
         RaceRunner(
           raceId: 1,
           runner: Runner(
-              runnerId: i, name: 'Runner $i', bibNumber: '${100 + i}', grade: 10),
+            runnerId: i,
+            name: 'Runner $i',
+            bibNumber: '${100 + i}',
+            grade: 10,
+          ),
           team: _team,
         ),
     ];
@@ -51,27 +59,32 @@ void main() {
     when(masterRace.raceRunners).thenAnswer((_) async => roster);
     when(masterRace.teams).thenAnswer((_) async => const [_team]);
     when(masterRace.race).thenAnswer((_) async => Race(raceName: 'Sim'));
-    when(masterRace.getRaceRunnerByBib(any))
-        .thenAnswer((i) async => byBib[i.positionalArguments.first as String]);
+    when(
+      masterRace.getRaceRunnerByBib(any),
+    ).thenAnswer((i) async => byBib[i.positionalArguments.first as String]);
     when(masterRace.saveResults(any)).thenAnswer((_) async {});
     controller = LoadResultsController(
       masterRace: masterRace,
       devices: DevicesManager(DeviceName.coach, DeviceType.browserDevice),
       scheduler: _NoopScheduler(),
     );
-    await controller.loadSimulatedResults(ctx, SimulatedScenario.clean,
-        simulator: RaceSimulator(random: Random(1)));
+    await controller.loadSimulatedResults(
+      ctx,
+      SimulatedScenario.clean,
+      simulator: RaceSimulator(random: Random(1)),
+    );
   }
 
   List<Duration> saved() => [
-        for (final r in verify(masterRace.saveResults(captureAny))
-            .captured
-            .single as List<RaceResult>)
-          r.finishTime!,
-      ];
+    for (final r
+        in verify(masterRace.saveResults(captureAny)).captured.single
+            as List<RaceResult>)
+      r.finishTime!,
+  ];
 
-  testWidgets('saves every time moved by the seconds the Timer was late',
-      (tester) async {
+  testWidgets('saves every time moved by the seconds the Timer was late', (
+    tester,
+  ) async {
     await load(tester);
     await controller.saveCurrentResults();
     final before = saved();
@@ -98,8 +111,7 @@ void main() {
     expect(controller.timeShift, Duration.zero);
   });
 
-  testWidgets('loading the results again starts from no shift',
-      (tester) async {
+  testWidgets('loading the results again starts from no shift', (tester) async {
     await load(tester);
     controller.shiftAllTimes(const Duration(seconds: 5));
 

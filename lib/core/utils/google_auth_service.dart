@@ -101,9 +101,8 @@ class GoogleAuthService {
     return _instance!;
   }
 
-  GoogleAuthService({
-    ConnectivityService? connectivity,
-  }) : _connectivity = connectivity ?? const ConnectivityService();
+  GoogleAuthService({ConnectivityService? connectivity})
+    : _connectivity = connectivity ?? const ConnectivityService();
 
   /// Asynchronously load preferences but don't block instance creation
   Future<void> _loadPrefsAsync() async {
@@ -122,21 +121,25 @@ class GoogleAuthService {
       _iosAccessToken = prefs.getString(_keyIosAccessToken);
       final expiryMillis = prefs.getInt(_keyIosTokenExpiry);
       if (expiryMillis != null) {
-        _iosAccessTokenExpiry =
-            DateTime.fromMillisecondsSinceEpoch(expiryMillis);
+        _iosAccessTokenExpiry = DateTime.fromMillisecondsSinceEpoch(
+          expiryMillis,
+        );
       }
 
       _webAccessToken = prefs.getString(_keyWebAccessToken);
       final webExpiryMillis = prefs.getInt(_keyWebTokenExpiry);
       if (webExpiryMillis != null) {
-        _webAccessTokenExpiry =
-            DateTime.fromMillisecondsSinceEpoch(webExpiryMillis);
+        _webAccessTokenExpiry = DateTime.fromMillisecondsSinceEpoch(
+          webExpiryMillis,
+        );
       }
 
       Logger.d(
-          'Loaded auth data from prefs: token=${_iosAccessToken != null}, expiry=${_iosAccessTokenExpiry?.toIso8601String() ?? 'null'}');
+        'Loaded auth data from prefs: token=${_iosAccessToken != null}, expiry=${_iosAccessTokenExpiry?.toIso8601String() ?? 'null'}',
+      );
       Logger.d(
-          'Loaded auth data from prefs: token=${_webAccessToken != null}, expiry=${_webAccessTokenExpiry?.toIso8601String() ?? 'null'}');
+        'Loaded auth data from prefs: token=${_webAccessToken != null}, expiry=${_webAccessTokenExpiry?.toIso8601String() ?? 'null'}',
+      );
     } catch (e) {
       Logger.d('Error loading auth data from prefs: $e');
     }
@@ -155,7 +158,9 @@ class GoogleAuthService {
       }
       if (_iosAccessTokenExpiry != null) {
         await prefs.setInt(
-            _keyIosTokenExpiry, _iosAccessTokenExpiry!.millisecondsSinceEpoch);
+          _keyIosTokenExpiry,
+          _iosAccessTokenExpiry!.millisecondsSinceEpoch,
+        );
       } else {
         await prefs.remove(_keyIosTokenExpiry);
       }
@@ -167,7 +172,9 @@ class GoogleAuthService {
       }
       if (_webAccessTokenExpiry != null) {
         await prefs.setInt(
-            _keyWebTokenExpiry, _webAccessTokenExpiry!.millisecondsSinceEpoch);
+          _keyWebTokenExpiry,
+          _webAccessTokenExpiry!.millisecondsSinceEpoch,
+        );
       } else {
         await prefs.remove(_keyWebTokenExpiry);
       }
@@ -196,16 +203,18 @@ class GoogleAuthService {
   bool get hasValidIosToken {
     if (_iosAccessToken == null || _iosAccessTokenExpiry == null) return false;
     // Add 5-minute buffer before token expiry
-    return DateTime.now()
-        .isBefore(_iosAccessTokenExpiry!.subtract(const Duration(minutes: 5)));
+    return DateTime.now().isBefore(
+      _iosAccessTokenExpiry!.subtract(const Duration(minutes: 5)),
+    );
   }
 
   /// Check if the user is already authenticated with a valid web token
   bool get hasValidWebToken {
     if (_webAccessToken == null || _webAccessTokenExpiry == null) return false;
     // Add 5-minute buffer before token expiry
-    return DateTime.now()
-        .isBefore(_webAccessTokenExpiry!.subtract(const Duration(minutes: 5)));
+    return DateTime.now().isBefore(
+      _webAccessTokenExpiry!.subtract(const Duration(minutes: 5)),
+    );
   }
 
   /// Get the current signed-in user
@@ -259,8 +268,9 @@ class GoogleAuthService {
           .authorizationForScopes([_driveScope]);
 
       // If silent authorization failed, prompt the user
-      authz ??=
-          await _currentUser!.authorizationClient.authorizeScopes([_driveScope]);
+      authz ??= await _currentUser!.authorizationClient.authorizeScopes([
+        _driveScope,
+      ]);
 
       _iosAccessToken = authz.accessToken;
       _iosAccessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
@@ -300,13 +310,17 @@ class GoogleAuthService {
       final remaining = _webAccessTokenExpiry!
           .subtract(const Duration(minutes: 5))
           .difference(DateTime.now());
-      Logger.d('[WebToken] Returning cached token '
-          '(${remaining.inMinutes}m${remaining.inSeconds.remainder(60)}s remaining), '
-          'length=${_webAccessToken!.length}');
+      Logger.d(
+        '[WebToken] Returning cached token '
+        '(${remaining.inMinutes}m${remaining.inSeconds.remainder(60)}s remaining), '
+        'length=${_webAccessToken!.length}',
+      );
       return _webAccessToken;
     }
 
-    Logger.d('[WebToken] No valid cached token — attempting server auth code exchange.');
+    Logger.d(
+      '[WebToken] No valid cached token — attempting server auth code exchange.',
+    );
 
     try {
       final serverAuthz = await _currentUser!.authorizationClient
@@ -314,19 +328,24 @@ class GoogleAuthService {
       final serverAuthCode = serverAuthz?.serverAuthCode;
       if (serverAuthCode != null) {
         Logger.d('[WebToken] Exchanging server auth code for access token');
-        _webAccessToken =
-            await _exchangeServerAuthCodeForAccessToken(serverAuthCode);
+        _webAccessToken = await _exchangeServerAuthCodeForAccessToken(
+          serverAuthCode,
+        );
         _webAccessTokenExpiry = DateTime.now().add(const Duration(minutes: 55));
 
-        Logger.d('[WebToken] Exchange result: '
-            '${_webAccessToken != null ? "success (length=${_webAccessToken!.length})" : "FAILED — null returned"}');
+        Logger.d(
+          '[WebToken] Exchange result: '
+          '${_webAccessToken != null ? "success (length=${_webAccessToken!.length})" : "FAILED — null returned"}',
+        );
 
         // Save the updated token to preferences
         await _saveAuthDataToPrefs();
         return _webAccessToken;
       } else {
-        Logger.d('[WebToken] FAILED — no server auth code on current user. '
-            'A fresh interactive sign-in is needed to get a new code.');
+        Logger.d(
+          '[WebToken] FAILED — no server auth code on current user. '
+          'A fresh interactive sign-in is needed to get a new code.',
+        );
         return null;
       }
     } catch (e) {
@@ -346,9 +365,7 @@ class GoogleAuthService {
 
     // Initialize GoogleSignIn if not already done
     if (!_googleSignInInitialized) {
-      await GoogleSignIn.instance.initialize(
-        serverClientId: _webClientId,
-      );
+      await GoogleSignIn.instance.initialize(serverClientId: _webClientId);
       _googleSignInInitialized = true;
     }
   }
@@ -386,21 +403,22 @@ class GoogleAuthService {
     final response = await http.post(
       Uri.parse(url),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'authCode': authCode,
-        'client_id': _webClientId,
-      }),
+      body: jsonEncode({'authCode': authCode, 'client_id': _webClientId}),
     );
 
     if (response.statusCode == 200) {
       final responseJson = jsonDecode(response.body);
       final token = responseJson['access_token'] as String?;
-      Logger.d('[WebToken] Backend exchange HTTP 200 — '
-          'access_token ${token != null ? "present (length=${token.length})" : "MISSING from response"}');
+      Logger.d(
+        '[WebToken] Backend exchange HTTP 200 — '
+        'access_token ${token != null ? "present (length=${token.length})" : "MISSING from response"}',
+      );
       return token;
     } else {
-      Logger.e('[WebToken] Backend exchange failed: '
-          'status=${response.statusCode} body=${response.body}');
+      Logger.e(
+        '[WebToken] Backend exchange failed: '
+        'status=${response.statusCode} body=${response.body}',
+      );
       return null;
     }
   }
@@ -452,15 +470,16 @@ class GoogleAuthService {
         if (_currentUser == null) {
           // Try lightweight authentication first
           Logger.d('Attempting lightweight authentication');
-          final lightweightFuture =
-              GoogleSignIn.instance.attemptLightweightAuthentication();
+          final lightweightFuture = GoogleSignIn.instance
+              .attemptLightweightAuthentication();
           if (lightweightFuture != null) {
             _currentUser = await lightweightFuture;
           }
 
           if (_currentUser == null) {
             Logger.d(
-                'Lightweight authentication failed, trying interactive sign-in');
+              'Lightweight authentication failed, trying interactive sign-in',
+            );
             try {
               _currentUser = await GoogleSignIn.instance.authenticate(
                 scopeHint: [_driveScope],

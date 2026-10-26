@@ -12,8 +12,8 @@ class ResultsRepository implements IResultsRepository {
   ResultsRepository({
     required IDatabaseConnectionProvider conn,
     DatabaseWriteBus? writeBus,
-  })  : _conn = conn,
-        _writeBus = writeBus;
+  }) : _conn = conn,
+       _writeBus = writeBus;
 
   Future<Database> get _db async => _conn.database;
 
@@ -32,10 +32,12 @@ class ResultsRepository implements IResultsRepository {
       // Deleted rows are included on purpose: a runner who is put back into
       // the results reuses their old row, which clears the deletion and keeps
       // the uuid the server already knows.
-      final existing = await txn.query('race_results',
-          columns: ['result_id', 'runner_id'],
-          where: 'race_id = ?',
-          whereArgs: [raceId]);
+      final existing = await txn.query(
+        'race_results',
+        columns: ['result_id', 'runner_id'],
+        where: 'race_id = ?',
+        whereArgs: [raceId],
+      );
       final existingIdByRunner = {
         for (final row in existing)
           row['runner_id'] as int: row['result_id'] as int,
@@ -44,8 +46,9 @@ class ResultsRepository implements IResultsRepository {
       // Park existing rows on unique negative places so new places can be
       // assigned in any order without tripping UNIQUE(race_id, place).
       await txn.rawUpdate(
-          'UPDATE race_results SET place = -result_id WHERE race_id = ?',
-          [raceId]);
+        'UPDATE race_results SET place = -result_id WHERE race_id = ?',
+        [raceId],
+      );
 
       for (final result in results) {
         final map = result.toMap()
@@ -57,8 +60,12 @@ class ResultsRepository implements IResultsRepository {
         } else {
           // Don't null out created_at or the uuid FKs sync already filled in.
           map.removeWhere((key, value) => value == null && key != 'deleted_at');
-          await txn.update('race_results', map,
-              where: 'result_id = ?', whereArgs: [existingId]);
+          await txn.update(
+            'race_results',
+            map,
+            where: 'result_id = ?',
+            whereArgs: [existingId],
+          );
         }
       }
 
@@ -98,7 +105,8 @@ class ResultsRepository implements IResultsRepository {
   Future<RaceResult?> getRaceResult(RaceResult raceResult) async {
     if (raceResult.raceId == null || raceResult.runner?.runnerId == null) {
       throw Exception(
-          'RaceResult must have raceId and runnerId to check existence');
+        'RaceResult must have raceId and runnerId to check existence',
+      );
     }
     final db = await _db;
     final rows = await db.query(
@@ -112,7 +120,8 @@ class ResultsRepository implements IResultsRepository {
   @override
   Future<List<RaceResult>> getRaceResults(int raceId) async {
     final db = await _db;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT
         rr.runner_id,
         r.bib_number,
@@ -130,7 +139,9 @@ class ResultsRepository implements IResultsRepository {
       LEFT JOIN teams t ON rr.team_id = t.team_id
       WHERE rr.race_id = ? AND rr.deleted_at IS NULL AND r.deleted_at IS NULL
       ORDER BY rr.place
-    ''', [raceId]);
+    ''',
+      [raceId],
+    );
     return rows.map((m) => RaceResult.fromMap(m)).toList();
   }
 
@@ -139,14 +150,18 @@ class ResultsRepository implements IResultsRepository {
     if (!raceResult.isValid) throw Exception('RaceResult is not valid');
     if (await getRaceResult(raceResult) == null) {
       throw Exception(
-          'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found');
+        'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found',
+      );
     }
     final db = await _db;
     final map = raceResult.toMap();
     map['is_dirty'] = 1;
-    await db.update('race_results', map,
-        where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
-        whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!]);
+    await db.update(
+      'race_results',
+      map,
+      where: 'race_id = ? AND runner_id = ? AND deleted_at IS NULL',
+      whereArgs: [raceResult.raceId!, raceResult.runner!.runnerId!],
+    );
     _writeBus?.notify();
   }
 
@@ -157,7 +172,8 @@ class ResultsRepository implements IResultsRepository {
     }
     if (await getRaceResult(raceResult) == null) {
       throw Exception(
-          'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found');
+        'Result for runner ${raceResult.runner?.runnerId} in race ${raceResult.raceId} not found',
+      );
     }
     final db = await _db;
     // Marked deleted rather than removed, so the deletion can be pushed.

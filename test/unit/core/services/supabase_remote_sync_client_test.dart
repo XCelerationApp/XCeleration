@@ -18,8 +18,12 @@ void main() {
     requests = [];
     final httpClient = MockClient((request) async {
       requests.add(request);
-      return http.Response('[]', 200,
-          request: request, headers: {'content-type': 'application/json'});
+      return http.Response(
+        '[]',
+        200,
+        request: request,
+        headers: {'content-type': 'application/json'},
+      );
     });
     final supabase = SupabaseClient(
       'https://test.supabase.co',
@@ -44,8 +48,11 @@ void main() {
       });
 
       test('only requests rows updated after the cursor', () async {
-        await syncClient.fetchTableRows('runners', 'user-1',
-            cursor: '2026-09-01T00:00:00.000Z');
+        await syncClient.fetchTableRows(
+          'runners',
+          'user-1',
+          cursor: '2026-09-01T00:00:00.000Z',
+        );
 
         expect(sentParams()['updated_at'], ['gt.2026-09-01T00:00:00.000Z']);
       });

@@ -29,22 +29,24 @@ Widget _buildApp(
   return MaterialApp(
     navigatorKey: navigatorKey,
     home: Scaffold(
-      body: Builder(builder: (context) {
-        return ElevatedButton(
-          onPressed: () {
-            final future = showFlow(
-              context: context,
-              steps: steps,
-              showProgressIndicator: showProgressIndicator,
-              initialIndex: initialIndex,
-              onStepChanged: onStepChanged,
-              onDismiss: onDismiss,
-            );
-            captureResult?.call(future);
-          },
-          child: const Text('Open'),
-        );
-      }),
+      body: Builder(
+        builder: (context) {
+          return ElevatedButton(
+            onPressed: () {
+              final future = showFlow(
+                context: context,
+                steps: steps,
+                showProgressIndicator: showProgressIndicator,
+                initialIndex: initialIndex,
+                onStepChanged: onStepChanged,
+                onDismiss: onDismiss,
+              );
+              captureResult?.call(future);
+            },
+            child: const Text('Open'),
+          );
+        },
+      ),
     ),
   );
 }
@@ -59,36 +61,38 @@ Future<void> _openFlow(WidgetTester tester) async {
 
 void main() {
   group('showFlow', () {
-    testWidgets('shows EnhancedFlowIndicator when showProgressIndicator is true',
-        (tester) async {
-      await tester.pumpWidget(_buildApp(
-        [_step('Step 1')],
-        showProgressIndicator: true,
-      ));
+    testWidgets(
+      'shows EnhancedFlowIndicator when showProgressIndicator is true',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildApp([_step('Step 1')], showProgressIndicator: true),
+        );
 
-      await _openFlow(tester);
+        await _openFlow(tester);
 
-      expect(find.byType(EnhancedFlowIndicator), findsOneWidget);
-    });
+        expect(find.byType(EnhancedFlowIndicator), findsOneWidget);
+      },
+    );
 
     testWidgets(
-        'hides EnhancedFlowIndicator when showProgressIndicator is false',
-        (tester) async {
-      await tester.pumpWidget(_buildApp(
-        [_step('Step 1')],
-        showProgressIndicator: false,
-      ));
+      'hides EnhancedFlowIndicator when showProgressIndicator is false',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildApp([_step('Step 1')], showProgressIndicator: false),
+        );
 
-      await _openFlow(tester);
+        await _openFlow(tester);
 
-      expect(find.byType(EnhancedFlowIndicator), findsNothing);
-    });
+        expect(find.byType(EnhancedFlowIndicator), findsNothing);
+      },
+    );
 
-    testWidgets('Next button is disabled when canProceed returns false',
-        (tester) async {
-      await tester.pumpWidget(_buildApp(
-        [_step('Step 1', canProceed: () => false)],
-      ));
+    testWidgets('Next button is disabled when canProceed returns false', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildApp([_step('Step 1', canProceed: () => false)]),
+      );
 
       await _openFlow(tester);
 
@@ -105,55 +109,62 @@ void main() {
     });
 
     testWidgets(
-        'tapping Next on an intermediate step advances to the next step',
-        (tester) async {
-      final navigatorKey = GlobalKey<NavigatorState>();
+      'tapping Next on an intermediate step advances to the next step',
+      (tester) async {
+        final navigatorKey = GlobalKey<NavigatorState>();
 
-      await tester.pumpWidget(_buildApp(
-        [_step('Step One'), _step('Step Two')],
-        navigatorKey: navigatorKey,
-      ));
+        await tester.pumpWidget(
+          _buildApp([
+            _step('Step One'),
+            _step('Step Two'),
+          ], navigatorKey: navigatorKey),
+        );
 
-      await _openFlow(tester);
-      expect(find.text('Step One'), findsOneWidget);
+        await _openFlow(tester);
+        expect(find.text('Step One'), findsOneWidget);
 
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
 
-      expect(find.text('Step Two'), findsOneWidget);
+        expect(find.text('Step Two'), findsOneWidget);
 
-      // Clean up: dismiss the sheet
-      navigatorKey.currentState!.pop();
-      await tester.pumpAndSettle();
-    });
+        // Clean up: dismiss the sheet
+        navigatorKey.currentState!.pop();
+        await tester.pumpAndSettle();
+      },
+    );
 
     testWidgets(
-        'tapping Next on the last step closes the sheet and returns true',
-        (tester) async {
-      Future<bool>? resultFuture;
+      'tapping Next on the last step closes the sheet and returns true',
+      (tester) async {
+        Future<bool>? resultFuture;
 
-      await tester.pumpWidget(_buildApp(
-        [_step('Only Step')],
-        captureResult: (f) => resultFuture = f,
-      ));
+        await tester.pumpWidget(
+          _buildApp([
+            _step('Only Step'),
+          ], captureResult: (f) => resultFuture = f),
+        );
 
-      await _openFlow(tester);
+        await _openFlow(tester);
 
-      await tester.tap(find.text('Done'));
-      await tester.pumpAndSettle();
+        await tester.tap(find.text('Done'));
+        await tester.pumpAndSettle();
 
-      expect(await resultFuture!, isTrue);
-    });
+        expect(await resultFuture!, isTrue);
+      },
+    );
 
     testWidgets('the button says what a step asks for', (tester) async {
-      await tester.pumpWidget(_buildApp([
-        FlowStep(
-          title: 'Load Results',
-          description: '',
-          content: const SizedBox(),
-          nextLabel: 'Save Results',
-        ),
-      ]));
+      await tester.pumpWidget(
+        _buildApp([
+          FlowStep(
+            title: 'Load Results',
+            description: '',
+            content: const SizedBox(),
+            nextLabel: 'Save Results',
+          ),
+        ]),
+      );
 
       await _openFlow(tester);
 
@@ -161,16 +172,19 @@ void main() {
       expect(find.text('Done'), findsNothing);
     });
 
-    testWidgets('dismissing the sheet without completing returns false',
-        (tester) async {
+    testWidgets('dismissing the sheet without completing returns false', (
+      tester,
+    ) async {
       Future<bool>? resultFuture;
       final navigatorKey = GlobalKey<NavigatorState>();
 
-      await tester.pumpWidget(_buildApp(
-        [_step('Step 1'), _step('Step 2')],
-        navigatorKey: navigatorKey,
-        captureResult: (f) => resultFuture = f,
-      ));
+      await tester.pumpWidget(
+        _buildApp(
+          [_step('Step 1'), _step('Step 2')],
+          navigatorKey: navigatorKey,
+          captureResult: (f) => resultFuture = f,
+        ),
+      );
 
       await _openFlow(tester);
 
@@ -181,40 +195,46 @@ void main() {
     });
 
     testWidgets(
-        'onDismiss is called with the last visited step index on dismissal',
-        (tester) async {
-      int? dismissedAt;
-      final navigatorKey = GlobalKey<NavigatorState>();
+      'onDismiss is called with the last visited step index on dismissal',
+      (tester) async {
+        int? dismissedAt;
+        final navigatorKey = GlobalKey<NavigatorState>();
 
-      await tester.pumpWidget(_buildApp(
-        [_step('Step 1'), _step('Step 2')],
-        navigatorKey: navigatorKey,
-        onDismiss: (index) => dismissedAt = index,
-      ));
+        await tester.pumpWidget(
+          _buildApp(
+            [_step('Step 1'), _step('Step 2')],
+            navigatorKey: navigatorKey,
+            onDismiss: (index) => dismissedAt = index,
+          ),
+        );
 
-      await _openFlow(tester);
+        await _openFlow(tester);
 
-      // Advance to step 2 (index 1)
-      await tester.tap(find.text('Next'));
-      await tester.pumpAndSettle();
+        // Advance to step 2 (index 1)
+        await tester.tap(find.text('Next'));
+        await tester.pumpAndSettle();
 
-      // Dismiss at step 2
-      navigatorKey.currentState!.pop();
-      await tester.pumpAndSettle();
+        // Dismiss at step 2
+        navigatorKey.currentState!.pop();
+        await tester.pumpAndSettle();
 
-      expect(dismissedAt, 1);
-    });
+        expect(dismissedAt, 1);
+      },
+    );
 
-    testWidgets('onStepChanged is called with the new index when advancing',
-        (tester) async {
+    testWidgets('onStepChanged is called with the new index when advancing', (
+      tester,
+    ) async {
       int? changedTo;
       final navigatorKey = GlobalKey<NavigatorState>();
 
-      await tester.pumpWidget(_buildApp(
-        [_step('Step 1'), _step('Step 2')],
-        navigatorKey: navigatorKey,
-        onStepChanged: (index) => changedTo = index,
-      ));
+      await tester.pumpWidget(
+        _buildApp(
+          [_step('Step 1'), _step('Step 2')],
+          navigatorKey: navigatorKey,
+          onStepChanged: (index) => changedTo = index,
+        ),
+      );
 
       await _openFlow(tester);
 

@@ -42,16 +42,17 @@ class _UndoToastState extends State<UndoToast>
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      duration: const Duration(milliseconds: _totalMs),
-      vsync: this,
-    )
-      ..addStatusListener((status) {
-        if (status == AnimationStatus.completed) {
-          widget.onDone();
-        }
-      })
-      ..forward();
+    _controller =
+        AnimationController(
+            duration: const Duration(milliseconds: _totalMs),
+            vsync: this,
+          )
+          ..addStatusListener((status) {
+            if (status == AnimationStatus.completed) {
+              widget.onDone();
+            }
+          })
+          ..forward();
 
     final entryCurve = CurvedAnimation(
       parent: _controller,
@@ -111,7 +112,8 @@ class _ToastBody extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(AppBorderRadius.lg),
         border: Border.all(
-            color: AppColors.primaryColor.withValues(alpha: AppOpacity.strong)),
+          color: AppColors.primaryColor.withValues(alpha: AppOpacity.strong),
+        ),
         boxShadow: AppShadows.high,
       ),
       child: ClipRRect(
@@ -232,8 +234,9 @@ class _UndoButton extends StatelessWidget {
         ),
         child: Text(
           'Undo',
-          style: AppTypography.smallBodySemibold
-              .copyWith(color: AppColors.primaryColor),
+          style: AppTypography.smallBodySemibold.copyWith(
+            color: AppColors.primaryColor,
+          ),
         ),
       ),
     );
