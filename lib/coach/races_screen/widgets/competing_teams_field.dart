@@ -8,8 +8,11 @@ class CompetingTeamsField extends StatelessWidget {
   final RacesController controller;
   final StateSetter setSheetState;
 
-  const CompetingTeamsField(
-      {required this.controller, required this.setSheetState, super.key});
+  const CompetingTeamsField({
+    required this.controller,
+    required this.setSheetState,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -18,20 +21,14 @@ class CompetingTeamsField extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            'Competing Teams',
-            style: AppTypography.bodySemibold,
-          ),
+          child: Text('Competing Teams', style: AppTypography.bodySemibold),
         ),
         if (controller.teamsError != null)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               controller.teamsError!,
-              style: const TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.red, fontSize: 12),
             ),
           ),
         ...controller.teamControllers.asMap().entries.map((entry) {
@@ -48,9 +45,11 @@ class CompetingTeamsField extends StatelessWidget {
                     hint: 'Team name',
                     onChanged: (value) {
                       setSheetState(() {
-                        controller.teamsError = controller.teamControllers
-                                .every((textController) =>
-                                    textController.text.trim().isEmpty)
+                        controller.teamsError =
+                            controller.teamControllers.every(
+                              (textController) =>
+                                  textController.text.trim().isEmpty,
+                            )
                             ? 'Please enter in team name'
                             : null;
                       });
@@ -59,8 +58,11 @@ class CompetingTeamsField extends StatelessWidget {
                 ),
                 const SizedBox(width: 12),
                 GestureDetector(
-                  onTap: () =>
-                      controller.showColorPicker(context, setSheetState, textController),
+                  onTap: () => controller.showColorPicker(
+                    context,
+                    setSheetState,
+                    textController,
+                  ),
                   child: Container(
                     width: 40,
                     height: 40,
@@ -80,8 +82,10 @@ class CompetingTeamsField extends StatelessWidget {
                 ),
                 if (controller.teamControllers.length > 1)
                   IconButton(
-                    icon: const Icon(Icons.remove_circle_outline,
-                        color: Colors.red),
+                    icon: const Icon(
+                      Icons.remove_circle_outline,
+                      color: Colors.red,
+                    ),
                     onPressed: () {
                       setSheetState(() {
                         controller.teamControllers.removeAt(index);
@@ -100,8 +104,10 @@ class CompetingTeamsField extends StatelessWidget {
               controller.addTeamField();
             });
           },
-          icon: const Icon(Icons.add_circle_outline,
-              color: AppColors.primaryColor),
+          icon: const Icon(
+            Icons.add_circle_outline,
+            color: AppColors.primaryColor,
+          ),
           label: Text(
             'Add Another Team',
             style: TextStyle(

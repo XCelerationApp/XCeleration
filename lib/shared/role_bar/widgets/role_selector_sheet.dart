@@ -59,7 +59,9 @@ class RoleSelectorSheet {
   /// database is opened before their races are shown. Spectators and
   /// assistants go straight in.
   static Future<void> _navigateToRoleScreen(
-      BuildContext context, Role role) async {
+    BuildContext context,
+    Role role,
+  ) async {
     if (role == Role.coach) {
       final auth = AuthService.instance;
       if (!auth.isSignedIn) {
@@ -67,22 +69,28 @@ class RoleSelectorSheet {
           RolePageRouteAnimation(
             child: SignInScreen(
               authService: auth,
-              profileService:
-                  ProfileService(remoteApi: RemoteApiClient(), auth: auth),
+              profileService: ProfileService(
+                remoteApi: RemoteApiClient(),
+                auth: auth,
+              ),
             ),
           ),
         );
         return;
       }
       try {
-        await ServiceLocator.get<IDatabaseConnectionProvider>()
-            .openForUser(auth.currentUserId!);
+        await ServiceLocator.get<IDatabaseConnectionProvider>().openForUser(
+          auth.currentUserId!,
+        );
       } catch (e) {
         Logger.e('Could not open the coach database: $e');
         if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message: 'Could not open your races. Please restart the app '
-                  'and try again.');
+          DialogUtils.showErrorDialog(
+            context,
+            message:
+                'Could not open your races. Please restart the app '
+                'and try again.',
+          );
         }
         return;
       }
@@ -181,9 +189,7 @@ class _SheetHeader extends StatelessWidget {
           const SizedBox(height: 2),
           Text(
             "Choose how you'll participate in this race",
-            style: AppTypography.caption.copyWith(
-              color: AppColors.mediumColor,
-            ),
+            style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
           ),
         ],
       ),
@@ -326,12 +332,13 @@ class _RoleCardState extends State<_RoleCard> {
           ),
           child: Row(
             children: [
-              _RoleIconWrap(
-                  role: widget.role, isSelected: widget.isSelected),
+              _RoleIconWrap(role: widget.role, isSelected: widget.isSelected),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: _RoleText(
-                    role: widget.role, isSelected: widget.isSelected),
+                  role: widget.role,
+                  isSelected: widget.isSelected,
+                ),
               ),
               _CheckBadge(isSelected: widget.isSelected),
             ],
@@ -387,15 +394,12 @@ class _RoleText extends StatelessWidget {
         Text(
           role.displayName,
           style: AppTypography.bodySemibold.copyWith(
-            color:
-                isSelected ? AppColors.primaryColor : AppColors.darkColor,
+            color: isSelected ? AppColors.primaryColor : AppColors.darkColor,
           ),
         ),
         Text(
           role.description,
-          style: AppTypography.caption.copyWith(
-            color: AppColors.mediumColor,
-          ),
+          style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
           overflow: TextOverflow.ellipsis,
           maxLines: 1,
         ),
@@ -478,11 +482,7 @@ class _SignOutButtonState extends State<_SignOutButton> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(
-                  Icons.logout,
-                  size: 14,
-                  color: AppColors.mediumColor,
-                ),
+                Icon(Icons.logout, size: 14, color: AppColors.mediumColor),
                 const SizedBox(width: 5),
                 Text(
                   'Sign out',

@@ -22,8 +22,9 @@ class RaceDistanceField extends StatelessWidget {
                 controller: controller.distanceController,
                 hint: '0.0',
                 error: controller.distanceError,
-                onChanged: (_) => controller
-                    .validateDistance(controller.distanceController.text),
+                onChanged: (_) => controller.validateDistance(
+                  controller.distanceController.text,
+                ),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
               ),
             ),

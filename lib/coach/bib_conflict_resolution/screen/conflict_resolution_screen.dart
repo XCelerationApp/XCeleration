@@ -22,13 +22,12 @@ class ConflictResolutionScreen extends StatelessWidget {
   static Future<Map<int, RaceRunner>?> open(
     BuildContext context, {
     required ConflictResolutionController Function() create,
-  }) =>
-      Navigator.of(context, rootNavigator: true).push<Map<int, RaceRunner>>(
-        MaterialPageRoute(
-          fullscreenDialog: true,
-          builder: (_) => ConflictResolutionScreen(create: create),
-        ),
-      );
+  }) => Navigator.of(context, rootNavigator: true).push<Map<int, RaceRunner>>(
+    MaterialPageRoute(
+      fullscreenDialog: true,
+      builder: (_) => ConflictResolutionScreen(create: create),
+    ),
+  );
 
   @override
   Widget build(BuildContext context) {

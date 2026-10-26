@@ -23,8 +23,9 @@ void main() {
     });
 
     test('reads Windows line endings, as Google Sheets exports', () {
-      final rows =
-          FileUtils.parseCsvText('Name,Grade,Bib\r\nAnn Lee,10,101\r\nBo Park,11,102\r\n');
+      final rows = FileUtils.parseCsvText(
+        'Name,Grade,Bib\r\nAnn Lee,10,101\r\nBo Park,11,102\r\n',
+      );
       expect(rows, [
         ['Name', 'Grade', 'Bib'],
         ['Ann Lee', '10', '101'],
@@ -34,20 +35,29 @@ void main() {
 
     test('reads names with commas and quotes inside quotes', () {
       final rows = FileUtils.parseCsvText(
-          'Name,Grade,Bib\n"Lee, Ann",10,101\n"Bo ""BJ"" Park",11,102\n');
+        'Name,Grade,Bib\n"Lee, Ann",10,101\n"Bo ""BJ"" Park",11,102\n',
+      );
       expect(rows[1][0], 'Lee, Ann');
       expect(rows[2][0], 'Bo "BJ" Park');
     });
 
     test('recognises semicolon- and tab-separated files', () {
-      expect(FileUtils.parseCsvText('Name;Grade;Bib\nAnn Lee;10;101')[1],
-          ['Ann Lee', '10', '101']);
-      expect(FileUtils.parseCsvText('Name\tGrade\tBib\nAnn Lee\t10\t101')[1],
-          ['Ann Lee', '10', '101']);
+      expect(FileUtils.parseCsvText('Name;Grade;Bib\nAnn Lee;10;101')[1], [
+        'Ann Lee',
+        '10',
+        '101',
+      ]);
+      expect(FileUtils.parseCsvText('Name\tGrade\tBib\nAnn Lee\t10\t101')[1], [
+        'Ann Lee',
+        '10',
+        '101',
+      ]);
     });
 
     test('leaves out empty lines', () {
-      final rows = FileUtils.parseCsvText('Name,Grade,Bib\n\n,,\nAnn Lee,10,101\n');
+      final rows = FileUtils.parseCsvText(
+        'Name,Grade,Bib\n\n,,\nAnn Lee,10,101\n',
+      );
       expect(rows, hasLength(2));
     });
   });
@@ -107,7 +117,10 @@ void main() {
 
     final rows = await FileUtils.parseSpreadsheetFile(file);
 
-    expect(processSpreadsheetData(rows!).runners.single,
-        {'name': 'José Núñez', 'grade': 9, 'bib': '007'});
+    expect(processSpreadsheetData(rows!).runners.single, {
+      'name': 'José Núñez',
+      'grade': 9,
+      'bib': '007',
+    });
   });
 }

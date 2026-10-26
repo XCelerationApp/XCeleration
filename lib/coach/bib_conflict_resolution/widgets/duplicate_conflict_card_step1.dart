@@ -20,7 +20,9 @@ class _TwoOccurrenceStep1 extends StatelessWidget {
           'one was ${conflict.runner.runner.name ?? 'this runner'}? The other '
           'was someone else: the number was typed wrong, or they had the '
           'wrong bib number.',
-          style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
+          style: AppTypography.bodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         // The two the same height, whichever has a settled time: a smaller
@@ -33,8 +35,9 @@ class _TwoOccurrenceStep1 extends StatelessWidget {
                 child: _OccurrenceTile(
                   occurrence: conflict.occurrences[0],
                   conflict: conflict,
-                  onConfirm: () => controller
-                      .chooseDuplicateOccurrence(conflict.occurrences[0].place),
+                  onConfirm: () => controller.chooseDuplicateOccurrence(
+                    conflict.occurrences[0].place,
+                  ),
                 ),
               ),
               const SizedBox(width: AppSpacing.md),
@@ -42,8 +45,9 @@ class _TwoOccurrenceStep1 extends StatelessWidget {
                 child: _OccurrenceTile(
                   occurrence: conflict.occurrences[1],
                   conflict: conflict,
-                  onConfirm: () => controller
-                      .chooseDuplicateOccurrence(conflict.occurrences[1].place),
+                  onConfirm: () => controller.chooseDuplicateOccurrence(
+                    conflict.occurrences[1].place,
+                  ),
                 ),
               ),
             ],
@@ -68,18 +72,18 @@ class _TipBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        padding: const EdgeInsets.all(AppSpacing.md),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceColor,
-          border: Border.all(color: AppColors.borderColor),
-          borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-        ),
-        child: Text(
-          message ??
-              '💡 Tap a finish to mark it correct. The other will need a runner assigned.',
-          style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
-        ),
-      );
+    padding: const EdgeInsets.all(AppSpacing.md),
+    decoration: BoxDecoration(
+      color: AppColors.surfaceColor,
+      border: Border.all(color: AppColors.borderColor),
+      borderRadius: BorderRadius.circular(AppBorderRadius.sm),
+    ),
+    child: Text(
+      message ??
+          '💡 Tap a finish to mark it correct. The other will need a runner assigned.',
+      style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+    ),
+  );
 }
 
 class _OccurrenceTile extends StatefulWidget {
@@ -147,8 +151,9 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
                 widget.occurrence.timeLabel!,
                 style: widget.occurrence.time != null
                     ? AppTypography.displaySmall
-                    : AppTypography.bodyRegular
-                        .copyWith(color: AppColors.mediumColor),
+                    : AppTypography.bodyRegular.copyWith(
+                        color: AppColors.mediumColor,
+                      ),
                 textAlign: TextAlign.center,
               ),
             const SizedBox(height: AppSpacing.sm),
@@ -165,7 +170,8 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
                 conflictPosition: widget.occurrence.place,
                 conflictBib: widget.conflict.bibNumber,
                 conflictTime: widget.occurrence.time,
-                conflictLabel: 'Is this ${widget.conflict.runner.runner.name ?? 'them'}?',
+                conflictLabel:
+                    'Is this ${widget.conflict.runner.runner.name ?? 'them'}?',
               ),
               child: Text(
                 'See more ↓',
@@ -176,7 +182,11 @@ class _OccurrenceTileState extends State<_OccurrenceTile> {
             ),
             if (_confirmed) ...[
               const SizedBox(height: AppSpacing.sm),
-              const Icon(Icons.check_circle, color: AppColors.primaryColor, size: 28),
+              const Icon(
+                Icons.check_circle,
+                color: AppColors.primaryColor,
+                size: 28,
+              ),
             ],
           ],
         ),
@@ -289,7 +299,9 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
           style: TextButton.styleFrom(padding: EdgeInsets.zero),
           child: Text(
             'See nearby finishers ↓',
-            style: AppTypography.caption.copyWith(color: AppColors.primaryColor),
+            style: AppTypography.caption.copyWith(
+              color: AppColors.primaryColor,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -357,8 +369,10 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
     }
   }
 
-  Future<void> _openCreateSheet(BuildContext context,
-      {required String name}) async {
+  Future<void> _openCreateSheet(
+    BuildContext context, {
+    required String name,
+  }) async {
     final controller = context.read<ConflictResolutionController>();
     await sheet(
       context: context,
@@ -385,5 +399,3 @@ class _InlineLeftoverAssignmentState extends State<_InlineLeftoverAssignment> {
     );
   }
 }
-
-

@@ -41,11 +41,12 @@ abstract class ProtocolInterface {
 /// Interface for the nearby connections service
 abstract class NearbyConnectionsInterface {
   /// Initialize connections
-  Future<dynamic> init(
-      {required String serviceType,
-      String? deviceName,
-      required Strategy strategy,
-      required Function callback});
+  Future<dynamic> init({
+    required String serviceType,
+    String? deviceName,
+    required Strategy strategy,
+    required Function callback,
+  });
 
   /// Start advertising for connections
   FutureOr<dynamic> startAdvertisingPeer();
@@ -63,19 +64,23 @@ abstract class NearbyConnectionsInterface {
   FutureOr<dynamic> sendMessage(String deviceID, String message);
 
   /// Invite a device to connect
-  FutureOr<dynamic> invitePeer(
-      {required String deviceID, required String deviceName});
+  FutureOr<dynamic> invitePeer({
+    required String deviceID,
+    required String deviceName,
+  });
 
   /// Disconnect from a device
   FutureOr<dynamic> disconnectPeer({required String deviceID});
 
   // Data received stream
-  StreamSubscription<dynamic> dataReceivedSubscription(
-      {required dynamic Function(dynamic) callback});
+  StreamSubscription<dynamic> dataReceivedSubscription({
+    required dynamic Function(dynamic) callback,
+  });
 
   /// Get data received stream
-  StreamSubscription<dynamic> stateChangedSubscription(
-      {required dynamic Function(List<Device>) callback});
+  StreamSubscription<dynamic> stateChangedSubscription({
+    required dynamic Function(List<Device>) callback,
+  });
 }
 
 /// Interface for device connection management
@@ -99,8 +104,10 @@ abstract class DeviceConnectionServiceInterface {
   Future<bool> sendMessageToDevice(Device device, Package package);
 
   /// Monitor messages from a device
-  Future<String?> monitorMessageReceives(Device device,
-      {required Function(Package, String) messageReceivedCallback});
+  Future<String?> monitorMessageReceives(
+    Device device, {
+    required Function(Package, String) messageReceivedCallback,
+  });
 
   /// Stop monitoring messages
   void stopMessageMonitoring(String token);
@@ -109,8 +116,9 @@ abstract class DeviceConnectionServiceInterface {
   Future<bool> inviteDevice(Device device);
 
   /// Check if nearby connections functionality works
-  Future<Result<bool>> checkIfNearbyConnectionsWorks(
-      {Duration timeout = const Duration(seconds: 5)});
+  Future<Result<bool>> checkIfNearbyConnectionsWorks({
+    Duration timeout = const Duration(seconds: 5),
+  });
 
   /// Dispose the service and release resources
   void dispose();

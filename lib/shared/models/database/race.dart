@@ -43,7 +43,7 @@ class Race {
     FLOW_PRE_RACE,
     FLOW_PRE_RACE_COMPLETED,
     FLOW_POST_RACE,
-    FLOW_FINISHED
+    FLOW_FINISHED,
   ];
 
   Race({

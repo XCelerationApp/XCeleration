@@ -37,18 +37,23 @@ class _RacesListState extends State<RacesList> {
   @override
   Widget build(BuildContext context) {
     final List<Race> raceData = widget.controller.races;
-    final finishedRaces =
-        raceData.where((race) => race.flowState == Race.FLOW_FINISHED).toList();
+    final finishedRaces = raceData
+        .where((race) => race.flowState == Race.FLOW_FINISHED)
+        .toList();
     final raceInProgress = raceData
-        .where((race) =>
-            race.flowState == Race.FLOW_POST_RACE ||
-            race.flowState == Race.FLOW_PRE_RACE ||
-            race.flowState == Race.FLOW_PRE_RACE_COMPLETED)
+        .where(
+          (race) =>
+              race.flowState == Race.FLOW_POST_RACE ||
+              race.flowState == Race.FLOW_PRE_RACE ||
+              race.flowState == Race.FLOW_PRE_RACE_COMPLETED,
+        )
         .toList();
     final upcomingRaces = raceData
-        .where((race) =>
-            race.flowState == Race.FLOW_SETUP ||
-            race.flowState == Race.FLOW_SETUP_COMPLETED)
+        .where(
+          (race) =>
+              race.flowState == Race.FLOW_SETUP ||
+              race.flowState == Race.FLOW_SETUP_COMPLETED,
+        )
         .toList();
 
     final totalItems =
@@ -68,21 +73,25 @@ class _RacesListState extends State<RacesList> {
       // A section with no races is left out: an empty "Upcoming" with its
       // own placeholder only pushed the races that exist further down.
       if (races.isEmpty) return;
-      items.add(_HeaderItem(
-        title: title,
-        count: races.length,
-        isExpanded: isExpanded,
-        onToggle: onToggle,
-      ));
+      items.add(
+        _HeaderItem(
+          title: title,
+          count: races.length,
+          isExpanded: isExpanded,
+          onToggle: onToggle,
+        ),
+      );
       if (isExpanded) {
         for (int i = 0; i < races.length; i++) {
-          items.add(_CardItem(
-            race: races[i],
-            controller: widget.controller,
-            canEdit: widget.canEdit,
-            useStagger: useStagger,
-            index: startIndex + i,
-          ));
+          items.add(
+            _CardItem(
+              race: races[i],
+              controller: widget.controller,
+              canEdit: widget.canEdit,
+              useStagger: useStagger,
+              index: startIndex + i,
+            ),
+          );
         }
       }
     }
@@ -91,7 +100,8 @@ class _RacesListState extends State<RacesList> {
       title: 'In Progress',
       races: raceInProgress,
       isExpanded: _inProgressExpanded,
-      onToggle: () => setState(() => _inProgressExpanded = !_inProgressExpanded),
+      onToggle: () =>
+          setState(() => _inProgressExpanded = !_inProgressExpanded),
       startIndex: 0,
     );
     addSection(
@@ -110,13 +120,17 @@ class _RacesListState extends State<RacesList> {
     );
 
     if (items.isEmpty) {
-      items.add(_WidgetItem(EmptySection(
-        icon: Icons.flag_outlined,
-        title: 'No races yet',
-        subtitle: widget.canEdit
-            ? 'Tap + to set up your first race'
-            : 'Races will appear here',
-      )));
+      items.add(
+        _WidgetItem(
+          EmptySection(
+            icon: Icons.flag_outlined,
+            title: 'No races yet',
+            subtitle: widget.canEdit
+                ? 'Tap + to set up your first race'
+                : 'Races will appear here',
+          ),
+        ),
+      );
     }
 
     return SliverList.builder(

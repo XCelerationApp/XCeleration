@@ -43,8 +43,5 @@ class UIChunk {
   final List<UIRecord> records;
   final int endingPlace;
 
-  UIChunk({
-    required this.records,
-    required this.endingPlace,
-  });
+  UIChunk({required this.records, required this.endingPlace});
 }

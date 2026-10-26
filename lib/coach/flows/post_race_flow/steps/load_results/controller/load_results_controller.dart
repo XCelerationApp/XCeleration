@@ -61,8 +61,10 @@ class LoadResultsController with ChangeNotifier {
     if (refused != null) return AppError(userMessage: refused);
     // The times the Timer recorded, told apart from ones the coach typed in,
     // have to move with them.
-    _recordedTimes = _recordedTimes?.map((chunkId, times) =>
-        MapEntry(chunkId, {for (final t in times) shiftedTime(t, by)}));
+    _recordedTimes = _recordedTimes?.map(
+      (chunkId, times) =>
+          MapEntry(chunkId, {for (final t in times) shiftedTime(t, by)}),
+    );
     _timeShift += by;
     notifyListeners();
     return null;
@@ -86,10 +88,10 @@ class LoadResultsController with ChangeNotifier {
     Future<String> Function(MasterRace)? encodeBibData,
     IPostFrameCallbackScheduler? scheduler,
     IAssistantStorageService? assistantStorage,
-  })  : _encodeBibData =
-            encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData,
-        _scheduler = scheduler ?? WidgetsBindingAdapter(),
-        _assistantStorage = assistantStorage;
+  }) : _encodeBibData =
+           encodeBibData ?? BibEncodeUtils.getEncodedRunnersBibData,
+       _scheduler = scheduler ?? WidgetsBindingAdapter(),
+       _assistantStorage = assistantStorage;
 
   /// This phone's own Timer and Bib Recorder races, for a coach who records
   /// the bibs on this phone too.
@@ -104,21 +106,21 @@ class LoadResultsController with ChangeNotifier {
   Future<String?> bibsFromThisPhone() async {
     try {
       final name = (await masterRace.race).raceName ?? '';
-      final races = switch (
-          await _onThisPhone.getRaces(DeviceName.bibRecorder.toString())) {
+      final races = switch (await _onThisPhone.getRaces(
+        DeviceName.bibRecorder.toString(),
+      )) {
         Success(:final value) => value.where((r) => r.name == name).toList(),
         Failure() => const [],
       };
       if (races.isEmpty) return null;
-      final race = races
-              .where((r) => r.raceId == masterRace.raceId)
-              .firstOrNull ??
+      final race =
+          races.where((r) => r.raceId == masterRace.raceId).firstOrNull ??
           races.first;
       final bibs = switch (await _onThisPhone.getBibRecords(race.raceId)) {
         Success(:final value) => [
-            for (final r in value)
-              if (r.bibNumber.isNotEmpty) BibDatum(bib: r.bibNumber),
-          ],
+          for (final r in value)
+            if (r.bibNumber.isNotEmpty) BibDatum(bib: r.bibNumber),
+        ],
         Failure() => const <BibDatum>[],
       };
       if (bibs.isEmpty) return null;
@@ -133,7 +135,9 @@ class LoadResultsController with ChangeNotifier {
   /// results. Loads them with the Timer's once the Timer has sent its times;
   /// until then the Timer's transfer does it, as for two phones.
   Future<void> useBibsFromThisPhone(
-      BuildContext context, String encodedBibs) async {
+    BuildContext context,
+    String encodedBibs,
+  ) async {
     final bibRecorder = devices.bibRecorder;
     if (bibRecorder == null) return;
     bibRecorder.data = encodedBibs;
@@ -226,7 +230,8 @@ class LoadResultsController with ChangeNotifier {
   Future<AppError?> saveCurrentResults() async {
     if (hasBibConflicts || hasTimingConflicts) {
       return const AppError(
-          userMessage: 'Resolve all conflicts before saving the results.');
+        userMessage: 'Resolve all conflicts before saving the results.',
+      );
     }
     if (timingChunks == null || raceRunners == null) {
       // Nothing newly loaded: results already saved earlier are kept.
@@ -243,21 +248,25 @@ class LoadResultsController with ChangeNotifier {
     String? finishTimesData = devices.raceTimer?.data;
 
     Logger.d(
-        'Bib records data: ${bibRecordsData != null ? "Available" : "Null"}');
+      'Bib records data: ${bibRecordsData != null ? "Available" : "Null"}',
+    );
     Logger.d(
-        'Finish times data: ${finishTimesData != null ? "Available" : "Null"}');
+      'Finish times data: ${finishTimesData != null ? "Available" : "Null"}',
+    );
 
     if (bibRecordsData != null && finishTimesData != null) {
       _error = null;
-      final bibResult =
-          await BibDecodeUtils.decodeEncodedRunners(bibRecordsData);
+      final bibResult = await BibDecodeUtils.decodeEncodedRunners(
+        bibRecordsData,
+      );
       final List<BibDatum> bibData;
       switch (bibResult) {
         case Success(:final value):
           bibData = value;
         case Failure(:final error):
           Logger.e(
-              '[LoadResultsController.processReceivedData] ${error.originalException}');
+            '[LoadResultsController.processReceivedData] ${error.originalException}',
+          );
           _loadFailed(error);
           return;
       }
@@ -270,11 +279,13 @@ class LoadResultsController with ChangeNotifier {
           final found = await masterRace.getRaceRunnerByBib(bibDatum.bib);
           if (found != null) {
             Logger.d(
-                'LoadResultsController: Found race runner for bib ${bibDatum.bib}: ${found.runner.name}');
+              'LoadResultsController: Found race runner for bib ${bibDatum.bib}: ${found.runner.name}',
+            );
             return found;
           } else {
             Logger.d(
-                'LoadResultsController: No race runner found for bib ${bibDatum.bib}, returning bib number as conflict');
+              'LoadResultsController: No race runner found for bib ${bibDatum.bib}, returning bib number as conflict',
+            );
             // Keep the bib as text: bibs are not always numeric, and parsing
             // to int turned "A12" into 0.
             return bibDatum.bib;
@@ -293,7 +304,8 @@ class LoadResultsController with ChangeNotifier {
               // A duplicate bib needs resolving: keep it as a conflict entry.
               raceRunners![i] = bibNumber;
               Logger.d(
-                  'LoadResultsController: Marked duplicate bib $bibNumber as a conflict');
+                'LoadResultsController: Marked duplicate bib $bibNumber as a conflict',
+              );
             } else {
               seenBibs.add(bibNumber);
             }
@@ -302,19 +314,25 @@ class LoadResultsController with ChangeNotifier {
       }
 
       Logger.d(
-          'LoadResultsController: Processed raceRunners: ${raceRunners?.length ?? 0} entries');
+        'LoadResultsController: Processed raceRunners: ${raceRunners?.length ?? 0} entries',
+      );
 
       if (raceRunners!.isEmpty) {
         // Without bibs nothing would be saved, yet the step could still be
         // finished: stop here instead.
         Logger.e('LoadResultsController: No race runners loaded');
-        _loadFailed(const AppError(
-            userMessage: 'No bib numbers were received from the Bib '
-                'Recorder. Ask it to share again.'));
+        _loadFailed(
+          const AppError(
+            userMessage:
+                'No bib numbers were received from the Bib '
+                'Recorder. Ask it to share again.',
+          ),
+        );
         return;
       } else {
         Logger.d(
-            'LoadResultsController: Race runners loaded successfully: ${raceRunners!.length} entries');
+          'LoadResultsController: Race runners loaded successfully: ${raceRunners!.length} entries',
+        );
       }
 
       // Check if context is still mounted after async operation
@@ -325,23 +343,29 @@ class LoadResultsController with ChangeNotifier {
       final List<TimingDatum> timingData;
       try {
         timingData = await TimingDecodeUtils.decodeEncodedTimingData(
-            finishTimesData,
-            strict: true);
+          finishTimesData,
+          strict: true,
+        );
       } on FormatException catch (e) {
         Logger.e('[LoadResultsController.processReceivedData] $e');
-        _loadFailed(AppError(
-          userMessage:
-              'Some finish times could not be read. Ask the Timer to share again.',
-          originalException: e,
-        ));
+        _loadFailed(
+          AppError(
+            userMessage:
+                'Some finish times could not be read. Ask the Timer to share again.',
+            originalException: e,
+          ),
+        );
         return;
       }
 
       Logger.d('Loaded timing data: ${timingData.length}');
       if (timingData.isEmpty) {
-        _loadFailed(const AppError(
+        _loadFailed(
+          const AppError(
             userMessage:
-                'No finish times were received from the Timer. Ask the Timer to share again.'));
+                'No finish times were received from the Timer. Ask the Timer to share again.',
+          ),
+        );
         return;
       }
 
@@ -368,7 +392,8 @@ class LoadResultsController with ChangeNotifier {
       await _checkForConflicts();
     } else {
       Logger.e(
-          'Missing data source: bibRecordsData or finishTimesData is null');
+        'Missing data source: bibRecordsData or finishTimesData is null',
+      );
       if (!context.mounted) return;
       DialogUtils.showErrorDialog(
         context,
@@ -410,8 +435,10 @@ class LoadResultsController with ChangeNotifier {
       }
       if (chunk.timingData.length < conflict.offBy) {
         return const AppError(
-            userMessage: 'The Timer marked more extra times than it recorded. '
-                'Check the Timer and share again.');
+          userMessage:
+              'The Timer marked more extra times than it recorded. '
+              'Check the Timer and share again.',
+        );
       }
     }
     return null;
@@ -422,12 +449,16 @@ class LoadResultsController with ChangeNotifier {
   /// the simulated race (with its answer key), or null if it couldn't be
   /// made, in which case [error] says why.
   Future<SimulatedRace?> loadSimulatedResults(
-      BuildContext context, SimulatedScenario scenario,
-      {RaceSimulator? simulator}) async {
+    BuildContext context,
+    SimulatedScenario scenario, {
+    RaceSimulator? simulator,
+  }) async {
     final SimulatedRace race;
     try {
-      race = await (simulator ?? RaceSimulator())
-          .simulate(await masterRace.raceRunners, scenario);
+      race = await (simulator ?? RaceSimulator()).simulate(
+        await masterRace.raceRunners,
+        scenario,
+      );
     } on StateError catch (e) {
       _error = AppError(userMessage: e.message);
       notifyListeners();
@@ -484,7 +515,8 @@ class LoadResultsController with ChangeNotifier {
         (current?.type == ConflictType.missingTime && diff < 0)) {
       return null;
     }
-    final net = switch (current?.type) {
+    final net =
+        switch (current?.type) {
           ConflictType.missingTime => current!.offBy,
           ConflictType.extraTime => -current!.offBy,
           _ => 0,
@@ -495,7 +527,8 @@ class LoadResultsController with ChangeNotifier {
       // More extra times than the last chunk holds: the coach cannot resolve
       // this from the last chunk alone, so stop instead of guessing.
       return AppError(
-        userMessage: 'The Timer recorded ${-diff} more finishers than the Bib '
+        userMessage:
+            'The Timer recorded ${-diff} more finishers than the Bib '
             'Recorder. Check both devices and share again.',
       );
     }
@@ -505,14 +538,14 @@ class LoadResultsController with ChangeNotifier {
     final time = net > 0
         ? 'MISSING_TIMES'
         : last.conflictRecord?.time ??
-            (last.timingData.isNotEmpty ? last.timingData.last.time : '0.0');
+              (last.timingData.isNotEmpty ? last.timingData.last.time : '0.0');
     last.conflictRecord = TimingDatum(
       time: time,
       conflict: net > 0
           ? Conflict(type: ConflictType.missingTime, offBy: net)
           : net < 0
-              ? Conflict(type: ConflictType.extraTime, offBy: -net)
-              : Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ? Conflict(type: ConflictType.extraTime, offBy: -net)
+          : Conflict(type: ConflictType.confirmRunner, offBy: 1),
     );
     return null;
   }
@@ -521,17 +554,20 @@ class LoadResultsController with ChangeNotifier {
     final conflict = datum?.conflict;
     if (datum == null || conflict == null) return null;
     return TimingDatum(
-        time: datum.time,
-        conflict: Conflict(type: conflict.type, offBy: conflict.offBy));
+      time: datum.time,
+      conflict: Conflict(type: conflict.type, offBy: conflict.offBy),
+    );
   }
 
   Future<void> _checkForConflicts() async {
     _hasBibConflicts = containsBibConflicts();
     _hasTimingConflicts = containsTimingConflicts();
     Logger.d(
-        'LoadResultsController: Conflict check - Bib conflicts: $hasBibConflicts, Timing conflicts: $hasTimingConflicts');
+      'LoadResultsController: Conflict check - Bib conflicts: $hasBibConflicts, Timing conflicts: $hasTimingConflicts',
+    );
     Logger.d(
-        'LoadResultsController: Race runners count: ${raceRunners?.length}, Timing chunks count: ${timingChunks?.length}');
+      'LoadResultsController: Race runners count: ${raceRunners?.length}, Timing chunks count: ${timingChunks?.length}',
+    );
     notifyListeners();
   }
 
@@ -543,11 +579,16 @@ class LoadResultsController with ChangeNotifier {
         (results: const <RaceResult>[], error: e);
 
     if (timingChunks == null || raceRunners == null) {
-      return fail(const AppError(userMessage: 'No results are loaded to save.'));
+      return fail(
+        const AppError(userMessage: 'No results are loaded to save.'),
+      );
     }
     if (hasBibConflicts || hasTimingConflicts) {
-      return fail(const AppError(
-          userMessage: 'Resolve all conflicts before saving the results.'));
+      return fail(
+        const AppError(
+          userMessage: 'Resolve all conflicts before saving the results.',
+        ),
+      );
     }
 
     final timingRecords = [
@@ -555,14 +596,20 @@ class LoadResultsController with ChangeNotifier {
     ];
 
     if (timingRecords.length != raceRunners!.length) {
-      return fail(AppError(
-        userMessage: 'There are ${timingRecords.length} finish times but '
-            '${raceRunners!.length} runners. Resolve the timing conflicts first.',
-      ));
+      return fail(
+        AppError(
+          userMessage:
+              'There are ${timingRecords.length} finish times but '
+              '${raceRunners!.length} runners. Resolve the timing conflicts first.',
+        ),
+      );
     }
     if (raceRunners!.any((r) => r is! RaceRunner)) {
-      return fail(const AppError(
-          userMessage: 'Resolve all bib numbers before saving the results.'));
+      return fail(
+        const AppError(
+          userMessage: 'Resolve all bib numbers before saving the results.',
+        ),
+      );
     }
     // Each runner finishes once. Bib resolution prevents duplicates; this is
     // the last check before anything is written.
@@ -570,11 +617,14 @@ class LoadResultsController with ChangeNotifier {
     for (final raceRunner in raceRunners!.cast<RaceRunner>()) {
       final id = raceRunner.runner.runnerId;
       if (id == null || !seen.add(id)) {
-        return fail(AppError(
-          userMessage: '${raceRunner.runner.name ?? 'A runner'} (bib '
-              '${raceRunner.runner.bibNumber}) appears more than once. '
-              'Check the bib numbers and load the results again.',
-        ));
+        return fail(
+          AppError(
+            userMessage:
+                '${raceRunner.runner.name ?? 'A runner'} (bib '
+                '${raceRunner.runner.bibNumber}) appears more than once. '
+                'Check the bib numbers and load the results again.',
+          ),
+        );
       }
     }
 
@@ -585,22 +635,28 @@ class LoadResultsController with ChangeNotifier {
 
       // Never save a time that cannot be read: defaulting to zero made the
       // runner the race winner.
-      final finishDuration =
-          TimeFormatter.loadDurationFromString(timingDatum.time);
+      final finishDuration = TimeFormatter.loadDurationFromString(
+        timingDatum.time,
+      );
       if (finishDuration == null) {
-        return fail(AppError(
-          userMessage: 'The time for place ${i + 1} ("${timingDatum.time}") '
-              'is not valid. Fix it in the timing conflicts first.',
-        ));
+        return fail(
+          AppError(
+            userMessage:
+                'The time for place ${i + 1} ("${timingDatum.time}") '
+                'is not valid. Fix it in the timing conflicts first.',
+          ),
+        );
       }
 
-      merged.add(RaceResult(
-        raceId: masterRace.raceId,
-        runner: raceRunner.runner,
-        team: raceRunner.team,
-        place: i + 1, // 1-based place
-        finishTime: finishDuration,
-      ));
+      merged.add(
+        RaceResult(
+          raceId: masterRace.raceId,
+          runner: raceRunner.runner,
+          team: raceRunner.team,
+          place: i + 1, // 1-based place
+          finishTime: finishDuration,
+        ),
+      );
     }
     return (results: merged, error: null);
   }
@@ -624,10 +680,12 @@ class LoadResultsController with ChangeNotifier {
       return null;
     } catch (e) {
       Logger.e('[LoadResultsController._mergeBibDataWithTimingChunks] $e');
-      return _saveFailed(AppError(
-        userMessage: 'Could not save the results. Please try again.',
-        originalException: e,
-      ));
+      return _saveFailed(
+        AppError(
+          userMessage: 'Could not save the results. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -676,7 +734,10 @@ class LoadResultsController with ChangeNotifier {
       final savedBibOwners = await savedBibOwnersOutside(masterRace, inRace);
       final recordedBibs = {
         for (final entry in entries)
-          if (entry is RaceRunner) ?entry.runner.bibNumber else if (entry is String) entry,
+          if (entry is RaceRunner)
+            ?entry.runner.bibNumber
+          else if (entry is String)
+            entry,
       };
       if (!context.mounted) return;
 
@@ -745,8 +806,10 @@ class LoadResultsController with ChangeNotifier {
   /// as before, and nothing reconciled against the Timer changes.
   @visibleForTesting
   Future<void> applyResolvedRunners(List<dynamic> updated) async {
-    assert(updated.length == raceRunners!.length,
-        'bib resolution never adds or removes a finisher');
+    assert(
+      updated.length == raceRunners!.length,
+      'bib resolution never adds or removes a finisher',
+    );
     raceRunners = updated;
     await _checkForConflicts();
   }
@@ -779,12 +842,15 @@ class LoadResultsController with ChangeNotifier {
     }
 
     // Only include chunks that actually have a conflict to avoid UI build errors
-    final List<TimingChunk> conflictChunks =
-        timingChunks!.where((c) => c.hasConflict).toList();
+    final List<TimingChunk> conflictChunks = timingChunks!
+        .where((c) => c.hasConflict)
+        .toList();
     Logger.d(
-        'Found ${conflictChunks.length} conflict chunks out of ${timingChunks!.length} total chunks');
+      'Found ${conflictChunks.length} conflict chunks out of ${timingChunks!.length} total chunks',
+    );
     Logger.d(
-        'Conflict chunks details: ${conflictChunks.map((c) => 'hasConflict=${c.hasConflict}, recordCount=${c.recordCount}').toList()}');
+      'Conflict chunks details: ${conflictChunks.map((c) => 'hasConflict=${c.hasConflict}, recordCount=${c.recordCount}').toList()}',
+    );
 
     if (conflictChunks.isEmpty) {
       Logger.d('No conflict chunks found, showing info dialog');
@@ -802,25 +868,27 @@ class LoadResultsController with ChangeNotifier {
       // Pass the full list in finish order. The controller edits it in place;
       // resolving a filtered copy and appending it back reordered the chunks,
       // so later times landed on the wrong runners.
-      await Navigator.of(context, rootNavigator: true).push(MaterialPageRoute(
-        fullscreenDialog: true,
-        builder: (_) => ChangeNotifierProvider(
-          create: (_) => MergeConflictsController(
-            masterRace: masterRace,
-            timingChunks: timingChunks!,
-            raceRunners: runners,
-            recordedTimes: _recordedTimes ??=
-                MergeConflictsController.recordedTimesOf(timingChunks!),
-          ),
-          child: TimingConflictsPage(
-            masterRace: masterRace,
-            timingChunks: timingChunks!,
-            raceRunners: runners,
-            raceName: raceName,
-            total: timingConflictCount,
+      await Navigator.of(context, rootNavigator: true).push(
+        MaterialPageRoute(
+          fullscreenDialog: true,
+          builder: (_) => ChangeNotifierProvider(
+            create: (_) => MergeConflictsController(
+              masterRace: masterRace,
+              timingChunks: timingChunks!,
+              raceRunners: runners,
+              recordedTimes: _recordedTimes ??=
+                  MergeConflictsController.recordedTimesOf(timingChunks!),
+            ),
+            child: TimingConflictsPage(
+              masterRace: masterRace,
+              timingChunks: timingChunks!,
+              raceRunners: runners,
+              raceName: raceName,
+              total: timingConflictCount,
+            ),
           ),
         ),
-      ));
+      );
       Logger.d('Sheet function completed successfully');
       // Don't auto-save results - wait for user to click save/next
     } catch (e, stackTrace) {
@@ -847,18 +915,22 @@ class LoadResultsController with ChangeNotifier {
   /// press marks a batch too, but needs nothing done.
   int get timingConflictCount =>
       timingChunks
-          ?.where((chunk) =>
-              chunk.hasConflict &&
-              chunk.conflictRecord!.conflict!.type !=
-                  ConflictType.confirmRunner)
+          ?.where(
+            (chunk) =>
+                chunk.hasConflict &&
+                chunk.conflictRecord!.conflict!.type !=
+                    ConflictType.confirmRunner,
+          )
           .length ??
       0;
 
   bool containsTimingConflicts() {
     if (timingChunks == null) return false;
 
-    return timingChunks!.any((chunk) =>
-        chunk.hasConflict &&
-        chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner);
+    return timingChunks!.any(
+      (chunk) =>
+          chunk.hasConflict &&
+          chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner,
+    );
   }
 }

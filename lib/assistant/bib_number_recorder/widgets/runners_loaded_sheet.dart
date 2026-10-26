@@ -30,13 +30,13 @@ class _RunnersLoadedSheetState extends State<RunnersLoadedSheet> {
   }
 
   List<String> get _teams => {
-        for (final r in widget.runners)
-          if ((r.teamAbbreviation ?? '').isNotEmpty) r.teamAbbreviation!,
-      }.toList()
-        ..sort();
+    for (final r in widget.runners)
+      if ((r.teamAbbreviation ?? '').isNotEmpty) r.teamAbbreviation!,
+  }.toList()..sort();
 
   /// In bib order, by number: 2 before 10.
-  late final List<BibDatum> _byBib = [...widget.runners]..sort((a, b) {
+  late final List<BibDatum> _byBib = [...widget.runners]
+    ..sort((a, b) {
       final na = int.tryParse(a.bib), nb = int.tryParse(b.bib);
       if (na != null && nb != null && na != nb) return na.compareTo(nb);
       return a.bib.compareTo(b.bib);
@@ -79,8 +79,9 @@ class _RunnersLoadedSheetState extends State<RunnersLoadedSheet> {
                 shown.length == total
                     ? '$total runners'
                     : '${shown.length} of $total runners',
-                style: AppTypography.smallBodyRegular
-                    .copyWith(color: AppColors.mediumColor),
+                style: AppTypography.smallBodyRegular.copyWith(
+                  color: AppColors.mediumColor,
+                ),
               ),
             ),
             if (teams.length > 1)
@@ -181,7 +182,9 @@ class _TeamFilter extends StatelessWidget {
       ],
       child: Container(
         padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+          horizontal: AppSpacing.md,
+          vertical: AppSpacing.xs,
+        ),
         decoration: BoxDecoration(
           color: AppColors.surfaceColor,
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
@@ -207,7 +210,9 @@ class _TableHeader extends StatelessWidget {
     final style = AppTypography.bodySemibold;
     return Container(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
+      ),
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
       ),
@@ -235,21 +240,26 @@ class _RunnerRow extends StatelessWidget {
         border: Border(bottom: BorderSide(color: Colors.grey[300]!)),
       ),
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm, vertical: AppSpacing.md),
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.md,
+      ),
       child: Row(
         children: [
           Expanded(
-              flex: 3,
-              child: Text(runner.name ?? '', style: AppTypography.bodyRegular)),
+            flex: 3,
+            child: Text(runner.name ?? '', style: AppTypography.bodyRegular),
+          ),
           Expanded(
-              flex: 2,
-              child: Text(runner.teamAbbreviation ?? '',
-                  style: AppTypography.bodyRegular)),
+            flex: 2,
+            child: Text(
+              runner.teamAbbreviation ?? '',
+              style: AppTypography.bodyRegular,
+            ),
+          ),
           Expanded(
-              child:
-                  Text(runner.grade ?? '', style: AppTypography.bodyRegular)),
-          Expanded(
-              child: Text(runner.bib, style: AppTypography.bodySemibold)),
+            child: Text(runner.grade ?? '', style: AppTypography.bodyRegular),
+          ),
+          Expanded(child: Text(runner.bib, style: AppTypography.bodySemibold)),
         ],
       ),
     );
@@ -266,8 +276,9 @@ class _NoMatch extends StatelessWidget {
       child: Center(
         child: Text(
           'No runners match',
-          style: AppTypography.bodyRegular
-              .copyWith(color: AppColors.mediumColor),
+          style: AppTypography.bodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
         ),
       ),
     );

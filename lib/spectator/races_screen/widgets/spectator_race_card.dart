@@ -78,11 +78,7 @@ class _SpectatorRaceCardState extends State<SpectatorRaceCard> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.share,
-                  color: Colors.white,
-                  size: 24,
-                ),
+                const Icon(Icons.share, color: Colors.white, size: 24),
                 const SizedBox(height: 4),
                 Text(
                   'Share',
@@ -100,11 +96,7 @@ class _SpectatorRaceCardState extends State<SpectatorRaceCard> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(
-                  Icons.delete_outline,
-                  size: 24,
-                  color: Colors.white,
-                ),
+                const Icon(Icons.delete_outline, size: 24, color: Colors.white),
                 const SizedBox(height: 4),
                 Text(
                   'Delete',
@@ -134,7 +126,11 @@ class _SpectatorRaceCardState extends State<SpectatorRaceCard> {
             onTap: widget.onTap,
             child: Padding(
               padding: const EdgeInsets.only(
-                  left: 24.0, right: 24.0, top: 16.0, bottom: 16.0),
+                left: 24.0,
+                right: 24.0,
+                top: 16.0,
+                bottom: 16.0,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -163,8 +159,9 @@ class _SpectatorRaceCardState extends State<SpectatorRaceCard> {
                         Expanded(
                           child: Text(
                             location,
-                            style: AppTypography.bodyRegular
-                                .copyWith(color: Colors.black54),
+                            style: AppTypography.bodyRegular.copyWith(
+                              color: Colors.black54,
+                            ),
                             overflow: TextOverflow.ellipsis,
                             maxLines: 1,
                           ),
@@ -186,8 +183,9 @@ class _SpectatorRaceCardState extends State<SpectatorRaceCard> {
                         const SizedBox(width: 8),
                         Text(
                           _dateFormat.format(_parsedDate!),
-                          style: AppTypography.bodyRegular
-                              .copyWith(color: Colors.black54),
+                          style: AppTypography.bodyRegular.copyWith(
+                            color: Colors.black54,
+                          ),
                         ),
                       ],
                     ),

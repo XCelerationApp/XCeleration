@@ -45,7 +45,6 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> deleteUserData(String userId) async => deleteDatabase();
-
 }
 
 void main() {
@@ -81,10 +80,7 @@ void main() {
   // A finished race with one saved result, for delete-guard tests.
   Future<void> insertResult(int runnerId, int? teamId) async {
     final db = await connProvider.database;
-    final raceId = await db.insert('races', {
-      'name': 'Meet',
-      'is_dirty': 0,
-    });
+    final raceId = await db.insert('races', {'name': 'Meet', 'is_dirty': 0});
     await db.insert('race_results', {
       'race_id': raceId,
       'runner_id': runnerId,
@@ -101,9 +97,11 @@ void main() {
     group('updated_at stamps', () {
       test('createRunner stamps updated_at in UTC', () async {
         final id = await repo.createRunner(validRunner);
-        final row = (await (await connProvider.database)
-                .query('runners', where: 'runner_id = ?', whereArgs: [id]))
-            .single;
+        final row = (await (await connProvider.database).query(
+          'runners',
+          where: 'runner_id = ?',
+          whereArgs: [id],
+        )).single;
         expect(row['updated_at'], endsWith('Z'));
       });
     });
@@ -165,9 +163,11 @@ void main() {
 
       test('returns runners ordered by name', () async {
         await repo.createRunner(
-            const Runner(name: 'Zara', bibNumber: '2', grade: 10));
+          const Runner(name: 'Zara', bibNumber: '2', grade: 10),
+        );
         await repo.createRunner(
-            const Runner(name: 'Alice', bibNumber: '1', grade: 11));
+          const Runner(name: 'Alice', bibNumber: '1', grade: 11),
+        );
         final runners = await repo.getAllRunners();
         expect(runners.length, 2);
         expect(runners.first.name, 'Alice');
@@ -178,8 +178,9 @@ void main() {
     group('searchRunners', () {
       setUp(() async {
         await repo.createRunner(validRunner);
-        await repo
-            .createRunner(const Runner(name: 'Bob', bibNumber: '200', grade: 10));
+        await repo.createRunner(
+          const Runner(name: 'Bob', bibNumber: '200', grade: 10),
+        );
       });
 
       test('matches runners by name substring', () async {
@@ -203,7 +204,8 @@ void main() {
       test('updates runner fields successfully', () async {
         final id = await repo.createRunner(validRunner);
         await repo.updateRunner(
-            Runner(runnerId: id, name: 'Alicia', bibNumber: '100', grade: 12));
+          Runner(runnerId: id, name: 'Alicia', bibNumber: '100', grade: 12),
+        );
         final updated = await repo.getRunner(id);
         expect(updated!.name, 'Alicia');
         expect(updated.grade, 12);
@@ -217,7 +219,8 @@ void main() {
         final id = await repo.createRunner(validRunner);
         expect(
           () => repo.updateRunner(
-              Runner(runnerId: id, name: '', bibNumber: '100', grade: 11)),
+            Runner(runnerId: id, name: '', bibNumber: '100', grade: 11),
+          ),
           throwsException,
         );
       });
@@ -242,7 +245,9 @@ void main() {
         await insertResult(id, null);
 
         await expectLater(
-            repo.deleteRunnerEverywhere(id), throwsA(isA<DataInUseException>()));
+          repo.deleteRunnerEverywhere(id),
+          throwsA(isA<DataInUseException>()),
+        );
 
         expect(await repo.getRunner(id), isNotNull);
         expect(await repo.countRaceResults(id), 1);
@@ -253,7 +258,9 @@ void main() {
         await insertResult(id, null);
 
         await expectLater(
-            repo.removeRunner(id), throwsA(isA<DataInUseException>()));
+          repo.removeRunner(id),
+          throwsA(isA<DataInUseException>()),
+        );
         expect(await repo.countRaceResults(id), 1);
       });
     });
@@ -277,8 +284,11 @@ void main() {
         expect(await repo.getTeamRunners(teamId), isEmpty);
         // The row itself stays so the removal can be pushed to the server.
         final db = await connProvider.database;
-        final rows = await db.query('team_rosters',
-            where: 'runner_id = ?', whereArgs: [runnerId]);
+        final rows = await db.query(
+          'team_rosters',
+          where: 'runner_id = ?',
+          whereArgs: [runnerId],
+        );
         expect(rows, hasLength(1));
         expect(rows.first['deleted_at'], isNotNull);
       });
@@ -324,7 +334,9 @@ void main() {
         final runnerId = await repo.createRunner(validRunner);
         final teamId = await insertTeam('Eagles');
         expect(
-            () => repo.removeRunnerFromTeam(teamId, runnerId), throwsException);
+          () => repo.removeRunnerFromTeam(teamId, runnerId),
+          throwsException,
+        );
       });
     });
 
@@ -366,10 +378,12 @@ void main() {
     group('getTeamRunners', () {
       test('returns runners in a team ordered by name', () async {
         final teamId = await insertTeam('Eagles');
-        final r1 = await repo
-            .createRunner(const Runner(name: 'Zara', bibNumber: '2', grade: 10));
-        final r2 = await repo
-            .createRunner(const Runner(name: 'Alice', bibNumber: '1', grade: 11));
+        final r1 = await repo.createRunner(
+          const Runner(name: 'Zara', bibNumber: '2', grade: 10),
+        );
+        final r2 = await repo.createRunner(
+          const Runner(name: 'Alice', bibNumber: '1', grade: 11),
+        );
         await repo.addRunnerToTeam(teamId, r1);
         await repo.addRunnerToTeam(teamId, r2);
         final runners = await repo.getTeamRunners(teamId);

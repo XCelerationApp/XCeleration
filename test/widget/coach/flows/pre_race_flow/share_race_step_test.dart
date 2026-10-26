@@ -11,31 +11,37 @@ import 'package:xceleration/core/utils/enums.dart';
 void main() {
   late DevicesManager devices;
 
-  setUp(() => devices = DevicesManager(
-      DeviceName.coach, DeviceType.advertiserDevice,
-      data: 'race'));
+  setUp(
+    () => devices = DevicesManager(
+      DeviceName.coach,
+      DeviceType.advertiserDevice,
+      data: 'race',
+    ),
+  );
 
   /// Presses Done and answers the dialog, if one shows, with [answer].
   /// Returns whether the step let the coach finish.
   Future<bool> done(WidgetTester tester, {String? answer}) async {
     bool? finished;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            onPressed: () async {
-              try {
-                await ShareRaceStep.confirmUnsent(context, devices);
-                finished = true;
-              } on FlowStepBlocked {
-                finished = false;
-              }
-            },
-            child: const Text('Done'),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async {
+                try {
+                  await ShareRaceStep.confirmUnsent(context, devices);
+                  finished = true;
+                } on FlowStepBlocked {
+                  finished = false;
+                }
+              },
+              child: const Text('Done'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('Done'));
     await tester.pumpAndSettle();
     if (answer != null) {
@@ -46,37 +52,44 @@ void main() {
     return finished!;
   }
 
-  testWidgets('finishes without asking once both phones have it',
-      (tester) async {
+  testWidgets('finishes without asking once both phones have it', (
+    tester,
+  ) async {
     devices.raceTimer!.status = ConnectionStatus.finished;
     devices.bibRecorder!.status = ConnectionStatus.finished;
 
     expect(await done(tester), isTrue);
   });
 
-  testWidgets('asks when a phone has not received it, and can wait',
-      (tester) async {
+  testWidgets('asks when a phone has not received it, and can wait', (
+    tester,
+  ) async {
     devices.raceTimer!.status = ConnectionStatus.finished;
 
     expect(await done(tester, answer: 'Keep Waiting'), isFalse);
   });
 
-  testWidgets('names who is waiting, and can still finish (QR code)',
-      (tester) async {
+  testWidgets('names who is waiting, and can still finish (QR code)', (
+    tester,
+  ) async {
     expect(await done(tester, answer: 'Done'), isTrue);
   });
 
   testWidgets('says which phones are waiting', (tester) async {
     devices.bibRecorder!.status = ConnectionStatus.finished;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => TextButton(
-          onPressed: () =>
-              ShareRaceStep.confirmUnsent(context, devices).catchError((_) {}),
-          child: const Text('go'),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => TextButton(
+            onPressed: () => ShareRaceStep.confirmUnsent(
+              context,
+              devices,
+            ).catchError((_) {}),
+            child: const Text('go'),
+          ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('go'));
     await tester.pumpAndSettle();
 
