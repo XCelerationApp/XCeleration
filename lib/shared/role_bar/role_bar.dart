@@ -55,7 +55,7 @@ class RoleBar extends StatelessWidget {
                   alignmentX: AlignmentX.left,
                   alignmentY: AlignmentY.bottom,
                   description:
-                      'Click here to switch between Coach, Timer, and Bib Recorder roles',
+                      'Click here to switch between Results Manager, Timer, and Bib Recorder roles',
                   icon: Icons.touch_app,
                   type: CoachMarkType.targeted,
                   backgroundColor: Color(0xFF1976D2),

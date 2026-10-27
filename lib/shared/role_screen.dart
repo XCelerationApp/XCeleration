@@ -540,7 +540,7 @@ class _RoleScreenState extends State<RoleScreen>
     super.initState();
     _roles = [
       _RoleData(
-        label: 'Coach',
+        label: 'Results Manager',
         description: 'Create races, manage your team, and review results',
         onPressed: _onCoach,
       ),
@@ -551,7 +551,7 @@ class _RoleScreenState extends State<RoleScreen>
       ),
       _RoleData(
         label: 'Spectator',
-        description: 'See race results your coach shares with you',
+        description: 'See race results shared with you',
         onPressed: _onSpectator,
       ),
     ];

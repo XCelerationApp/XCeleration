@@ -48,7 +48,7 @@ void main() {
 
       expect(find.text('1'), findsOneWidget);
       expect(find.text('Alice Smith'), findsOneWidget);
-      expect(find.text('EA'), findsOneWidget);
+      expect(find.text('EA · Jr'), findsOneWidget, reason: 'team and grade');
     });
 
     testWidgets(

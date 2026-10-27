@@ -65,7 +65,7 @@ class AppHeader extends StatelessWidget {
                 alignmentX: AlignmentX.right,
                 alignmentY: AlignmentY.bottom,
                 description:
-                    'Tap the title to switch between Coach, Timer, and Bib Recorder',
+                    'Tap the title to switch between Results Manager, Timer, and Bib Recorder',
                 icon: Icons.touch_app,
                 type: CoachMarkType.targeted,
                 backgroundColor: Color(0xFF1976D2),

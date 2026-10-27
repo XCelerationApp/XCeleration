@@ -47,6 +47,8 @@ void main() {
     when(mockController.removeListener(any)).thenReturn(null);
     when(mockController.devices).thenReturn(mockDevices);
     when(mockController.error).thenReturn(null);
+    // No bibs recorded on this phone, so no Use Bibs From This Phone.
+    when(mockController.bibsFromThisPhone()).thenAnswer((_) async => null);
     stubController();
   });
 

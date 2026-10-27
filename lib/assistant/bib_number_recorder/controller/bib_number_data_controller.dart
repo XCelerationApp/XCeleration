@@ -231,7 +231,23 @@ class BibNumberDataController extends ChangeNotifier {
   /// the end (e.g. [_loadBibRecords]).
   int addBibRecordSilent(BibDatumRecord record) {
     final newIndex = _rows.length;
+    _rows.add(_createRow(record));
+    return newIndex;
+  }
 
+  /// Puts [record] in at [index], moving everyone from there down a place:
+  /// a runner the volunteer missed, found when checking against a written
+  /// list of finishers.
+  Future<void> insertBibRecord(int index, BibDatumRecord record) async {
+    if (index < 0 || index > _rows.length) return;
+    _rows.insert(index, _createRow(record));
+    // Places after it move down, so duplicates name new places.
+    refreshDuplicateFlags();
+    notifyListeners();
+    await _persistBibOrder();
+  }
+
+  _BibRow _createRow(BibDatumRecord record) {
     final controller = _textInputFactory.createController(record.bib);
     final focusNode = _textInputFactory.createFocusNode();
     void focusListener() {
@@ -243,15 +259,13 @@ class BibNumberDataController extends ChangeNotifier {
 
     focusNode.addListener(focusListener);
 
-    _rows.add(_BibRow(
+    return _BibRow(
       record: record,
       controller: controller,
       focusNode: focusNode,
       focusListener: focusListener,
       notifier: ValueNotifier(record),
-    ));
-
-    return newIndex;
+    );
   }
 
   /// Updates a bib record without notifying listeners.

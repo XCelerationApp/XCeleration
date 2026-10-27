@@ -78,9 +78,13 @@ class InstructionsBanner extends StatelessWidget {
       case Role.bibRecorder:
         return 'You record each runner\'s bib number as they finish, in the '
             'order they cross the line: hold the button and say it, or type '
-            'it.\n\nBefore the race, tap Get Race from '
-            'Coach so your list knows the runners. When there is a break in '
-            'the runners, tell the Timer how many bibs you have.';
+            'it.\n\nBefore the race, tap Get Race from Results Manager so '
+            'your list knows the runners. When there is a break in '
+            'the runners, tell the Timer how many bibs you have.\n\nIf a '
+            'written list of finishers is being kept, check your count '
+            'against it at each break: swipe a bib right to insert a missed '
+            'runner above it, or left to delete one, until they match, so a '
+            'slip doesn\'t throw off every place after it.';
       case Role.timer:
         return 'You time the race. Tap Start when the gun goes, and Log as '
             'each runner crosses the finish line. Missed the gun by a few '
@@ -88,7 +92,9 @@ class InstructionsBanner extends StatelessWidget {
             'Early or Late? from the menu.\n\nWhen there is a break '
             'in the runners, compare your count with the Bib Recorder\'s. If '
             'they are the same, tap Counts match. If not, tap Counts differ? '
-            'and choose what happened.';
+            'and choose what happened.\n\nTapped twice by mistake and know '
+            'which tap it was? Swipe that time left to delete it. Use Counts '
+            'differ? only when you don\'t know which time is wrong.';
       case Role.coach:
         return 'Each race has three steps, shown at the top of it:\n\n'
             '1. Set up: tap + to create the race, then add its teams and '
@@ -100,8 +106,8 @@ class InstructionsBanner extends StatelessWidget {
             'Then tap Share Results on the Results tab: as text, a Google '
             'Sheet or a PDF, or to spectators nearby.';
       case Role.spectator:
-        return 'You see the results of races a coach shares with you.\n\n'
-            'Tap Receive Race, then choose Coach. On the coach\'s '
+        return 'You see the results of races shared with you.\n\n'
+            'Tap Receive Race, then choose Results Manager. On the Results Manager\'s '
             'phone, they tap Share Results, then Send to Spectators. You can '
             'also get a race from another spectator who already has it.';
     }

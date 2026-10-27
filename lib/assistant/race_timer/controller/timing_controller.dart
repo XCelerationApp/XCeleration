@@ -136,7 +136,7 @@ class TimingController extends TimingData {
     );
     sheet(
       context: context,
-      title: 'Get Race from Coach',
+      title: 'Get Race from Results Manager',
       body: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -144,7 +144,7 @@ class TimingController extends TimingData {
           const Padding(
             padding: EdgeInsets.only(bottom: 16),
             child: Text(
-              'On the coach\'s phone, open the race and tap Send to '
+              'On the Results Manager\'s phone, open the race and tap Send to '
               'Volunteers.',
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 15, color: Color(0xFF606060)),
@@ -163,8 +163,8 @@ class TimingController extends TimingData {
               )) {
             if (context.mounted) {
               DialogUtils.showErrorDialog(context,
-                  message: 'The race from the coach could not be opened. '
-                      'Ask the coach to send it again.');
+                  message: 'The race from the Results Manager could not be opened. '
+                      'Ask the Results Manager to send it again.');
             }
             return false;
           }
@@ -664,7 +664,7 @@ class TimingController extends TimingData {
         explanation: timeShift == Duration.zero
             ? 'Pressed Start after the gun? Every time is short by the same '
                 'amount. Say how many seconds and the clock and every time '
-                'are corrected, so your coach gets times from the gun.'
+                'are corrected, so the Results Manager gets times from the gun.'
             : 'Times already moved ${describeShift(timeShift)}. Any change '
                 'here is added to that.',
         onShift: (by) {
