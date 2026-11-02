@@ -3,7 +3,8 @@ import 'package:xceleration/coach/merge_conflicts/models/ui_chunk.dart';
 import 'package:xceleration/coach/merge_conflicts/models/ui_record.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/timing_suggestions.dart';
 import 'package:xceleration/coach/merge_conflicts/utils/merge_conflicts_utils.dart';
-import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart' show CoachTimingDataConverter;
+import 'package:xceleration/coach/merge_conflicts/utils/timing_data_converter.dart'
+    show CoachTimingDataConverter;
 import 'package:xceleration/core/app_error.dart';
 import 'package:xceleration/core/services/post_frame_callback_scheduler.dart';
 import 'package:xceleration/core/utils/index.dart';
@@ -93,10 +94,12 @@ class MergeConflictsController with ChangeNotifier {
       for (int i = 0; i < uiChunk.records.length; i++) {
         final record = uiChunk.records[i];
         if (record.time == edit.entered[i]) continue;
-        record.updateConflictTime(ConflictTime(
-          time: edit.entered[i],
-          isOriginallyTBD: record.isOriginallyTBD,
-        ));
+        record.updateConflictTime(
+          ConflictTime(
+            time: edit.entered[i],
+            isOriginallyTBD: record.isOriginallyTBD,
+          ),
+        );
       }
     }
     notifyListeners();
@@ -113,13 +116,18 @@ class MergeConflictsController with ChangeNotifier {
     // without it would undo to a batch the coach never saw.
     if (uiChunk != null) _syncEnteredTimes(uiChunk);
     final chunk = timingChunks[index];
-    _undoStacks.putIfAbsent(chunkId, () => <_BatchEdit>[]).add(_BatchEdit(
-          label: label,
-          times: chunk.timingData.map((datum) => datum.time).toList(),
-          offBy: chunk.conflictRecord?.conflict?.offBy ?? 0,
-          entered:
-              uiChunk?.records.map((record) => record.time).toList() ?? const [],
-        ));
+    _undoStacks
+        .putIfAbsent(chunkId, () => <_BatchEdit>[])
+        .add(
+          _BatchEdit(
+            label: label,
+            times: chunk.timingData.map((datum) => datum.time).toList(),
+            offBy: chunk.conflictRecord?.conflict?.offBy ?? 0,
+            entered:
+                uiChunk?.records.map((record) => record.time).toList() ??
+                const [],
+          ),
+        );
   }
 
   /// Drops the history of every batch that is no longer an open conflict.
@@ -174,8 +182,10 @@ class MergeConflictsController with ChangeNotifier {
         _cachedUIChunks!.length != timingChunks.length ||
         _needsUIRebuild) {
       _cachedUIChunks = CoachTimingDataConverter.convertToUIChunks(
-          timingChunks, raceRunners,
-          recordedTimes: _recordedTimes);
+        timingChunks,
+        raceRunners,
+        recordedTimes: _recordedTimes,
+      );
       _needsUIRebuild = false;
     }
     return _cachedUIChunks!;
@@ -251,17 +261,22 @@ class MergeConflictsController with ChangeNotifier {
 
   /// Called by widget when user submits a missing time.
   Future<void> submitMissingTimeRecord(
-      int chunkId, int recordIndex, String newValue) async {
+    int chunkId,
+    int recordIndex,
+    String newValue,
+  ) async {
     final uiChunk = _getUIChunk(chunkId);
     if (uiChunk == null) return;
     final record = uiChunk.records[recordIndex];
-    record.updateConflictTime(ConflictTime(
-      time: newValue,
-      isOriginallyTBD: record.isOriginallyTBD,
-      validationError: newValue.isEmpty || newValue == 'TBD'
-          ? null
-          : _validateTimeInChunk(uiChunk, recordIndex, newValue),
-    ));
+    record.updateConflictTime(
+      ConflictTime(
+        time: newValue,
+        isOriginallyTBD: record.isOriginallyTBD,
+        validationError: newValue.isEmpty || newValue == 'TBD'
+            ? null
+            : _validateTimeInChunk(uiChunk, recordIndex, newValue),
+      ),
+    );
     // Save what is entered so far, so it survives the chunks being rebuilt
     // (e.g. after an extra time is removed elsewhere).
     await syncChunkToBackendAndCheckResolution(uiChunk);
@@ -274,13 +289,18 @@ class MergeConflictsController with ChangeNotifier {
     final record = uiChunk.records[recordIndex];
     final wasResolved = uiChunk.isResolvedLocally;
     record.timeController.text = newValue;
-    final validationError =
-        _validateTimeInChunk(uiChunk, recordIndex, newValue);
-    record.updateConflictTime(ConflictTime(
-      time: newValue,
-      isOriginallyTBD: record.isOriginallyTBD,
-      validationError: validationError,
-    ));
+    final validationError = _validateTimeInChunk(
+      uiChunk,
+      recordIndex,
+      newValue,
+    );
+    record.updateConflictTime(
+      ConflictTime(
+        time: newValue,
+        isOriginallyTBD: record.isOriginallyTBD,
+        validationError: validationError,
+      ),
+    );
     // Keep the entered times with the chunk, not just in the text field:
     // resolving another chunk rebuilds the list, which used to wipe whatever
     // had been typed but not submitted.
@@ -303,12 +323,18 @@ class MergeConflictsController with ChangeNotifier {
     }
     chunk.timingData
       ..clear()
-      ..addAll(uiChunk.records.map((record) => TimingDatum(
-          time: record.isUnfilled || record.validationError != null
-              ? 'TBD'
-              : record.time)));
-    chunk.conflictRecord!.conflict!.offBy =
-        chunk.timingData.where((datum) => datum.time == 'TBD').length;
+      ..addAll(
+        uiChunk.records.map(
+          (record) => TimingDatum(
+            time: record.isUnfilled || record.validationError != null
+                ? 'TBD'
+                : record.time,
+          ),
+        ),
+      );
+    chunk.conflictRecord!.conflict!.offBy = chunk.timingData
+        .where((datum) => datum.time == 'TBD')
+        .length;
   }
 
   /// Called by widget when user taps the insert TBD button.
@@ -339,8 +365,8 @@ class MergeConflictsController with ChangeNotifier {
       return null;
     }
 
-    final from = nearest((r) => r.isUnfilled) ??
-        nearest((r) => r.isOriginallyTBD);
+    final from =
+        nearest((r) => r.isUnfilled) ?? nearest((r) => r.isOriginallyTBD);
     if (from == null) return;
     final clearsTypedTime = !records[from].isUnfilled;
     // Removing a slot before the target shifts the target left by one.
@@ -357,18 +383,21 @@ class MergeConflictsController with ChangeNotifier {
     // The text field holds what the coach typed; it can differ from
     // conflictTime until the value is submitted.
     final contents = records
-        .map((r) => ConflictTime(
-              time: r.time,
-              isOriginallyTBD: r.isOriginallyTBD,
-              validationError: r.validationError,
-            ))
+        .map(
+          (r) => ConflictTime(
+            time: r.time,
+            isOriginallyTBD: r.isOriginallyTBD,
+            validationError: r.validationError,
+          ),
+        )
         .toList();
     final moved = contents.removeAt(from);
     contents.insert(
-        to,
-        fill == null
-            ? moved
-            : ConflictTime(time: fill, isOriginallyTBD: moved.isOriginallyTBD));
+      to,
+      fill == null
+          ? moved
+          : ConflictTime(time: fill, isOriginallyTBD: moved.isOriginallyTBD),
+    );
     for (int i = 0; i < records.length; i++) {
       final old = records[i];
       records[i] = UIRecord(
@@ -383,8 +412,7 @@ class MergeConflictsController with ChangeNotifier {
     for (int i = 0; i < records.length; i++) {
       final record = records[i];
       if (record.isOriginallyTBD && !record.isUnfilled) {
-        record.validationError =
-            _validateTimeInChunk(uiChunk, i, record.time);
+        record.validationError = _validateTimeInChunk(uiChunk, i, record.time);
       }
     }
     uiChunk.lastInsertedIndex = fill == null || fill == 'TBD' ? to : null;
@@ -405,16 +433,20 @@ class MergeConflictsController with ChangeNotifier {
         uiChunk.conflict.offBy < 1) {
       return null;
     }
-    return likelyExtraTime(uiChunk.records.map((r) => r.time).toList(),
-        start: previousEndTimeFor(chunkId));
+    return likelyExtraTime(
+      uiChunk.records.map((r) => r.time).toList(),
+      start: previousEndTimeFor(chunkId),
+    );
   }
 
   /// The gap before each row's time in the batch with [chunkId].
   List<Duration?> gapsFor(int chunkId) {
     final uiChunk = _getUIChunk(chunkId);
     if (uiChunk == null) return const [];
-    return gapsBefore(uiChunk.records.map((r) => r.time).toList(),
-        start: previousEndTimeFor(chunkId));
+    return gapsBefore(
+      uiChunk.records.map((r) => r.time).toList(),
+      start: previousEndTimeFor(chunkId),
+    );
   }
 
   UIChunk? _getUIChunk(int chunkId) {
@@ -426,17 +458,24 @@ class MergeConflictsController with ChangeNotifier {
   }
 
   String? _validateTimeInChunk(
-      UIChunk uiChunk, int recordIndex, String newValue) {
+    UIChunk uiChunk,
+    int recordIndex,
+    String newValue,
+  ) {
     if (newValue.isNotEmpty &&
         newValue != 'TBD' &&
         TimeFormatter.loadDurationFromString(newValue) == null) {
       return 'Type it like 15:20.26';
     }
-    final contextTimes =
-        uiChunk.records.map((r) => r.timeController.text).toList();
+    final contextTimes = uiChunk.records
+        .map((r) => r.timeController.text)
+        .toList();
     contextTimes[recordIndex] = newValue;
-    final error =
-        validateTimeInContext(contextTimes, recordIndex, uiChunk.endTime);
+    final error = validateTimeInContext(
+      contextTimes,
+      recordIndex,
+      uiChunk.endTime,
+    );
     if (error != null) return error;
     // A time must also come after every finisher in earlier chunks, or this
     // runner would be placed ahead of runners who finished before them.
@@ -525,16 +564,18 @@ class MergeConflictsController with ChangeNotifier {
       // The missed finisher may have come after the Timer's last button, so
       // no end time to validate against.
       chunk.conflictRecord = TimingDatum(
-          time: 'MISSING_TIMES',
-          conflict: Conflict(type: ConflictType.missingTime, offBy: left));
+        time: 'MISSING_TIMES',
+        conflict: Conflict(type: ConflictType.missingTime, offBy: left),
+      );
       _recordedTimes[chunk.id] = chunk.timingData
           .map((d) => d.time)
           .where((t) => t != 'TBD')
           .toSet();
     } else if (left < 0 && -left <= chunk.timingData.length) {
       chunk.conflictRecord = TimingDatum(
-          time: chunk.conflictRecord!.time,
-          conflict: Conflict(type: ConflictType.extraTime, offBy: -left));
+        time: chunk.conflictRecord!.time,
+        conflict: Conflict(type: ConflictType.extraTime, offBy: -left),
+      );
     }
   }
 
@@ -553,8 +594,8 @@ class MergeConflictsController with ChangeNotifier {
       final error = record.isUnfilled
           ? 'Enter a time'
           : record.isOriginallyTBD
-              ? _validateTimeInChunk(uiChunk, i, record.time)
-              : null;
+          ? _validateTimeInChunk(uiChunk, i, record.time)
+          : null;
       if (error != null) {
         record.validationError = error;
         valid = false;
@@ -583,24 +624,31 @@ class MergeConflictsController with ChangeNotifier {
     // is empty or invalid is kept as TBD, so the chunk keeps one entry per
     // finisher and nothing unchecked is saved.
     chunk.timingData.clear();
-    chunk.timingData.addAll(uiChunk.records.map((record) => TimingDatum(
-        time: record.isUnfilled || record.validationError != null
-            ? 'TBD'
-            : record.time)));
+    chunk.timingData.addAll(
+      uiChunk.records.map(
+        (record) => TimingDatum(
+          time: record.isUnfilled || record.validationError != null
+              ? 'TBD'
+              : record.time,
+        ),
+      ),
+    );
 
     // Update conflict count for missing time conflicts
     if (chunk.hasConflict &&
         chunk.conflictRecord?.conflict?.type == ConflictType.missingTime) {
       final conflict = chunk.conflictRecord!.conflict!;
       // Recalculate offBy based on current TBD count
-      final tbdCount =
-          chunk.timingData.where((datum) => datum.time == 'TBD').length;
+      final tbdCount = chunk.timingData
+          .where((datum) => datum.time == 'TBD')
+          .length;
       conflict.offBy = tbdCount;
 
       // Check if this chunk is now fully resolved
       if (conflict.offBy == 0) {
         Logger.d(
-            'MergeConflictsController: Chunk ${uiChunk.chunkId} synced and is now fully resolved, consolidating confirmed times');
+          'MergeConflictsController: Chunk ${uiChunk.chunkId} synced and is now fully resolved, consolidating confirmed times',
+        );
 
         // Consolidate confirmed times (merge adjacent confirmRunner chunks).
         // consolidateConfirmedTimes() calls notifyListeners() internally, so
@@ -668,17 +716,21 @@ class MergeConflictsController with ChangeNotifier {
   /// How many chunks still have an unresolved missing- or extra-time
   /// conflict.
   int get openConflictCount => timingChunks
-      .where((chunk) =>
-          chunk.hasConflict &&
-          chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner)
+      .where(
+        (chunk) =>
+            chunk.hasConflict &&
+            chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner,
+      )
       .length;
 
   /// Whether any chunk still has an unresolved missing- or extra-time
   /// conflict. Confirmed chunks and chunks with no conflict are resolved,
   /// however many of them there are.
-  bool get hasConflicts => timingChunks.any((chunk) =>
-      chunk.hasConflict &&
-      chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner);
+  bool get hasConflicts => timingChunks.any(
+    (chunk) =>
+        chunk.hasConflict &&
+        chunk.conflictRecord!.conflict!.type != ConflictType.confirmRunner,
+  );
 
   /// End time of the chunk before the one with [chunkId], used as the lower
   /// bound when validating times; '0.0' for the first chunk.
@@ -694,8 +746,10 @@ class MergeConflictsController with ChangeNotifier {
 
   bool get allConflictsResolved {
     // Check if any timing chunks still have TBD values
-    return timingChunks.every((chunk) =>
-        chunk.timingData.every((timingDatum) => timingDatum.time != 'TBD'));
+    return timingChunks.every(
+      (chunk) =>
+          chunk.timingData.every((timingDatum) => timingDatum.time != 'TBD'),
+    );
   }
 
   bool get hasValidTimeOrder {
@@ -708,7 +762,8 @@ class MergeConflictsController with ChangeNotifier {
   AppError? canClose() {
     if (hasConflicts) {
       return const AppError(
-          userMessage: 'All conflicts must be resolved before proceeding.');
+        userMessage: 'All conflicts must be resolved before proceeding.',
+      );
     }
     return null;
   }
@@ -742,8 +797,8 @@ class MergeConflictsController with ChangeNotifier {
         int j = i + 1;
 
         // Collect consecutive confirmRunner chunks
-        while (
-            j < timingChunks.length && _isConfirmRunnerChunk(timingChunks[j])) {
+        while (j < timingChunks.length &&
+            _isConfirmRunnerChunk(timingChunks[j])) {
           consecutiveChunks.add(timingChunks[j]);
           j++;
         }
@@ -789,7 +844,8 @@ class MergeConflictsController with ChangeNotifier {
 
   /// Merge consecutive confirmRunner chunks efficiently
   TimingChunk _mergeConsecutiveTimingChunks(
-      List<TimingChunk> consecutiveChunks) {
+    List<TimingChunk> consecutiveChunks,
+  ) {
     if (consecutiveChunks.isEmpty) {
       throw ArgumentError('Cannot merge empty chunk list');
     }
@@ -809,7 +865,8 @@ class MergeConflictsController with ChangeNotifier {
       conflictRecord: hasAnyConflicts
           ? TimingDatum(
               time: consecutiveChunks.last.conflictRecord!.time,
-              conflict: Conflict(type: ConflictType.confirmRunner))
+              conflict: Conflict(type: ConflictType.confirmRunner),
+            )
           : null,
       timingData: consecutiveChunks.expand((data) => data.timingData).toList(),
     );
@@ -821,22 +878,31 @@ class MergeConflictsController with ChangeNotifier {
       return null;
     }
     return TimingChunk(
-        id: -1,
-        timingData: times.map((time) => TimingDatum(time: time)).toList(),
-        conflictRecord: TimingDatum(
-            time: times.last,
-            conflict: Conflict(type: ConflictType.confirmRunner)));
+      id: -1,
+      timingData: times.map((time) => TimingDatum(time: time)).toList(),
+      conflictRecord: TimingDatum(
+        time: times.last,
+        conflict: Conflict(type: ConflictType.confirmRunner),
+      ),
+    );
   }
 
   /// Validate that all user-provided times are non-empty and valid
   bool _validateUserTimes(List<String> times) {
     return times.isNotEmpty &&
-        times.every((time) =>
-            time.isNotEmpty && time != 'TBD' && TimeFormatter.isDuration(time));
+        times.every(
+          (time) =>
+              time.isNotEmpty &&
+              time != 'TBD' &&
+              TimeFormatter.isDuration(time),
+        );
   }
 
   void updateSelectedTime(
-      int conflictIndex, String newValue, String? previousValue) {
+    int conflictIndex,
+    String newValue,
+    String? previousValue,
+  ) {
     if (selectedTimes[conflictIndex] == null) {
       selectedTimes[conflictIndex] = <String>[];
     }

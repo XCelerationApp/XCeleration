@@ -83,28 +83,31 @@ class _RunnerPickerState extends State<RunnerPicker> {
               final place = widget.placeOf(runner);
               return ListTile(
                 contentPadding: EdgeInsets.zero,
-                title: Text(runner.runner.name ?? 'Unnamed runner',
-                    style: AppTypography.bodyRegular),
+                title: Text(
+                  runner.runner.name ?? 'Unnamed runner',
+                  style: AppTypography.bodyRegular,
+                ),
                 subtitle: Text(
                   '${runner.team.name ?? ''} · #${runner.runner.bibNumber}',
-                  style: AppTypography.caption
-                      .copyWith(color: AppColors.mediumColor),
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
                 ),
                 trailing: place == null
                     ? null
-                    : Text('Now ${ordinal(place)}',
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.mediumColor)),
+                    : Text(
+                        'Now ${ordinal(place)}',
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.mediumColor,
+                        ),
+                      ),
                 onTap: () => widget.onPicked(runner),
               );
             },
           ),
         ),
         if (widget.onCreateNew case final create?)
-          CreateRunnerTile(
-            name: _typedName,
-            onTap: () => create(_typedName),
-          ),
+          CreateRunnerTile(name: _typedName, onTap: () => create(_typedName)),
       ],
     );
   }
@@ -129,8 +132,9 @@ class TimeEntry extends StatefulWidget {
 }
 
 class _TimeEntryState extends State<TimeEntry> {
-  late final _text =
-      TextEditingController(text: TimeFormatter.formatDuration(widget.initial));
+  late final _text = TextEditingController(
+    text: TimeFormatter.formatDuration(widget.initial),
+  );
   String? _error;
 
   @override
@@ -161,8 +165,7 @@ class _TimeEntryState extends State<TimeEntry> {
           TextField(
             controller: _text,
             autofocus: true,
-            keyboardType:
-                const TextInputType.numberWithOptions(decimal: true),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(
               labelText: 'Time',
               hintText: 'mm:ss.hh',

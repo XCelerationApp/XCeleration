@@ -36,13 +36,16 @@ class _SlidingPageViewState extends State<SlidingPageView>
       vsync: this,
     );
 
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(1.0, 0.0), // Start from right
-      end: Offset.zero, // End at center
-    ).animate(CurvedAnimation(
-      parent: _animationController,
-      curve: Curves.easeInOut,
-    ));
+    _slideAnimation =
+        Tween<Offset>(
+          begin: const Offset(1.0, 0.0), // Start from right
+          end: Offset.zero, // End at center
+        ).animate(
+          CurvedAnimation(
+            parent: _animationController,
+            curve: Curves.easeInOut,
+          ),
+        );
 
     // Custom fade animation that finishes at halfway point when opening
     // and starts at halfway point when closing
@@ -73,9 +76,7 @@ class _SlidingPageViewState extends State<SlidingPageView>
       child: Stack(
         children: [
           // First page (always present)
-          Positioned.fill(
-            child: widget.firstPage,
-          ),
+          Positioned.fill(child: widget.firstPage),
           // Second page (slides over the first) - header and content move together
           Positioned.fill(
             child: AnimatedBuilder(
@@ -93,7 +94,10 @@ class _SlidingPageViewState extends State<SlidingPageView>
                           if (widget.secondPageTitle != null)
                             Container(
                               padding: const EdgeInsets.only(
-                                  left: 8, top: 8, bottom: 8),
+                                left: 8,
+                                top: 8,
+                                bottom: 8,
+                              ),
                               child: Row(
                                 children: [
                                   IconButton(
@@ -120,9 +124,7 @@ class _SlidingPageViewState extends State<SlidingPageView>
                               ),
                             ),
                           // Page content
-                          Expanded(
-                            child: widget.secondPage,
-                          ),
+                          Expanded(child: widget.secondPage),
                         ],
                       ),
                     ),

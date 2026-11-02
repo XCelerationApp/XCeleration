@@ -32,10 +32,10 @@ class DuplicateStep1Card extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (chosen, leftover, remaining) = context.select<
-        ConflictResolutionController, (int?, ConflictOccurrence?, int)>(
-      (c) => (c.chosenPlace, c.currentLeftover, c.leftoversRemaining),
-    );
+    final (chosen, leftover, remaining) = context
+        .select<ConflictResolutionController, (int?, ConflictOccurrence?, int)>(
+          (c) => (c.chosenPlace, c.currentLeftover, c.leftoversRemaining),
+        );
     if (chosen != null && leftover != null) {
       return _InlineLeftoverAssignment(
         confirmedPosition: chosen,

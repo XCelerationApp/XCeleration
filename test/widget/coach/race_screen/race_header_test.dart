@@ -17,18 +17,24 @@ import 'race_header_test.mocks.dart';
 void main() {
   late MockRaceScreenController controller;
 
-  Future<void> pump(WidgetTester tester,
-      {required String flowState, bool owner = true}) async {
+  Future<void> pump(
+    WidgetTester tester, {
+    required String flowState,
+    bool owner = true,
+  }) async {
     controller = MockRaceScreenController();
-    when(controller.race).thenReturn(Race(
-        raceId: 1, raceName: 'Old Test Race', flowState: flowState));
+    when(controller.race).thenReturn(
+      Race(raceId: 1, raceName: 'Old Test Race', flowState: flowState),
+    );
     when(controller.form).thenReturn(RaceFormState());
     when(controller.canEdit).thenReturn(false);
     when(controller.canEditResults).thenReturn(owner);
     when(controller.deleteRace(any)).thenAnswer((_) async {});
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: RaceHeader(controller: controller)),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: RaceHeader(controller: controller)),
+      ),
+    );
   }
 
   testWidgets('a finished race can be renamed', (tester) async {
@@ -48,8 +54,9 @@ void main() {
     verify(controller.deleteRace(any)).called(1);
   });
 
-  testWidgets('someone who does not own the race can do neither',
-      (tester) async {
+  testWidgets('someone who does not own the race can do neither', (
+    tester,
+  ) async {
     await pump(tester, flowState: Race.FLOW_FINISHED, owner: false);
 
     expect(find.byKey(const ValueKey('edit_race_name')), findsNothing);

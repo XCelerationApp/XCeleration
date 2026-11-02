@@ -36,22 +36,25 @@ void main() {
   ];
 
   setUpAll(() {
-    provideDummy<({List<RaceResult> results, AppError? error})>(
-        (results: const <RaceResult>[], error: null));
+    provideDummy<({List<RaceResult> results, AppError? error})>((
+      results: const <RaceResult>[],
+      error: null,
+    ));
   });
 
   setUp(() {
     controller = MockLoadResultsController();
     when(controller.addListener(any)).thenReturn(null);
     when(controller.removeListener(any)).thenReturn(null);
-    when(controller.buildResults())
-        .thenReturn((results: results, error: null));
+    when(controller.buildResults()).thenReturn((results: results, error: null));
   });
 
   testWidgets('lists each finisher in order with their time', (tester) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: ReviewResultsList(controller: controller)),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ReviewResultsList(controller: controller)),
+      ),
+    );
 
     expect(find.text('2 finishers from 2 teams'), findsOneWidget);
     expect(find.text('Ann Lee'), findsOneWidget);
@@ -60,17 +63,18 @@ void main() {
     expect(find.text('Bo Park'), findsOneWidget);
   });
 
-  testWidgets('says why when the results cannot be saved yet',
-      (tester) async {
+  testWidgets('says why when the results cannot be saved yet', (tester) async {
     when(controller.buildResults()).thenReturn((
       results: const <RaceResult>[],
       error: const AppError(userMessage: 'No results are loaded to save.'),
     ));
     final step = ReviewResultsStep(controller: controller);
 
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(body: ReviewResultsList(controller: controller)),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(body: ReviewResultsList(controller: controller)),
+      ),
+    );
 
     expect(find.text('No results are loaded to save.'), findsOneWidget);
     expect(step.canProceed!(), isFalse);
@@ -93,13 +97,19 @@ void main() {
   test('stays on the page when saving fails', () async {
     // Finishing anyway would mark the race done without its results.
     when(controller.saveCurrentResults()).thenAnswer(
-        (_) async => const AppError(userMessage: 'Could not save the results.'));
+      (_) async => const AppError(userMessage: 'Could not save the results.'),
+    );
     final step = ReviewResultsStep(controller: controller);
 
     await expectLater(
       step.onNext!(),
-      throwsA(isA<FlowStepBlocked>().having(
-          (e) => e.message, 'message', 'Could not save the results.')),
+      throwsA(
+        isA<FlowStepBlocked>().having(
+          (e) => e.message,
+          'message',
+          'Could not save the results.',
+        ),
+      ),
     );
     step.dispose();
   });

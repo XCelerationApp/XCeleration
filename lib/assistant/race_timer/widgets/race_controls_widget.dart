@@ -18,10 +18,7 @@ import 'bottom_controls_widget.dart';
 class RaceControlsWidget extends StatelessWidget {
   final TimingController controller;
 
-  const RaceControlsWidget({
-    super.key,
-    required this.controller,
-  });
+  const RaceControlsWidget({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -166,11 +163,14 @@ class RaceControlsWidget extends StatelessWidget {
 
 /// Asks before stopping, since a stopped clock stops logging finishes.
 Future<void> confirmStopTimer(
-    BuildContext context, TimingController controller) async {
+  BuildContext context,
+  TimingController controller,
+) async {
   final confirmed = await DialogUtils.showConfirmationDialog(
     context,
     title: 'Stop the Race?',
-    content: 'Stop the clock once every runner has finished. You can resume '
+    content:
+        'Stop the clock once every runner has finished. You can resume '
         'if you stop too early.',
     confirmText: 'Stop',
     cancelText: 'Cancel',

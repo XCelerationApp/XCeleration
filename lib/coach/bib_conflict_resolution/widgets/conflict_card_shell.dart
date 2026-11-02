@@ -88,8 +88,9 @@ class _ConflictCardShellState extends State<ConflictCardShell> {
   /// type rather than the flow step: this shell is still on screen while it
   /// animates out towards the summary, and it rebuilds on the way.
   Widget _buildCardBody(BuildContext context) {
-    final conflict =
-        context.read<ConflictResolutionController>().currentConflict;
+    final conflict = context
+        .read<ConflictResolutionController>()
+        .currentConflict;
     return switch (conflict) {
       DuplicateBibConflict() => DuplicateStep1Card(conflict: conflict),
       UnknownBibConflict() => UnknownBibCard(conflict: conflict),
@@ -123,10 +124,10 @@ class _ProgressSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final (resolved, total) =
-        context.select<ConflictResolutionController, (int, int)>(
-      (c) => (c.resolvedCount, c.totalConflicts),
-    );
+    final (resolved, total) = context
+        .select<ConflictResolutionController, (int, int)>(
+          (c) => (c.resolvedCount, c.totalConflicts),
+        );
     return ConflictProgress(resolved: resolved, total: total);
   }
 }
@@ -175,8 +176,9 @@ class _ErrorBanner extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.redColor.withValues(alpha: AppOpacity.faint),
                   border: Border.all(
-                    color: AppColors.redColor
-                        .withValues(alpha: AppOpacity.strong),
+                    color: AppColors.redColor.withValues(
+                      alpha: AppOpacity.strong,
+                    ),
                   ),
                   borderRadius: BorderRadius.circular(AppBorderRadius.sm),
                 ),
@@ -185,8 +187,9 @@ class _ErrorBanner extends StatelessWidget {
                     Expanded(
                       child: Text(
                         message,
-                        style: AppTypography.caption
-                            .copyWith(color: AppColors.redColor),
+                        style: AppTypography.caption.copyWith(
+                          color: AppColors.redColor,
+                        ),
                       ),
                     ),
                     IconButton(

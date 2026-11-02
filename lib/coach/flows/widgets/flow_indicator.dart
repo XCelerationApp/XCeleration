@@ -29,8 +29,11 @@ class EnhancedFlowIndicator extends StatelessWidget {
               bottom: 0,
               child: Center(
                 child: IconButton(
-                  icon: const Icon(Icons.arrow_back,
-                      size: 24, color: Colors.black),
+                  icon: const Icon(
+                    Icons.arrow_back,
+                    size: 24,
+                    color: Colors.black,
+                  ),
                   onPressed: onBack,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),

@@ -18,8 +18,11 @@ const _transferAbortTimeout = Duration(milliseconds: 150);
 void main() {
   late Protocol protocol;
   late MockDeviceConnectionServiceInterface mockConnectionService;
-  final mockDevice =
-      Device('test_id', 'test_device', SessionState.connected.index);
+  final mockDevice = Device(
+    'test_id',
+    'test_device',
+    SessionState.connected.index,
+  );
 
   setUp(() {
     mockConnectionService = MockDeviceConnectionServiceInterface();
@@ -31,8 +34,9 @@ void main() {
     );
     protocol.addDevice(mockDevice);
 
-    when(mockConnectionService.sendMessageToDevice(any, any))
-        .thenAnswer((_) async => true);
+    when(
+      mockConnectionService.sendMessageToDevice(any, any),
+    ).thenAnswer((_) async => true);
   });
 
   tearDown(() {
@@ -41,12 +45,15 @@ void main() {
 
   /// Configures the mock to ACK every DATA/FIN package immediately.
   void setupAutoAck() {
-    when(mockConnectionService.sendMessageToDevice(any, any))
-        .thenAnswer((invocation) async {
+    when(mockConnectionService.sendMessageToDevice(any, any)).thenAnswer((
+      invocation,
+    ) async {
       final package = invocation.positionalArguments[1] as Package;
       if (package.type == 'DATA' || package.type == 'FIN') {
         await protocol.handleMessage(
-            Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
+          Package(number: package.number, type: 'ACK'),
+          mockDevice.deviceId,
+        );
       }
       return true;
     });
@@ -73,7 +80,9 @@ void main() {
   group('addDevice() / removeDevice()', () {
     test('reconnection resets in-progress transfer state', () async {
       await protocol.handleMessage(
-          Package(number: 1, type: 'FIN'), mockDevice.deviceId);
+        Package(number: 1, type: 'FIN'),
+        mockDevice.deviceId,
+      );
       expect(protocol.isFinished(mockDevice.deviceId), isTrue);
 
       // Re-adding the same device simulates a reconnection.
@@ -92,12 +101,16 @@ void main() {
       expect(protocol.isFinished(mockDevice.deviceId), isFalse);
     });
 
-    test('returns true after FIN package is received and acknowledged',
-        () async {
-      await protocol.handleMessage(
-          Package(number: 1, type: 'FIN'), mockDevice.deviceId);
-      expect(protocol.isFinished(mockDevice.deviceId), isTrue);
-    });
+    test(
+      'returns true after FIN package is received and acknowledged',
+      () async {
+        await protocol.handleMessage(
+          Package(number: 1, type: 'FIN'),
+          mockDevice.deviceId,
+        );
+        expect(protocol.isFinished(mockDevice.deviceId), isTrue);
+      },
+    );
   });
 
   group('terminate() / dispose()', () {
@@ -117,13 +130,17 @@ void main() {
         sendStabilizationDelay: _sendStabilizationDelay,
         transferAbortTimeout: _transferAbortTimeout,
       );
-      final freshDevice =
-          Device('fresh_id', 'fresh_device', SessionState.connected.index);
+      final freshDevice = Device(
+        'fresh_id',
+        'fresh_device',
+        SessionState.connected.index,
+      );
       freshProtocol.addDevice(freshDevice);
 
       // Never ACK — keep transmissions pending.
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((_) async => true);
+      when(
+        mockConnectionService.sendMessageToDevice(any, any),
+      ).thenAnswer((_) async => true);
 
       Result<void>? result;
       final sendFuture = freshProtocol
@@ -144,7 +161,9 @@ void main() {
     test('throws for invalid package type', () async {
       await expectLater(
         protocol.handleMessage(
-            Package(number: 1, type: 'INVALID'), mockDevice.deviceId),
+          Package(number: 1, type: 'INVALID'),
+          mockDevice.deviceId,
+        ),
         throwsA(isA<Exception>()),
       );
     });
@@ -152,20 +171,24 @@ void main() {
     test('does nothing when protocol is terminated', () async {
       await protocol.terminate();
       await protocol.handleMessage(
-          Package(number: 1, type: 'DATA', data: 'data'), mockDevice.deviceId);
+        Package(number: 1, type: 'DATA', data: 'data'),
+        mockDevice.deviceId,
+      );
       verifyNever(mockConnectionService.sendMessageToDevice(any, any));
     });
 
     test('sends ACK for received DATA package', () async {
       await protocol.handleMessage(
-          Package(number: 1, type: 'DATA', data: 'test_data'),
-          mockDevice.deviceId);
+        Package(number: 1, type: 'DATA', data: 'test_data'),
+        mockDevice.deviceId,
+      );
 
-      verify(mockConnectionService.sendMessageToDevice(
-              any,
-              argThat(
-                  predicate((Package p) => p.type == 'ACK' && p.number == 1))))
-          .called(1);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'ACK' && p.number == 1)),
+        ),
+      ).called(1);
     });
 
     test('handles duplicate DATA packages without error', () async {
@@ -173,11 +196,12 @@ void main() {
       await protocol.handleMessage(package, mockDevice.deviceId);
       await protocol.handleMessage(package, mockDevice.deviceId);
 
-      verify(mockConnectionService.sendMessageToDevice(
-              any,
-              argThat(
-                  predicate((Package p) => p.type == 'ACK' && p.number == 1))))
-          .called(2);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'ACK' && p.number == 1)),
+        ),
+      ).called(2);
     });
 
     test('ACK unblocks pending sender', () async {
@@ -188,13 +212,16 @@ void main() {
 
     test('marks device finished after receiving FIN package', () async {
       await protocol.handleMessage(
-          Package(number: 1, type: 'FIN'), mockDevice.deviceId);
+        Package(number: 1, type: 'FIN'),
+        mockDevice.deviceId,
+      );
 
-      verify(mockConnectionService.sendMessageToDevice(
-              any,
-              argThat(
-                  predicate((Package p) => p.type == 'ACK' && p.number == 1))))
-          .called(1);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'ACK' && p.number == 1)),
+        ),
+      ).called(1);
       expect(protocol.isFinished(mockDevice.deviceId), isTrue);
     });
   });
@@ -226,10 +253,18 @@ void main() {
       final result = await protocol.sendData('hello', mockDevice.deviceId);
 
       expect(result, isA<Success<void>>());
-      verify(mockConnectionService.sendMessageToDevice(
-          any, argThat(predicate((Package p) => p.type == 'DATA')))).called(1);
-      verify(mockConnectionService.sendMessageToDevice(
-          any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'DATA')),
+        ),
+      ).called(1);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'FIN')),
+        ),
+      ).called(1);
     });
 
     test('sends multiple DATA chunks for data exceeding chunk size', () async {
@@ -238,16 +273,25 @@ void main() {
       final result = await protocol.sendData('x' * 2500, mockDevice.deviceId);
 
       expect(result, isA<Success<void>>());
-      verify(mockConnectionService.sendMessageToDevice(
-          any, argThat(predicate((Package p) => p.type == 'DATA')))).called(3);
-      verify(mockConnectionService.sendMessageToDevice(
-          any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'DATA')),
+        ),
+      ).called(3);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'FIN')),
+        ),
+      ).called(1);
     });
 
     test('returns Failure when retry attempts are exhausted', () async {
       // Never ACK — force all maxSendAttempts retries to expire.
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((_) async => true);
+      when(
+        mockConnectionService.sendMessageToDevice(any, any),
+      ).thenAnswer((_) async => true);
 
       // With retryTimeout = 50 ms and maxSendAttempts = 4, this resolves
       // after ~200 ms without needing fakeAsync.
@@ -257,21 +301,31 @@ void main() {
     });
 
     test('sends data in chunks with FIN package at the end', () async {
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((args) async {
+      when(mockConnectionService.sendMessageToDevice(any, any)).thenAnswer((
+        args,
+      ) async {
         final package = args.positionalArguments[1] as Package;
         await protocol.handleMessage(
-            Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
+          Package(number: package.number, type: 'ACK'),
+          mockDevice.deviceId,
+        );
         return true;
       });
 
       final result = await protocol.sendData('test_data', mockDevice.deviceId);
       expect(result, isA<Success<void>>());
-      verify(mockConnectionService.sendMessageToDevice(
-              any, argThat(predicate((Package p) => p.type == 'DATA'))))
-          .called(greaterThan(0));
-      verify(mockConnectionService.sendMessageToDevice(
-          any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'DATA')),
+        ),
+      ).called(greaterThan(0));
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'FIN')),
+        ),
+      ).called(1);
     });
   });
 
@@ -280,29 +334,36 @@ void main() {
     // so every transfer must start from 1 regardless of earlier transfers
     // made by the same Protocol (e.g. the coach sharing to Timer then Bib
     // Recorder from one connection sheet).
-    final secondDevice =
-        Device('second_id', 'second_device', SessionState.connected.index);
+    final secondDevice = Device(
+      'second_id',
+      'second_device',
+      SessionState.connected.index,
+    );
 
     late Map<String, List<Package>> sentByDevice;
 
     setUp(() {
       protocol.addDevice(secondDevice);
       sentByDevice = {};
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((invocation) async {
+      when(mockConnectionService.sendMessageToDevice(any, any)).thenAnswer((
+        invocation,
+      ) async {
         final device = invocation.positionalArguments[0] as Device;
         final package = invocation.positionalArguments[1] as Package;
         sentByDevice.putIfAbsent(device.deviceId, () => []).add(package);
         await protocol.handleMessage(
-            Package(number: package.number, type: 'ACK'), device.deviceId);
+          Package(number: package.number, type: 'ACK'),
+          device.deviceId,
+        );
         return true;
       });
     });
 
-    List<int> numbersSentTo(String deviceId, String type) => sentByDevice[deviceId]!
-        .where((p) => p.type == type)
-        .map((p) => p.number)
-        .toList();
+    List<int> numbersSentTo(String deviceId, String type) =>
+        sentByDevice[deviceId]!
+            .where((p) => p.type == type)
+            .map((p) => p.number)
+            .toList();
 
     test('numbers a second device\'s packets from 1', () async {
       await protocol.sendData('x' * 2500, mockDevice.deviceId);
@@ -322,44 +383,51 @@ void main() {
       expect(numbersSentTo(mockDevice.deviceId, 'FIN'), [2]);
     });
 
-    test('an ACK from one device does not acknowledge another device\'s packet',
-        () async {
-      // mockDevice ACKs; secondDevice never does.
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((invocation) async {
-        final device = invocation.positionalArguments[0] as Device;
-        final package = invocation.positionalArguments[1] as Package;
-        if (device.deviceId == mockDevice.deviceId) {
-          await protocol.handleMessage(
-              Package(number: package.number, type: 'ACK'), device.deviceId);
-        }
-        return true;
-      });
+    test(
+      'an ACK from one device does not acknowledge another device\'s packet',
+      () async {
+        // mockDevice ACKs; secondDevice never does.
+        when(mockConnectionService.sendMessageToDevice(any, any)).thenAnswer((
+          invocation,
+        ) async {
+          final device = invocation.positionalArguments[0] as Device;
+          final package = invocation.positionalArguments[1] as Package;
+          if (device.deviceId == mockDevice.deviceId) {
+            await protocol.handleMessage(
+              Package(number: package.number, type: 'ACK'),
+              device.deviceId,
+            );
+          }
+          return true;
+        });
 
-      final results = await Future.wait([
-        protocol.sendData('to second', secondDevice.deviceId),
-        protocol.sendData('to first', mockDevice.deviceId),
-      ]);
+        final results = await Future.wait([
+          protocol.sendData('to second', secondDevice.deviceId),
+          protocol.sendData('to first', mockDevice.deviceId),
+        ]);
 
-      expect(results[0], isA<Failure<void>>());
-    });
+        expect(results[0], isA<Failure<void>>());
+      },
+    );
   });
 
   group('handleDataTransfer()', () {
     test('returns Failure when protocol is terminated', () async {
       await protocol.terminate();
       final result = await protocol.handleDataTransfer(
-          deviceId: mockDevice.deviceId,
-          isReceiving: true,
-          shouldContinueTransfer: () => true);
+        deviceId: mockDevice.deviceId,
+        isReceiving: true,
+        shouldContinueTransfer: () => true,
+      );
       expect(result, isA<Failure<String?>>());
     });
 
     test('returns Failure when device is not connected', () async {
       final result = await protocol.handleDataTransfer(
-          deviceId: 'unconnected_device_id',
-          isReceiving: true,
-          shouldContinueTransfer: () => true);
+        deviceId: 'unconnected_device_id',
+        isReceiving: true,
+        shouldContinueTransfer: () => true,
+      );
       expect(result, isA<Failure<String?>>());
     });
 
@@ -368,19 +436,24 @@ void main() {
       // is polling (after the first Future.delayed yields control).
       Future.microtask(() async {
         await protocol.handleMessage(
-            Package(number: 1, type: 'DATA', data: 'hello '),
-            mockDevice.deviceId);
+          Package(number: 1, type: 'DATA', data: 'hello '),
+          mockDevice.deviceId,
+        );
         await protocol.handleMessage(
-            Package(number: 2, type: 'DATA', data: 'world'),
-            mockDevice.deviceId);
+          Package(number: 2, type: 'DATA', data: 'world'),
+          mockDevice.deviceId,
+        );
         await protocol.handleMessage(
-            Package(number: 3, type: 'FIN'), mockDevice.deviceId);
+          Package(number: 3, type: 'FIN'),
+          mockDevice.deviceId,
+        );
       });
 
       final result = await protocol.handleDataTransfer(
-          deviceId: mockDevice.deviceId,
-          isReceiving: true,
-          shouldContinueTransfer: () => true);
+        deviceId: mockDevice.deviceId,
+        isReceiving: true,
+        shouldContinueTransfer: () => true,
+      );
 
       expect(result, isA<Success<String?>>());
       expect((result as Success<String?>).value, 'hello world');
@@ -389,57 +462,76 @@ void main() {
     test('returns Failure when packets are missing from sequence', () async {
       Future.microtask(() async {
         await protocol.handleMessage(
-            Package(number: 1, type: 'DATA', data: 'chunk1'),
-            mockDevice.deviceId);
+          Package(number: 1, type: 'DATA', data: 'chunk1'),
+          mockDevice.deviceId,
+        );
         // packet 2 intentionally omitted
         await protocol.handleMessage(
-            Package(number: 3, type: 'DATA', data: 'chunk3'),
-            mockDevice.deviceId);
+          Package(number: 3, type: 'DATA', data: 'chunk3'),
+          mockDevice.deviceId,
+        );
         await protocol.handleMessage(
-            Package(number: 4, type: 'FIN'), mockDevice.deviceId);
+          Package(number: 4, type: 'FIN'),
+          mockDevice.deviceId,
+        );
       });
 
       final result = await protocol.handleDataTransfer(
-          deviceId: mockDevice.deviceId,
-          isReceiving: true,
-          shouldContinueTransfer: () => true);
+        deviceId: mockDevice.deviceId,
+        isReceiving: true,
+        shouldContinueTransfer: () => true,
+      );
 
       expect(result, isA<Failure<String?>>());
     });
 
-    test('returns Failure when shouldContinueTransfer is persistently false',
-        () async {
-      // With transferAbortTimeout = 150 ms this resolves quickly.
-      final result = await protocol.handleDataTransfer(
+    test(
+      'returns Failure when shouldContinueTransfer is persistently false',
+      () async {
+        // With transferAbortTimeout = 150 ms this resolves quickly.
+        final result = await protocol.handleDataTransfer(
           deviceId: mockDevice.deviceId,
           isReceiving: true,
-          shouldContinueTransfer: () => false);
+          shouldContinueTransfer: () => false,
+        );
 
-      expect(result, isA<Failure<String?>>());
-    });
+        expect(result, isA<Failure<String?>>());
+      },
+    );
 
     test('sends data and returns Success(null) for sender', () async {
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((args) async {
+      when(mockConnectionService.sendMessageToDevice(any, any)).thenAnswer((
+        args,
+      ) async {
         final package = args.positionalArguments[1] as Package;
         await protocol.handleMessage(
-            Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
+          Package(number: package.number, type: 'ACK'),
+          mockDevice.deviceId,
+        );
         return true;
       });
 
       final result = await protocol.handleDataTransfer(
-          deviceId: mockDevice.deviceId,
-          dataToSend: 'test_data',
-          isReceiving: false,
-          shouldContinueTransfer: () => true);
+        deviceId: mockDevice.deviceId,
+        dataToSend: 'test_data',
+        isReceiving: false,
+        shouldContinueTransfer: () => true,
+      );
 
       expect(result, isA<Success<String?>>());
       expect((result as Success<String?>).value, isNull);
-      verify(mockConnectionService.sendMessageToDevice(
-              any, argThat(predicate((Package p) => p.type == 'DATA'))))
-          .called(greaterThan(0));
-      verify(mockConnectionService.sendMessageToDevice(
-          any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'DATA')),
+        ),
+      ).called(greaterThan(0));
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'FIN')),
+        ),
+      ).called(1);
     });
 
     test('returns Failure if shouldContinueTransfer becomes false', () async {
@@ -449,9 +541,10 @@ void main() {
       });
 
       final result = await protocol.handleDataTransfer(
-          deviceId: mockDevice.deviceId,
-          isReceiving: true,
-          shouldContinueTransfer: () => shouldContinue);
+        deviceId: mockDevice.deviceId,
+        isReceiving: true,
+        shouldContinueTransfer: () => shouldContinue,
+      );
 
       expect(result, isA<Failure<String?>>());
     });
@@ -463,48 +556,63 @@ void main() {
       final package = Package(number: 1, type: 'DATA', data: 'test_data');
       await protocol.handleMessage(package, mockDevice.deviceId);
 
-      verify(mockConnectionService.sendMessageToDevice(
-              any,
-              argThat(
-                  predicate((Package p) => p.type == 'ACK' && p.number == 1))))
-          .called(1);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'ACK' && p.number == 1)),
+        ),
+      ).called(1);
     });
 
-    test('should mark device as finished after receiving FIN package',
-        () async {
-      final finPackage = Package(number: 1, type: 'FIN');
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((_) async => true);
+    test(
+      'should mark device as finished after receiving FIN package',
+      () async {
+        final finPackage = Package(number: 1, type: 'FIN');
+        when(
+          mockConnectionService.sendMessageToDevice(any, any),
+        ).thenAnswer((_) async => true);
 
-      await protocol.handleMessage(finPackage, mockDevice.deviceId);
+        await protocol.handleMessage(finPackage, mockDevice.deviceId);
 
-      verify(mockConnectionService.sendMessageToDevice(
-              any,
-              argThat(
-                  predicate((Package p) => p.type == 'ACK' && p.number == 1))))
-          .called(1);
-      expect(protocol.isFinished(mockDevice.deviceId), true);
-    });
+        verify(
+          mockConnectionService.sendMessageToDevice(
+            any,
+            argThat(predicate((Package p) => p.type == 'ACK' && p.number == 1)),
+          ),
+        ).called(1);
+        expect(protocol.isFinished(mockDevice.deviceId), true);
+      },
+    );
   });
 
   // Retained from original test file for regression coverage.
   group('Data sending', () {
     test('sends data in chunks with FIN package at the end', () async {
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((args) async {
+      when(mockConnectionService.sendMessageToDevice(any, any)).thenAnswer((
+        args,
+      ) async {
         final package = args.positionalArguments[1] as Package;
         await protocol.handleMessage(
-            Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
+          Package(number: package.number, type: 'ACK'),
+          mockDevice.deviceId,
+        );
         return true;
       });
 
       final result = await protocol.sendData('test_data', mockDevice.deviceId);
       expect(result, isA<Success<void>>());
-      verify(mockConnectionService.sendMessageToDevice(
-              any, argThat(predicate((Package p) => p.type == 'DATA'))))
-          .called(greaterThan(0));
-      verify(mockConnectionService.sendMessageToDevice(
-          any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'DATA')),
+        ),
+      ).called(greaterThan(0));
+      verify(
+        mockConnectionService.sendMessageToDevice(
+          any,
+          argThat(predicate((Package p) => p.type == 'FIN')),
+        ),
+      ).called(1);
     });
 
     test('returns Failure when sending empty data', () async {
@@ -515,46 +623,61 @@ void main() {
 
   // Retained from original test file for regression coverage.
   group('Data transfer handling', () {
-    test('handleDataTransfer sends data and returns Success(null) for sender',
-        () async {
-      when(mockConnectionService.sendMessageToDevice(any, any))
-          .thenAnswer((args) async {
-        final package = args.positionalArguments[1] as Package;
-        await protocol.handleMessage(
-            Package(number: package.number, type: 'ACK'), mockDevice.deviceId);
-        return true;
-      });
+    test(
+      'handleDataTransfer sends data and returns Success(null) for sender',
+      () async {
+        when(mockConnectionService.sendMessageToDevice(any, any)).thenAnswer((
+          args,
+        ) async {
+          final package = args.positionalArguments[1] as Package;
+          await protocol.handleMessage(
+            Package(number: package.number, type: 'ACK'),
+            mockDevice.deviceId,
+          );
+          return true;
+        });
 
-      final result = await protocol.handleDataTransfer(
+        final result = await protocol.handleDataTransfer(
           deviceId: mockDevice.deviceId,
           dataToSend: 'test_data',
           isReceiving: false,
-          shouldContinueTransfer: () => true);
+          shouldContinueTransfer: () => true,
+        );
 
-      expect(result, isA<Success<String?>>());
-      expect((result as Success<String?>).value, null);
-      verify(mockConnectionService.sendMessageToDevice(
-              any, argThat(predicate((Package p) => p.type == 'DATA'))))
-          .called(greaterThan(0));
-      verify(mockConnectionService.sendMessageToDevice(
-          any, argThat(predicate((Package p) => p.type == 'FIN')))).called(1);
-    });
+        expect(result, isA<Success<String?>>());
+        expect((result as Success<String?>).value, null);
+        verify(
+          mockConnectionService.sendMessageToDevice(
+            any,
+            argThat(predicate((Package p) => p.type == 'DATA')),
+          ),
+        ).called(greaterThan(0));
+        verify(
+          mockConnectionService.sendMessageToDevice(
+            any,
+            argThat(predicate((Package p) => p.type == 'FIN')),
+          ),
+        ).called(1);
+      },
+    );
 
     test(
-        'handleDataTransfer returns Failure if shouldContinueTransfer returns false',
-        () async {
-      bool shouldContinue = true;
+      'handleDataTransfer returns Failure if shouldContinueTransfer returns false',
+      () async {
+        bool shouldContinue = true;
 
-      Future.delayed(const Duration(milliseconds: 50), () {
-        shouldContinue = false;
-      });
+        Future.delayed(const Duration(milliseconds: 50), () {
+          shouldContinue = false;
+        });
 
-      final result = await protocol.handleDataTransfer(
+        final result = await protocol.handleDataTransfer(
           deviceId: mockDevice.deviceId,
           isReceiving: true,
-          shouldContinueTransfer: () => shouldContinue);
+          shouldContinueTransfer: () => shouldContinue,
+        );
 
-      expect(result, isA<Failure<String?>>());
-    });
+        expect(result, isA<Failure<String?>>());
+      },
+    );
   });
 }

@@ -10,7 +10,12 @@ import 'package:xceleration/shared/models/database/runner.dart';
 
 RunnerDetailsConflict _conflict(String bib, String saved, String sheet) =>
     RunnerDetailsConflict(
-      existing: Runner(runnerId: int.parse(bib), name: saved, bibNumber: bib, grade: 12),
+      existing: Runner(
+        runnerId: int.parse(bib),
+        name: saved,
+        bibNumber: bib,
+        grade: 12,
+      ),
       name: sheet,
       grade: 10,
     );
@@ -29,22 +34,24 @@ void main() {
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.reset);
     popped = 'not popped';
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: Center(
-            child: ElevatedButton(
-              onPressed: () async => popped = await sheet(
-                context: context,
-                title: '3 Bibs Are Already Saved',
-                body: SavedBibChoicesSheet(conflicts: conflicts),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: Center(
+              child: ElevatedButton(
+                onPressed: () async => popped = await sheet(
+                  context: context,
+                  title: '3 Bibs Are Already Saved',
+                  body: SavedBibChoicesSheet(conflicts: conflicts),
+                ),
+                child: const Text('open'),
               ),
-              child: const Text('open'),
             ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
   }
@@ -54,8 +61,9 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('lists every bib at once, keeping saved details by default',
-      (tester) async {
+  testWidgets('lists every bib at once, keeping saved details by default', (
+    tester,
+  ) async {
     await open(tester);
 
     expect(find.text('Devon Eagles'), findsOneWidget);

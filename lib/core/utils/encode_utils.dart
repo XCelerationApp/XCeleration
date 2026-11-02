@@ -36,11 +36,14 @@ class BibEncodeUtils {
     final raceParticipants = await masterRace.raceParticipants;
     Logger.d('Runners count: ${raceParticipants.length}');
 
-    final bibData = await Future.wait(raceParticipants.map((runner) async {
-      final raceRunner =
-          await masterRace.getRaceRunnerFromRaceParticipant(runner);
-      return raceRunner == null ? null : BibDatum.fromRaceRunner(raceRunner);
-    }));
+    final bibData = await Future.wait(
+      raceParticipants.map((runner) async {
+        final raceRunner = await masterRace.getRaceRunnerFromRaceParticipant(
+          runner,
+        );
+        return raceRunner == null ? null : BibDatum.fromRaceRunner(raceRunner);
+      }),
+    );
 
     // Skip participants whose runner is missing. Returning '' for them and
     // casting to BibDatum threw, so sharing the roster failed outright.
@@ -57,29 +60,22 @@ class BibEncodeUtils {
     }
     final List<String> teams = teamsSet.toList();
     final Map<String, int> teamIndex = {
-      for (int i = 0; i < teams.length; i++) teams[i]: i
+      for (int i = 0; i < teams.length; i++) teams[i]: i,
     };
 
     // Rows format: [bib, name, teamIndex, grade]
     final List<List<dynamic>> rows = [];
     for (final b in bibData) {
-      final int? tIdx = (b.teamAbbreviation != null &&
+      final int? tIdx =
+          (b.teamAbbreviation != null &&
               b.teamAbbreviation!.isNotEmpty &&
               teamIndex.containsKey(b.teamAbbreviation))
           ? teamIndex[b.teamAbbreviation]
           : null;
-      rows.add([
-        b.bib,
-        b.name ?? '',
-        tIdx,
-        b.grade ?? '',
-      ]);
+      rows.add([b.bib, b.name ?? '', tIdx, b.grade ?? '']);
     }
 
-    final payload = <String, dynamic>{
-      'teams': teams,
-      'r': rows,
-    };
+    final payload = <String, dynamic>{'teams': teams, 'r': rows};
 
     final json = jsonEncode(payload);
     return compressAndEncode(json);
@@ -94,7 +90,8 @@ class TimingEncodeUtils {
         return timingDatum.encode();
       } catch (e) {
         Logger.e(
-            '[TimingEncodeUtils.encodeTimeRecords] Failed to encode datum: $e');
+          '[TimingEncodeUtils.encodeTimeRecords] Failed to encode datum: $e',
+        );
         return '';
       }
     });

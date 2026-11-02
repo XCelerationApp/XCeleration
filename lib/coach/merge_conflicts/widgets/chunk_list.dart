@@ -20,9 +20,11 @@ class ChunkList extends StatelessWidget {
     return Consumer<MergeConflictsController>(
       builder: (context, controller, _) {
         final chunks = controller.uiChunks;
-        final firstOpen = chunks.indexWhere((c) =>
-            c.conflict.type == ConflictType.extraTime ||
-            c.conflict.type == ConflictType.missingTime);
+        final firstOpen = chunks.indexWhere(
+          (c) =>
+              c.conflict.type == ConflictType.extraTime ||
+              c.conflict.type == ConflictType.missingTime,
+        );
         return ListView.builder(
           shrinkWrap: true,
           // Nested in the screen's scroll view: no safe-area inset of its own.
@@ -113,9 +115,9 @@ class _ChunkItemState extends State<ChunkItem> {
       final time = records[spot.row].time;
       return spot.clear
           ? '$time is only $gap after the time before it, like a double '
-              'tap. Check it first.'
+                'tap. Check it first.'
           : 'No time stands out: the closest two are $gap apart. Ask the '
-              'runners around this stretch.';
+                'runners around this stretch.';
     }
     return null;
   }
@@ -137,82 +139,87 @@ class _ChunkItemState extends State<ChunkItem> {
   @override
   Widget build(BuildContext context) {
     final chunkType = widget.chunk.conflict.type;
-    final previousChunkEndTime =
-        widget.controller.previousEndTimeFor(widget.chunk.chunkId);
+    final previousChunkEndTime = widget.controller.previousEndTimeFor(
+      widget.chunk.chunkId,
+    );
     final undoLabel = widget.controller.undoLabel(widget.chunk.chunkId);
     final spot = widget.controller.suggestionFor(widget.chunk.chunkId);
 
     return Padding(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (chunkType == ConflictType.extraTime ||
-                chunkType == ConflictType.missingTime)
-              ConflictHeader(
-                type: chunkType,
-                startTime: previousChunkEndTime,
-                endTime: widget.chunk.endTime,
-                offBy: widget.chunk.conflict.offBy,
-                removedCount: widget.chunk.removedCount,
-                enteredCount: widget.chunk.enteredCount,
-                firstPlace: _firstPlace,
-                lastPlace: _lastPlace,
-                suggestion: _suggestionText(spot) ?? _openEndedNote,
-              ),
-            if (chunkType == ConflictType.confirmRunner)
-              ConfirmHeader(confirmTime: widget.chunk.endTime),
-            const SizedBox(height: 8),
-            ...widget.chunk.records.asMap().entries.map<Widget>((entry) {
-              return RunnerTimeRecord(
-                record: entry.value,
-                chunk: widget.chunk,
-                controller: widget.controller,
-                chunkIndex: entry.key,
-              );
-            }),
-            // Add resolve button for unresolved conflict types
-            if (chunkType == ConflictType.extraTime ||
-                chunkType == ConflictType.missingTime)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Row(
-                  children: [
-                    // Slides in the first time there is something to take
-                    // back, rather than jumping the resolve button sideways.
-                    AnimatedSize(
-                      duration: AppAnimations.fast,
-                      curve: AppAnimations.spring,
-                      child: undoLabel == null
-                          ? const SizedBox.shrink()
-                          : Padding(
-                              padding:
-                                  const EdgeInsets.only(right: AppSpacing.sm),
-                              child: UndoButton(
-                                label: undoLabel,
-                                onUndo: () => widget.controller
-                                    .undo(widget.chunk.chunkId),
-                              ),
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (chunkType == ConflictType.extraTime ||
+              chunkType == ConflictType.missingTime)
+            ConflictHeader(
+              type: chunkType,
+              startTime: previousChunkEndTime,
+              endTime: widget.chunk.endTime,
+              offBy: widget.chunk.conflict.offBy,
+              removedCount: widget.chunk.removedCount,
+              enteredCount: widget.chunk.enteredCount,
+              firstPlace: _firstPlace,
+              lastPlace: _lastPlace,
+              suggestion: _suggestionText(spot) ?? _openEndedNote,
+            ),
+          if (chunkType == ConflictType.confirmRunner)
+            ConfirmHeader(confirmTime: widget.chunk.endTime),
+          const SizedBox(height: 8),
+          ...widget.chunk.records.asMap().entries.map<Widget>((entry) {
+            return RunnerTimeRecord(
+              record: entry.value,
+              chunk: widget.chunk,
+              controller: widget.controller,
+              chunkIndex: entry.key,
+            );
+          }),
+          // Add resolve button for unresolved conflict types
+          if (chunkType == ConflictType.extraTime ||
+              chunkType == ConflictType.missingTime)
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: Row(
+                children: [
+                  // Slides in the first time there is something to take
+                  // back, rather than jumping the resolve button sideways.
+                  AnimatedSize(
+                    duration: AppAnimations.fast,
+                    curve: AppAnimations.spring,
+                    child: undoLabel == null
+                        ? const SizedBox.shrink()
+                        : Padding(
+                            padding: const EdgeInsets.only(
+                              right: AppSpacing.sm,
                             ),
+                            child: UndoButton(
+                              label: undoLabel,
+                              onUndo: () =>
+                                  widget.controller.undo(widget.chunk.chunkId),
+                            ),
+                          ),
+                  ),
+                  Expanded(
+                    child: ResolveConflictButton(
+                      isResolved: widget.chunk.isResolvedLocally,
+                      onResolve: () async {
+                        if (chunkType == ConflictType.extraTime) {
+                          await widget.controller.resolveExtraTimeConflict(
+                            widget.chunk.chunkId,
+                          );
+                        } else if (chunkType == ConflictType.missingTime) {
+                          await widget.controller.resolveMissingTimeConflict(
+                            widget.chunk.chunkId,
+                          );
+                        }
+                      },
                     ),
-                    Expanded(
-                      child: ResolveConflictButton(
-                        isResolved: widget.chunk.isResolvedLocally,
-                        onResolve: () async {
-                          if (chunkType == ConflictType.extraTime) {
-                            await widget.controller
-                                .resolveExtraTimeConflict(widget.chunk.chunkId);
-                          } else if (chunkType == ConflictType.missingTime) {
-                            await widget.controller.resolveMissingTimeConflict(
-                                widget.chunk.chunkId);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-          ],
-        ));
+            ),
+        ],
+      ),
+    );
   }
 }

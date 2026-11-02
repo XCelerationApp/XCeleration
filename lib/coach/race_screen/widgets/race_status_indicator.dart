@@ -6,10 +6,7 @@ import '../../../core/components/status_badge.dart';
 class RaceStatusIndicator extends StatelessWidget {
   final String flowState;
 
-  const RaceStatusIndicator({
-    super.key,
-    required this.flowState,
-  });
+  const RaceStatusIndicator({super.key, required this.flowState});
 
   @override
   Widget build(BuildContext context) => StatusBadge(flowState: flowState);

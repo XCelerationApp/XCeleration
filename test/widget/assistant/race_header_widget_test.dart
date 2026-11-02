@@ -15,28 +15,39 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     await databaseFactory.setDatabasesPath(
-        Directory.systemTemp.createTempSync('race_header').path);
+      Directory.systemTemp.createTempSync('race_header').path,
+    );
   });
 
   final race = RaceRecord(
-      raceId: 3, date: DateTime(2026, 9, 26), name: 'Invitational', type: 'x');
+    raceId: 3,
+    date: DateTime(2026, 9, 26),
+    name: 'Invitational',
+    type: 'x',
+  );
 
-  Future<void> openMenu(WidgetTester tester,
-      {required bool canClear, VoidCallback? onClear}) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: RaceHeaderWidget(
-          currentRace: race,
-          role: DeviceName.raceTimer,
-          onLoadRace: () {},
-          clearRecordsLabel: 'Clear Times',
-          canClearRecords: () => canClear,
-          onClearRecords: onClear ?? () {},
+  Future<void> openMenu(
+    WidgetTester tester, {
+    required bool canClear,
+    VoidCallback? onClear,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: RaceHeaderWidget(
+            currentRace: race,
+            role: DeviceName.raceTimer,
+            onLoadRace: () {},
+            clearRecordsLabel: 'Clear Times',
+            canClearRecords: () => canClear,
+            onClearRecords: onClear ?? () {},
+          ),
         ),
       ),
-    ));
-    await tester.runAsync(() => Future<void>.delayed(
-        const Duration(milliseconds: 200)));
+    );
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 200)),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.more_vert));
     await tester.pumpAndSettle();
@@ -61,27 +72,37 @@ void main() {
 
   group('the practice race', () {
     final practice = RaceRecord(
-        raceId: -1, date: DateTime(2026, 9, 26), name: 'Demo Race', type: 'x');
+      raceId: -1,
+      date: DateTime(2026, 9, 26),
+      name: 'Demo Race',
+      type: 'x',
+    );
 
-    Future<void> show(WidgetTester tester, RaceRecord shown,
-        {required VoidCallback onLoad, bool compact = false}) async {
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: RaceHeaderWidget(
-            currentRace: shown,
-            role: DeviceName.raceTimer,
-            onLoadRace: onLoad,
-            compact: compact,
+    Future<void> show(
+      WidgetTester tester,
+      RaceRecord shown, {
+      required VoidCallback onLoad,
+      bool compact = false,
+    }) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RaceHeaderWidget(
+              currentRace: shown,
+              role: DeviceName.raceTimer,
+              onLoadRace: onLoad,
+              compact: compact,
+            ),
           ),
         ),
-      ));
-      await tester.runAsync(() => Future<void>.delayed(
-          const Duration(milliseconds: 200)));
+      );
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 200)),
+      );
       await tester.pumpAndSettle();
     }
 
-    testWidgets('says it is practice and offers the real race',
-        (tester) async {
+    testWidgets('says it is practice and offers the real race', (tester) async {
       var asked = false;
       await show(tester, practice, onLoad: () => asked = true);
 
@@ -91,8 +112,9 @@ void main() {
       expect(asked, isTrue);
     });
 
-    testWidgets('says nothing of the sort for the coach\'s race',
-        (tester) async {
+    testWidgets('says nothing of the sort for the coach\'s race', (
+      tester,
+    ) async {
       await show(tester, race, onLoad: () {});
 
       expect(find.textContaining('practice'), findsNothing);
@@ -106,18 +128,17 @@ void main() {
     });
   });
 
-  testWidgets('says nothing about a race while one is loading',
-      (tester) async {
+  testWidgets('says nothing about a race while one is loading', (tester) async {
     Widget header({required bool loading}) => MaterialApp(
-          home: Scaffold(
-            body: RaceHeaderWidget(
-              currentRace: null,
-              role: DeviceName.bibRecorder,
-              onLoadRace: () {},
-              loading: loading,
-            ),
-          ),
-        );
+      home: Scaffold(
+        body: RaceHeaderWidget(
+          currentRace: null,
+          role: DeviceName.bibRecorder,
+          onLoadRace: () {},
+          loading: loading,
+        ),
+      ),
+    );
 
     await tester.pumpWidget(header(loading: true));
     // Not "No race yet" for the moment before the race appears.

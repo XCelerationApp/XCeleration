@@ -7,8 +7,9 @@ class SampleSpreadsheetSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String>(
-      future: rootBundle
-          .loadString('assets/sample_sheets/sample_spreadsheet.csv'),
+      future: rootBundle.loadString(
+        'assets/sample_sheets/sample_spreadsheet.csv',
+      ),
       builder: (context, snapshot) {
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());

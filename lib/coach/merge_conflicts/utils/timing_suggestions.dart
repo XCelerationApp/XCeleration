@@ -54,7 +54,8 @@ TimingSpot? likelyExtraTime(List<String> times, {String? start}) {
   final best = spots.first;
   // Clear when under half a second (a double tap), or half the next
   // closest gap.
-  final clear = best.gap < const Duration(milliseconds: 500) ||
+  final clear =
+      best.gap < const Duration(milliseconds: 500) ||
       spots.length == 1 ||
       best.gap.inMilliseconds * 2 <= spots[1].gap.inMilliseconds;
   return TimingSpot(row: best.row, gap: best.gap, clear: clear);

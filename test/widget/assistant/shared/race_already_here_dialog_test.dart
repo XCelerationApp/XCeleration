@@ -9,7 +9,11 @@ import 'package:xceleration/assistant/shared/widgets/race_already_here_dialog.da
 
 void main() {
   RaceRecord race(String name, {int day = 12}) => RaceRecord(
-      raceId: 3, date: DateTime(2026, 9, day), name: name, type: 'race');
+    raceId: 3,
+    date: DateTime(2026, 9, day),
+    name: name,
+    type: 'race',
+  );
 
   final resent = RaceAlreadyHere(
     existing: race('Invitational'),
@@ -47,15 +51,17 @@ void main() {
     /// Opens the dialog; the returned function reads what was chosen.
     Future<ReceivedRaceChoice? Function()> open(WidgetTester tester) async {
       ReceivedRaceChoice? choice;
-      await tester.pumpWidget(MaterialApp(
-        home: Builder(
-          builder: (context) => TextButton(
-            onPressed: () async =>
-                choice = await askAboutRace(context, resent, what: 'bibs'),
-            child: const Text('receive'),
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () async =>
+                  choice = await askAboutRace(context, resent, what: 'bibs'),
+              child: const Text('receive'),
+            ),
           ),
         ),
-      ));
+      );
       await tester.tap(find.text('receive'));
       await tester.pumpAndSettle();
       return () => choice;

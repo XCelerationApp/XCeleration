@@ -8,7 +8,7 @@ class UIRecord with ChangeNotifier {
   final RaceRunner? runner;
   final TextEditingController timeController;
   final bool
-      isOriginallyTBD; // True if this position started as TBD (always editable)
+  isOriginallyTBD; // True if this position started as TBD (always editable)
   ConflictTime _conflictTime;
 
   String get time => timeController.text;
@@ -31,12 +31,12 @@ class UIRecord with ChangeNotifier {
     required String initialTime,
     required this.isOriginallyTBD,
     String? validationError,
-  })  : timeController = TextEditingController(text: initialTime),
-        _conflictTime = ConflictTime(
-          time: initialTime,
-          isOriginallyTBD: isOriginallyTBD,
-          validationError: validationError,
-        );
+  }) : timeController = TextEditingController(text: initialTime),
+       _conflictTime = ConflictTime(
+         time: initialTime,
+         isOriginallyTBD: isOriginallyTBD,
+         validationError: validationError,
+       );
 
   /// Update the conflict time state
   void updateConflictTime(ConflictTime newConflictTime) {

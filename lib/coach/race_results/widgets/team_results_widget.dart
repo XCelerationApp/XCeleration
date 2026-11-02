@@ -7,10 +7,7 @@ import 'package:xceleration/shared/services/race_results_service.dart';
 class TeamResultsWidget extends StatelessWidget {
   final RaceResultsData raceResultsData;
 
-  const TeamResultsWidget({
-    super.key,
-    required this.raceResultsData,
-  });
+  const TeamResultsWidget({super.key, required this.raceResultsData});
 
   @override
   Widget build(BuildContext context) {
@@ -32,14 +29,12 @@ class TeamResultsWidget extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Team Results',
-              style: AppTypography.titleSemibold,
-            ),
+            Text('Team Results', style: AppTypography.titleSemibold),
             const SizedBox(height: 16),
             CollapsibleTeamResultsWidget(
-                results: raceResultsData.overallTeamResults,
-                initialVisibleCount: 3),
+              results: raceResultsData.overallTeamResults,
+              initialVisibleCount: 3,
+            ),
           ],
         ),
       ),

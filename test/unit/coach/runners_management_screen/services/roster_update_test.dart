@@ -9,15 +9,19 @@ import 'package:xceleration/shared/models/database/team.dart';
 Runner _r(int id, String name, String bib, int grade) =>
     Runner(runnerId: id, name: name, bibNumber: bib, grade: grade);
 
-Map<String, dynamic> _row(String name, String bib, int grade,
-        {String? team, String? gender}) =>
-    {
-      'name': name,
-      'bib': bib,
-      'grade': grade,
-      'team': ?team,
-      'gender': ?gender,
-    };
+Map<String, dynamic> _row(
+  String name,
+  String bib,
+  int grade, {
+  String? team,
+  String? gender,
+}) => {
+  'name': name,
+  'bib': bib,
+  'grade': grade,
+  'team': ?team,
+  'gender': ?gender,
+};
 
 void main() {
   group('planRosterUpdate', () {
@@ -25,23 +29,30 @@ void main() {
     final bo = _r(2, 'Bo Park', '102', 11);
     final cy = _r(3, 'Cy Diaz', '103', 12);
 
-    test('finds new runners, changed details, and runners no longer listed',
-        () {
-      final plan = planRosterUpdate(current: [ann, bo, cy], rows: [
-        _row('Ann Lee', '101', 10), // the same
-        _row('Bo Park', '102', 12), // grade changed
-        _row('Di Fox', '104', 9), // new
-      ]);
+    test(
+      'finds new runners, changed details, and runners no longer listed',
+      () {
+        final plan = planRosterUpdate(
+          current: [ann, bo, cy],
+          rows: [
+            _row('Ann Lee', '101', 10), // the same
+            _row('Bo Park', '102', 12), // grade changed
+            _row('Di Fox', '104', 9), // new
+          ],
+        );
 
-      expect(plan.added.map((r) => r['name']), ['Di Fox']);
-      expect(plan.changed.single.before, bo);
-      expect(plan.changed.single.after.grade, 12);
-      expect(plan.removed, [cy]);
-    });
+        expect(plan.added.map((r) => r['name']), ['Di Fox']);
+        expect(plan.changed.single.before, bo);
+        expect(plan.changed.single.after.grade, 12);
+        expect(plan.removed, [cy]);
+      },
+    );
 
     test('a runner given a new bib is a change, not a swap', () {
       final plan = planRosterUpdate(
-          current: [ann], rows: [_row('ann lee', '201', 10)]);
+        current: [ann],
+        rows: [_row('ann lee', '201', 10)],
+      );
 
       expect(plan.added, isEmpty);
       expect(plan.removed, isEmpty);
@@ -50,7 +61,9 @@ void main() {
 
     test('a renamed runner keeps their bib', () {
       final plan = planRosterUpdate(
-          current: [ann], rows: [_row('Annie Lee', '101', 10)]);
+        current: [ann],
+        rows: [_row('Annie Lee', '101', 10)],
+      );
 
       expect(plan.changed.single.after.name, 'Annie Lee');
       expect(plan.changed.single.after.runnerId, ann.runnerId);
@@ -58,8 +71,9 @@ void main() {
 
     test('nothing to do when the sheet matches the team', () {
       final plan = planRosterUpdate(
-          current: [ann, bo],
-          rows: [_row('Ann Lee', '101', 10), _row('Bo Park', '102', 11)]);
+        current: [ann, bo],
+        rows: [_row('Ann Lee', '101', 10), _row('Bo Park', '102', 11)],
+      );
 
       expect(plan.isEmpty, isTrue);
     });
@@ -67,8 +81,11 @@ void main() {
 
   group('rowsForTeam', () {
     const archie = Team(teamId: 1, name: 'Archie Williams', abbreviation: 'AW');
-    const archieBoys =
-        Team(teamId: 2, name: 'Archie Williams - Boys', abbreviation: 'AWB');
+    const archieBoys = Team(
+      teamId: 2,
+      name: 'Archie Williams - Boys',
+      abbreviation: 'AWB',
+    );
 
     final rows = [
       _row('Ann', '1', 10, team: 'Archie Williams', gender: 'F'),
