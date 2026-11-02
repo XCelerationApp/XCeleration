@@ -37,7 +37,7 @@ class RaceShareService {
         .where((s) => s.isNotEmpty)
         .toList();
     final Map<String, int> teamIndex = {
-      for (int i = 0; i < teamList.length; i++) teamList[i]: i
+      for (int i = 0; i < teamList.length; i++) teamList[i]: i,
     };
 
     // Results rows compact format: [place, name, teamId, finish_ms]

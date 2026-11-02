@@ -72,8 +72,9 @@ class RaceInfoHeaderWidget extends StatelessWidget {
               Text(
                 raceName,
                 style: isCompact
-                    ? AppTypography.bodyRegular
-                        .copyWith(fontWeight: FontWeight.bold)
+                    ? AppTypography.bodyRegular.copyWith(
+                        fontWeight: FontWeight.bold,
+                      )
                     : AppTypography.titleLarge,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
@@ -87,10 +88,12 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                     child: Text(
                       location!,
                       style: isCompact
-                          ? AppTypography.smallBodyRegular
-                              .copyWith(color: AppColors.mediumColor)
-                          : AppTypography.bodyRegular
-                              .copyWith(color: AppColors.mediumColor),
+                          ? AppTypography.smallBodyRegular.copyWith(
+                              color: AppColors.mediumColor,
+                            )
+                          : AppTypography.bodyRegular.copyWith(
+                              color: AppColors.mediumColor,
+                            ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -107,19 +110,22 @@ class RaceInfoHeaderWidget extends StatelessWidget {
                         iconSize: isCompact ? AppSpacing.md : AppSpacing.lg,
                         content: Text(
                           DateFormatUtils.formatRelativeDate(raceDate!),
-                          style: AppTypography.caption
-                              .copyWith(color: AppColors.mediumColor),
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.mediumColor,
+                          ),
                         ),
                       ),
                     if (distance != null && distance! > 0) ...[
-                      if (raceDate != null) const SizedBox(width: AppSpacing.lg),
+                      if (raceDate != null)
+                        const SizedBox(width: AppSpacing.lg),
                       _RaceHeaderRow(
                         icon: Icons.straighten,
                         iconSize: isCompact ? AppSpacing.md : AppSpacing.lg,
                         content: Text(
                           '${distance!.toStringAsFixed(distance! % 1 == 0 ? 0 : 1)} ${distanceUnit ?? 'mi'}',
-                          style: AppTypography.caption
-                              .copyWith(color: AppColors.mediumColor),
+                          style: AppTypography.caption.copyWith(
+                            color: AppColors.mediumColor,
+                          ),
                         ),
                       ),
                     ],
@@ -132,8 +138,6 @@ class RaceInfoHeaderWidget extends StatelessWidget {
       ),
     );
   }
-
-
 }
 
 /// Private button widget with AnimatedScale press feedback.
@@ -246,10 +250,12 @@ class RaceControlsWidget extends StatelessWidget {
               Text(
                 currentTime!,
                 style: isCompact
-                    ? AppTypography.displaySmall
-                        .copyWith(fontWeight: FontWeight.bold)
-                    : AppTypography.displayMedium
-                        .copyWith(fontWeight: FontWeight.bold),
+                    ? AppTypography.displaySmall.copyWith(
+                        fontWeight: FontWeight.bold,
+                      )
+                    : AppTypography.displayMedium.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
                 textAlign: TextAlign.center,
               ),
               SizedBox(height: isCompact ? AppSpacing.md : AppSpacing.lg),
@@ -310,7 +316,6 @@ class RaceControlsWidget extends StatelessWidget {
       ),
     );
   }
-
 }
 
 /// Shared race status header widget that consolidates RaceInfoHeaderWidget implementations
@@ -338,12 +343,15 @@ class RaceStatusHeaderWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.md, horizontal: AppSpacing.xl),
+        vertical: AppSpacing.md,
+        horizontal: AppSpacing.xl,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceColor,
         borderRadius: BorderRadius.circular(AppBorderRadius.md),
         border: Border.all(
-            color: ColorUtils.withOpacity(Colors.grey, AppOpacity.medium)),
+          color: ColorUtils.withOpacity(Colors.grey, AppOpacity.medium),
+        ),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -352,12 +360,15 @@ class RaceStatusHeaderWidget extends StatelessWidget {
             duration: AppAnimations.standard,
             curve: AppAnimations.spring,
             padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.sm, vertical: AppSpacing.xs),
+              horizontal: AppSpacing.sm,
+              vertical: AppSpacing.xs,
+            ),
             decoration: BoxDecoration(
               color: statusColor.withValues(alpha: AppOpacity.light),
               borderRadius: BorderRadius.circular(AppBorderRadius.sm),
               border: Border.all(
-                  color: statusColor.withValues(alpha: AppOpacity.strong)),
+                color: statusColor.withValues(alpha: AppOpacity.strong),
+              ),
             ),
             child: Text(
               status,
@@ -392,17 +403,13 @@ class RaceStatusHeaderWidget extends StatelessWidget {
           else if (runnerCount != null)
             Text(
               'Runners: $runnerCount',
-              style: AppTypography.bodySemibold.copyWith(
-                color: Colors.black87,
-              ),
+              style: AppTypography.bodySemibold.copyWith(color: Colors.black87),
             ),
           if (recordCount != null) ...[
             const SizedBox(width: AppSpacing.lg),
             Text(
               '${recordLabel ?? 'Records'}: $recordCount',
-              style: AppTypography.bodySemibold.copyWith(
-                color: Colors.black87,
-              ),
+              style: AppTypography.bodySemibold.copyWith(color: Colors.black87),
             ),
           ],
         ],
@@ -454,7 +461,9 @@ class ConflictButton extends StatelessWidget {
                 height: AppSpacing.xxxl,
                 decoration: BoxDecoration(
                   color: ColorUtils.withOpacity(
-                      isEnabled ? color : Colors.grey, AppOpacity.light),
+                    isEnabled ? color : Colors.grey,
+                    AppOpacity.light,
+                  ),
                   borderRadius: BorderRadius.circular(AppBorderRadius.xl),
                 ),
                 child: Icon(
@@ -485,11 +494,7 @@ class ConflictButton extends StatelessWidget {
                 ),
               ),
               if (isEnabled)
-                Icon(
-                  Icons.arrow_forward_ios,
-                  color: color,
-                  size: 16,
-                ),
+                Icon(Icons.arrow_forward_ios, color: color, size: 16),
             ],
           ),
         ),

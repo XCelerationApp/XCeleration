@@ -6,10 +6,7 @@ import 'package:xceleration/shared/services/race_results_service.dart';
 
 class HeadToHeadResults extends StatelessWidget {
   final RaceResultsData raceResultsData;
-  const HeadToHeadResults({
-    super.key,
-    required this.raceResultsData,
-  });
+  const HeadToHeadResults({super.key, required this.raceResultsData});
 
   @override
   Widget build(BuildContext context) {
@@ -31,10 +28,7 @@ class HeadToHeadResults extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Head to Head Results',
-              style: AppTypography.titleSemibold,
-            ),
+            Text('Head to Head Results', style: AppTypography.titleSemibold),
             const SizedBox(height: 16),
             if (raceResultsData.headToHeadTeamResults.isEmpty)
               const Center(
@@ -47,8 +41,9 @@ class HeadToHeadResults extends StatelessWidget {
                 ),
               )
             else
-              ...raceResultsData.headToHeadTeamResults
-                  .map((matchup) => HeadToHeadResultsWidget(matchup: matchup)),
+              ...raceResultsData.headToHeadTeamResults.map(
+                (matchup) => HeadToHeadResultsWidget(matchup: matchup),
+              ),
           ],
         ),
       ),

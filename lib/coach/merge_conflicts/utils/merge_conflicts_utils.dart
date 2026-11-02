@@ -6,7 +6,10 @@ import 'package:xceleration/shared/models/timing_records/timing_datum.dart';
 /// [contextTimes] is the full list of times with [recordIndex] already updated
 /// to the new value. Kept short: it shows under a narrow box.
 String? validateTimeInContext(
-    List<String> contextTimes, int recordIndex, String endTime) {
+  List<String> contextTimes,
+  int recordIndex,
+  String endTime,
+) {
   final currentTime = contextTimes[recordIndex];
   if (currentTime == 'TBD') return null;
   final currentDuration = TimeFormatter.loadDurationFromString(currentTime);
@@ -62,12 +65,14 @@ int? getNextValidTimeIndex(List<String> contextTimes, int recordIndex) {
 }
 
 bool validateRunnerInfo(List<RunnerRecord> records) {
-  return records.every((runner) =>
-      runner.bib.isNotEmpty &&
-      runner.name.isNotEmpty &&
-      runner.grade > 0 &&
-      runner.team.isNotEmpty &&
-      runner.teamAbbreviation.isNotEmpty);
+  return records.every(
+    (runner) =>
+        runner.bib.isNotEmpty &&
+        runner.name.isNotEmpty &&
+        runner.grade > 0 &&
+        runner.team.isNotEmpty &&
+        runner.teamAbbreviation.isNotEmpty,
+  );
 }
 
 String? validateTimes(
@@ -82,8 +87,9 @@ String? validateTimes(
   for (var i = 0; i < times.length; i++) {
     final String time = times[i].trim();
     final runner = i < runners.length ? runners[i] : runners.last;
-    final bool validFormat =
-        RegExp(r'^\d+:\d+\.\d+|^\d+\.\d+$').hasMatch(time);
+    final bool validFormat = RegExp(
+      r'^\d+:\d+\.\d+|^\d+\.\d+$',
+    ).hasMatch(time);
     if (!validFormat) {
       return 'Invalid time format for runner with bib ${runner.bib}. Use MM:SS.ms or SS.ms';
     }
@@ -91,9 +97,10 @@ String? validateTimes(
   Duration lastConfirmedTime = lastConfirmed.time.trim().isEmpty
       ? Duration.zero
       : TimeFormatter.loadDurationFromString(lastConfirmed.time) ??
-          Duration.zero;
-  Duration? conflictTime =
-      TimeFormatter.loadDurationFromString(conflictRecord.time);
+            Duration.zero;
+  Duration? conflictTime = TimeFormatter.loadDurationFromString(
+    conflictRecord.time,
+  );
   for (var i = 0; i < times.length; i++) {
     final time = TimeFormatter.loadDurationFromString(times[i]);
     final runner = i < runners.length ? runners[i] : runners.last;
@@ -104,10 +111,13 @@ String? validateTimes(
       return 'Time for ${runner.name} must be after ${lastConfirmed.time} and before ${conflictRecord.time}';
     }
   }
-  if (!isAscendingOrder(times
-      .map(
-          (time) => TimeFormatter.loadDurationFromString(time) ?? Duration.zero)
-      .toList())) {
+  if (!isAscendingOrder(
+    times
+        .map(
+          (time) => TimeFormatter.loadDurationFromString(time) ?? Duration.zero,
+        )
+        .toList(),
+  )) {
     return 'Times must be in ascending order';
   }
   return null;

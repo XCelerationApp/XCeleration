@@ -52,7 +52,9 @@ class TeamHeaderTile extends StatelessWidget {
               child: Icon(
                 Icons.chevron_right,
                 size: 18,
-                color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
+                color: AppColors.mediumColor.withValues(
+                  alpha: AppOpacity.solid,
+                ),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -74,22 +76,18 @@ class TeamHeaderTile extends StatelessWidget {
                   Text(
                     '$runnerCount ${runnerCount == 1 ? 'runner' : 'runners'}',
                     style: AppTypography.smallCaption.copyWith(
-                      color: AppColors.mediumColor.withValues(alpha: AppOpacity.solid),
+                      color: AppColors.mediumColor.withValues(
+                        alpha: AppOpacity.solid,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
             if (!isViewMode) ...[
-              _AddRunnerChip(
-                color: teamColor,
-                onTap: onAddRunner,
-              ),
+              _AddRunnerChip(color: teamColor, onTap: onAddRunner),
               const SizedBox(width: AppSpacing.sm),
-              _TeamMenuButton(
-                team: team,
-                controller: controller,
-              ),
+              _TeamMenuButton(team: team, controller: controller),
             ],
           ],
         ),
@@ -116,9 +114,7 @@ class _AddRunnerChip extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withValues(alpha: AppOpacity.light),
           borderRadius: BorderRadius.circular(AppBorderRadius.sm),
-          border: Border.all(
-            color: color.withValues(alpha: AppOpacity.strong),
-          ),
+          border: Border.all(color: color.withValues(alpha: AppOpacity.strong)),
         ),
         child: Text(
           '+ Runner',
@@ -133,10 +129,7 @@ class _AddRunnerChip extends StatelessWidget {
 }
 
 class _TeamMenuButton extends StatelessWidget {
-  const _TeamMenuButton({
-    required this.team,
-    required this.controller,
-  });
+  const _TeamMenuButton({required this.team, required this.controller});
 
   final Team team;
   final RunnersManagementController controller;
@@ -175,8 +168,10 @@ class _TeamMenuButton extends StatelessWidget {
             children: [
               Icon(Icons.sync, size: 18, color: AppColors.statusPreRace),
               const SizedBox(width: AppSpacing.sm),
-              Text('Update from spreadsheet',
-                  style: AppTypography.smallBodyRegular),
+              Text(
+                'Update from spreadsheet',
+                style: AppTypography.smallBodyRegular,
+              ),
             ],
           ),
         ),

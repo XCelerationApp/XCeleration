@@ -36,8 +36,10 @@ Future<Result<StoredRaceFromCoach>> storeRaceFromCoach(
   var runners = <BibDatum>[];
   try {
     final parts = data.split('---');
-    sent = RaceRecord.fromEncodedString(parts[0],
-        type: DeviceName.bibRecorder.toString());
+    sent = RaceRecord.fromEncodedString(
+      parts[0],
+      type: DeviceName.bibRecorder.toString(),
+    );
     if (parts.length == 2) {
       switch (await BibDecodeUtils.decodeEncodedRunners(parts[1])) {
         case Success(:final value):
@@ -61,9 +63,10 @@ Future<Result<StoredRaceFromCoach>> storeRaceFromCoach(
     sent: sent,
     countRecorded: (existing) async =>
         switch (await storage.getBibRecords(existing.raceId)) {
-      Success(:final value) => value.where((r) => r.bibNumber.isNotEmpty).length,
-      Failure() => 0,
-    },
+          Success(:final value) =>
+            value.where((r) => r.bibNumber.isNotEmpty).length,
+          Failure() => 0,
+        },
     rosterChanges: runners.isEmpty
         ? null
         : (existing) => _rosterChanges(storage, existing, runners),
@@ -93,8 +96,11 @@ Future<Result<StoredRaceFromCoach>> storeRaceFromCoach(
   return Success(StoredRaceFromCoach(race: race, runners: runners));
 }
 
-Future<RosterChanges?> _rosterChanges(IAssistantStorageService storage,
-    RaceRecord race, List<BibDatum> sent) async {
+Future<RosterChanges?> _rosterChanges(
+  IAssistantStorageService storage,
+  RaceRecord race,
+  List<BibDatum> sent,
+) async {
   switch (await storage.getRunners(race.raceId)) {
     case Failure():
       return null;

@@ -32,11 +32,13 @@ void main() {
     mockSync = MockISyncService();
     mockAuth = MockIAuthService();
     mockConnectivity = MockConnectivity();
-    connectivityController = StreamController<List<ConnectivityResult>>.broadcast();
+    connectivityController =
+        StreamController<List<ConnectivityResult>>.broadcast();
     writeController = StreamController<void>.broadcast();
 
-    when(mockConnectivity.onConnectivityChanged)
-        .thenAnswer((_) => connectivityController.stream);
+    when(
+      mockConnectivity.onConnectivityChanged,
+    ).thenAnswer((_) => connectivityController.stream);
     when(mockSync.syncAll()).thenAnswer((_) async {});
   });
 
@@ -46,13 +48,17 @@ void main() {
     await writeController.close();
   });
 
-  void buildService({bool online = true, ConnectivityService? connectivityService}) {
+  void buildService({
+    bool online = true,
+    ConnectivityService? connectivityService,
+  }) {
     service = ConnectivitySyncService(
       sync: mockSync,
       auth: mockAuth,
       writeStream: writeController.stream,
       connectivity: mockConnectivity,
-      connectivityService: connectivityService ?? _FakeConnectivityService(online: online),
+      connectivityService:
+          connectivityService ?? _FakeConnectivityService(online: online),
     );
   }
 
@@ -108,26 +114,29 @@ void main() {
         });
       });
 
-      test('calling start twice does not add duplicate connectivity subscription', () {
-        fakeAsync((async) {
-          when(mockAuth.isSignedIn).thenReturn(true);
-          buildService(online: true);
+      test(
+        'calling start twice does not add duplicate connectivity subscription',
+        () {
+          fakeAsync((async) {
+            when(mockAuth.isSignedIn).thenReturn(true);
+            buildService(online: true);
 
-          service.start();
-          async.flushMicrotasks();
-          service.start(); // second call — subscription must not double up
-          async.flushMicrotasks();
+            service.start();
+            async.flushMicrotasks();
+            service.start(); // second call — subscription must not double up
+            async.flushMicrotasks();
 
-          // Only the two initial _syncIfOnWifi calls, not extra from doubled subs
-          verify(mockSync.syncAll()).called(2);
+            // Only the two initial _syncIfOnWifi calls, not extra from doubled subs
+            verify(mockSync.syncAll()).called(2);
 
-          // Fire a connectivity event — should only trigger once
-          connectivityController.add([ConnectivityResult.wifi]);
-          async.flushMicrotasks();
+            // Fire a connectivity event — should only trigger once
+            connectivityController.add([ConnectivityResult.wifi]);
+            async.flushMicrotasks();
 
-          verify(mockSync.syncAll()).called(1);
-        });
-      });
+            verify(mockSync.syncAll()).called(1);
+          });
+        },
+      );
     });
 
     group('start — connectivity listener', () {
@@ -163,21 +172,24 @@ void main() {
         });
       });
 
-      test('does not call syncAll on connectivity event when result is not wifi', () {
-        fakeAsync((async) {
-          when(mockAuth.isSignedIn).thenReturn(true);
-          buildService(online: false);
+      test(
+        'does not call syncAll on connectivity event when result is not wifi',
+        () {
+          fakeAsync((async) {
+            when(mockAuth.isSignedIn).thenReturn(true);
+            buildService(online: false);
 
-          service.start();
-          async.flushMicrotasks();
-          clearInteractions(mockSync);
+            service.start();
+            async.flushMicrotasks();
+            clearInteractions(mockSync);
 
-          connectivityController.add([ConnectivityResult.mobile]);
-          async.flushMicrotasks();
+            connectivityController.add([ConnectivityResult.mobile]);
+            async.flushMicrotasks();
 
-          verifyNever(mockSync.syncAll());
-        });
-      });
+            verifyNever(mockSync.syncAll());
+          });
+        },
+      );
 
       test('does not throw when syncAll throws during connectivity event', () {
         fakeAsync((async) {

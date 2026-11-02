@@ -27,22 +27,22 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
     required ISpeechRecognitionService speechRecognition,
     required BibNumberParser parser,
     bool Function(String bib)? isKnownBib,
-  })  : _recorder = recorder,
-        _modelDownload = modelDownload,
-        _speechRecognition = speechRecognition,
-        _parser = parser,
-        _isKnownBib = isKnownBib;
+  }) : _recorder = recorder,
+       _modelDownload = modelDownload,
+       _speechRecognition = speechRecognition,
+       _parser = parser,
+       _isKnownBib = isKnownBib;
 
   /// Wires up all concrete implementations with sensible defaults.
-  factory VoiceRecognitionService.create(
-          {bool Function(String bib)? isKnownBib}) =>
-      VoiceRecognitionService(
-        recorder: BibAudioRecorder(),
-        modelDownload: ModelDownloadService(),
-        speechRecognition: SpeechRecognitionService(),
-        parser: const BibNumberParser(),
-        isKnownBib: isKnownBib,
-      );
+  factory VoiceRecognitionService.create({
+    bool Function(String bib)? isKnownBib,
+  }) => VoiceRecognitionService(
+    recorder: BibAudioRecorder(),
+    modelDownload: ModelDownloadService(),
+    speechRecognition: SpeechRecognitionService(),
+    parser: const BibNumberParser(),
+    isKnownBib: isKnownBib,
+  );
 
   final IBibAudioRecorder _recorder;
   final IModelDownloadService _modelDownload;
@@ -81,10 +81,12 @@ class VoiceRecognitionService implements IVoiceRecognitionService {
 
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not initialise voice recognition.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not initialise voice recognition.',
+          originalException: e,
+        ),
+      );
     }
   }
 

@@ -10,7 +10,9 @@ abstract interface class IEventBus {
 
   /// Subscribe to a specific event type
   StreamSubscription<Event> on<T>(
-      String eventType, void Function(Event event) onData);
+    String eventType,
+    void Function(Event event) onData,
+  );
 }
 
 /// A typed event that can be published on the [EventBus]
@@ -69,7 +71,9 @@ class EventBus implements IEventBus {
   /// Subscribe to a specific event type
   @override
   StreamSubscription<Event> on<T>(
-      String eventType, void Function(Event event) onData) {
+    String eventType,
+    void Function(Event event) onData,
+  ) {
     return stream.where((event) => event.type == eventType).listen(onData);
   }
 

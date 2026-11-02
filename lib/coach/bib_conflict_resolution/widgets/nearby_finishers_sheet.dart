@@ -44,8 +44,7 @@ void showNearbySheet(
             mainAxisSize: MainAxisSize.min,
             children: [
               Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
                 child: createSheetHeader(
                   'Around ${ordinal(conflictPosition)} place',
                 ),
@@ -114,9 +113,11 @@ class _NearbyOrAllState extends State<_NearbyOrAll> {
         if (canShowMore)
           TextButton(
             onPressed: () => setState(() => _showAll = !_showAll),
-            child: Text(_showAll
-                ? 'Show only nearby finishers'
-                : 'Show all ${widget.all.length} finishers'),
+            child: Text(
+              _showAll
+                  ? 'Show only nearby finishers'
+                  : 'Show all ${widget.all.length} finishers',
+            ),
           ),
       ],
     );
@@ -155,16 +156,18 @@ class NearbyFinishersSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     // Take the 4 closest entries above and 4 closest below the conflict position.
     final window = windowSize ?? entries.length;
-    final above = (entries.where((e) => e.place < conflictPosition).toList()
-          ..sort((a, b) => b.place.compareTo(a.place)))
-        .take(window)
-        .toList()
-        .reversed
-        .toList();
-    final below = (entries.where((e) => e.place > conflictPosition).toList()
-          ..sort((a, b) => a.place.compareTo(b.place)))
-        .take(window)
-        .toList();
+    final above =
+        (entries.where((e) => e.place < conflictPosition).toList()
+              ..sort((a, b) => b.place.compareTo(a.place)))
+            .take(window)
+            .toList()
+            .reversed
+            .toList();
+    final below =
+        (entries.where((e) => e.place > conflictPosition).toList()
+              ..sort((a, b) => a.place.compareTo(b.place)))
+            .take(window)
+            .toList();
 
     final allRows = <(int, Widget)>[
       for (final e in [...above, ...below]) (e.place, _FinisherRow(entry: e)),
@@ -181,14 +184,11 @@ class NearbyFinishersSheet extends StatelessWidget {
 
     final widgets = <Widget>[];
     for (int i = 0; i < allRows.length; i++) {
-      widgets.add(
-        _AnimatedListItem(
-          index: i,
-          child: allRows[i].$2,
-        ),
-      );
+      widgets.add(_AnimatedListItem(index: i, child: allRows[i].$2));
       if (i < allRows.length - 1) {
-        widgets.add(Divider(height: 1, thickness: 1, color: AppColors.lightColor));
+        widgets.add(
+          Divider(height: 1, thickness: 1, color: AppColors.lightColor),
+        );
       }
     }
 
@@ -197,10 +197,7 @@ class NearbyFinishersSheet extends StatelessWidget {
         maxHeight: MediaQuery.sizeOf(context).height * 0.6,
       ),
       child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: widgets,
-        ),
+        child: Column(mainAxisSize: MainAxisSize.min, children: widgets),
       ),
     );
   }
@@ -256,10 +253,7 @@ class _AnimatedListItemState extends State<_AnimatedListItem>
 
   @override
   Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: _opacity,
-      child: widget.child,
-    );
+    return FadeTransition(opacity: _opacity, child: widget.child);
   }
 }
 
@@ -285,7 +279,9 @@ class _FinisherRow extends StatelessWidget {
             width: 36,
             child: Text(
               ordinal(entry.place),
-              style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.mediumColor,
+              ),
             ),
           ),
           const SizedBox(width: AppSpacing.md),
@@ -296,7 +292,9 @@ class _FinisherRow extends StatelessWidget {
                 Text(entry.name, style: AppTypography.smallBodySemibold),
                 Text(
                   entry.team,
-                  style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+                  style: AppTypography.caption.copyWith(
+                    color: AppColors.mediumColor,
+                  ),
                 ),
               ],
             ),
@@ -312,7 +310,9 @@ class _FinisherRow extends StatelessWidget {
               ),
               Text(
                 '#${entry.bibNumber}',
-                style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.mediumColor,
+                ),
               ),
             ],
           ),
@@ -358,9 +358,7 @@ class _ConflictFinisherRow extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(label, style: AppTypography.smallBodySemibold),
-              ],
+              children: [Text(label, style: AppTypography.smallBodySemibold)],
             ),
           ),
           Column(
@@ -374,7 +372,9 @@ class _ConflictFinisherRow extends StatelessWidget {
               ),
               Text(
                 '#$bib',
-                style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.mediumColor,
+                ),
               ),
             ],
           ),

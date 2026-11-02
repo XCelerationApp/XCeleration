@@ -35,7 +35,8 @@ class WirelessConnectionController extends ChangeNotifier {
   static const maxFailedTransfers = 3;
 
   bool get isLoading => _isLoading;
-  WirelessConnectionError? get wirelessConnectionError => _wirelessConnectionError;
+  WirelessConnectionError? get wirelessConnectionError =>
+      _wirelessConnectionError;
   bool get hasError => _wirelessConnectionError != null;
   DevicesManager get devices => _devices;
 
@@ -44,10 +45,10 @@ class WirelessConnectionController extends ChangeNotifier {
     required Protocol protocol,
     required DevicesManager devices,
     required Function callback,
-  })  : _deviceConnectionService = deviceConnectionService,
-        _protocol = protocol,
-        _devices = devices,
-        _callback = callback;
+  }) : _deviceConnectionService = deviceConnectionService,
+       _protocol = protocol,
+       _devices = devices,
+       _callback = callback;
 
   /// How long to keep looking for the other phone. A volunteer may take a
   /// while to open the right screen; a one-minute limit made the coach try
@@ -62,8 +63,8 @@ class WirelessConnectionController extends ChangeNotifier {
     ScreenAwake.set(true, reason: 'transfer');
 
     try {
-      final checkResult =
-          await _deviceConnectionService.checkIfNearbyConnectionsWorks();
+      final checkResult = await _deviceConnectionService
+          .checkIfNearbyConnectionsWorks();
       final isServiceAvailable = switch (checkResult) {
         Success(:final value) => value,
         Failure() => false,
@@ -218,15 +219,15 @@ class WirelessConnectionController extends ChangeNotifier {
       _protocol.addDevice(device);
 
       // Monitor messages with proper tracking for cleanup
-      _messageMonitorToken =
-          await _deviceConnectionService.monitorMessageReceives(
-        device,
-        messageReceivedCallback: (package, senderId) async {
-          // Skip if we're disposed or the connection is complete
-          if (_isDisposed || _connectionCompleter.isCompleted) return;
-          await _protocol.handleMessage(package, senderId);
-        },
-      );
+      _messageMonitorToken = await _deviceConnectionService
+          .monitorMessageReceives(
+            device,
+            messageReceivedCallback: (package, senderId) async {
+              // Skip if we're disposed or the connection is complete
+              if (_isDisposed || _connectionCompleter.isCompleted) return;
+              await _protocol.handleMessage(package, senderId);
+            },
+          );
 
       // Get device reference once to avoid repetition
       final connectedDevice = _devices.getDevice(deviceName);
@@ -336,7 +337,9 @@ class WirelessConnectionController extends ChangeNotifier {
   /// an error with no way to retry but closing the screen. After
   /// [maxFailedTransfers] in a row it shows the error.
   Future<void> _recoverFromFailedTransfer(
-      Device device, DeviceName deviceName) async {
+    Device device,
+    DeviceName deviceName,
+  ) async {
     final connectedDevice = _devices.getDevice(deviceName);
     if (connectedDevice == null || connectedDevice.isFinished) return;
     final failures = (_failedTransfers[deviceName] ?? 0) + 1;

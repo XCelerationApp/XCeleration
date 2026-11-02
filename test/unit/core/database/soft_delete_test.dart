@@ -53,7 +53,6 @@ class _InMemoryConnectionProvider implements IDatabaseConnectionProvider {
 
   @override
   Future<void> deleteUserData(String userId) async => deleteDatabase();
-
 }
 
 void main() {
@@ -77,27 +76,36 @@ void main() {
   Future<int> addRunner({String bib = '101', String name = 'Alice'}) =>
       runners.createRunner(Runner(name: name, bibNumber: bib, grade: 10));
 
-  Future<int> addTeam({String name = 'Eagles'}) => teams.createTeam(Team(
-        name: name,
-        abbreviation: name.substring(0, 3).toUpperCase(),
-        color: const Color(0xFF1565C0),
-      ));
+  Future<int> addTeam({String name = 'Eagles'}) => teams.createTeam(
+    Team(
+      name: name,
+      abbreviation: name.substring(0, 3).toUpperCase(),
+      color: const Color(0xFF1565C0),
+    ),
+  );
 
   group('deleting a runner', () {
-    test('leaves a tombstone for the server instead of dropping the row',
-        () async {
-      final id = await addRunner();
+    test(
+      'leaves a tombstone for the server instead of dropping the row',
+      () async {
+        final id = await addRunner();
 
-      await runners.removeRunner(id);
+        await runners.removeRunner(id);
 
-      final db = await conn.database;
-      final row = (await db
-              .query('runners', where: 'runner_id = ?', whereArgs: [id]))
-          .single;
-      expect(row['deleted_at'], isNotNull,
-          reason: 'a dropped row can never be pushed');
-      expect(row['is_dirty'], 1, reason: 'the deletion still has to sync');
-    });
+        final db = await conn.database;
+        final row = (await db.query(
+          'runners',
+          where: 'runner_id = ?',
+          whereArgs: [id],
+        )).single;
+        expect(
+          row['deleted_at'],
+          isNotNull,
+          reason: 'a dropped row can never be pushed',
+        );
+        expect(row['is_dirty'], 1, reason: 'the deletion still has to sync');
+      },
+    );
 
     test('hides them from every way of looking a runner up', () async {
       final id = await addRunner(bib: '101', name: 'Alice');
@@ -126,16 +134,19 @@ void main() {
       final teamId = await addTeam();
       final runnerId = await addRunner();
       await runners.addRunnerToTeam(teamId, runnerId);
-      final raceId = await races.createRace(Race(
-        raceId: 0,
-        raceName: 'Invitational',
-        location: 'Park',
-        distance: 5,
-        distanceUnit: 'km',
-        flowState: Race.FLOW_SETUP,
-      ));
-      await races.addRaceParticipant(RaceParticipant(
-          raceId: raceId, runnerId: runnerId, teamId: teamId));
+      final raceId = await races.createRace(
+        Race(
+          raceId: 0,
+          raceName: 'Invitational',
+          location: 'Park',
+          distance: 5,
+          distanceUnit: 'km',
+          flowState: Race.FLOW_SETUP,
+        ),
+      );
+      await races.addRaceParticipant(
+        RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId),
+      );
 
       await runners.deleteRunnerEverywhere(runnerId);
 
@@ -143,8 +154,11 @@ void main() {
       for (final table in ['team_rosters', 'race_participants']) {
         final rows = await db.query(table);
         expect(rows, hasLength(1), reason: '$table row must be kept');
-        expect(rows.first['deleted_at'], isNotNull,
-            reason: '$table row must be tombstoned');
+        expect(
+          rows.first['deleted_at'],
+          isNotNull,
+          reason: '$table row must be tombstoned',
+        );
         expect(rows.first['is_dirty'], 1);
       }
       expect(await runners.getTeamRunners(teamId), isEmpty);
@@ -254,14 +268,16 @@ void main() {
 
   group('deleting a race', () {
     test('leaves a tombstone and hides it', () async {
-      final raceId = await races.createRace(Race(
-        raceId: 0,
-        raceName: 'Invitational',
-        location: 'Park',
-        distance: 5,
-        distanceUnit: 'km',
-        flowState: Race.FLOW_SETUP,
-      ));
+      final raceId = await races.createRace(
+        Race(
+          raceId: 0,
+          raceName: 'Invitational',
+          location: 'Park',
+          distance: 5,
+          distanceUnit: 'km',
+          flowState: Race.FLOW_SETUP,
+        ),
+      );
 
       await races.deleteRace(raceId);
 
@@ -277,19 +293,23 @@ void main() {
   group('removing a team from a race', () {
     test('tombstones the row and hides it', () async {
       final teamId = await addTeam();
-      final raceId = await races.createRace(Race(
-        raceId: 0,
-        raceName: 'Invitational',
-        location: 'Park',
-        distance: 5,
-        distanceUnit: 'km',
-        flowState: Race.FLOW_SETUP,
-      ));
+      final raceId = await races.createRace(
+        Race(
+          raceId: 0,
+          raceName: 'Invitational',
+          location: 'Park',
+          distance: 5,
+          distanceUnit: 'km',
+          flowState: Race.FLOW_SETUP,
+        ),
+      );
       await races.addTeamParticipantToRace(
-          TeamParticipant(raceId: raceId, teamId: teamId));
+        TeamParticipant(raceId: raceId, teamId: teamId),
+      );
 
       await races.removeTeamParticipantFromRace(
-          TeamParticipant(raceId: raceId, teamId: teamId));
+        TeamParticipant(raceId: raceId, teamId: teamId),
+      );
 
       expect(await races.getRaceTeams(raceId), isEmpty);
       final db = await conn.database;
@@ -306,48 +326,61 @@ void main() {
       final teamId = await addTeam();
       final runnerId = await addRunner();
       await runners.addRunnerToTeam(teamId, runnerId);
-      final raceId = await races.createRace(Race(
-        raceId: 0,
-        raceName: 'Invitational',
-        location: 'Park',
-        distance: 5,
-        distanceUnit: 'km',
-        flowState: Race.FLOW_SETUP,
-      ));
+      final raceId = await races.createRace(
+        Race(
+          raceId: 0,
+          raceName: 'Invitational',
+          location: 'Park',
+          distance: 5,
+          distanceUnit: 'km',
+          flowState: Race.FLOW_SETUP,
+        ),
+      );
       await races.addTeamParticipantToRace(
-          TeamParticipant(raceId: raceId, teamId: teamId));
-      await races.addRaceParticipant(RaceParticipant(
-          raceId: raceId, runnerId: runnerId, teamId: teamId));
+        TeamParticipant(raceId: raceId, teamId: teamId),
+      );
+      await races.addRaceParticipant(
+        RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId),
+      );
 
       await races.removeTeamParticipantFromRace(
-          TeamParticipant(raceId: raceId, teamId: teamId));
+        TeamParticipant(raceId: raceId, teamId: teamId),
+      );
 
       expect(await races.getRaceParticipants(raceId), isEmpty);
       final db = await conn.database;
       final row = (await db.query('race_participants')).single;
       expect(row['deleted_at'], isNotNull, reason: 'tombstoned, so it syncs');
       expect(row['is_dirty'], 1);
-      expect(await runners.getTeamRunners(teamId), hasLength(1),
-          reason: 'still on the team for other races');
+      expect(
+        await runners.getTeamRunners(teamId),
+        hasLength(1),
+        reason: 'still on the team for other races',
+      );
     });
 
     test('the team can be put back in the race', () async {
       final teamId = await addTeam();
-      final raceId = await races.createRace(Race(
-        raceId: 0,
-        raceName: 'Invitational',
-        location: 'Park',
-        distance: 5,
-        distanceUnit: 'km',
-        flowState: Race.FLOW_SETUP,
-      ));
+      final raceId = await races.createRace(
+        Race(
+          raceId: 0,
+          raceName: 'Invitational',
+          location: 'Park',
+          distance: 5,
+          distanceUnit: 'km',
+          flowState: Race.FLOW_SETUP,
+        ),
+      );
       await races.addTeamParticipantToRace(
-          TeamParticipant(raceId: raceId, teamId: teamId));
+        TeamParticipant(raceId: raceId, teamId: teamId),
+      );
       await races.removeTeamParticipantFromRace(
-          TeamParticipant(raceId: raceId, teamId: teamId));
+        TeamParticipant(raceId: raceId, teamId: teamId),
+      );
 
       await races.addTeamParticipantToRace(
-          TeamParticipant(raceId: raceId, teamId: teamId));
+        TeamParticipant(raceId: raceId, teamId: teamId),
+      );
 
       expect(await races.getRaceTeams(raceId), hasLength(1));
     });

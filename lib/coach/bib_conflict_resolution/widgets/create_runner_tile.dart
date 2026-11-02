@@ -29,16 +29,19 @@ class CreateRunnerTile extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.person_add_outlined,
-                color: AppColors.primaryColor),
+            const Icon(
+              Icons.person_add_outlined,
+              color: AppColors.primaryColor,
+            ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Text(
                 name.isEmpty
                     ? 'Not on the roster? Create a new runner'
                     : 'Create new runner "$name"',
-                style: AppTypography.smallBodySemibold
-                    .copyWith(color: AppColors.primaryColor),
+                style: AppTypography.smallBodySemibold.copyWith(
+                  color: AppColors.primaryColor,
+                ),
               ),
             ),
             const Icon(Icons.chevron_right, color: AppColors.primaryColor),

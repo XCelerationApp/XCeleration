@@ -8,12 +8,13 @@ class BibDatum {
   String? grade;
   Color? teamColor;
 
-  BibDatum(
-      {required this.bib,
-      this.name,
-      this.teamAbbreviation,
-      this.grade,
-      this.teamColor});
+  BibDatum({
+    required this.bib,
+    this.name,
+    this.teamAbbreviation,
+    this.grade,
+    this.teamColor,
+  });
 
   /// True if all optional fields were provided (name, teamAbbreviation, grade)
   bool get isValid =>
@@ -58,9 +59,7 @@ class BibDatum {
 
     if (parts.length == 1) {
       // Only bib provided
-      return BibDatum(
-        bib: Uri.decodeComponent(parts[0]),
-      );
+      return BibDatum(bib: Uri.decodeComponent(parts[0]));
     }
 
     if (parts.length >= 4) {

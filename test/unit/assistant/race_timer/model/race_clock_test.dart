@@ -17,18 +17,29 @@ void main() {
 
   setUp(() {
     storage = MockIAssistantStorageService();
-    when(storage.updateRaceStartTime(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(storage.updateRaceStatus(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(storage.updateRaceDuration(any, any, any))
-        .thenAnswer((_) async => const Success(null));
+    when(
+      storage.updateRaceStartTime(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      storage.updateRaceStatus(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      storage.updateRaceDuration(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
     wall = start;
     mono = const Duration(hours: 5);
     timing = TimingData(
-        storage: storage, now: () => wall, monotonic: () => mono);
+      storage: storage,
+      now: () => wall,
+      monotonic: () => mono,
+    );
     timing.currentRace = RaceRecord(
-        raceId: 1, date: start, name: 'Clock', type: 'timer', stopped: true);
+      raceId: 1,
+      date: start,
+      name: 'Clock',
+      type: 'timer',
+      stopped: true,
+    );
     timing.startTime = start;
     timing.raceStopped = false;
   });
@@ -50,8 +61,10 @@ void main() {
     final before = timing.raceElapsed;
 
     // The phone's clock jumps back 5 seconds (e.g. an automatic time sync).
-    advance(const Duration(milliseconds: 300),
-        wallJump: const Duration(seconds: -5));
+    advance(
+      const Duration(milliseconds: 300),
+      wallJump: const Duration(seconds: -5),
+    );
     final after = timing.raceElapsed;
 
     expect(after, before + const Duration(milliseconds: 300));
@@ -66,7 +79,12 @@ void main() {
     mono = Duration.zero;
     wall = wall.add(const Duration(minutes: 3));
     timing.currentRace = RaceRecord(
-        raceId: 1, date: start, name: 'Clock', type: 'timer', stopped: false);
+      raceId: 1,
+      date: start,
+      name: 'Clock',
+      type: 'timer',
+      stopped: false,
+    );
 
     expect(timing.raceElapsed, const Duration(minutes: 5));
   });

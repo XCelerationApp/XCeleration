@@ -84,9 +84,9 @@ class BibNumberController extends BibNumberDataController {
     required IDemoRaceGenerator demoRaceGenerator,
     required IDeviceConnectionFactory deviceConnectionFactory,
     required IPostFrameScheduler scheduler,
-  })  : _demoRaceGenerator = demoRaceGenerator,
-        _deviceConnectionFactory = deviceConnectionFactory,
-        _scheduler = scheduler {
+  }) : _demoRaceGenerator = demoRaceGenerator,
+       _deviceConnectionFactory = deviceConnectionFactory,
+       _scheduler = scheduler {
     runners = [];
     scrollController = ScrollController();
     _loadLastRace();
@@ -127,8 +127,10 @@ class BibNumberController extends BibNumberDataController {
   }
 
   void setupTutorials() {
-    tutorialManager
-        .startTutorial(['race_header_tutorial', 'role_bar_tutorial']);
+    tutorialManager.startTutorial([
+      'race_header_tutorial',
+      'role_bar_tutorial',
+    ]);
   }
 
   /// True until the race to reopen has loaded. Without it the screen said
@@ -140,14 +142,16 @@ class BibNumberController extends BibNumberDataController {
     try {
       // Ensure demo race exists if no races are present
       await _demoRaceGenerator.ensureDemoRaceExists(
-          DeviceName.bibRecorder.toString());
+        DeviceName.bibRecorder.toString(),
+      );
 
       final result = await storage.getRaces(DeviceName.bibRecorder.toString());
       if (result case Success(:final value)) {
         // A race the coach on this phone just handed over opens first.
         final handed = RaceHandedOver.bibRecorderRaceId;
         RaceHandedOver.bibRecorderRaceId = null;
-        final race = value.where((r) => r.raceId == handed).firstOrNull ??
+        final race =
+            value.where((r) => r.raceId == handed).firstOrNull ??
             raceToReopen(value);
         if (race != null) await _loadRace(race);
       }
@@ -171,7 +175,8 @@ class BibNumberController extends BibNumberDataController {
           dbRunners = value;
         case Failure(:final error):
           Logger.e(
-              '[BibNumberController._loadRunners] ${error.originalException}');
+            '[BibNumberController._loadRunners] ${error.originalException}',
+          );
           dbRunners = [];
       }
 
@@ -209,7 +214,8 @@ class BibNumberController extends BibNumberDataController {
           dbBibRecords = value;
         case Failure(:final error):
           Logger.e(
-              '[BibNumberController._loadBibRecords] ${error.originalException}');
+            '[BibNumberController._loadBibRecords] ${error.originalException}',
+          );
           return;
       }
 
@@ -296,7 +302,9 @@ class BibNumberController extends BibNumberDataController {
 
   /// Loads a race with runners data (used when loading from coach)
   Future<void> _loadRaceWithRunners(
-      RaceRecord raceRecord, List<BibDatum> runnersData) async {
+    RaceRecord raceRecord,
+    List<BibDatum> runnersData,
+  ) async {
     // Completely reset everything before loading new race
     _resetControllerState();
 
@@ -355,8 +363,7 @@ class BibNumberController extends BibNumberDataController {
   /// number under another name, is settled by [ask]: see
   /// [resolveReceivedRace]. The same race arriving twice at once (wireless
   /// and QR code) is handled once, so the volunteer is asked once.
-  Future<Result<void>> processLoadedRaceData(String data,
-      {AskAboutRace? ask}) {
+  Future<Result<void>> processLoadedRaceData(String data, {AskAboutRace? ask}) {
     if (_receiving != null && _receivingData == data) return _receiving!;
     _receivingData = data;
     return _receiving = _processLoadedRaceData(data, ask).whenComplete(() {
@@ -366,7 +373,9 @@ class BibNumberController extends BibNumberDataController {
   }
 
   Future<Result<void>> _processLoadedRaceData(
-      String data, AskAboutRace? ask) async {
+    String data,
+    AskAboutRace? ask,
+  ) async {
     final StoredRaceFromCoach stored;
     switch (await storeRaceFromCoach(storage, data, ask: ask)) {
       case Failure(:final error):
@@ -405,29 +414,34 @@ class BibNumberController extends BibNumberDataController {
             ),
           ),
           DeviceConnectionWidget(
-        devices: devices,
-        callback: () async {
-          final data = devices.coach?.data;
-          if (data == null) {
-            DialogUtils.showErrorDialog(context,
-                message: 'Race data not received');
-            return false;
-          }
-          final result = await processLoadedRaceData(
-            data,
-            ask: (here) async => context.mounted
-                ? askAboutRace(context, here, what: 'bibs')
-                : ReceivedRaceChoice.update,
-          );
-          if (result case Failure(:final error)) {
-            if (context.mounted) {
-              DialogUtils.showErrorDialog(context, message: error.userMessage);
-            }
-            return false;
-          }
-          return true;
-        },
-      ),
+            devices: devices,
+            callback: () async {
+              final data = devices.coach?.data;
+              if (data == null) {
+                DialogUtils.showErrorDialog(
+                  context,
+                  message: 'Race data not received',
+                );
+                return false;
+              }
+              final result = await processLoadedRaceData(
+                data,
+                ask: (here) async => context.mounted
+                    ? askAboutRace(context, here, what: 'bibs')
+                    : ReceivedRaceChoice.update,
+              );
+              if (result case Failure(:final error)) {
+                if (context.mounted) {
+                  DialogUtils.showErrorDialog(
+                    context,
+                    message: error.userMessage,
+                  );
+                }
+                return false;
+              }
+              return true;
+            },
+          ),
         ],
       ),
     );
@@ -440,11 +454,14 @@ class BibNumberController extends BibNumberDataController {
   Future<void> deleteCurrentRace() async {
     if (currentRace == null) return;
 
-    final result =
-        await storage.deleteRace(currentRace!.raceId, currentRace!.type);
+    final result = await storage.deleteRace(
+      currentRace!.raceId,
+      currentRace!.type,
+    );
     if (result case Failure(:final error)) {
       Logger.e(
-          '[BibNumberController.deleteCurrentRace] ${error.originalException}');
+        '[BibNumberController.deleteCurrentRace] ${error.originalException}',
+      );
       return;
     }
     setCurrentRace(null);
@@ -575,8 +592,7 @@ class BibNumberController extends BibNumberDataController {
   /// Whether Add does anything right now: while the race runs, or before it
   /// has been started at all, when Add starts it.
   bool get canAddBibOrStart =>
-      currentRace != null &&
-      (raceStopped ? bibRecords.isEmpty : canAddBib);
+      currentRace != null && (raceStopped ? bibRecords.isEmpty : canAddBib);
 
   /// Adds a bib, starting the race first if it has not been started. A
   /// volunteer who taps Add as the first runner comes in should not have to
@@ -640,10 +656,7 @@ class BibNumberController extends BibNumberDataController {
   }
 
   /// Handles bib number changes with optimizations to prevent UI jumping
-  Future<void> handleBibNumber(
-    String bibNumber, {
-    int? index,
-  }) async {
+  Future<void> handleBibNumber(String bibNumber, {int? index}) async {
     // A check still waiting on another row runs now rather than being
     // dropped: moving on to the next bib within half a second used to leave
     // an unknown bib unflagged.
@@ -676,16 +689,18 @@ class BibNumberController extends BibNumberDataController {
       }
     } else {
       // Add new record
-      addBibRecord(BibDatumRecord(
-        bib: bibNumber,
-        name: '',
-        teamAbbreviation: '',
-        grade: '',
-        flags: const BibDatumRecordFlags(
-          notInDatabase: false,
-          duplicateBibNumber: false,
+      addBibRecord(
+        BibDatumRecord(
+          bib: bibNumber,
+          name: '',
+          teamAbbreviation: '',
+          grade: '',
+          flags: const BibDatumRecordFlags(
+            notInDatabase: false,
+            duplicateBibNumber: false,
+          ),
         ),
-      ));
+      );
 
       // Only scroll if necessary - check if we need to scroll to make new item visible
       _scheduler.schedulePostFrame(_scrollToLastItemIfNeeded);
@@ -704,7 +719,9 @@ class BibNumberController extends BibNumberDataController {
       // Only request focus if the index is valid
       if (focusIndex >= 0 && focusIndex < focusNodes.length) {
         // Request focus after a slight delay to allow the UI to settle
-        _scheduler.schedulePostFrame(() => focusNodes[focusIndex].requestFocus());
+        _scheduler.schedulePostFrame(
+          () => focusNodes[focusIndex].requestFocus(),
+        );
       }
     }
   }

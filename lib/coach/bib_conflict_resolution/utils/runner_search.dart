@@ -45,8 +45,11 @@ List<T> searchRunners<T>(
 }) {
   final scored = <(T, double)>[];
   for (final runner in runners) {
-    final score =
-        runnerMatchScore(query, name: nameOf(runner), bib: bibOf(runner));
+    final score = runnerMatchScore(
+      query,
+      name: nameOf(runner),
+      bib: bibOf(runner),
+    );
     if (score != null) scored.add((runner, score));
   }
   // Stable: equal scores keep the order they came in.
@@ -95,12 +98,12 @@ int _editDistance(String a, String b) {
   for (var i = 1; i < rows; i++) {
     for (var j = 1; j < cols; j++) {
       final cost = a[i - 1] == b[j - 1] ? 0 : 1;
-      var v = [d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + cost]
-          .reduce((x, y) => x < y ? x : y);
-      if (i > 1 &&
-          j > 1 &&
-          a[i - 1] == b[j - 2] &&
-          a[i - 2] == b[j - 1]) {
+      var v = [
+        d[i - 1][j] + 1,
+        d[i][j - 1] + 1,
+        d[i - 1][j - 1] + cost,
+      ].reduce((x, y) => x < y ? x : y);
+      if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1]) {
         v = v < d[i - 2][j - 2] + 1 ? v : d[i - 2][j - 2] + 1;
       }
       d[i][j] = v;

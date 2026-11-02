@@ -115,14 +115,17 @@ void main() {
     test('UPDATE race_results SET runner_uuid succeeds after migration', () async {
       // Seed a runner and a race_result row
       await db.execute(
-          "INSERT INTO runners (uuid, name, bib_number) VALUES ('runner-uuid-1', 'Alice', '1')");
+        "INSERT INTO runners (uuid, name, bib_number) VALUES ('runner-uuid-1', 'Alice', '1')",
+      );
       await db.execute(
-          "INSERT INTO races (uuid, name) VALUES ('race-uuid-1', 'State Meet')");
+        "INSERT INTO races (uuid, name) VALUES ('race-uuid-1', 'State Meet')",
+      );
 
       await _applyV16Migration(db);
 
       await db.execute(
-          "INSERT INTO race_results (uuid, race_id, runner_id) VALUES ('res-1', 1, 1)");
+        "INSERT INTO race_results (uuid, race_id, runner_id) VALUES ('res-1', 1, 1)",
+      );
 
       // This is the exact UPDATE that crashes on stale databases.
       final count = await db.rawUpdate('''
@@ -136,12 +139,15 @@ void main() {
       expect(rows.first['runner_uuid'], equals('runner-uuid-1'));
     });
 
-    test('migration is idempotent on a DB that already has the columns', () async {
-      // First migration
-      await _applyV16Migration(db);
-      // Second migration should not throw
-      await expectLater(_applyV16Migration(db), completes);
-    });
+    test(
+      'migration is idempotent on a DB that already has the columns',
+      () async {
+        // First migration
+        await _applyV16Migration(db);
+        // Second migration should not throw
+        await expectLater(_applyV16Migration(db), completes);
+      },
+    );
   });
 
   group('DatabaseConnectionProvider v17 migration', () {
@@ -163,51 +169,65 @@ void main() {
       for (final column in ['race_uuid', 'runner_uuid', 'team_uuid']) {
         try {
           await db.execute(
-              'ALTER TABLE race_participants ADD COLUMN $column TEXT');
+            'ALTER TABLE race_participants ADD COLUMN $column TEXT',
+          );
         } catch (_) {}
       }
     }
 
-    test('adds race_uuid, runner_uuid, team_uuid to stale race_participants', () async {
-      await applyV17Migration(db);
+    test(
+      'adds race_uuid, runner_uuid, team_uuid to stale race_participants',
+      () async {
+        await applyV17Migration(db);
 
-      await db.execute(
-        "INSERT INTO race_participants (race_id, runner_id, team_id, race_uuid, runner_uuid, team_uuid) VALUES (1, 1, 1, 'r-uuid', 'ru-uuid', 't-uuid')",
-      );
+        await db.execute(
+          "INSERT INTO race_participants (race_id, runner_id, team_id, race_uuid, runner_uuid, team_uuid) VALUES (1, 1, 1, 'r-uuid', 'ru-uuid', 't-uuid')",
+        );
 
-      final rows = await db.query('race_participants');
-      expect(rows.first['race_uuid'], equals('r-uuid'));
-      expect(rows.first['runner_uuid'], equals('ru-uuid'));
-      expect(rows.first['team_uuid'], equals('t-uuid'));
-    });
+        final rows = await db.query('race_participants');
+        expect(rows.first['race_uuid'], equals('r-uuid'));
+        expect(rows.first['runner_uuid'], equals('ru-uuid'));
+        expect(rows.first['team_uuid'], equals('t-uuid'));
+      },
+    );
 
-    test('UPDATE race_participants SET race_uuid succeeds after migration', () async {
-      await db.execute(
-          "INSERT INTO races (uuid, name) VALUES ('race-uuid-1', 'State Meet')");
-      await db.execute(
-          "INSERT INTO runners (uuid, name, bib_number) VALUES ('runner-uuid-1', 'Alice', '1')");
-      await db.execute(
-          "INSERT INTO teams (uuid, name) VALUES ('team-uuid-1', 'Team A')");
+    test(
+      'UPDATE race_participants SET race_uuid succeeds after migration',
+      () async {
+        await db.execute(
+          "INSERT INTO races (uuid, name) VALUES ('race-uuid-1', 'State Meet')",
+        );
+        await db.execute(
+          "INSERT INTO runners (uuid, name, bib_number) VALUES ('runner-uuid-1', 'Alice', '1')",
+        );
+        await db.execute(
+          "INSERT INTO teams (uuid, name) VALUES ('team-uuid-1', 'Team A')",
+        );
 
-      await applyV17Migration(db);
+        await applyV17Migration(db);
 
-      await db.execute(
-          'INSERT INTO race_participants (race_id, runner_id, team_id) VALUES (1, 1, 1)');
+        await db.execute(
+          'INSERT INTO race_participants (race_id, runner_id, team_id) VALUES (1, 1, 1)',
+        );
 
-      final count = await db.rawUpdate('''
+        final count = await db.rawUpdate('''
         UPDATE race_participants
         SET race_uuid = (SELECT uuid FROM races WHERE races.race_id = race_participants.race_id)
         WHERE race_uuid IS NULL
       ''');
 
-      expect(count, equals(1));
-      final rows = await db.query('race_participants');
-      expect(rows.first['race_uuid'], equals('race-uuid-1'));
-    });
+        expect(count, equals(1));
+        final rows = await db.query('race_participants');
+        expect(rows.first['race_uuid'], equals('race-uuid-1'));
+      },
+    );
 
-    test('migration is idempotent on a DB that already has the columns', () async {
-      await applyV17Migration(db);
-      await expectLater(applyV17Migration(db), completes);
-    });
+    test(
+      'migration is idempotent on a DB that already has the columns',
+      () async {
+        await applyV17Migration(db);
+        await expectLater(applyV17Migration(db), completes);
+      },
+    );
   });
 }

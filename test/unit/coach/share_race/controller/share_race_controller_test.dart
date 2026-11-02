@@ -10,7 +10,13 @@ import 'package:xceleration/core/utils/i_google_sheets_service.dart';
 import 'package:xceleration/shared/models/database/master_race.dart';
 import 'package:xceleration/shared/services/race_results_service.dart';
 
-@GenerateMocks([ShareResultsController, MasterRace, BuildContext, IShareService, IGoogleSheetsService])
+@GenerateMocks([
+  ShareResultsController,
+  MasterRace,
+  BuildContext,
+  IShareService,
+  IGoogleSheetsService,
+])
 import 'share_race_controller_test.mocks.dart';
 
 // ---------------------------------------------------------------------------
@@ -18,11 +24,11 @@ import 'share_race_controller_test.mocks.dart';
 // ---------------------------------------------------------------------------
 
 RaceResultsData _emptyData() => RaceResultsData(
-      resultsTitle: 'Test Race',
-      individualResults: [],
-      overallTeamResults: [],
-      headToHeadTeamResults: [],
-    );
+  resultsTitle: 'Test Race',
+  individualResults: [],
+  overallTeamResults: [],
+  headToHeadTeamResults: [],
+);
 
 ResultsRecord _runner({
   required int place,
@@ -31,19 +37,18 @@ ResultsRecord _runner({
   required String abbrev,
   required Duration finishTime,
   Duration? pace,
-}) =>
-    ResultsRecord(
-      place: place,
-      name: name,
-      team: team,
-      teamAbbreviation: abbrev,
-      grade: 11,
-      bib: '$place',
-      raceId: 1,
-      runnerId: place,
-      finishTime: finishTime,
-      pacePerMile: pace,
-    );
+}) => ResultsRecord(
+  place: place,
+  name: name,
+  team: team,
+  teamAbbreviation: abbrev,
+  grade: 11,
+  bib: '$place',
+  raceId: 1,
+  runnerId: place,
+  finishTime: finishTime,
+  pacePerMile: pace,
+);
 
 // ---------------------------------------------------------------------------
 // Tests
@@ -53,7 +58,9 @@ void main() {
   group('FormattedResultsController', () {
     group('formattedResultsText', () {
       test('returns individual results section with no runners', () async {
-        final controller = FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final text = await controller.formattedResultsText;
 
@@ -94,7 +101,9 @@ void main() {
       });
 
       test('does not include head-to-head section when no matchups', () async {
-        final controller = FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final text = await controller.formattedResultsText;
 
@@ -102,7 +111,9 @@ void main() {
       });
 
       test('returns same cached value on second call', () async {
-        final controller = FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final first = await controller.formattedResultsText;
         final second = await controller.formattedResultsText;
@@ -133,15 +144,19 @@ void main() {
 
         // Must contain the section header row and column header row
         expect(
-          sheets.any((row) => row.length == 1 && row[0] == 'Individual Results'),
+          sheets.any(
+            (row) => row.length == 1 && row[0] == 'Individual Results',
+          ),
           isTrue,
         );
         expect(
-          sheets.any((row) =>
-              row.length == 5 &&
-              row[0] == 'Place' &&
-              row[1] == 'Name' &&
-              row[2] == 'Team'),
+          sheets.any(
+            (row) =>
+                row.length == 5 &&
+                row[0] == 'Place' &&
+                row[1] == 'Name' &&
+                row[2] == 'Team',
+          ),
           isTrue,
         );
 
@@ -156,7 +171,9 @@ void main() {
       });
 
       test('returns no head-to-head rows when no matchups', () async {
-        final controller = FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
         final sheets = await controller.formattedSheetsData;
 
         // None of the rows should contain 'vs'
@@ -168,7 +185,9 @@ void main() {
       });
 
       test('returns same cached value on second call', () async {
-        final controller = FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final first = await controller.formattedSheetsData;
         final second = await controller.formattedSheetsData;
@@ -183,8 +202,9 @@ void main() {
       final controller = ShareResultsController(
         raceResultsData: _emptyData(),
         googleSheetsService: MockIGoogleSheetsService(),
-        formattedResultsController:
-            FormattedResultsController(raceResultsData: _emptyData()),
+        formattedResultsController: FormattedResultsController(
+          raceResultsData: _emptyData(),
+        ),
         shareService: MockIShareService(),
       );
 
@@ -211,19 +231,22 @@ void main() {
       );
 
       // Default stub: all handle* methods complete normally
-      when(mockShareResultsController.handlePlainTextCopy(any))
-          .thenAnswer((_) async {});
-      when(mockShareResultsController.handleGoogleSheet(any))
-          .thenAnswer((_) async {});
-      when(mockShareResultsController.handlePdf(any))
-          .thenAnswer((_) async {});
+      when(
+        mockShareResultsController.handlePlainTextCopy(any),
+      ).thenAnswer((_) async {});
+      when(
+        mockShareResultsController.handleGoogleSheet(any),
+      ).thenAnswer((_) async {});
+      when(mockShareResultsController.handlePdf(any)).thenAnswer((_) async {});
     });
 
     group('shareResults', () {
       test('routes plainText to handlePlainTextCopy', () async {
         await controller.shareResults(mockContext, ResultFormat.plainText);
 
-        verify(mockShareResultsController.handlePlainTextCopy(mockContext)).called(1);
+        verify(
+          mockShareResultsController.handlePlainTextCopy(mockContext),
+        ).called(1);
         verifyNever(mockShareResultsController.handleGoogleSheet(any));
         verifyNever(mockShareResultsController.handlePdf(any));
       });
@@ -231,7 +254,9 @@ void main() {
       test('routes googleSheet to handleGoogleSheet', () async {
         await controller.shareResults(mockContext, ResultFormat.googleSheet);
 
-        verify(mockShareResultsController.handleGoogleSheet(mockContext)).called(1);
+        verify(
+          mockShareResultsController.handleGoogleSheet(mockContext),
+        ).called(1);
         verifyNever(mockShareResultsController.handlePlainTextCopy(any));
         verifyNever(mockShareResultsController.handlePdf(any));
       });
@@ -243,7 +268,6 @@ void main() {
         verifyNever(mockShareResultsController.handlePlainTextCopy(any));
         verifyNever(mockShareResultsController.handleGoogleSheet(any));
       });
-
     });
   });
 }

@@ -60,10 +60,7 @@ class DemoRaceGenerator {
 
     // For timing screen, create an initial empty chunk
     if (deviceType.contains('timer') || deviceType.contains('Timer')) {
-      await storage.saveChunk(
-        _demoRaceId,
-        TimingChunk(id: 0, timingData: []),
-      );
+      await storage.saveChunk(_demoRaceId, TimingChunk(id: 0, timingData: []));
     }
   }
 
@@ -76,17 +73,17 @@ class DemoRaceGenerator {
       {
         'abbr': 'EAG',
         'name': 'Eagles',
-        'color': const Color(0xFF1976D2)
+        'color': const Color(0xFF1976D2),
       }, // Blue
       {
         'abbr': 'TIG',
         'name': 'Tigers',
-        'color': const Color(0xFFFF6F00)
+        'color': const Color(0xFFFF6F00),
       }, // Orange
       {
         'abbr': 'FAL',
         'name': 'Falcons',
-        'color': const Color(0xFF388E3C)
+        'color': const Color(0xFF388E3C),
       }, // Green
       {'abbr': 'LIO', 'name': 'Lions', 'color': const Color(0xFFD32F2F)}, // Red
     ];
@@ -106,7 +103,7 @@ class DemoRaceGenerator {
       'River',
       'Sage',
       'Rowan',
-      'Logan'
+      'Logan',
     ];
 
     final lastNames = [
@@ -124,7 +121,7 @@ class DemoRaceGenerator {
       'Jackson',
       'White',
       'Harris',
-      'Martin'
+      'Martin',
     ];
 
     final grades = ['9', '10', '11', '12'];
@@ -138,15 +135,17 @@ class DemoRaceGenerator {
       final lastName = lastNames[(i * 3) % lastNames.length];
       final grade = grades[i % grades.length];
 
-      runners.add(Runner(
-        raceId: _demoRaceId,
-        bibNumber: (i + 1).toString(), // Bib numbers 1-15
-        name: '$firstName $lastName',
-        teamAbbreviation: team['abbr'] as String,
-        grade: grade,
-        teamColor: team['color'] as Color,
-        createdAt: now,
-      ));
+      runners.add(
+        Runner(
+          raceId: _demoRaceId,
+          bibNumber: (i + 1).toString(), // Bib numbers 1-15
+          name: '$firstName $lastName',
+          teamAbbreviation: team['abbr'] as String,
+          grade: grade,
+          teamColor: team['color'] as Color,
+          createdAt: now,
+        ),
+      );
     }
 
     return runners;
@@ -175,5 +174,4 @@ class DemoRaceGenerator {
       Logger.e('Failed to delete demo race: $e');
     }
   }
-
 }
