@@ -36,9 +36,10 @@ class RaceResultsService implements IRaceResultsService {
   List<TeamRecord> _getTeamsFromResults(List<RaceResult> results) {
     final List<TeamRecord> teams = [];
     final withTeam = results.where((r) => r.team != null);
-    for (final group
-        in groupBy(withTeam, (result) => result.team!.teamId ?? result.team!.name)
-            .values) {
+    for (final group in groupBy(
+      withTeam,
+      (result) => result.team!.teamId ?? result.team!.name,
+    ).values) {
       teams.add(TeamRecord(team: group.first.team!, runners: group));
     }
     return teams;
@@ -56,8 +57,11 @@ class RaceResultsService implements IRaceResultsService {
 
   /// Convert RaceResult objects to ResultsRecord objects for UI display
   @override
-  List<ResultsRecord> convertToResultsRecords(List<RaceResult> raceResults,
-      {double? raceDistance, String? distanceUnit}) {
+  List<ResultsRecord> convertToResultsRecords(
+    List<RaceResult> raceResults, {
+    double? raceDistance,
+    String? distanceUnit,
+  }) {
     // Convert race distance to miles and compute pace/mi only
     double miles = 0.0;
     if (raceDistance != null && raceDistance > 0) {
@@ -93,9 +97,11 @@ class RaceResultsService implements IRaceResultsService {
 
   /// Calculate head-to-head matchups between teams
   List<List<TeamRecord>> calculateHeadToHeadResults(
-      List<TeamRecord> teamResults) {
-    final List<TeamRecord> scoringTeams =
-        teamResults.where((r) => r.score != 0).toList();
+    List<TeamRecord> teamResults,
+  ) {
+    final List<TeamRecord> scoringTeams = teamResults
+        .where((r) => r.score != 0)
+        .toList();
 
     if (scoringTeams.length > 3 || scoringTeams.length < 2) {
       return [];
@@ -215,7 +221,8 @@ class RaceResultsService implements IRaceResultsService {
   /// Complete race results calculation - main orchestrator function
   @override
   Future<Result<RaceResultsData>> calculateCompleteRaceResults(
-      MasterRace masterRace) async {
+    MasterRace masterRace,
+  ) async {
     try {
       Logger.d('RaceResultsService: Starting calculateCompleteRaceResults');
 
@@ -230,26 +237,32 @@ class RaceResultsService implements IRaceResultsService {
       Logger.d('RaceResultsService: Got ${results.length} race results');
 
       if (results.isEmpty) {
-        return Success(RaceResultsData(
-          resultsTitle: resultsTitle,
-          individualResults: <ResultsRecord>[],
-          overallTeamResults: [],
-          headToHeadTeamResults: [],
-        ));
+        return Success(
+          RaceResultsData(
+            resultsTitle: resultsTitle,
+            individualResults: <ResultsRecord>[],
+            overallTeamResults: [],
+            headToHeadTeamResults: [],
+          ),
+        );
       }
 
       // Calculate individual results
       final raceResults = calculateIndividualResults(results);
-      final individualResults = convertToResultsRecords(raceResults,
-          raceDistance: raceDistance, distanceUnit: distanceUnit);
+      final individualResults = convertToResultsRecords(
+        raceResults,
+        raceDistance: raceDistance,
+        distanceUnit: distanceUnit,
+      );
 
       // Calculate team results
       final teamResults = calculateTeamResults(raceResults);
       sortAndPlaceTeams(teamResults);
 
       // DEEP COPY: Create completely independent copies for team results
-      final overallTeamResults =
-          teamResults.map((r) => TeamRecord.from(r)).toList();
+      final overallTeamResults = teamResults
+          .map((r) => TeamRecord.from(r))
+          .toList();
 
       // Calculate head-to-head matchups
       List<List<TeamRecord>> headToHeadTeamResults = [];
@@ -257,25 +270,26 @@ class RaceResultsService implements IRaceResultsService {
         headToHeadTeamResults = calculateHeadToHeadResults(teamResults);
       }
 
-      return Success(RaceResultsData(
-        resultsTitle: resultsTitle,
-        individualResults: individualResults,
-        overallTeamResults: overallTeamResults,
-        headToHeadTeamResults: headToHeadTeamResults,
-      ));
+      return Success(
+        RaceResultsData(
+          resultsTitle: resultsTitle,
+          individualResults: individualResults,
+          overallTeamResults: overallTeamResults,
+          headToHeadTeamResults: headToHeadTeamResults,
+        ),
+      );
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not calculate race results. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not calculate race results. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   /// Get results filtered by team
-  List<RaceResult> getResultsByTeam(
-    List<RaceResult> results,
-    Team team,
-  ) {
+  List<RaceResult> getResultsByTeam(List<RaceResult> results, Team team) {
     return results
         .where((result) => result.team?.teamId == team.teamId)
         .toList();
@@ -332,8 +346,9 @@ class RaceResultsData {
     final race = await masterRace.race;
     final raceName = race.raceName;
     final raceDate = race.raceDate;
-    final shortDate =
-        raceDate != null ? '${raceDate.month}/${raceDate.day}' : '';
+    final shortDate = raceDate != null
+        ? '${raceDate.month}/${raceDate.day}'
+        : '';
     if (raceName == null) return '$shortDate Race Results';
     return '$raceName $shortDate Results';
   }

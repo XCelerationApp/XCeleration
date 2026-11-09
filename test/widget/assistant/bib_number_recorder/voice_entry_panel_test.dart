@@ -56,23 +56,23 @@ void main() {
       );
 
   Widget host(VoiceEntryController voice) => MaterialApp(
-        home: Scaffold(
-          body: ListenableBuilder(
-            listenable: voice,
-            builder: (_, _) => Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                EntryModeToggle(voice: voice),
-                VoiceEntryPanel(
-                  voice: voice,
-                  describe: (bib) => bib == '42' ? 'Alice, EAG' : null,
-                  onUndo: () => undone++,
-                ),
-              ],
+    home: Scaffold(
+      body: ListenableBuilder(
+        listenable: voice,
+        builder: (_, _) => Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          children: [
+            EntryModeToggle(voice: voice),
+            VoiceEntryPanel(
+              voice: voice,
+              describe: (bib) => bib == '42' ? 'Alice, EAG' : null,
+              onUndo: () => undone++,
             ),
-          ),
+          ],
         ),
-      );
+      ),
+    ),
+  );
 
   setUp(() {
     SharedPreferences.setMockInitialValues({});
@@ -92,8 +92,9 @@ void main() {
     expect(find.text('Hold and Say Bib'), findsOneWidget);
 
     fake.nextHeard = '42';
-    final finger =
-        await tester.startGesture(tester.getCenter(find.text('Hold and Say Bib')));
+    final finger = await tester.startGesture(
+      tester.getCenter(find.text('Hold and Say Bib')),
+    );
     await tester.pump();
     expect(fake.started, isTrue);
     expect(find.text('Listening…'), findsOneWidget);
@@ -105,7 +106,10 @@ void main() {
     // Large, with who it is, to check at a glance.
     expect(find.text('42'), findsOneWidget);
     expect(find.text('Alice, EAG'), findsOneWidget);
-    expect(find.bySemanticsLabel(RegExp('Heard 42, Alice, EAG')), findsOneWidget);
+    expect(
+      find.bySemanticsLabel(RegExp('Heard 42, Alice, EAG')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.text('Undo'));
     expect(undone, 1);
@@ -119,8 +123,9 @@ void main() {
     await tester.pumpWidget(host(voice));
 
     fake.nextHeard = '901';
-    final finger =
-        await tester.startGesture(tester.getCenter(find.text('Hold and Say Bib')));
+    final finger = await tester.startGesture(
+      tester.getCenter(find.text('Hold and Say Bib')),
+    );
     await tester.pump();
     await finger.up();
     await tester.pumpAndSettle();
@@ -136,12 +141,14 @@ void main() {
     await tester.pumpWidget(host(voice));
 
     fake.nextHeard = null;
-    final finger =
-        await tester.startGesture(tester.getCenter(find.text('Hold and Say Bib')));
+    final finger = await tester.startGesture(
+      tester.getCenter(find.text('Hold and Say Bib')),
+    );
     await tester.pump();
     // Held long enough to have said something (a quick slip is let go).
     await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 450)));
+      () => Future<void>.delayed(const Duration(milliseconds: 450)),
+    );
     await finger.up();
     await tester.pumpAndSettle();
 
@@ -154,8 +161,9 @@ void main() {
     ('iPhone SE', Size(320, 568)),
     ('iPhone 13 Pro', Size(390, 844)),
   ]) {
-    testWidgets('a long bib and name fit on an $name at large text',
-        (tester) async {
+    testWidgets('a long bib and name fit on an $name at large text', (
+      tester,
+    ) async {
       tester.view.physicalSize = size;
       tester.view.devicePixelRatio = 1.0;
       tester.platformDispatcher.textScaleFactorTestValue = 1.5;
@@ -167,25 +175,28 @@ void main() {
         haptics: _NoHaptics(),
       );
       await voice.setEnabled(true);
-      await tester.pumpWidget(MaterialApp(
-        home: Scaffold(
-          body: Align(
-            alignment: Alignment.bottomCenter,
-            child: ListenableBuilder(
-              listenable: voice,
-              builder: (_, _) => VoiceEntryPanel(
-                voice: voice,
-                describe: (_) => 'Alexandria Montgomery-Smith, ARCHIE',
-                onUndo: () {},
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.bottomCenter,
+              child: ListenableBuilder(
+                listenable: voice,
+                builder: (_, _) => VoiceEntryPanel(
+                  voice: voice,
+                  describe: (_) => 'Alexandria Montgomery-Smith, ARCHIE',
+                  onUndo: () {},
+                ),
               ),
             ),
           ),
         ),
-      ));
+      );
 
       fake.nextHeard = '1199';
-      final finger = await tester
-          .startGesture(tester.getCenter(find.text('Hold and Say Bib')));
+      final finger = await tester.startGesture(
+        tester.getCenter(find.text('Hold and Say Bib')),
+      );
       await tester.pump();
       await finger.up();
       await tester.pumpAndSettle();
@@ -196,8 +207,7 @@ void main() {
     });
   }
 
-  testWidgets('warns about the download while the model loads',
-      (tester) async {
+  testWidgets('warns about the download while the model loads', (tester) async {
     final loading = Completer<Result<void>>();
     final voice = build(() => loading.future);
     await tester.pumpWidget(host(voice));
@@ -214,16 +224,22 @@ void main() {
     voice.dispose();
   });
 
-  testWidgets('offers the keypad and another try when voice fails',
-      (tester) async {
-    final voice = build(() async =>
-        const Failure(AppError(userMessage: 'Could not open audio recorder.')));
+  testWidgets('offers the keypad and another try when voice fails', (
+    tester,
+  ) async {
+    final voice = build(
+      () async => const Failure(
+        AppError(userMessage: 'Could not open audio recorder.'),
+      ),
+    );
     // The failure is logged, which uses real time.
     await tester.runAsync(() => voice.setEnabled(true));
     await tester.pumpWidget(host(voice));
 
-    expect(find.textContaining('Could not open audio recorder.'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Could not open audio recorder.'),
+      findsOneWidget,
+    );
     expect(find.text('Try Again'), findsOneWidget);
     voice.dispose();
   });

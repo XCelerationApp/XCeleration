@@ -85,11 +85,7 @@ class _DeviceConnectionWidgetState extends State<DeviceConnectionWidget> {
         const SizedBox(height: 16),
         const Text(
           'or',
-          style: TextStyle(
-            fontSize: 16,
-            color: Colors.black54,
-            height: 1.5,
-          ),
+          style: TextStyle(fontSize: 16, color: Colors.black54, height: 1.5),
         ),
 
         const SizedBox(height: 16),

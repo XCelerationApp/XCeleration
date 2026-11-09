@@ -40,11 +40,11 @@ class ConflictCompletionCard extends StatelessWidget {
             Text(
               timing > 0
                   ? 'Check the changes below. Next, $timing '
-                      '${timing == 1 ? 'place needs its time' : 'places need their times'} '
-                      'sorted out, where the Timer and Bib Recorder counts '
-                      'differ.'
+                        '${timing == 1 ? 'place needs its time' : 'places need their times'} '
+                        'sorted out, where the Timer and Bib Recorder counts '
+                        'differ.'
                   : 'Check the changes below. There are no timing conflicts, '
-                      'so the results are ready to check and save.',
+                        'so the results are ready to check and save.',
               style: AppTypography.bodyRegular.copyWith(
                 color: AppColors.mediumColor,
               ),
@@ -181,23 +181,23 @@ class _ResolutionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final (bgColor, icon, iconColor, actionLabel) = switch (entry.kind) {
       ResolutionKind.kept => (
-          AppColors.statusFinished.withValues(alpha: AppOpacity.light),
-          Icons.check,
-          AppColors.statusFinished,
-          'Kept',
-        ),
+        AppColors.statusFinished.withValues(alpha: AppOpacity.light),
+        Icons.check,
+        AppColors.statusFinished,
+        'Kept',
+      ),
       ResolutionKind.assigned => (
-          AppColors.selectedRoleColor,
-          Icons.person_outline,
-          AppColors.primaryColor,
-          'Assigned',
-        ),
+        AppColors.selectedRoleColor,
+        Icons.person_outline,
+        AppColors.primaryColor,
+        'Assigned',
+      ),
       ResolutionKind.created => (
-          _createIconBg,
-          Icons.person_add_outlined,
-          const Color(0xFF1565C0), // blue-800 to contrast on E3F2FD
-          'Created',
-        ),
+        _createIconBg,
+        Icons.person_add_outlined,
+        const Color(0xFF1565C0), // blue-800 to contrast on E3F2FD
+        'Created',
+      ),
     };
     final runner = entry.raceRunner;
 

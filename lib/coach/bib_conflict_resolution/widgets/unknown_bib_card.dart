@@ -125,8 +125,10 @@ class _UnknownBibCardState extends State<UnknownBibCard> {
     }
   }
 
-  Future<void> _openCreateSheet(BuildContext context,
-      {required String name}) async {
+  Future<void> _openCreateSheet(
+    BuildContext context, {
+    required String name,
+  }) async {
     final controller = context.read<ConflictResolutionController>();
     await sheet(
       context: context,

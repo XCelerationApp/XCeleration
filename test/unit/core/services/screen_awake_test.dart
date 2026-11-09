@@ -11,10 +11,10 @@ void main() {
     calls.clear();
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(channel, (call) async {
-      expect(call.method, 'setAwake');
-      calls.add(call.arguments);
-      return null;
-    });
+          expect(call.method, 'setAwake');
+          calls.add(call.arguments);
+          return null;
+        });
   });
 
   tearDown(() async {
@@ -24,15 +24,17 @@ void main() {
         .setMockMethodCallHandler(channel, null);
   });
 
-  test('asks the phone to keep the screen on, then lets it lock again',
-      () async {
-    await ScreenAwake.set(true);
-    expect(ScreenAwake.isOn, isTrue);
-    await ScreenAwake.set(false);
+  test(
+    'asks the phone to keep the screen on, then lets it lock again',
+    () async {
+      await ScreenAwake.set(true);
+      expect(ScreenAwake.isOn, isTrue);
+      await ScreenAwake.set(false);
 
-    expect(calls, [true, false]);
-    expect(ScreenAwake.isOn, isFalse);
-  });
+      expect(calls, [true, false]);
+      expect(ScreenAwake.isOn, isFalse);
+    },
+  );
 
   test('asks only when the answer changes', () async {
     await ScreenAwake.set(true);
@@ -55,8 +57,11 @@ void main() {
     await ScreenAwake.set(true, reason: 'transfer');
     await ScreenAwake.set(false);
 
-    expect(ScreenAwake.isOn, isTrue,
-        reason: 'the race stopped, but a transfer is still open');
+    expect(
+      ScreenAwake.isOn,
+      isTrue,
+      reason: 'the race stopped, but a transfer is still open',
+    );
 
     await ScreenAwake.set(false, reason: 'transfer');
 

@@ -7,15 +7,44 @@
 /// - "for" → 4 (model confuses "four" with "for")
 /// - "oh" → 0 (common spoken synonym for zero)
 const Map<String, int> _wordValues = {
-  'zero': 0, 'oh': 0, 'o': 0, 'ow': 0,
-  'one': 1, 'a': 1, 'won': 1, 'n': 1,
-  'two': 2, 'to': 2, 'too': 2, 'three': 3, 'four': 4, 'for': 4,
-  'five': 5, 'six': 6, 'zic': 6, 'seven': 7, 'eight': 8, 'nine': 9,
-  'ten': 10, 'eleven': 11, 'twelve': 12, 'thirteen': 13,
-  'fourteen': 14, 'fifteen': 15, 'sixteen': 16, 'seventeen': 17,
-  'eighteen': 18, 'nineteen': 19, 'twenty': 20, 'thirty': 30,
-  'forty': 40, 'fifty': 50, 'sixty': 60, 'seventy': 70,
-  'eighty': 80, 'ninety': 90,
+  'zero': 0,
+  'oh': 0,
+  'o': 0,
+  'ow': 0,
+  'one': 1,
+  'a': 1,
+  'won': 1,
+  'n': 1,
+  'two': 2,
+  'to': 2,
+  'too': 2,
+  'three': 3,
+  'four': 4,
+  'for': 4,
+  'five': 5,
+  'six': 6,
+  'zic': 6,
+  'seven': 7,
+  'eight': 8,
+  'nine': 9,
+  'ten': 10,
+  'eleven': 11,
+  'twelve': 12,
+  'thirteen': 13,
+  'fourteen': 14,
+  'fifteen': 15,
+  'sixteen': 16,
+  'seventeen': 17,
+  'eighteen': 18,
+  'nineteen': 19,
+  'twenty': 20,
+  'thirty': 30,
+  'forty': 40,
+  'fifty': 50,
+  'sixty': 60,
+  'seventy': 70,
+  'eighty': 80,
+  'ninety': 90,
 };
 
 /// Words the model commonly produces instead of "zero".
@@ -25,16 +54,40 @@ const Map<String, int> _wordValues = {
 /// Unrecognised words that should always map to zero but don't match the
 /// z/g/ss heuristic (e.g. short words with none of those characters).
 const Set<String> _zeroSubstitutions = {
-  'dire', 'dieu', 'youm', 'yeob', 'vour', 'vor', 'erro', 'ero', 'edy',
-  'er', 'ere', 'yo',
-  'ows', 'owen', 'owve', 'tuzo', 'monso',
+  'dire',
+  'dieu',
+  'youm',
+  'yeob',
+  'vour',
+  'vor',
+  'erro',
+  'ero',
+  'edy',
+  'er',
+  'ere',
+  'yo',
+  'ows',
+  'owen',
+  'owve',
+  'tuzo',
+  'monso',
 };
 
 /// Words that a garbled-zero candidate might actually be.
 /// If the candidate is within edit distance 2 of any of these, it's not zero.
 const List<String> _nonZeroNumberWords = [
-  'six', 'seven', 'eight', 'nine', 'sixty', 'seventy', 'eighty',
-  'ninety', 'sixteen', 'seventeen', 'eighteen', 'nineteen',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'sixty',
+  'seventy',
+  'eighty',
+  'ninety',
+  'sixteen',
+  'seventeen',
+  'eighteen',
+  'nineteen',
 ];
 
 /// Detects garbled "zero" output from the model.
@@ -85,8 +138,11 @@ int _editDistance(String a, String b) {
     curr[0] = i;
     for (var j = 1; j <= b.length; j++) {
       final cost = a[i - 1] == b[j - 1] ? 0 : 1;
-      curr[j] = [curr[j - 1] + 1, prev[j] + 1, prev[j - 1] + cost]
-          .reduce((a, b) => a < b ? a : b);
+      curr[j] = [
+        curr[j - 1] + 1,
+        prev[j] + 1,
+        prev[j - 1] + cost,
+      ].reduce((a, b) => a < b ? a : b);
     }
     prev.setAll(0, curr);
   }
@@ -96,7 +152,15 @@ int _editDistance(String a, String b) {
 /// Words that may be "zero" but are also real English words.
 /// Only substituted as a fallback when the transcript otherwise fails to parse.
 const Set<String> _ambiguousZeroWords = {
-  'year', "year's", 'years', 'europe', 'now', 'x', 'u', 'y', 'or',
+  'year',
+  "year's",
+  'years',
+  'europe',
+  'now',
+  'x',
+  'u',
+  'y',
+  'or',
 };
 
 /// Converts spoken number-word sequences into bib number strings.
@@ -135,8 +199,11 @@ class BibNumberParser {
   /// nothing, "sixteen" as "sixty"), then two, and so on. The caller picks
   /// the first that is on the roster.
   List<String> candidates(String text) {
-    final words =
-        text.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+    final words = text
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((w) => w.isNotEmpty)
+        .toList();
     final seen = <String>{};
     final out = <String>[];
     void add(String? bib) {
@@ -248,7 +315,10 @@ class BibNumberParser {
 
     // Check for unrecognised words before choosing strategy
     final unrecognised = words
-        .where((w) => w != 'hundred' && w != 'thousand' && !_wordValues.containsKey(w))
+        .where(
+          (w) =>
+              w != 'hundred' && w != 'thousand' && !_wordValues.containsKey(w),
+        )
         .toList();
     if (unrecognised.isNotEmpty) {
       // Logger.d('[BibParser] Unrecognised words: $unrecognised → null');
@@ -403,12 +473,23 @@ class BibNumberParser {
   /// Ordinals the model hears for a number said quickly ("seven" as
   /// "seventh"), as the number.
   static const Map<String, String> _ordinals = {
-    'first': 'one', 'third': 'three', 'fourth': 'four', 'fifth': 'five',
-    'sixth': 'six', 'seventh': 'seven', 'eighth': 'eight', 'ninth': 'nine',
-    'tenth': 'ten', 'eleventh': 'eleven', 'twelfth': 'twelve',
-    'thirteenth': 'thirteen', 'fourteenth': 'fourteen',
-    'fifteenth': 'fifteen', 'sixteenth': 'sixteen',
-    'seventeenth': 'seventeen', 'eighteenth': 'eighteen',
+    'first': 'one',
+    'third': 'three',
+    'fourth': 'four',
+    'fifth': 'five',
+    'sixth': 'six',
+    'seventh': 'seven',
+    'eighth': 'eight',
+    'ninth': 'nine',
+    'tenth': 'ten',
+    'eleventh': 'eleven',
+    'twelfth': 'twelve',
+    'thirteenth': 'thirteen',
+    'fourteenth': 'fourteen',
+    'fifteenth': 'fifteen',
+    'sixteenth': 'sixteen',
+    'seventeenth': 'seventeen',
+    'eighteenth': 'eighteen',
     'nineteenth': 'nineteen',
   };
 

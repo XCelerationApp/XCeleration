@@ -15,8 +15,10 @@ class CoachTimingDataConverter {
   /// [recordedTimes] holds, by chunk id, the times the Timer recorded in each
   /// missing-time chunk; any other time there was entered by the coach.
   static List<UIChunk> convertToUIChunks(
-      List<TimingChunk> timingChunks, List<RaceRunner> runners,
-      {Map<int, Set<String>>? recordedTimes}) {
+    List<TimingChunk> timingChunks,
+    List<RaceRunner> runners, {
+    Map<int, Set<String>>? recordedTimes,
+  }) {
     final runnersCopy = List<RaceRunner>.from(runners);
     final uiChunks = <UIChunk>[];
     int startingPlace = 1;
@@ -27,7 +29,8 @@ class CoachTimingDataConverter {
       // missing-time chunk can have no times at all (the Timer pressed
       // "missing time" straight after a confirmation) and must still be shown,
       // or its conflict could never be resolved.
-      final isShown = chunk.hasConflict &&
+      final isShown =
+          chunk.hasConflict &&
           (chunk.timingData.isNotEmpty ||
               (conflictType == ConflictType.missingTime &&
                   chunk.conflictRecord!.conflict!.offBy > 0));

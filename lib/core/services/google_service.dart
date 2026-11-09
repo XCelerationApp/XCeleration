@@ -40,17 +40,14 @@ class GoogleService {
   // State
   bool _initialized = false;
 
-  GoogleService({
-    ConnectivityService? connectivity,
-  }) : _connectivity = connectivity ?? const ConnectivityService();
+  GoogleService({ConnectivityService? connectivity})
+    : _connectivity = connectivity ?? const ConnectivityService();
 
   /// Initialize the Google service
   Future<void> initialize() async {
     if (_initialized) return;
 
-    await GoogleSignIn.instance.initialize(
-      serverClientId: _webClientId,
-    );
+    await GoogleSignIn.instance.initialize(serverClientId: _webClientId);
 
     await _loadStoredAuth();
     _initialized = true;
@@ -73,8 +70,8 @@ class GoogleService {
       }
 
       // Try lightweight authentication first (no UI)
-      final lightweightFuture =
-          GoogleSignIn.instance.attemptLightweightAuthentication();
+      final lightweightFuture = GoogleSignIn.instance
+          .attemptLightweightAuthentication();
       if (lightweightFuture != null) {
         _currentUser = await lightweightFuture;
       }
@@ -97,8 +94,9 @@ class GoogleService {
 
       // Get access token via authorization client
       try {
-        final authz = await _currentUser!.authorizationClient
-            .authorizeScopes([_driveScope]);
+        final authz = await _currentUser!.authorizationClient.authorizeScopes([
+          _driveScope,
+        ]);
         _accessToken = authz.accessToken;
       } on GoogleSignInException catch (e) {
         Logger.e('Failed to get access token', error: e);
@@ -140,8 +138,9 @@ class GoogleService {
 
   bool get _hasValidToken {
     if (_accessToken == null || _tokenExpiry == null) return false;
-    return DateTime.now()
-        .isBefore(_tokenExpiry!.subtract(const Duration(minutes: 5)));
+    return DateTime.now().isBefore(
+      _tokenExpiry!.subtract(const Duration(minutes: 5)),
+    );
   }
 
   /// Initialize API clients
@@ -159,17 +158,21 @@ class GoogleService {
   Future<File?> pickDriveFile(BuildContext context) async {
     if (!await _connectivity.isOnline()) {
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message:
-                'No internet connection. Please check your connection and try again.');
+        DialogUtils.showErrorDialog(
+          context,
+          message:
+              'No internet connection. Please check your connection and try again.',
+        );
       }
       return null;
     }
 
     if (!await signIn()) {
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Failed to sign in to Google');
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Failed to sign in to Google',
+        );
       }
       return null;
     }
@@ -205,7 +208,8 @@ class GoogleService {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://www.googleapis.com/drive/v3/files/$fileId?alt=media'),
+          'https://www.googleapis.com/drive/v3/files/$fileId?alt=media',
+        ),
         headers: {'Authorization': 'Bearer $_accessToken'},
       );
 
@@ -235,17 +239,21 @@ class GoogleService {
   }) async {
     if (!await _connectivity.isOnline()) {
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message:
-                'No internet connection. Please check your connection and try again.');
+        DialogUtils.showErrorDialog(
+          context,
+          message:
+              'No internet connection. Please check your connection and try again.',
+        );
       }
       return null;
     }
 
     if (!await signIn()) {
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message: 'Failed to sign in to Google');
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Failed to sign in to Google',
+        );
       }
       return null;
     }
@@ -268,7 +276,10 @@ class GoogleService {
         // Make it publicly readable
         await _driveApi!.permissions.create(
           drive.Permission(
-              type: 'anyone', role: 'reader', allowFileDiscovery: false),
+            type: 'anyone',
+            role: 'reader',
+            allowFileDiscovery: false,
+          ),
           spreadsheetId,
         );
 
@@ -298,12 +309,15 @@ class GoogleService {
     if (spreadsheetId == null) return null;
 
     return Uri.parse(
-        'https://docs.google.com/spreadsheets/d/$spreadsheetId/edit?usp=sharing');
+      'https://docs.google.com/spreadsheets/d/$spreadsheetId/edit?usp=sharing',
+    );
   }
 
   /// Download a Google Sheet as CSV
   Future<File?> downloadSheetAsCsv(
-      String spreadsheetId, String fileName) async {
+    String spreadsheetId,
+    String fileName,
+  ) async {
     if (!isSignedIn) return null;
     if (!await _connectivity.isOnline()) {
       return null;
@@ -312,7 +326,8 @@ class GoogleService {
     try {
       final response = await http.get(
         Uri.parse(
-            'https://www.googleapis.com/drive/v3/files/$spreadsheetId/export?mimeType=text/csv'),
+          'https://www.googleapis.com/drive/v3/files/$spreadsheetId/export?mimeType=text/csv',
+        ),
         headers: {'Authorization': 'Bearer $_accessToken'},
       );
 
@@ -334,19 +349,26 @@ class GoogleService {
 
   /// Add data to a sheet
   Future<void> _addDataToSheet(
-      String spreadsheetId, List<List<dynamic>> data) async {
+    String spreadsheetId,
+    List<List<dynamic>> data,
+  ) async {
     if (_sheetsApi == null) return;
 
     try {
       final rows = data
-          .map((row) => sheets.RowData(
-                values: row
-                    .map((cell) => sheets.CellData(
-                          userEnteredValue: sheets.ExtendedValue(
-                              stringValue: cell.toString()),
-                        ))
-                    .toList(),
-              ))
+          .map(
+            (row) => sheets.RowData(
+              values: row
+                  .map(
+                    (cell) => sheets.CellData(
+                      userEnteredValue: sheets.ExtendedValue(
+                        stringValue: cell.toString(),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          )
           .toList();
 
       final request = sheets.BatchUpdateSpreadsheetRequest(
@@ -399,7 +421,9 @@ class GoogleService {
 
       if (_tokenExpiry != null) {
         await prefs.setInt(
-            'google_token_expiry', _tokenExpiry!.millisecondsSinceEpoch);
+          'google_token_expiry',
+          _tokenExpiry!.millisecondsSinceEpoch,
+        );
       }
     } catch (e) {
       Logger.e('Error storing auth', error: e);

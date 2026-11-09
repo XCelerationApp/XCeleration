@@ -14,10 +14,10 @@ import 'package:xceleration/shared/models/database/team.dart';
 const _eagles = Team(teamId: 1, name: 'Eagles', abbreviation: 'EAG');
 
 RaceRunner _runner(int id, String bib, String name) => RaceRunner(
-      raceId: 1,
-      runner: Runner(runnerId: id, name: name, bibNumber: bib, grade: 10),
-      team: _eagles,
-    );
+  raceId: 1,
+  runner: Runner(runnerId: id, name: name, bibNumber: bib, grade: 10),
+  team: _eagles,
+);
 
 final _quinn = _runner(1, '959', 'Quinn');
 final _gray = _runner(2, '949', 'Gray');
@@ -65,32 +65,33 @@ void main() {
     List<RaceRunner>? candidates,
     Map<String, String> savedBibOwners = const {},
     List<RaceRunner>? withdrawn,
-  }) =>
-      ConflictResolutionController(
-        withdrawRunner: withdrawn == null
-            ? null
-            : (runner) async => withdrawn.add(runner),
-        conflicts: conflicts ?? [_duplicate, _unknown],
-        candidates: candidates ?? [_gray, _nico, _sage],
-        knownBibs: {'959', '949', '956', '961'},
-        savedBibOwners: savedBibOwners,
-        teams: const ['Eagles', 'Owls'],
-        raceName: 'Invitational',
-        createRunner: (newRunner) async {
-          saved.add(newRunner);
-          return saveResult?.call(newRunner) ??
-              Success(RaceRunner(
-                raceId: 1,
-                runner: Runner(
-                  runnerId: 99,
-                  name: newRunner.name,
-                  bibNumber: newRunner.bibNumber,
-                  grade: newRunner.grade,
-                ),
-                team: _eagles,
-              ));
-        },
-      );
+  }) => ConflictResolutionController(
+    withdrawRunner: withdrawn == null
+        ? null
+        : (runner) async => withdrawn.add(runner),
+    conflicts: conflicts ?? [_duplicate, _unknown],
+    candidates: candidates ?? [_gray, _nico, _sage],
+    knownBibs: {'959', '949', '956', '961'},
+    savedBibOwners: savedBibOwners,
+    teams: const ['Eagles', 'Owls'],
+    raceName: 'Invitational',
+    createRunner: (newRunner) async {
+      saved.add(newRunner);
+      return saveResult?.call(newRunner) ??
+          Success(
+            RaceRunner(
+              raceId: 1,
+              runner: Runner(
+                runnerId: 99,
+                name: newRunner.name,
+                bibNumber: newRunner.bibNumber,
+                grade: newRunner.grade,
+              ),
+              team: _eagles,
+            ),
+          );
+    },
+  );
 
   group('choosing the order', () {
     test('starts on the summary', () {
@@ -111,16 +112,21 @@ void main() {
       expect(c.currentConflict, same(_unknown));
     });
 
-    test('finishing the last conflict goes back for one left open earlier',
-        () async {
-      final c = make()..openConflict(1);
-      c.prepareAssign(_nico, 'Bib #9567');
-      await c.commitPending();
+    test(
+      'finishing the last conflict goes back for one left open earlier',
+      () async {
+        final c = make()..openConflict(1);
+        c.prepareAssign(_nico, 'Bib #9567');
+        await c.commitPending();
 
-      expect(c.isOnConflict, isTrue);
-      expect(c.currentConflict, same(_duplicate),
-          reason: 'the duplicate was skipped, not resolved');
-    });
+        expect(c.isOnConflict, isTrue);
+        expect(
+          c.currentConflict,
+          same(_duplicate),
+          reason: 'the duplicate was skipped, not resolved',
+        );
+      },
+    );
   });
 
   group('an unrecognised bib', () {
@@ -129,7 +135,11 @@ void main() {
 
       c.prepareAssign(_nico, 'Bib #9567');
       expect(c.hasPending, isTrue);
-      expect(c.resolvedByPlace, isEmpty, reason: 'nothing settles until the toast runs out');
+      expect(
+        c.resolvedByPlace,
+        isEmpty,
+        reason: 'nothing settles until the toast runs out',
+      );
       await c.commitPending();
 
       expect(c.resolvedByPlace, {17: _nico});
@@ -168,7 +178,11 @@ void main() {
 
       expect(c.resolvedByPlace, {16: _quinn, 21: _gray});
       expect(c.isResolved(0), isTrue);
-      expect(c.currentConflict, same(_unknown), reason: 'on to the next open one');
+      expect(
+        c.currentConflict,
+        same(_unknown),
+        reason: 'on to the next open one',
+      );
     });
 
     test('the choice can go either way', () async {
@@ -206,8 +220,11 @@ void main() {
 
       expect(c.isOnConflict, isTrue);
       expect(c.chosenPlace, isNull);
-      expect(c.resolvedByPlace, isEmpty,
-          reason: 'the kept finish goes with the choice');
+      expect(
+        c.resolvedByPlace,
+        isEmpty,
+        reason: 'the kept finish goes with the choice',
+      );
     });
 
     test('ignores a place the bib was not recorded at', () {
@@ -222,8 +239,11 @@ void main() {
       final c = make()..openConflict(1);
 
       c.prepareCreate('Avery Stone', '9567', 'Eagles', 11, 'Bib #9567');
-      expect(saved, isEmpty,
-          reason: 'an undone creation must not leave a runner in the race');
+      expect(
+        saved,
+        isEmpty,
+        reason: 'an undone creation must not leave a runner in the race',
+      );
       await c.commitPending();
 
       expect(saved.single.name, 'Avery Stone');
@@ -241,7 +261,8 @@ void main() {
     });
 
     test('a failed save leaves the finish open and says why', () async {
-      saveResult = (_) => const Failure(AppError(userMessage: 'Could not save.'));
+      saveResult = (_) =>
+          const Failure(AppError(userMessage: 'Could not save.'));
       final c = make()..openConflict(1);
       c.prepareCreate('Avery Stone', '9567', 'Eagles', 11, 'Bib #9567');
 
@@ -265,30 +286,34 @@ void main() {
       expect(make(savedBibOwners: {'962': 'Sam Lee'}).nextFreeBib, '963');
     });
 
-    test('redoing the answer takes the added runner back out of the race',
-        () async {
-      final withdrawn = <RaceRunner>[];
-      final c = make(withdrawn: withdrawn)..openConflict(1);
-      c.prepareCreate('Avery Stone', '9567', 'Eagles', 11, 'Bib #9567');
-      await c.commitPending();
-      expect(withdrawn, isEmpty);
+    test(
+      'redoing the answer takes the added runner back out of the race',
+      () async {
+        final withdrawn = <RaceRunner>[];
+        final c = make(withdrawn: withdrawn)..openConflict(1);
+        c.prepareCreate('Avery Stone', '9567', 'Eagles', 11, 'Bib #9567');
+        await c.commitPending();
+        expect(withdrawn, isEmpty);
 
-      c.openConflict(1);
+        c.openConflict(1);
 
-      expect(withdrawn.single.runner.name, 'Avery Stone');
-    });
+        expect(withdrawn.single.runner.name, 'Avery Stone');
+      },
+    );
 
-    test('leaving takes out runners added for unfinished conflicts only',
-        () async {
-      final withdrawn = <RaceRunner>[];
-      final c = make(withdrawn: withdrawn)..startResolving();
-      c.chooseDuplicateOccurrence(16);
-      c.prepareCreateForDuplicate('Avery Stone', '977', 'Eagles', 11, '21st');
-      await c.commitPending();
+    test(
+      'leaving takes out runners added for unfinished conflicts only',
+      () async {
+        final withdrawn = <RaceRunner>[];
+        final c = make(withdrawn: withdrawn)..startResolving();
+        c.chooseDuplicateOccurrence(16);
+        c.prepareCreateForDuplicate('Avery Stone', '977', 'Eagles', 11, '21st');
+        await c.commitPending();
 
-      c.withdrawUnfinished();
-      expect(withdrawn, isEmpty, reason: 'the repeated bib is finished');
-    });
+        c.withdrawUnfinished();
+        expect(withdrawn, isEmpty, reason: 'the repeated bib is finished');
+      },
+    );
 
     test('a leftover finish can go to someone new', () async {
       final c = make()..startResolving();
@@ -306,8 +331,11 @@ void main() {
     test('puts the nearest bib numbers first', () {
       final c = make()..openConflict(1);
       // 957 is nearest to 956 (Nico), then 961, then 949.
-      expect(c.runnersNearBib('957').map((r) => r.runner.bibNumber),
-          ['956', '961', '949']);
+      expect(c.runnersNearBib('957').map((r) => r.runner.bibNumber), [
+        '956',
+        '961',
+        '949',
+      ]);
     });
 
     test('leaves out runners already given a finish', () async {
@@ -337,8 +365,7 @@ void main() {
       expect(c.resolvedCount, 2);
     });
 
-    test('lists every finish in finish order, the kept one included',
-        () async {
+    test('lists every finish in finish order, the kept one included', () async {
       final c = await finished();
       expect(c.resolutionLog.map((e) => e.place), [16, 17, 21]);
       expect(c.resolutionLog.map((e) => e.kind), [
@@ -361,9 +388,14 @@ void main() {
 
       c.openConflict(0);
 
-      expect(c.resolvedByPlace.keys, [17], reason: 'only the other conflict stays');
-      expect(c.runnersNearBib('9567'), contains(_gray),
-          reason: 'Gray is free again');
+      expect(c.resolvedByPlace.keys, [
+        17,
+      ], reason: 'only the other conflict stays');
+      expect(
+        c.runnersNearBib('9567'),
+        contains(_gray),
+        reason: 'Gray is free again',
+      );
     });
   });
 }

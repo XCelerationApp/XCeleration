@@ -12,32 +12,44 @@ const _eagles = Team(teamId: 1, name: 'Eagles', abbreviation: 'EAG');
 
 void main() {
   const alice = Runner(runnerId: 1, name: 'Alice', bibNumber: '101', grade: 10);
-  const bob = Runner(runnerId: 2, name: 'Bob Smith', bibNumber: '102', grade: 11);
+  const bob = Runner(
+    runnerId: 2,
+    name: 'Bob Smith',
+    bibNumber: '102',
+    grade: 11,
+  );
 
-  Future<void> editAlice(WidgetTester tester,
-      {Future<void> Function()? onRemove,
-      void Function(RaceRunner)? onSubmit}) async {
-    await tester.pumpWidget(MaterialApp(
-      home: Scaffold(
-        body: SingleChildScrollView(
-          child: RunnerInputForm(
-            raceId: 1,
-            teamOptions: const [_eagles],
-            initialRaceRunner:
-                RaceRunner(raceId: 1, runner: alice, team: _eagles),
-            submitButtonText: 'Save',
-            onSubmit: (r) async => onSubmit?.call(r),
-            onRemove: onRemove,
-            useSheetLayout: false,
-            getRunnerByBib: (bib) async => switch (bib) {
-              '101' => alice,
-              '102' => bob,
-              _ => null,
-            },
+  Future<void> editAlice(
+    WidgetTester tester, {
+    Future<void> Function()? onRemove,
+    void Function(RaceRunner)? onSubmit,
+  }) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: SingleChildScrollView(
+            child: RunnerInputForm(
+              raceId: 1,
+              teamOptions: const [_eagles],
+              initialRaceRunner: RaceRunner(
+                raceId: 1,
+                runner: alice,
+                team: _eagles,
+              ),
+              submitButtonText: 'Save',
+              onSubmit: (r) async => onSubmit?.call(r),
+              onRemove: onRemove,
+              useSheetLayout: false,
+              getRunnerByBib: (bib) async => switch (bib) {
+                '101' => alice,
+                '102' => bob,
+                _ => null,
+              },
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.pumpAndSettle();
   }
 
@@ -48,8 +60,13 @@ void main() {
     await tester.pump(const Duration(seconds: 1));
     await tester.pumpAndSettle();
 
-    expect(find.text("Bib 102 is Bob Smith's. Saving replaces Bob Smith with "
-        'this runner.'), findsOneWidget);
+    expect(
+      find.text(
+        "Bib 102 is Bob Smith's. Saving replaces Bob Smith with "
+        'this runner.',
+      ),
+      findsOneWidget,
+    );
   });
 
   testWidgets('says nothing for a bib nobody holds', (tester) async {
@@ -62,8 +79,9 @@ void main() {
     expect(find.textContaining('Saving replaces'), findsNothing);
   });
 
-  testWidgets('has the same fields, in the same order, as Add Runner',
-      (tester) async {
+  testWidgets('has the same fields, in the same order, as Add Runner', (
+    tester,
+  ) async {
     await editAlice(tester);
 
     double top(String label) => tester.getTopLeft(find.text(label)).dy;

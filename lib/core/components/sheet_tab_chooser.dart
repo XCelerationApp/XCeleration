@@ -10,7 +10,10 @@ import '../utils/sheet_utils.dart';
 /// the boys' and girls' tabs of the schools racing. Returns the chosen tab
 /// names in sheet order, or null if the coach backs out.
 Future<List<String>?> chooseSheetTabs(
-    BuildContext context, String fileName, List<String> tabs) async {
+  BuildContext context,
+  String fileName,
+  List<String> tabs,
+) async {
   final choice = await sheet(
     context: context,
     title: 'Which Tabs?',
@@ -21,7 +24,11 @@ Future<List<String>?> chooseSheetTabs(
 
 /// The checklist [chooseSheetTabs] shows: Select all, then each tab.
 class SheetTabChooser extends StatefulWidget {
-  const SheetTabChooser({super.key, required this.fileName, required this.tabs});
+  const SheetTabChooser({
+    super.key,
+    required this.fileName,
+    required this.tabs,
+  });
 
   final String fileName;
   final List<String> tabs;
@@ -46,7 +53,9 @@ class _SheetTabChooserState extends State<SheetTabChooser> {
           '"${widget.fileName}" has ${widget.tabs.length} tabs. Tick the ones '
           'to import. A tab without a Team column uses the tab\'s name as '
           'the team.',
-          style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
+          style: AppTypography.bodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         CheckboxListTile(
@@ -100,9 +109,9 @@ class _SheetTabChooserState extends State<SheetTabChooser> {
           onTap: count == 0
               ? null
               : () => Navigator.pop(context, [
-                    for (final tab in widget.tabs)
-                      if (_chosen.contains(tab)) tab,
-                  ]),
+                  for (final tab in widget.tabs)
+                    if (_chosen.contains(tab)) tab,
+                ]),
         ),
       ],
     );
@@ -133,17 +142,24 @@ class _TabOption extends StatelessWidget {
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
           child: Row(
             children: [
-              Icon(icon, color: primary ? Colors.white : AppColors.primaryColor),
+              Icon(
+                icon,
+                color: primary ? Colors.white : AppColors.primaryColor,
+              ),
               const SizedBox(width: AppSpacing.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(label,
-                        style: AppTypography.bodySemibold.copyWith(color: fg)),
+                    Text(
+                      label,
+                      style: AppTypography.bodySemibold.copyWith(color: fg),
+                    ),
                   ],
                 ),
               ),

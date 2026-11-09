@@ -38,8 +38,9 @@ class Runner {
       name: map['name'] as String?,
       teamAbbreviation: map['team_abbreviation'] as String?,
       grade: map['grade'] as String?,
-      teamColor:
-          map['team_color'] != null ? Color(map['team_color'] as int) : null,
+      teamColor: map['team_color'] != null
+          ? Color(map['team_color'] as int)
+          : null,
       createdAt: DateTime.fromMillisecondsSinceEpoch(map['created_at'] as int),
     );
   }
