@@ -24,8 +24,7 @@ class ExistingTeamsBrowserSheet extends StatefulWidget {
       _ExistingTeamsBrowserSheetState();
 }
 
-class _ExistingTeamsBrowserSheetState
-    extends State<ExistingTeamsBrowserSheet> {
+class _ExistingTeamsBrowserSheetState extends State<ExistingTeamsBrowserSheet> {
   final Map<int, Set<int>> _selectedRunners = {};
   late final List<Team> _teams;
   late final Map<int, List<Runner>> _teamRunners;
@@ -51,14 +50,12 @@ class _ExistingTeamsBrowserSheetState
   /// runner without a search; with one, teams whose name matches (with all
   /// their runners) or that have a matching runner (with just those).
   List<(Team, List<Runner>)> get _visible => [
-        for (final team in _teams)
-          if (_query.isEmpty ||
-              (team.name ?? '').toLowerCase().contains(_query))
-            (team, _teamRunners[team.teamId!] ?? const [])
-          else if ((_teamRunners[team.teamId!] ?? const [])
-              .any(_runnerMatches))
-            (team, _teamRunners[team.teamId!]!.where(_runnerMatches).toList()),
-      ];
+    for (final team in _teams)
+      if (_query.isEmpty || (team.name ?? '').toLowerCase().contains(_query))
+        (team, _teamRunners[team.teamId!] ?? const [])
+      else if ((_teamRunners[team.teamId!] ?? const []).any(_runnerMatches))
+        (team, _teamRunners[team.teamId!]!.where(_runnerMatches).toList()),
+  ];
 
   @override
   void initState() {
@@ -170,8 +167,9 @@ class _ExistingTeamsBrowserSheetState
             padding: const EdgeInsets.all(AppSpacing.lg),
             child: Text(
               'No team or runner matches "${_search.text.trim()}".',
-              style: AppTypography.bodyRegular
-                  .copyWith(color: AppColors.mediumColor),
+              style: AppTypography.bodyRegular.copyWith(
+                color: AppColors.mediumColor,
+              ),
               textAlign: TextAlign.center,
             ),
           ),
@@ -192,7 +190,8 @@ class _ExistingTeamsBrowserSheetState
                   runners: runners,
                   runnerCount: _teamRunners[teamId]?.length ?? 0,
                   // A search for a runner opens their team to show them.
-                  expanded: _expanded.contains(teamId) ||
+                  expanded:
+                      _expanded.contains(teamId) ||
                       (_query.isNotEmpty &&
                           !(team.name ?? '').toLowerCase().contains(_query)),
                   onToggleExpanded: () => setState(() {
@@ -356,8 +355,7 @@ class _TeamHeader extends StatelessWidget {
               height: 10,
               decoration: BoxDecoration(
                 color: teamColor,
-                borderRadius:
-                    BorderRadius.circular(AppBorderRadius.full),
+                borderRadius: BorderRadius.circular(AppBorderRadius.full),
               ),
             ),
             const SizedBox(width: AppSpacing.sm),
@@ -405,9 +403,7 @@ class _TeamCheckbox extends StatelessWidget {
       width: 20,
       height: 20,
       decoration: BoxDecoration(
-        color: checked || partial
-            ? color
-            : Colors.transparent,
+        color: checked || partial ? color : Colors.transparent,
         borderRadius: BorderRadius.circular(AppBorderRadius.xs),
         border: Border.all(
           color: checked || partial ? color : AppColors.mediumColor,
@@ -417,8 +413,8 @@ class _TeamCheckbox extends StatelessWidget {
       child: checked
           ? Icon(Icons.check, size: 14, color: AppColors.backgroundColor)
           : partial
-              ? Icon(Icons.remove, size: 14, color: AppColors.backgroundColor)
-              : null,
+          ? Icon(Icons.remove, size: 14, color: AppColors.backgroundColor)
+          : null,
     );
   }
 }
@@ -513,8 +509,9 @@ class _ImportButton extends StatelessWidget {
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: AppColors.primaryColor,
-          disabledBackgroundColor:
-              AppColors.primaryColor.withValues(alpha: AppOpacity.solid),
+          disabledBackgroundColor: AppColors.primaryColor.withValues(
+            alpha: AppOpacity.solid,
+          ),
           foregroundColor: AppColors.backgroundColor,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppBorderRadius.lg),

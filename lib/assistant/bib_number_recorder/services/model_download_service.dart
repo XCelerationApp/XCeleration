@@ -1,6 +1,5 @@
 import 'dart:io';
 
-
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:xceleration/assistant/bib_number_recorder/services/i_model_download_service.dart';
@@ -31,9 +30,9 @@ class ModelDownloadService implements IModelDownloadService {
   ModelDownloadService({
     Future<Directory> Function()? supportDirProvider,
     HttpClient Function()? httpClientFactory,
-  })  : _supportDirProvider =
-            supportDirProvider ?? getApplicationSupportDirectory,
-        _httpClientFactory = httpClientFactory ?? HttpClient.new;
+  }) : _supportDirProvider =
+           supportDirProvider ?? getApplicationSupportDirectory,
+       _httpClientFactory = httpClientFactory ?? HttpClient.new;
 
   final Future<Directory> Function() _supportDirProvider;
   final HttpClient Function() _httpClientFactory;
@@ -57,10 +56,12 @@ class ModelDownloadService implements IModelDownloadService {
       await _removeHotwordFiles(modelDir);
       return Success(ModelAssets(modelDir: modelDir));
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not load speech recognition model.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load speech recognition model.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -85,12 +86,14 @@ class ModelDownloadService implements IModelDownloadService {
       for (final filename in _requiredModelFiles) {
         final dest = File(p.join(modelDir, filename));
         if (dest.existsSync()) continue;
-        final request =
-            await client.getUrl(Uri.parse('$_modelBaseUrl/$filename'));
+        final request = await client.getUrl(
+          Uri.parse('$_modelBaseUrl/$filename'),
+        );
         final response = await request.close();
         if (response.statusCode != 200) {
           throw Exception(
-              'Failed to download $filename (HTTP ${response.statusCode})');
+            'Failed to download $filename (HTTP ${response.statusCode})',
+          );
         }
         // Written under a temporary name and renamed once whole: a download
         // cut off part way left a short file that looked finished, and voice

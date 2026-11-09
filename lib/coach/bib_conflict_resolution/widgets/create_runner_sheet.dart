@@ -128,7 +128,8 @@ class _CreateRunnerSheetState extends State<CreateRunnerSheet> {
 
   bool get _canSubmit {
     final nameOk = _nameController.text.trim().isNotEmpty && _nameError == null;
-    final bibOk = _bibLocked ||
+    final bibOk =
+        _bibLocked ||
         (_bibController.text.trim().isNotEmpty && _bibError == null);
     return nameOk &&
         bibOk &&
@@ -339,8 +340,11 @@ class _AutoBibDisplay extends StatelessWidget {
               IconButton(
                 key: const ValueKey('edit_new_runner_bib'),
                 tooltip: 'Change bib',
-                icon: const Icon(Icons.edit,
-                    color: AppColors.primaryColor, size: 20),
+                icon: const Icon(
+                  Icons.edit,
+                  color: AppColors.primaryColor,
+                  size: 20,
+                ),
                 onPressed: onEdit,
               ),
             ],
@@ -408,8 +412,10 @@ class _DropdownField<T> extends StatelessWidget {
             borderRadius: BorderRadius.circular(AppBorderRadius.lg),
             elevation: 4,
             menuMaxHeight: 360,
-            icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                color: AppColors.mediumColor),
+            icon: const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              color: AppColors.mediumColor,
+            ),
             value: value,
             onChanged: onChanged,
             isExpanded: true,

@@ -36,7 +36,7 @@ import 'screens/sign_in_screen.dart';
 /// The caller is responsible for disposing both the controller and each
 /// [CurvedAnimation] in the returned list.
 ({AnimationController controller, List<CurvedAnimation> animations})
-    _buildStaggeredAnimations(int count, TickerProvider vsync) {
+_buildStaggeredAnimations(int count, TickerProvider vsync) {
   final totalMs = 120 + (count - 1) * 80 + 400;
   final controller = AnimationController(
     vsync: vsync,
@@ -47,8 +47,11 @@ import 'screens/sign_in_screen.dart';
     final endMs = startMs + 400;
     return CurvedAnimation(
       parent: controller,
-      curve: Interval(startMs / totalMs, endMs / totalMs,
-          curve: AppAnimations.enter),
+      curve: Interval(
+        startMs / totalMs,
+        endMs / totalMs,
+        curve: AppAnimations.enter,
+      ),
     );
   });
   return (controller: controller, animations: animations);
@@ -76,8 +79,12 @@ class _SpeedLinesPainter extends CustomPainter {
 
   // (startX, y, strokeWidth) — each line runs from startX to the right edge
   static const _specs = [
-    (80.0, 30.0, 2.5), (30.0, 56.0, 2.0), (0.0, 82.0, 1.5),
-    (50.0, 108.0, 1.0), (100.0, 134.0, 2.0), (20.0, 160.0, 2.5),
+    (80.0, 30.0, 2.5),
+    (30.0, 56.0, 2.0),
+    (0.0, 82.0, 1.5),
+    (50.0, 108.0, 1.0),
+    (100.0, 134.0, 2.0),
+    (20.0, 160.0, 2.5),
     (70.0, 186.0, 1.5),
   ];
 
@@ -99,7 +106,11 @@ class _SpeedLinesPainter extends CustomPainter {
 // ─── Role row (on gradient) ───────────────────────────────────────────────────
 
 class _RoleRow extends StatefulWidget {
-  const _RoleRow({required this.data, required this.isLast, required this.entrance});
+  const _RoleRow({
+    required this.data,
+    required this.isLast,
+    required this.entrance,
+  });
   final _RoleData data;
   final bool isLast;
   final Animation<double> entrance;
@@ -346,7 +357,8 @@ class _AssistantScreenState extends State<_AssistantScreen>
     _roles = [
       _RoleData(
         label: 'Timer',
-        description: "Tap to record each runner's finish time as they cross the line",
+        description:
+            "Tap to record each runner's finish time as they cross the line",
         onPressed: _onTimer,
       ),
       _RoleData(
@@ -355,8 +367,10 @@ class _AssistantScreenState extends State<_AssistantScreen>
         onPressed: _onRecorder,
       ),
     ];
-    final (:controller, :animations) =
-        _buildStaggeredAnimations(_roles.length, this);
+    final (:controller, :animations) = _buildStaggeredAnimations(
+      _roles.length,
+      this,
+    );
     _entranceController = controller;
     _rowAnimations = animations;
     final resume = widget.resume;
@@ -377,9 +391,9 @@ class _AssistantScreenState extends State<_AssistantScreen>
     super.dispose();
   }
 
-  void _onTimer() => Navigator.of(context).push(
-        InitialPageRouteAnimation(child: const TimingScreen()),
-      );
+  void _onTimer() => Navigator.of(
+    context,
+  ).push(InitialPageRouteAnimation(child: const TimingScreen()));
 
   Future<void> _onRecorder() async {
     // Guard: a session is already active; ignore the tap.
@@ -438,7 +452,10 @@ class _AssistantScreenState extends State<_AssistantScreen>
   Widget _buildHeader(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.xxl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xxl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,8 +572,10 @@ class _RoleScreenState extends State<RoleScreen>
         onPressed: _onSpectator,
       ),
     ];
-    final (:controller, :animations) =
-        _buildStaggeredAnimations(_roles.length, this);
+    final (:controller, :animations) = _buildStaggeredAnimations(
+      _roles.length,
+      this,
+    );
     _entranceController = controller;
     _rowAnimations = animations;
     WidgetsBinding.instance.addPostFrameCallback((_) => _resumeLiveRace());
@@ -579,10 +598,7 @@ class _RoleScreenState extends State<RoleScreen>
         InitialPageRouteAnimation(
           child: SignInScreen(
             authService: auth,
-            profileService: ProfileService(
-              remoteApi: remoteApi,
-              auth: auth,
-            ),
+            profileService: ProfileService(remoteApi: remoteApi, auth: auth),
           ),
         ),
       );
@@ -591,25 +607,29 @@ class _RoleScreenState extends State<RoleScreen>
     // Already signed in from a previous run, so this is where their database
     // gets opened.
     try {
-      await ServiceLocator.get<IDatabaseConnectionProvider>()
-          .openForUser(auth.currentUserId!);
+      await ServiceLocator.get<IDatabaseConnectionProvider>().openForUser(
+        auth.currentUserId!,
+      );
     } catch (e) {
       Logger.e('Could not open the coach database: $e');
       if (!mounted) return;
-      DialogUtils.showErrorDialog(context,
-          message: 'Could not open your races. Please restart the app and '
-              'try again.');
+      DialogUtils.showErrorDialog(
+        context,
+        message:
+            'Could not open your races. Please restart the app and '
+            'try again.',
+      );
       return;
     }
     if (!mounted) return;
-    Navigator.of(context).push(
-      InitialPageRouteAnimation(child: const RacesScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(InitialPageRouteAnimation(child: const RacesScreen()));
   }
 
-  void _onAssistant({String? resume}) => Navigator.of(context).push(
-        InitialPageRouteAnimation(child: _AssistantScreen(resume: resume)),
-      );
+  void _onAssistant({String? resume}) => Navigator.of(
+    context,
+  ).push(InitialPageRouteAnimation(child: _AssistantScreen(resume: resume)));
 
   /// Checked once per launch: the app was closed with a race running, so it
   /// goes straight back to the Timer or Bib Recorder.
@@ -623,9 +643,9 @@ class _RoleScreenState extends State<RoleScreen>
     _onAssistant(resume: screen);
   }
 
-  void _onSpectator() => Navigator.of(context).push(
-        InitialPageRouteAnimation(child: const SpectatorRacesScreen()),
-      );
+  void _onSpectator() => Navigator.of(
+    context,
+  ).push(InitialPageRouteAnimation(child: const SpectatorRacesScreen()));
 
   @override
   Widget build(BuildContext context) {
@@ -660,7 +680,10 @@ class _RoleScreenState extends State<RoleScreen>
   Widget _buildHeader() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppSpacing.xl, AppSpacing.xl, AppSpacing.xl, AppSpacing.xxl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xl,
+        AppSpacing.xxl,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

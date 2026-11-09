@@ -9,10 +9,7 @@ import '../../../core/utils/enums.dart';
 class FormatSelectionWidget extends StatelessWidget {
   final void Function(ResultFormat) onShareSelected;
 
-  const FormatSelectionWidget({
-    super.key,
-    required this.onShareSelected,
-  });
+  const FormatSelectionWidget({super.key, required this.onShareSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -33,14 +30,22 @@ class FormatSelectionWidget extends StatelessWidget {
                 icon: Icons.content_copy_outlined,
                 description: 'Paste into a message, email or post',
               ),
-              const Divider(height: 1, thickness: 0.5, color: AppColors.borderColor),
+              const Divider(
+                height: 1,
+                thickness: 0.5,
+                color: AppColors.borderColor,
+              ),
               _buildFormatOption(
                 format: ResultFormat.googleSheet,
                 label: 'Google Sheets',
                 icon: Icons.grid_on_outlined,
                 description: 'Make a new sheet in your Google Drive',
               ),
-              const Divider(height: 1, thickness: 0.5, color: AppColors.borderColor),
+              const Divider(
+                height: 1,
+                thickness: 0.5,
+                color: AppColors.borderColor,
+              ),
               _buildFormatOption(
                 format: ResultFormat.pdf,
                 label: 'PDF',
@@ -61,42 +66,43 @@ class FormatSelectionWidget extends StatelessWidget {
     required String description,
   }) {
     return InkWell(
-        onTap: () => onShareSelected(format),
-        borderRadius: BorderRadius.circular(AppBorderRadius.lg),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-              vertical: AppSpacing.xl, horizontal: AppSpacing.lg),
-          child: Row(
-            children: [
-              Icon(
-                icon,
-                size: 24,
-                color: AppColors.mediumColor,
-              ),
-              const SizedBox(width: AppSpacing.lg),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      label,
-                      style: AppTypography.bodySemibold
-                          .copyWith(color: AppColors.darkColor),
+      onTap: () => onShareSelected(format),
+      borderRadius: BorderRadius.circular(AppBorderRadius.lg),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+          vertical: AppSpacing.xl,
+          horizontal: AppSpacing.lg,
+        ),
+        child: Row(
+          children: [
+            Icon(icon, size: 24, color: AppColors.mediumColor),
+            const SizedBox(width: AppSpacing.lg),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: AppTypography.bodySemibold.copyWith(
+                      color: AppColors.darkColor,
                     ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      description,
-                      style: AppTypography.smallBodyRegular
-                          .copyWith(color: AppColors.mediumColor),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    description,
+                    style: AppTypography.smallBodyRegular.copyWith(
+                      color: AppColors.mediumColor,
                     ),
-                  ],
-                ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-            ],
-          ),
-        ));
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

@@ -45,18 +45,18 @@ class ConflictHeader extends StatelessWidget {
     final String title = type == ConflictType.extraTime
         ? '${several ? '$offBy extra times' : 'An extra time'}$where'
         : '${several ? '$offBy times are' : 'A time is'} missing$where';
-    final range = TimeFormatter.isDuration(startTime) &&
-            TimeFormatter.isDuration(endTime)
+    final range =
+        TimeFormatter.isDuration(startTime) && TimeFormatter.isDuration(endTime)
         ? 'Times $startTime to $endTime'
         : TimeFormatter.isDuration(endTime)
-            ? 'Times up to $endTime'
-            : null;
+        ? 'Times up to $endTime'
+        : null;
     final String description = type == ConflictType.extraTime
         ? 'The Timer has more times than runners here. Tap ✕ on the time '
-            'that was not a runner; the times below move up a place.'
+              'that was not a runner; the times below move up a place.'
         : 'The Timer missed a runner here. Tap + on the runner whose time is '
-            'missing; the times below move down a place, and you type the '
-            'missing time into the box.';
+              'missing; the times below move down a place, and you type the '
+              'missing time into the box.';
 
     final places = firstPlace != null && lastPlace != null
         ? '${ordinal(firstPlace!)} to ${ordinal(lastPlace!)}'
@@ -82,10 +82,7 @@ class ConflictHeader extends StatelessWidget {
             ),
           ),
           if (range != null)
-            Text(
-              range,
-              style: AppTypography.caption.copyWith(color: accent),
-            ),
+            Text(range, style: AppTypography.caption.copyWith(color: accent)),
           const SizedBox(height: 4),
           Text(
             description,
@@ -96,14 +93,18 @@ class ConflictHeader extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.lightbulb_outline,
-                    size: 16, color: AppColors.primaryColor),
+                const Icon(
+                  Icons.lightbulb_outline,
+                  size: 16,
+                  color: AppColors.primaryColor,
+                ),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     suggestion!,
-                    style: AppTypography.smallBodySemibold
-                        .copyWith(color: AppColors.primaryColor),
+                    style: AppTypography.smallBodySemibold.copyWith(
+                      color: AppColors.primaryColor,
+                    ),
                   ),
                 ),
               ],
@@ -125,10 +126,7 @@ class ConflictHeader extends StatelessWidget {
 }
 
 class ConfirmHeader extends StatelessWidget {
-  const ConfirmHeader({
-    super.key,
-    required this.confirmTime,
-  });
+  const ConfirmHeader({super.key, required this.confirmTime});
   final String confirmTime;
 
   @override

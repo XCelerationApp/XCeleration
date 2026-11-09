@@ -13,10 +13,12 @@ const _roster = <_R>[
   (name: 'Ava Johnson', bib: '330'),
 ];
 
-List<String> _find(String query) => searchRunners<_R>(_roster, query,
-        nameOf: (r) => r.name, bibOf: (r) => r.bib)
-    .map((r) => r.name)
-    .toList();
+List<String> _find(String query) => searchRunners<_R>(
+  _roster,
+  query,
+  nameOf: (r) => r.name,
+  bibOf: (r) => r.bib,
+).map((r) => r.name).toList();
 
 void main() {
   test('a first or last name, or part of one', () {
@@ -55,10 +57,17 @@ void main() {
   });
 
   test('shows at most the best few', () {
-    final many = [for (var i = 0; i < 20; i++) (name: 'Alex Lee $i', bib: '$i')];
+    final many = [
+      for (var i = 0; i < 20; i++) (name: 'Alex Lee $i', bib: '$i'),
+    ];
     expect(
-        searchRunners<_R>(many, 'alex',
-            nameOf: (r) => r.name, bibOf: (r) => r.bib),
-        hasLength(8));
+      searchRunners<_R>(
+        many,
+        'alex',
+        nameOf: (r) => r.name,
+        bibOf: (r) => r.bib,
+      ),
+      hasLength(8),
+    );
   });
 }

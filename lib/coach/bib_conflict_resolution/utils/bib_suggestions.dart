@@ -57,8 +57,10 @@ List<RunnerSuggestion> suggestRunnersForBib(
     if (slip != null) {
       close.add((RunnerSuggestion(runner: runner, reasons: reasons), distance));
     } else if (block != null) {
-      sameBlock
-          .add((RunnerSuggestion(runner: runner, reasons: reasons), distance));
+      sameBlock.add((
+        RunnerSuggestion(runner: runner, reasons: reasons),
+        distance,
+      ));
     }
   }
 
@@ -122,8 +124,10 @@ bool _dropsOne(String longer, String shorter) {
 /// lowest to the highest then covered almost every bib ("100–950"), and
 /// every typo looked like that team's. A gap far wider than the team's usual
 /// spacing (and over [minBreak]) starts a new run.
-Map<String, List<(int, int)>> teamBibBlocks(List<RaceRunner> roster,
-    {int minBreak = 25}) {
+Map<String, List<(int, int)>> teamBibBlocks(
+  List<RaceRunner> roster, {
+  int minBreak = 25,
+}) {
   final bibsByTeam = <String, List<int>>{};
   for (final r in roster) {
     final team = r.team.name;

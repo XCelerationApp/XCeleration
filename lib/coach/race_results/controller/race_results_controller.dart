@@ -23,17 +23,19 @@ class RaceResultsController extends ChangeNotifier {
   }) : _service = service {
     _syncSubscription = syncStream
         ?.where((event) => event.changedTables.contains('race_results'))
-        .where((event) =>
-            event.changedRaceIds.isEmpty ||
-            event.changedRaceIds.contains(_lastMasterRace?.raceId))
+        .where(
+          (event) =>
+              event.changedRaceIds.isEmpty ||
+              event.changedRaceIds.contains(_lastMasterRace?.raceId),
+        )
         .listen((_) {
-      final race = _lastMasterRace;
-      if (race == null) return;
-      // The race holds its results in memory; drop them so the ones the sync
-      // just wrote are read instead.
-      race.invalidateCache();
-      loadRaceResults(race);
-    });
+          final race = _lastMasterRace;
+          if (race == null) return;
+          // The race holds its results in memory; drop them so the ones the sync
+          // just wrote are read instead.
+          race.invalidateCache();
+          loadRaceResults(race);
+        });
   }
 
   bool get isLoading => _isLoading;
@@ -55,7 +57,8 @@ class RaceResultsController extends ChangeNotifier {
       case Failure(:final error):
         _error = error;
         Logger.e(
-            '[RaceResultsController.loadRaceResults] ${error.originalException}');
+          '[RaceResultsController.loadRaceResults] ${error.originalException}',
+        );
     }
 
     _isLoading = false;

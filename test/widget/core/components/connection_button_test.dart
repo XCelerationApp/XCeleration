@@ -23,16 +23,10 @@ void main() {
 
     testWidgets('occupies full available width', (tester) async {
       await tester.pumpWidget(
-        _wrap(
-          const ConnectionButtonContainer(
-            child: SizedBox.shrink(),
-          ),
-        ),
+        _wrap(const ConnectionButtonContainer(child: SizedBox.shrink())),
       );
 
-      final container = tester.widget<Container>(
-        find.byType(Container).first,
-      );
+      final container = tester.widget<Container>(find.byType(Container).first);
       expect(container.constraints?.maxWidth, double.infinity);
     });
   });
@@ -44,8 +38,9 @@ void main() {
       return device;
     }
 
-    testWidgets('shows loading skeleton when isLoading is true',
-        (tester) async {
+    testWidgets('shows loading skeleton when isLoading is true', (
+      tester,
+    ) async {
       final device = makeDevice(ConnectionStatus.searching);
 
       await tester.pumpWidget(
@@ -56,13 +51,12 @@ void main() {
       expect(find.text('Searching'), findsNothing);
     });
 
-    testWidgets('shows "Searching" status text in default state',
-        (tester) async {
+    testWidgets('shows "Searching" status text in default state', (
+      tester,
+    ) async {
       final device = makeDevice(ConnectionStatus.searching);
 
-      await tester.pumpWidget(
-        _wrap(WirelessConnectionButton(device: device)),
-      );
+      await tester.pumpWidget(_wrap(WirelessConnectionButton(device: device)));
 
       expect(find.text('Searching'), findsOneWidget);
     });
@@ -70,9 +64,7 @@ void main() {
     testWidgets('shows "Connected" status text when connected', (tester) async {
       final device = makeDevice(ConnectionStatus.connected);
 
-      await tester.pumpWidget(
-        _wrap(WirelessConnectionButton(device: device)),
-      );
+      await tester.pumpWidget(_wrap(WirelessConnectionButton(device: device)));
 
       expect(find.text('Connected'), findsOneWidget);
     });
@@ -80,9 +72,7 @@ void main() {
     testWidgets('shows "Done" when status is finished', (tester) async {
       final device = makeDevice(ConnectionStatus.finished);
 
-      await tester.pumpWidget(
-        _wrap(WirelessConnectionButton(device: device)),
-      );
+      await tester.pumpWidget(_wrap(WirelessConnectionButton(device: device)));
 
       expect(find.text('Done'), findsOneWidget);
     });
@@ -91,26 +81,31 @@ void main() {
       final device = makeDevice(ConnectionStatus.error);
 
       await tester.pumpWidget(
-        _wrap(WirelessConnectionButton(
-          device: device,
-          errorMessage: 'Connection timed out.',
-        )),
+        _wrap(
+          WirelessConnectionButton(
+            device: device,
+            errorMessage: 'Connection timed out.',
+          ),
+        ),
       );
 
       expect(find.text('Connection unavailable'), findsOneWidget);
       expect(find.text('Connection timed out.'), findsOneWidget);
     });
 
-    testWidgets('shows Retry button in error state when onRetry is provided',
-        (tester) async {
+    testWidgets('shows Retry button in error state when onRetry is provided', (
+      tester,
+    ) async {
       final device = makeDevice(ConnectionStatus.error);
       var retried = false;
 
       await tester.pumpWidget(
-        _wrap(WirelessConnectionButton(
-          device: device,
-          onRetry: () => retried = true,
-        )),
+        _wrap(
+          WirelessConnectionButton(
+            device: device,
+            onRetry: () => retried = true,
+          ),
+        ),
       );
 
       expect(find.text('Retry'), findsOneWidget);
@@ -118,13 +113,12 @@ void main() {
       expect(retried, isTrue);
     });
 
-    testWidgets('hides Retry button in error state when onRetry is null',
-        (tester) async {
+    testWidgets('hides Retry button in error state when onRetry is null', (
+      tester,
+    ) async {
       final device = makeDevice(ConnectionStatus.error);
 
-      await tester.pumpWidget(
-        _wrap(WirelessConnectionButton(device: device)),
-      );
+      await tester.pumpWidget(_wrap(WirelessConnectionButton(device: device)));
 
       expect(find.text('Retry'), findsNothing);
     });
@@ -132,9 +126,7 @@ void main() {
     testWidgets('rebuilds when device status changes', (tester) async {
       final device = makeDevice(ConnectionStatus.searching);
 
-      await tester.pumpWidget(
-        _wrap(WirelessConnectionButton(device: device)),
-      );
+      await tester.pumpWidget(_wrap(WirelessConnectionButton(device: device)));
       expect(find.text('Searching'), findsOneWidget);
 
       device.status = ConnectionStatus.connected;
@@ -145,27 +137,31 @@ void main() {
   });
 
   group('QRConnectionButton', () {
-    testWidgets('shows "Show QR Code" for advertiser device type',
-        (tester) async {
+    testWidgets('shows "Show QR Code" for advertiser device type', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _wrap(const QRConnectionButton(
-          deviceName: DeviceName.coach,
-          deviceType: DeviceType.advertiserDevice,
-          connectionStatus: ConnectionStatus.searching,
-        )),
+        _wrap(
+          const QRConnectionButton(
+            deviceName: DeviceName.coach,
+            deviceType: DeviceType.advertiserDevice,
+            connectionStatus: ConnectionStatus.searching,
+          ),
+        ),
       );
 
       expect(find.text('Show QR Code'), findsOneWidget);
     });
 
-    testWidgets('shows "Scan QR Code" for browser device type',
-        (tester) async {
+    testWidgets('shows "Scan QR Code" for browser device type', (tester) async {
       await tester.pumpWidget(
-        _wrap(const QRConnectionButton(
-          deviceName: DeviceName.raceTimer,
-          deviceType: DeviceType.browserDevice,
-          connectionStatus: ConnectionStatus.searching,
-        )),
+        _wrap(
+          const QRConnectionButton(
+            deviceName: DeviceName.raceTimer,
+            deviceType: DeviceType.browserDevice,
+            connectionStatus: ConnectionStatus.searching,
+          ),
+        ),
       );
 
       expect(find.text('Scan QR Code'), findsOneWidget);
@@ -173,39 +169,47 @@ void main() {
 
     testWidgets('renders QR code icon', (tester) async {
       await tester.pumpWidget(
-        _wrap(const QRConnectionButton(
-          deviceName: DeviceName.coach,
-          deviceType: DeviceType.advertiserDevice,
-          connectionStatus: ConnectionStatus.searching,
-        )),
+        _wrap(
+          const QRConnectionButton(
+            deviceName: DeviceName.coach,
+            deviceType: DeviceType.advertiserDevice,
+            connectionStatus: ConnectionStatus.searching,
+          ),
+        ),
       );
 
       expect(find.byIcon(Icons.qr_code), findsOneWidget);
     });
 
-    testWidgets('renders greyed-out icon color when isDisabled is true',
-        (tester) async {
+    testWidgets('renders greyed-out icon color when isDisabled is true', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _wrap(const QRConnectionButton(
-          deviceName: DeviceName.coach,
-          deviceType: DeviceType.advertiserDevice,
-          connectionStatus: ConnectionStatus.searching,
-          isDisabled: true,
-        )),
+        _wrap(
+          const QRConnectionButton(
+            deviceName: DeviceName.coach,
+            deviceType: DeviceType.advertiserDevice,
+            connectionStatus: ConnectionStatus.searching,
+            isDisabled: true,
+          ),
+        ),
       );
 
       final icon = tester.widget<Icon>(find.byIcon(Icons.qr_code));
       expect(icon.color, Colors.black26);
     });
 
-    testWidgets('renders normal icon color when isDisabled is false',
-        (tester) async {
+    testWidgets('renders normal icon color when isDisabled is false', (
+      tester,
+    ) async {
       await tester.pumpWidget(
-        _wrap(const QRConnectionButton(
-          deviceName: DeviceName.coach,
-          deviceType: DeviceType.advertiserDevice,
-          connectionStatus: ConnectionStatus.searching,
-        )),
+        _wrap(
+          const QRConnectionButton(
+            deviceName: DeviceName.coach,
+            deviceType: DeviceType.advertiserDevice,
+            connectionStatus: ConnectionStatus.searching,
+          ),
+        ),
       );
 
       final icon = tester.widget<Icon>(find.byIcon(Icons.qr_code));

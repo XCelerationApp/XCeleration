@@ -11,8 +11,10 @@ void main() {
       test('parses back to the current instant', () {
         final parsed = DateTime.parse(SyncTimestamp.now());
 
-        expect(DateTime.now().toUtc().difference(parsed).inSeconds.abs(),
-            lessThan(5));
+        expect(
+          DateTime.now().toUtc().difference(parsed).inSeconds.abs(),
+          lessThan(5),
+        );
       });
     });
   });

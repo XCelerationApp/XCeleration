@@ -12,7 +12,11 @@ import 'package:xceleration/core/result.dart';
 
 import 'voice_recognition_service_test.mocks.dart';
 
-@GenerateMocks([IBibAudioRecorder, IModelDownloadService, ISpeechRecognitionService])
+@GenerateMocks([
+  IBibAudioRecorder,
+  IModelDownloadService,
+  ISpeechRecognitionService,
+])
 void main() {
   setUpAll(() {
     provideDummy<Result<void>>(const Failure(AppError(userMessage: '')));
@@ -25,9 +29,7 @@ void main() {
   late BibNumberParser parser;
   late VoiceRecognitionService service;
 
-  const assets = ModelAssets(
-    modelDir: '/model',
-  );
+  const assets = ModelAssets(modelDir: '/model');
 
   setUp(() {
     mockRecorder = MockIBibAudioRecorder();
@@ -52,20 +54,25 @@ void main() {
   // Helper: initialise the service with successful mocks.
   Future<void> initService() async {
     when(mockRecorder.open()).thenAnswer((_) async => const Success(null));
-    when(mockModelDownload.ensureModelReady())
-        .thenAnswer((_) async => const Success(assets));
-    when(mockSpeechRecognition.initialize(assets))
-        .thenAnswer((_) => Future.value());
+    when(
+      mockModelDownload.ensureModelReady(),
+    ).thenAnswer((_) async => const Success(assets));
+    when(
+      mockSpeechRecognition.initialize(assets),
+    ).thenAnswer((_) => Future.value());
     await service.initialize();
   }
 
   // Helper: set up stop → transcribe flow and collect stream emissions.
   Future<({List<String?> bibs, List<String> partials})> stopAndCollect(
-      String? wavPath, String transcript) async {
+    String? wavPath,
+    String transcript,
+  ) async {
     when(mockRecorder.stop()).thenAnswer((_) async => wavPath);
     if (wavPath != null) {
-      when(mockSpeechRecognition.transcribe(wavPath))
-          .thenAnswer((_) async => transcript);
+      when(
+        mockSpeechRecognition.transcribe(wavPath),
+      ).thenAnswer((_) async => transcript);
     }
 
     final bibs = <String?>[];
@@ -85,10 +92,12 @@ void main() {
     group('initialize', () {
       test('returns Success when recorder opens and model downloads', () async {
         when(mockRecorder.open()).thenAnswer((_) async => const Success(null));
-        when(mockModelDownload.ensureModelReady())
-            .thenAnswer((_) async => const Success(assets));
-        when(mockSpeechRecognition.initialize(assets))
-            .thenAnswer((_) => Future.value());
+        when(
+          mockModelDownload.ensureModelReady(),
+        ).thenAnswer((_) async => const Success(assets));
+        when(
+          mockSpeechRecognition.initialize(assets),
+        ).thenAnswer((_) => Future.value());
 
         final result = await service.initialize();
 
@@ -97,9 +106,10 @@ void main() {
       });
 
       test('returns Failure when recorder fails to open', () async {
-        when(mockRecorder.open()).thenAnswer((_) async => Failure(
-              AppError(userMessage: 'Could not open audio recorder.'),
-            ));
+        when(mockRecorder.open()).thenAnswer(
+          (_) async =>
+              Failure(AppError(userMessage: 'Could not open audio recorder.')),
+        );
 
         final result = await service.initialize();
 
@@ -110,8 +120,9 @@ void main() {
 
       test('returns Failure when model download fails', () async {
         when(mockRecorder.open()).thenAnswer((_) async => const Success(null));
-        when(mockModelDownload.ensureModelReady()).thenAnswer((_) async =>
-            Failure(AppError(userMessage: 'Could not load model.')));
+        when(mockModelDownload.ensureModelReady()).thenAnswer(
+          (_) async => Failure(AppError(userMessage: 'Could not load model.')),
+        );
 
         final result = await service.initialize();
 
@@ -158,14 +169,16 @@ void main() {
     // ── Stop — no recording ─────────────────────────────────────────────────
 
     group('stop — no recording or not ready', () {
-      test('emits null bib and empty transcript when no file recorded',
-          () async {
-        await initService();
-        final r = await stopAndCollect(null, '');
+      test(
+        'emits null bib and empty transcript when no file recorded',
+        () async {
+          await initService();
+          final r = await stopAndCollect(null, '');
 
-        expect(r.bibs, [null]);
-        expect(r.partials, ['']);
-      });
+          expect(r.bibs, [null]);
+          expect(r.partials, ['']);
+        },
+      );
 
       test('emits null when not initialized', () async {
         // Service never initialized — _ready is false.
@@ -273,8 +286,7 @@ void main() {
       });
 
       test('ambiguous fallback: "eight year year eight" → 8008', () async {
-        final r =
-            await stopAndCollect('/tmp/b.wav', 'eight year year eight');
+        final r = await stopAndCollect('/tmp/b.wav', 'eight year year eight');
         expect(r.bibs, ['8008']);
       });
 
@@ -317,8 +329,9 @@ void main() {
 
       test('each stop emits independently', () async {
         when(mockRecorder.stop()).thenAnswer((_) async => '/tmp/b.wav');
-        when(mockSpeechRecognition.transcribe('/tmp/b.wav'))
-            .thenAnswer((_) async => 'forty two');
+        when(
+          mockSpeechRecognition.transcribe('/tmp/b.wav'),
+        ).thenAnswer((_) async => 'forty two');
 
         final bibs = <String?>[];
         service.bibNumbers.listen(bibs.add);
@@ -327,8 +340,9 @@ void main() {
         await service.stop();
         await pumpEventQueue();
 
-        when(mockSpeechRecognition.transcribe('/tmp/b.wav'))
-            .thenAnswer((_) async => 'ninety nine');
+        when(
+          mockSpeechRecognition.transcribe('/tmp/b.wav'),
+        ).thenAnswer((_) async => 'ninety nine');
 
         await service.stop();
         await pumpEventQueue();
@@ -341,7 +355,9 @@ void main() {
 
     group('stop — a reading on the roster wins', () {
       Future<List<String?>> heardWith(
-          Set<String> roster, String transcript) async {
+        Set<String> roster,
+        String transcript,
+      ) async {
         await service.dispose();
         service = VoiceRecognitionService(
           recorder: mockRecorder,
@@ -359,8 +375,7 @@ void main() {
       });
 
       test('"to" read as two when 1234 is running', () async {
-        expect(await heardWith({'1234', '134'}, 'one to three four'),
-            ['1234']);
+        expect(await heardWith({'1234', '134'}, 'one to three four'), ['1234']);
       });
 
       test('"sixteen" heard for sixty', () async {
@@ -376,8 +391,7 @@ void main() {
         expect(await heardWith({'8', '1'}, 'a'), [null]);
       });
 
-      test('keeps the likeliest reading when none is on the roster',
-          () async {
+      test('keeps the likeliest reading when none is on the roster', () async {
         expect(await heardWith({'5'}, 'one to three four'), ['1234']);
       });
     });
@@ -387,10 +401,12 @@ void main() {
     group('dispose', () {
       test('closes the recorder and speech service', () async {
         when(mockRecorder.open()).thenAnswer((_) async => const Success(null));
-        when(mockModelDownload.ensureModelReady())
-            .thenAnswer((_) async => const Success(assets));
-        when(mockSpeechRecognition.initialize(assets))
-            .thenAnswer((_) => Future.value());
+        when(
+          mockModelDownload.ensureModelReady(),
+        ).thenAnswer((_) async => const Success(assets));
+        when(
+          mockSpeechRecognition.initialize(assets),
+        ).thenAnswer((_) => Future.value());
         when(mockRecorder.close()).thenAnswer((_) => Future.value());
         when(mockSpeechRecognition.dispose()).thenAnswer((_) => Future.value());
 

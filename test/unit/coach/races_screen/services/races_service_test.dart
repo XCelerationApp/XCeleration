@@ -57,8 +57,10 @@ void main() {
       });
 
       test('stamps null owner when currentUserId returns null', () async {
-        final serviceNoOwner =
-            RacesService(db: mockDb, currentUserId: () => null);
+        final serviceNoOwner = RacesService(
+          db: mockDb,
+          currentUserId: () => null,
+        );
         when(mockDb.createRace(any)).thenAnswer((_) async => 7);
 
         await serviceNoOwner.createRace(race);
@@ -280,17 +282,19 @@ void main() {
         expect(result, contains('team'));
       });
 
-      test('ignores blank team entries when at least one team is non-empty',
-          () {
-        final result = service.getFirstError(
-          nameController: ctrl('State Meet'),
-          locationController: ctrl('Central Park'),
-          dateController: ctrl('2024-06-15'),
-          distanceController: ctrl('5.0'),
-          teamControllers: [ctrl(''), ctrl('Team A')],
-        );
-        expect(result, isNull);
-      });
+      test(
+        'ignores blank team entries when at least one team is non-empty',
+        () {
+          final result = service.getFirstError(
+            nameController: ctrl('State Meet'),
+            locationController: ctrl('Central Park'),
+            dateController: ctrl('2024-06-15'),
+            distanceController: ctrl('5.0'),
+            teamControllers: [ctrl(''), ctrl('Team A')],
+          );
+          expect(result, isNull);
+        },
+      );
     });
   });
 }

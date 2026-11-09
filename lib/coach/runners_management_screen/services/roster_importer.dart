@@ -78,9 +78,9 @@ class RosterImporter {
     required IRunnerRepository runners,
     required ITeamRepository teams,
     required IRaceRepository races,
-  })  : _runners = runners,
-        _teams = teams,
-        _races = races;
+  }) : _runners = runners,
+       _teams = teams,
+       _races = races;
 
   final int raceId;
   final IRunnerRepository _runners;
@@ -114,29 +114,37 @@ class RosterImporter {
       var team = await _findTeam(named.trim());
       if (team == null) {
         final all = await _teams.getAllTeams();
-        final id = await _teams.createTeam(Team(
-          name: named.trim(),
-          abbreviation: abbreviate(named),
-          // Three steps round the colour wheel at a time, so teams made one
-          // after another do not come out nearly the same colour.
-          color: Team.generateColor(all.length * 3),
-        ));
-        team = await _teams.getTeam(id) ??
-            Team(teamId: id, name: named.trim(), abbreviation: abbreviate(named));
+        final id = await _teams.createTeam(
+          Team(
+            name: named.trim(),
+            abbreviation: abbreviate(named),
+            // Three steps round the colour wheel at a time, so teams made one
+            // after another do not come out nearly the same colour.
+            color: Team.generateColor(all.length * 3),
+          ),
+        );
+        team =
+            await _teams.getTeam(id) ??
+            Team(
+              teamId: id,
+              name: named.trim(),
+              abbreviation: abbreviate(named),
+            );
         created.add(named.trim());
       }
       return teamsByKey[key] = team;
     }
 
     Future<void> ensureInRace(Team team) async {
-      final participant =
-          TeamParticipant(raceId: raceId, teamId: team.teamId);
+      final participant = TeamParticipant(raceId: raceId, teamId: team.teamId);
       if (await _races.getRaceTeamParticipant(participant) == null) {
-        await _races.addTeamParticipantToRace(TeamParticipant(
-          raceId: raceId,
-          teamId: team.teamId,
-          colorOverride: team.color?.toARGB32(),
-        ));
+        await _races.addTeamParticipantToRace(
+          TeamParticipant(
+            raceId: raceId,
+            teamId: team.teamId,
+            colorOverride: team.color?.toARGB32(),
+          ),
+        );
       }
       final name = team.name ?? '';
       if (!inRace.contains(name)) inRace.add(name);
@@ -149,8 +157,9 @@ class RosterImporter {
       if (name.isEmpty || bib.isEmpty || grade < 9 || grade > 12) continue;
 
       final teamName = (row['team'] as String?)?.trim() ?? '';
-      final Team? team =
-          teamName.isNotEmpty ? await teamFor(teamName) : intoTeam;
+      final Team? team = teamName.isNotEmpty
+          ? await teamFor(teamName)
+          : intoTeam;
       if (team?.teamId == null) {
         unplaced++;
         continue;
@@ -166,12 +175,14 @@ class RosterImporter {
 
       final existing = await _runners.getRunnerByBib(bib);
       if (existing == null) {
-        final runnerId = await _runners
-            .createRunner(Runner(name: name, bibNumber: bib, grade: grade));
+        final runnerId = await _runners.createRunner(
+          Runner(name: name, bibNumber: bib, grade: grade),
+        );
         await _runners.addRunnerToTeam(teamId, runnerId);
         if (joinsRace) {
-          await _races.addRaceParticipant(RaceParticipant(
-              raceId: raceId, runnerId: runnerId, teamId: teamId));
+          await _races.addRaceParticipant(
+            RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId),
+          );
           added++;
         } else {
           savedOnly++;
@@ -188,7 +199,8 @@ class RosterImporter {
       }
       if (existing.name != name || (existing.grade ?? 0) != grade) {
         conflicts.add(
-            RunnerDetailsConflict(existing: existing, name: name, grade: grade));
+          RunnerDetailsConflict(existing: existing, name: name, grade: grade),
+        );
       }
     }
 
@@ -211,13 +223,15 @@ class RosterImporter {
   /// Their past results stay with them.
   Future<void> useSpreadsheetDetails(RunnerDetailsConflict conflict) async {
     final existing = conflict.existing;
-    await _runners.updateRunner(Runner(
-      runnerId: existing.runnerId,
-      uuid: existing.uuid,
-      name: conflict.name,
-      bibNumber: existing.bibNumber,
-      grade: conflict.grade,
-    ));
+    await _runners.updateRunner(
+      Runner(
+        runnerId: existing.runnerId,
+        uuid: existing.uuid,
+        name: conflict.name,
+        bibNumber: existing.bibNumber,
+        grade: conflict.grade,
+      ),
+    );
   }
 
   /// Puts a saved runner on [teamId], in this race.
@@ -225,11 +239,15 @@ class RosterImporter {
     await _runners.addRunnerToTeam(teamId, runnerId);
     final participant = await _races.getRaceParticipantByBib(raceId, bib);
     if (participant == null) {
-      await _races.addRaceParticipant(RaceParticipant(
-          raceId: raceId, runnerId: runnerId, teamId: teamId));
+      await _races.addRaceParticipant(
+        RaceParticipant(raceId: raceId, runnerId: runnerId, teamId: teamId),
+      );
     } else if (participant.teamId != teamId) {
       await _races.updateRaceParticipantTeam(
-          raceId: raceId, runnerId: runnerId, newTeamId: teamId);
+        raceId: raceId,
+        runnerId: runnerId,
+        newTeamId: teamId,
+      );
     }
   }
 
@@ -282,7 +300,8 @@ class RosterImporter {
   /// such as "Archie Williams - Boys", by the spreadsheet's gender column.
   /// A runner with no gender or no team stays on the team as it is.
   static List<Map<String, dynamic>> splitTeamsByGender(
-      List<Map<String, dynamic>> rows) {
+    List<Map<String, dynamic>> rows,
+  ) {
     return [
       for (final row in rows)
         () {

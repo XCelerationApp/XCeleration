@@ -20,7 +20,6 @@ import 'package:xceleration/core/theme/typography.dart';
 import 'package:xceleration/core/services/connectivity_service.dart';
 import 'package:gotrue/gotrue.dart' as gotrue;
 
-
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 class SignInScreen extends StatefulWidget {
@@ -29,9 +28,9 @@ class SignInScreen extends StatefulWidget {
     required IAuthService authService,
     ConnectivityService? connectivityService,
     required ProfileService profileService,
-  })  : _authService = authService,
-        _connectivityService = connectivityService,
-        _profileService = profileService;
+  }) : _authService = authService,
+       _connectivityService = connectivityService,
+       _profileService = profileService;
 
   final IAuthService _authService;
   final ConnectivityService? _connectivityService;
@@ -39,7 +38,6 @@ class SignInScreen extends StatefulWidget {
 
   @override
   State<SignInScreen> createState() => _SignInScreenState();
-
 }
 
 class _SignInScreenState extends State<SignInScreen>
@@ -71,25 +69,35 @@ class _SignInScreenState extends State<SignInScreen>
     );
     _shakeAnimation = TweenSequence<Offset>([
       TweenSequenceItem(
-          tween: Tween(begin: Offset.zero, end: const Offset(-0.025, 0)),
-          weight: 1),
+        tween: Tween(begin: Offset.zero, end: const Offset(-0.025, 0)),
+        weight: 1,
+      ),
       TweenSequenceItem(
-          tween: Tween(
-              begin: const Offset(-0.025, 0), end: const Offset(0.025, 0)),
-          weight: 2),
+        tween: Tween(
+          begin: const Offset(-0.025, 0),
+          end: const Offset(0.025, 0),
+        ),
+        weight: 2,
+      ),
       TweenSequenceItem(
-          tween: Tween(
-              begin: const Offset(0.025, 0), end: const Offset(-0.015, 0)),
-          weight: 2),
+        tween: Tween(
+          begin: const Offset(0.025, 0),
+          end: const Offset(-0.015, 0),
+        ),
+        weight: 2,
+      ),
       TweenSequenceItem(
-          tween: Tween(
-              begin: const Offset(-0.015, 0), end: const Offset(0.015, 0)),
-          weight: 2),
+        tween: Tween(
+          begin: const Offset(-0.015, 0),
+          end: const Offset(0.015, 0),
+        ),
+        weight: 2,
+      ),
       TweenSequenceItem(
-          tween: Tween(begin: const Offset(0.015, 0), end: Offset.zero),
-          weight: 1),
+        tween: Tween(begin: const Offset(0.015, 0), end: Offset.zero),
+        weight: 1,
+      ),
     ]).animate(_shakeController);
-
   }
 
   @override
@@ -129,8 +137,7 @@ class _SignInScreenState extends State<SignInScreen>
   Future<void> _openDatabaseForSignedInUser() async {
     final userId = widget._authService.currentUserId;
     if (userId == null) return;
-    await ServiceLocator.get<IDatabaseConnectionProvider>()
-        .openForUser(userId);
+    await ServiceLocator.get<IDatabaseConnectionProvider>().openForUser(userId);
   }
 
   Future<void> _submit() async {
@@ -141,15 +148,19 @@ class _SignInScreenState extends State<SignInScreen>
     final syncService = context.read<ISyncService>();
     if (!await _connectivity.isOnline()) {
       if (!mounted) return;
-      setState(() => _authError =
-          'No internet connection. Please check your connection and try again.');
+      setState(
+        () => _authError =
+            'No internet connection. Please check your connection and try again.',
+      );
       return;
     }
     setState(() => _busy = true);
     try {
       if (_isLogin) {
         final resp = await widget._authService.signInWithEmailPassword(
-            _emailController.text.trim(), _passwordController.text);
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
         if (mounted && resp.session != null) {
           await _openDatabaseForSignedInUser();
           try {
@@ -158,24 +169,29 @@ class _SignInScreenState extends State<SignInScreen>
           } catch (_) {}
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
-              RolePageRouteAnimation(child: const RacesScreen()),
-              (route) => false);
+            RolePageRouteAnimation(child: const RacesScreen()),
+            (route) => false,
+          );
         }
       } else {
         final resp = await widget._authService.signUpWithEmailPassword(
-            _emailController.text.trim(), _passwordController.text);
+          _emailController.text.trim(),
+          _passwordController.text,
+        );
         if (resp.session == null) {
           // The address has to be confirmed first. Signing in here would only
           // fail with 'email not confirmed'.
           if (!mounted) return;
-          await Navigator.of(context).push(MaterialPageRoute<void>(
-            builder: (_) => OtpVerificationScreen(
-              email: _emailController.text.trim(),
-              mode: OtpMode.signup,
-              authService: widget._authService,
-              profileService: widget._profileService,
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => OtpVerificationScreen(
+                email: _emailController.text.trim(),
+                mode: OtpMode.signup,
+                authService: widget._authService,
+                profileService: widget._profileService,
+              ),
             ),
-          ));
+          );
           return;
         }
         if (mounted) {
@@ -186,8 +202,9 @@ class _SignInScreenState extends State<SignInScreen>
           } catch (_) {}
           if (!mounted) return;
           Navigator.of(context).pushAndRemoveUntil(
-              RolePageRouteAnimation(child: const RacesScreen()),
-              (route) => false);
+            RolePageRouteAnimation(child: const RacesScreen()),
+            (route) => false,
+          );
         }
       }
     } catch (e) {
@@ -249,28 +266,35 @@ class _SignInScreenState extends State<SignInScreen>
 
   Future<void> _handleForgotPassword() async {
     if (_emailController.text.trim().isEmpty) {
-      DialogUtils.showMessageDialog(context,
-          title: 'Email required',
-          message:
-              'Enter your email address above, then tap Forgot Password.');
+      DialogUtils.showMessageDialog(
+        context,
+        title: 'Email required',
+        message: 'Enter your email address above, then tap Forgot Password.',
+      );
       return;
     }
     setState(() => _busy = true);
     try {
-      await widget._authService
-          .sendPasswordResetEmail(_emailController.text.trim());
+      await widget._authService.sendPasswordResetEmail(
+        _emailController.text.trim(),
+      );
       if (!mounted) return;
-      await Navigator.of(context).push(MaterialPageRoute<void>(
-        builder: (_) => OtpVerificationScreen(
-          email: _emailController.text.trim(),
-          mode: OtpMode.passwordReset,
-          authService: widget._authService,
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => OtpVerificationScreen(
+            email: _emailController.text.trim(),
+            mode: OtpMode.passwordReset,
+            authService: widget._authService,
+          ),
         ),
-      ));
+      );
     } catch (e) {
       if (mounted) {
-        DialogUtils.showMessageDialog(context,
-            title: 'Error', message: _formatAuthError(e));
+        DialogUtils.showMessageDialog(
+          context,
+          title: 'Error',
+          message: _formatAuthError(e),
+        );
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -278,11 +302,11 @@ class _SignInScreenState extends State<SignInScreen>
   }
 
   void _switchMode() => setState(() {
-        _isLogin = !_isLogin;
-        _emailError = null;
-        _passwordError = null;
-        _authError = null;
-      });
+    _isLogin = !_isLogin;
+    _emailError = null;
+    _passwordError = null;
+    _authError = null;
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -332,8 +356,7 @@ class _SignInScreenState extends State<SignInScreen>
                       onToggleObscure: () =>
                           setState(() => _obscure = !_obscure),
                       onSubmit: _submit,
-                      onForgotPassword:
-                          _busy ? null : _handleForgotPassword,
+                      onForgotPassword: _busy ? null : _handleForgotPassword,
                       onSwitchMode: _busy ? null : _switchMode,
                     ),
                   ),
@@ -360,7 +383,11 @@ class _SignInHeader extends StatelessWidget {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.sm, AppSpacing.xl, AppSpacing.xl),
+        AppSpacing.xl,
+        AppSpacing.sm,
+        AppSpacing.xl,
+        AppSpacing.xl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -369,11 +396,17 @@ class _SignInHeader extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.chevron_left,
-                    color: AppColors.primaryColor, size: 22),
-                Text('Back',
-                    style: AppTypography.smallBodySemibold
-                        .copyWith(color: AppColors.primaryColor)),
+                Icon(
+                  Icons.chevron_left,
+                  color: AppColors.primaryColor,
+                  size: 22,
+                ),
+                Text(
+                  'Back',
+                  style: AppTypography.smallBodySemibold.copyWith(
+                    color: AppColors.primaryColor,
+                  ),
+                ),
               ],
             ),
           ),
@@ -459,11 +492,14 @@ class _FormBodyState extends State<_FormBody> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        border: Border(
-            top: BorderSide(color: AppColors.lightColor, width: 1)),
+        border: Border(top: BorderSide(color: AppColors.lightColor, width: 1)),
       ),
       padding: const EdgeInsets.fromLTRB(
-          AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.xxl),
+        AppSpacing.xl,
+        AppSpacing.lg,
+        AppSpacing.xl,
+        AppSpacing.xxl,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -492,15 +528,15 @@ class _FormBodyState extends State<_FormBody> {
             suffix: TextButton(
               onPressed: widget.onToggleObscure,
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                 foregroundColor: AppColors.mediumColor,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
                 widget.obscure ? 'Show' : 'Hide',
-                style: AppTypography.smallBodySemibold
-                    .copyWith(color: AppColors.mediumColor),
+                style: AppTypography.smallBodySemibold.copyWith(
+                  color: AppColors.mediumColor,
+                ),
               ),
             ),
           ),
@@ -517,8 +553,9 @@ class _FormBodyState extends State<_FormBody> {
                 ),
                 child: Text(
                   'Forgot password?',
-                  style: AppTypography.smallBodySemibold
-                      .copyWith(color: AppColors.primaryColor),
+                  style: AppTypography.smallBodySemibold.copyWith(
+                    color: AppColors.primaryColor,
+                  ),
                 ),
               ),
             ),
@@ -544,7 +581,8 @@ class _FormBodyState extends State<_FormBody> {
           ListenableBuilder(
             listenable: _buttonListenable,
             builder: (context, _) {
-              final canSubmit = widget.emailController.text.trim().isNotEmpty &&
+              final canSubmit =
+                  widget.emailController.text.trim().isNotEmpty &&
                   widget.passwordController.text.length >= 6 &&
                   !widget.busy;
               return _SubmitButton(
@@ -602,8 +640,7 @@ class _AuthTextFieldState extends State<_AuthTextField> {
   late final TextStyle _labelBaseStyle;
   late final TextStyle _inputTextStyle;
 
-  void _onFocusChange() =>
-      setState(() => _focused = widget.focusNode.hasFocus);
+  void _onFocusChange() => setState(() => _focused = widget.focusNode.hasFocus);
 
   @override
   void initState() {
@@ -629,8 +666,7 @@ class _AuthTextFieldState extends State<_AuthTextField> {
   Widget build(BuildContext context) {
     final hasError = widget.error != null;
     final active = _focused || hasError;
-    final borderColor =
-        active ? AppColors.primaryColor : AppColors.borderColor;
+    final borderColor = active ? AppColors.primaryColor : AppColors.borderColor;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -645,8 +681,7 @@ class _AuthTextFieldState extends State<_AuthTextField> {
         AnimatedContainer(
           duration: AppAnimations.fast,
           decoration: BoxDecoration(
-            borderRadius:
-                BorderRadius.circular(AppBorderRadius.md),
+            borderRadius: BorderRadius.circular(AppBorderRadius.md),
             border: Border.all(color: borderColor, width: 1.5),
             color: widget.disabled
                 ? AppColors.lightColor.withValues(alpha: AppOpacity.light)
@@ -654,8 +689,9 @@ class _AuthTextFieldState extends State<_AuthTextField> {
             boxShadow: _focused && !hasError
                 ? [
                     BoxShadow(
-                      color: AppColors.primaryColor
-                          .withValues(alpha: AppOpacity.faint * 2),
+                      color: AppColors.primaryColor.withValues(
+                        alpha: AppOpacity.faint * 2,
+                      ),
                       blurRadius: 0,
                       spreadRadius: 3,
                     ),
@@ -738,8 +774,9 @@ class _SubmitButton extends StatelessWidget {
     borderRadius: BorderRadius.circular(AppBorderRadius.lg),
     boxShadow: [
       BoxShadow(
-        color: AppColors.primaryColor
-            .withValues(alpha: AppOpacity.strong + 0.05),
+        color: AppColors.primaryColor.withValues(
+          alpha: AppOpacity.strong + 0.05,
+        ),
         blurRadius: 18,
         offset: const Offset(0, 4),
       ),
@@ -776,8 +813,7 @@ class _SubmitButton extends StatelessWidget {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            valueColor:
-                                AlwaysStoppedAnimation(Colors.white),
+                            valueColor: AlwaysStoppedAnimation(Colors.white),
                           ),
                         )
                       : Text(
@@ -813,22 +849,21 @@ class _ModeToggle extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Text(
-          isLogin
-              ? "Don't have an account? "
-              : 'Already have an account? ',
-          style: AppTypography.smallBodyRegular
-              .copyWith(color: AppColors.mediumColor),
+          isLogin ? "Don't have an account? " : 'Already have an account? ',
+          style: AppTypography.smallBodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
         ),
         GestureDetector(
           onTap: onSwitch,
           child: Text(
             isLogin ? 'Create one' : 'Sign in',
-            style: AppTypography.smallBodySemibold
-                .copyWith(color: AppColors.primaryColor),
+            style: AppTypography.smallBodySemibold.copyWith(
+              color: AppColors.primaryColor,
+            ),
           ),
         ),
       ],
     );
   }
 }
-

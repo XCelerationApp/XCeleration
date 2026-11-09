@@ -45,8 +45,9 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
     ServiceLocator.get<ITeamRepository>().getAllTeams().then((teams) {
       if (!mounted) return;
       setState(() {
-        _existingTeamNamesLower =
-            teams.map((t) => (t.name ?? '').trim().toLowerCase()).toSet();
+        _existingTeamNamesLower = teams
+            .map((t) => (t.name ?? '').trim().toLowerCase())
+            .toSet();
       });
     });
   }
@@ -215,7 +216,9 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.sm, vertical: AppSpacing.sm),
+        horizontal: AppSpacing.sm,
+        vertical: AppSpacing.sm,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -264,7 +267,9 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
                       border: Border.all(color: Colors.grey.shade300),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: AppOpacity.faint),
+                          color: Colors.black.withValues(
+                            alpha: AppOpacity.faint,
+                          ),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -281,7 +286,9 @@ class _CreateTeamSheetState extends State<CreateTeamSheet> {
                     style: OutlinedButton.styleFrom(
                       minimumSize: const Size(0, 36),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.sm,
+                      ),
                       foregroundColor: AppColors.primaryColor,
                       side: BorderSide(color: AppColors.primaryColor),
                       shape: RoundedRectangleBorder(

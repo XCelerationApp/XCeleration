@@ -60,15 +60,19 @@ class _KnownRunnerCard extends StatelessWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(conflict.runner.runner.name ?? '',
-                      style: AppTypography.smallBodySemibold),
+                  Text(
+                    conflict.runner.runner.name ?? '',
+                    style: AppTypography.smallBodySemibold,
+                  ),
                   Text(
                     [
                       conflict.runner.team.name,
                       if (conflict.runner.runner.grade != null)
                         gradeLabel(conflict.runner.runner.grade),
                     ].whereType<String>().join(' · '),
-                    style: AppTypography.caption.copyWith(color: AppColors.mediumColor),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.mediumColor,
+                    ),
                   ),
                 ],
               ),
@@ -111,7 +115,9 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
           '${widget.conflict.runner.runner.name ?? 'this runner'}? The others '
           'were other runners: the number was typed wrong, or they had the '
           'wrong bib number.',
-          style: AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
+          style: AppTypography.bodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
         ),
         const SizedBox(height: AppSpacing.md),
         // Bounded height so 3+ tiles scroll rather than overflow.
@@ -121,22 +127,25 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: occurrences
-                  .map((o) => Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.md),
-                        child: _SelectableOccurrenceTile(
-                          occurrence: o,
-                          conflict: widget.conflict,
-                          isSelected: _selectedPosition == o.place,
-                          onSelect: () =>
-                              setState(() => _selectedPosition = o.place),
-                        ),
-                      ))
+                  .map(
+                    (o) => Padding(
+                      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                      child: _SelectableOccurrenceTile(
+                        occurrence: o,
+                        conflict: widget.conflict,
+                        isSelected: _selectedPosition == o.place,
+                        onSelect: () =>
+                            setState(() => _selectedPosition = o.place),
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ),
         ),
         _TipBanner(
-          message: '💡 Tap a finish to mark it correct. '
+          message:
+              '💡 Tap a finish to mark it correct. '
               'The other${leftoverCount == 1 ? '' : 's'} will need '
               '${leftoverCount == 1 ? 'a runner' : 'runners'} assigned.',
         ),
@@ -147,13 +156,17 @@ class _MultiOccurrenceStep1State extends State<_MultiOccurrenceStep1> {
             decoration: BoxDecoration(
               color: AppColors.primaryColor.withValues(alpha: AppOpacity.faint),
               border: Border.all(
-                color: AppColors.primaryColor.withValues(alpha: AppOpacity.medium),
+                color: AppColors.primaryColor.withValues(
+                  alpha: AppOpacity.medium,
+                ),
               ),
               borderRadius: BorderRadius.circular(AppBorderRadius.sm),
             ),
             child: Text(
               "Next you'll say who finished the other $leftoverCount.",
-              style: AppTypography.caption.copyWith(color: AppColors.primaryColor),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.primaryColor,
+              ),
             ),
           ),
           const SizedBox(height: AppSpacing.md),
@@ -186,8 +199,7 @@ class _SelectableOccurrenceTile extends StatefulWidget {
       _SelectableOccurrenceTileState();
 }
 
-class _SelectableOccurrenceTileState
-    extends State<_SelectableOccurrenceTile> {
+class _SelectableOccurrenceTileState extends State<_SelectableOccurrenceTile> {
   bool _pressed = false;
 
   @override
@@ -205,8 +217,8 @@ class _SelectableOccurrenceTileState
           color: selected
               ? AppColors.primaryColor.withValues(alpha: AppOpacity.faint)
               : _pressed
-                  ? AppColors.lightColor.withValues(alpha: AppOpacity.medium)
-                  : Colors.white,
+              ? AppColors.lightColor.withValues(alpha: AppOpacity.medium)
+              : Colors.white,
           border: Border.all(
             color: selected ? AppColors.primaryColor : AppColors.lightColor,
             width: selected ? 2 : 1,
@@ -240,8 +252,9 @@ class _SelectableOccurrenceTileState
                       widget.occurrence.timeLabel!,
                       style: widget.occurrence.time != null
                           ? AppTypography.displaySmall
-                          : AppTypography.bodyRegular
-                              .copyWith(color: AppColors.mediumColor),
+                          : AppTypography.bodyRegular.copyWith(
+                              color: AppColors.mediumColor,
+                            ),
                     ),
                   const SizedBox(height: AppSpacing.sm),
                   TextButton(
@@ -257,7 +270,8 @@ class _SelectableOccurrenceTileState
                       conflictPosition: widget.occurrence.place,
                       conflictBib: widget.conflict.bibNumber,
                       conflictTime: widget.occurrence.time,
-                      conflictLabel: 'Is this ${widget.conflict.runner.runner.name ?? 'them'}?',
+                      conflictLabel:
+                          'Is this ${widget.conflict.runner.runner.name ?? 'them'}?',
                     ),
                     child: Text(
                       'See more ↓',
