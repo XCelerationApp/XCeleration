@@ -174,7 +174,7 @@ class NearbyService {
   /// [stateChangedSubscription] will return you a list of [Device].
   /// see [StateChangedCallback]
   StreamSubscription stateChangedSubscription(
-      {required StateChangedCallback callback}) =>
+          {required StateChangedCallback callback}) =>
       _stateChangedStream.listen(callback);
 
   /// The [dataReceivedSubscription] helps you listen when a peer sends you
@@ -182,6 +182,6 @@ class NearbyService {
   /// It returns a [StreamSubscription] so you can cancel listening at any time.
   /// see [DataReceivedCallback]
   StreamSubscription dataReceivedSubscription(
-      {required DataReceivedCallback callback}) =>
+          {required DataReceivedCallback callback}) =>
       _dataReceivedStream.listen(callback);
 }

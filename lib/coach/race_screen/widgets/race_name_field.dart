@@ -7,11 +7,7 @@ class RaceNameField extends StatelessWidget {
   final RaceScreenController controller;
   final ValueChanged<String>? onChanged;
 
-  const RaceNameField({
-    required this.controller,
-    this.onChanged,
-    super.key,
-  });
+  const RaceNameField({required this.controller, this.onChanged, super.key});
 
   @override
   Widget build(BuildContext context) {

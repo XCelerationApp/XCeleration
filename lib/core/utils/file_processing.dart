@@ -41,24 +41,32 @@ SpreadsheetRows _withSkippedBeforeFile(SpreadsheetRows rows) {
 /// (parse → validate → extract runner rows). Used for the "Recent Spreadsheets"
 /// flow where the file has already been downloaded before this call.
 Future<SpreadsheetRows> processSpreadsheetFromFile(
-    BuildContext context, File file) async {
+  BuildContext context,
+  File file,
+) async {
   final navigatorContext = Navigator.of(context, rootNavigator: true).context;
   try {
     BuildContext ctx = context.mounted ? context : navigatorContext;
     SpreadsheetRows? result;
     if (ctx.mounted) {
-      result = await DialogUtils.executeWithLoadingDialog<SpreadsheetRows>(ctx, operation: () async {
-        final parsedData = await FileUtils.parseSpreadsheetFile(file);
-        if (parsedData == null || parsedData.isEmpty) {
-          if (ctx.mounted) {
-            DialogUtils.showErrorDialog(ctx,
+      result = await DialogUtils.executeWithLoadingDialog<SpreadsheetRows>(
+        ctx,
+        operation: () async {
+          final parsedData = await FileUtils.parseSpreadsheetFile(file);
+          if (parsedData == null || parsedData.isEmpty) {
+            if (ctx.mounted) {
+              DialogUtils.showErrorDialog(
+                ctx,
                 message:
-                    'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
+                    'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.',
+              );
+            }
+            return SpreadsheetRows.empty;
           }
-          return SpreadsheetRows.empty;
-        }
-        return processSpreadsheetData(parsedData);
-      }, loadingMessage: 'Processing spreadsheet...');
+          return processSpreadsheetData(parsedData);
+        },
+        loadingMessage: 'Processing spreadsheet...',
+      );
     } else {
       final parsedData = await FileUtils.parseSpreadsheetFile(file);
       if (parsedData == null || parsedData.isEmpty) {
@@ -69,12 +77,13 @@ Future<SpreadsheetRows> processSpreadsheetFromFile(
     return _withSkippedBeforeFile(result ?? SpreadsheetRows.empty);
   } catch (e) {
     Logger.e('Error processing spreadsheet file: $e');
-    final ctx =
-        context.mounted ? context : navigatorContext;
+    final ctx = context.mounted ? context : navigatorContext;
     if (ctx.mounted) {
-      DialogUtils.showErrorDialog(ctx,
-          message:
-              'File Selection Error: An error occurred while processing the file: ${e.toString()}');
+      DialogUtils.showErrorDialog(
+        ctx,
+        message:
+            'File Selection Error: An error occurred while processing the file: ${e.toString()}',
+      );
     }
     return SpreadsheetRows.empty;
   }
@@ -82,24 +91,29 @@ Future<SpreadsheetRows> processSpreadsheetFromFile(
 
 /// Process a spreadsheet for runner data, either from local storage or Google Drive
 /// Uses the modern GoogleDriveService with drive.file scope for Google Drive operations
-Future<SpreadsheetRows> processSpreadsheet(BuildContext context,
-    {bool useGoogleDrive = false}) async {
+Future<SpreadsheetRows> processSpreadsheet(
+  BuildContext context, {
+  bool useGoogleDrive = false,
+}) async {
   File? selectedFile;
   final navigatorContext = Navigator.of(context, rootNavigator: true).context;
 
   try {
     if (useGoogleDrive) {
       // Use Google Drive picker with drive.file scope
-      selectedFile =
-          await GoogleDriveService.instance.pickSpreadsheetFile(context);
+      selectedFile = await GoogleDriveService.instance.pickSpreadsheetFile(
+        context,
+      );
     } else {
       // Use local file picker with loading dialog
       selectedFile = await FileUtils.pickLocalSpreadsheetFile();
       if (selectedFile != null) {
         // Record in recents after a successful local pick.
         final name = selectedFile.uri.pathSegments.last;
-        await RecentLocalSpreadsheetService.instance
-            .record(name, selectedFile.path);
+        await RecentLocalSpreadsheetService.instance.record(
+          name,
+          selectedFile.path,
+        );
       }
     }
 
@@ -114,23 +128,32 @@ Future<SpreadsheetRows> processSpreadsheet(BuildContext context,
     if (!context.mounted) context = navigatorContext;
     // Process the spreadsheet with loading dialog if context is mounted
     if (context.mounted) {
-      result = await DialogUtils.executeWithLoadingDialog<SpreadsheetRows>(context, operation: () async {
-        final parsedData = await FileUtils.parseSpreadsheetFile(selectedFile!);
+      result = await DialogUtils.executeWithLoadingDialog<SpreadsheetRows>(
+        context,
+        operation: () async {
+          final parsedData = await FileUtils.parseSpreadsheetFile(
+            selectedFile!,
+          );
 
-        // Check if we got valid data
-        if (parsedData == null || parsedData.isEmpty) {
-          Logger.d(
-              'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
-          if (context.mounted) {
-            DialogUtils.showErrorDialog(context,
+          // Check if we got valid data
+          if (parsedData == null || parsedData.isEmpty) {
+            Logger.d(
+              'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.',
+            );
+            if (context.mounted) {
+              DialogUtils.showErrorDialog(
+                context,
                 message:
-                    'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
+                    'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.',
+              );
+            }
+            return SpreadsheetRows.empty;
           }
-          return SpreadsheetRows.empty;
-        }
 
-        return processSpreadsheetData(parsedData);
-      }, loadingMessage: 'Processing spreadsheet...');
+          return processSpreadsheetData(parsedData);
+        },
+        loadingMessage: 'Processing spreadsheet...',
+      );
     } else {
       // If context is not mounted, process without loading dialog
       Logger.d('Context not mounted, processing without loading dialog');
@@ -140,7 +163,8 @@ Future<SpreadsheetRows> processSpreadsheet(BuildContext context,
       // Check if we got valid data
       if (parsedData == null || parsedData.isEmpty) {
         Logger.d(
-            'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.');
+          'Invalid Spreadsheet: The selected file does not contain valid spreadsheet data.',
+        );
         return SpreadsheetRows.empty;
       }
 
@@ -158,9 +182,11 @@ Future<SpreadsheetRows> processSpreadsheet(BuildContext context,
     Logger.e('Error processing spreadsheet: $e');
     if (!context.mounted) context = navigatorContext;
     if (context.mounted) {
-      DialogUtils.showErrorDialog(context,
-          message:
-              'File Selection Error: An error occurred while selecting or processing the file: ${e.toString()}');
+      DialogUtils.showErrorDialog(
+        context,
+        message:
+            'File Selection Error: An error occurred while selecting or processing the file: ${e.toString()}',
+      );
     }
     return SpreadsheetRows.empty;
   }
@@ -203,34 +229,42 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
     idxBib = lower.indexWhere((h) => h.length > 1 && h.endsWith('#'));
     if (idxBib == -1) {
       // "Bib", "Bib #", "Bib No.", "Bib Number", "#".
-      idxBib = lower.indexWhere((h) =>
-          h == '#' || h == 'bib' || h.startsWith('bib ') || h == 'bib#');
+      idxBib = lower.indexWhere(
+        (h) => h == '#' || h == 'bib' || h.startsWith('bib ') || h == 'bib#',
+      );
     }
     idxFirst = lower.indexWhere((h) => h == 'first' || h == 'first name');
     idxLast = lower.indexWhere((h) => h == 'last' || h == 'last name');
     // Combined name column (support headers like "First Last", "Name", "Full Name", etc.)
     idxFullName = lower.indexWhere(
-        (h) => (h.contains('first') && h.contains('last')) || h == 'name');
+      (h) => (h.contains('first') && h.contains('last')) || h == 'name',
+    );
     if (idxFullName == -1) {
-      idxFullName = lower.indexWhere((h) =>
-          h.contains('full name') ||
-          h.contains('athlete name') ||
-          h.contains('runner name') ||
-          h == 'athlete' ||
-          h == 'runner');
+      idxFullName = lower.indexWhere(
+        (h) =>
+            h.contains('full name') ||
+            h.contains('athlete name') ||
+            h.contains('runner name') ||
+            h == 'athlete' ||
+            h == 'runner',
+      );
     }
-    idxYear = lower.indexWhere((h) =>
-        h == 'year' || h == 'yr' || h == 'class' || h.contains('grade'));
-    idxGender =
-        lower.indexWhere((h) => h == 'm/f' || h == 'gender' || h == 'sex');
+    idxYear = lower.indexWhere(
+      (h) => h == 'year' || h == 'yr' || h == 'class' || h.contains('grade'),
+    );
+    idxGender = lower.indexWhere(
+      (h) => h == 'm/f' || h == 'gender' || h == 'sex',
+    );
     // Which team a runner is on, so a sheet of several teams can be imported
     // in one go.
-    idxTeam = lower.indexWhere((h) =>
-        h == 'team' ||
-        h == 'team name' ||
-        h == 'school' ||
-        h == 'school name' ||
-        h == 'club');
+    idxTeam = lower.indexWhere(
+      (h) =>
+          h == 'team' ||
+          h == 'team name' ||
+          h == 'school' ||
+          h == 'school name' ||
+          h == 'club',
+    );
 
     // Heuristic: if there are multiple 'first' columns, try to infer which is full name
     // by sampling the first few data rows and counting presence of spaces.
@@ -245,14 +279,16 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
         int bestSingleCount = -1;
         int altIdx = -1;
         final int sampleStart = 1;
-        final int sampleEnd =
-            data.length < 11 ? data.length : 11; // up to 10 rows
+        final int sampleEnd = data.length < 11
+            ? data.length
+            : 11; // up to 10 rows
         for (final idx in firstCandidates) {
           int spaceCount = 0;
           int singleCount = 0;
           for (int r = sampleStart; r < sampleEnd; r++) {
-            final cell =
-                (idx < data[r].length) ? cellToString(data[r][idx]) : '';
+            final cell = (idx < data[r].length)
+                ? cellToString(data[r][idx])
+                : '';
             if (cell.isEmpty) continue;
             if (cell.contains(' ')) {
               spaceCount++;
@@ -287,7 +323,8 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
       }
     }
 
-    hasHeader = idxBib != -1 &&
+    hasHeader =
+        idxBib != -1 &&
         idxYear != -1 &&
         (idxFullName != -1 || idxFirst != -1 || idxLast != -1);
   }
@@ -398,10 +435,10 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
     final String? problem = name.isEmpty
         ? 'no name'
         : !(grade >= 9 && grade <= 12)
-            ? 'grade is not 9–12'
-            : bibInt < 0
-                ? 'bib is not a number'
-                : null;
+        ? 'grade is not 9–12'
+        : bibInt < 0
+        ? 'bib is not a number'
+        : null;
     if (problem == null) {
       runnerData.add({
         'name': name,
@@ -412,9 +449,9 @@ SpreadsheetRows processSpreadsheetData(List<List<dynamic>> data) {
       });
     } else {
       Logger.d(
-          'Invalid data in row: i=$i name="$name" grade=$grade bib="$bibNumber"');
-      skipped.add(
-          'Row ${i + 1}${name.isNotEmpty ? ' ($name)' : ''}: $problem');
+        'Invalid data in row: i=$i name="$name" grade=$grade bib="$bibNumber"',
+      );
+      skipped.add('Row ${i + 1}${name.isNotEmpty ? ' ($name)' : ''}: $problem');
     }
   }
 

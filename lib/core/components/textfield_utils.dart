@@ -46,9 +46,10 @@ class _AppDropdownFieldState extends State<AppDropdownField> {
                   ? Colors.red.withValues(alpha: AppOpacity.faint)
                   : Colors.grey.withValues(alpha: AppOpacity.faint),
               border: Border.all(
-                  color: widget.error != null
-                      ? Colors.red.withValues(alpha: AppOpacity.solid)
-                      : Colors.grey.withValues(alpha: AppOpacity.solid)),
+                color: widget.error != null
+                    ? Colors.red.withValues(alpha: AppOpacity.solid)
+                    : Colors.grey.withValues(alpha: AppOpacity.solid),
+              ),
               borderRadius: BorderRadius.circular(AppBorderRadius.md),
             ),
             child: DropdownButtonHideUnderline(
@@ -60,21 +61,26 @@ class _AppDropdownFieldState extends State<AppDropdownField> {
                   borderRadius: BorderRadius.circular(AppBorderRadius.lg),
                   elevation: 4,
                   menuMaxHeight: 360,
-                  icon: const Icon(Icons.keyboard_arrow_down_rounded,
-                      color: AppColors.mediumColor),
-                  style: AppTypography.bodyRegular
-                      .copyWith(color: AppColors.darkColor),
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.mediumColor,
+                  ),
+                  style: AppTypography.bodyRegular.copyWith(
+                    color: AppColors.darkColor,
+                  ),
                   value: widget.controller.text.isEmpty
                       ? null
                       : widget.controller.text,
-                  hint: Text(widget.hint,
-                      style: const TextStyle(color: Colors.grey)),
+                  hint: Text(
+                    widget.hint,
+                    style: const TextStyle(color: Colors.grey),
+                  ),
                   isExpanded: true,
                   items: widget.items
-                      .map((item) => DropdownMenuItem(
-                            value: item,
-                            child: Text(item),
-                          ))
+                      .map(
+                        (item) =>
+                            DropdownMenuItem(value: item, child: Text(item)),
+                      )
                       .toList(),
                   onChanged: (value) {
                     setState(() => widget.controller.text = value ?? '');
@@ -88,13 +94,12 @@ class _AppDropdownFieldState extends State<AppDropdownField> {
         if (widget.error != null)
           Padding(
             padding: const EdgeInsets.only(
-                top: AppSpacing.xs, left: AppSpacing.md),
+              top: AppSpacing.xs,
+              left: AppSpacing.md,
+            ),
             child: Text(
               widget.error!,
-              style: const TextStyle(
-                color: Colors.red,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.red, fontSize: 12),
             ),
           ),
       ],
@@ -125,16 +130,16 @@ Widget buildTextField({
   Color fieldFillColor() => error != null
       ? Colors.red.withValues(alpha: AppOpacity.faint)
       : (warning != null
-          ? Colors.orange.withValues(alpha: AppOpacity.light)
-          : Colors.grey.withValues(alpha: AppOpacity.faint));
+            ? Colors.orange.withValues(alpha: AppOpacity.light)
+            : Colors.grey.withValues(alpha: AppOpacity.faint));
 
   BorderSide fieldBorderSide() => BorderSide(
-        color: error != null
-            ? Colors.red.withValues(alpha: AppOpacity.solid)
-            : (warning != null
-                ? Colors.orange.withValues(alpha: AppOpacity.border)
-                : Colors.grey.withValues(alpha: AppOpacity.solid)),
-      );
+    color: error != null
+        ? Colors.red.withValues(alpha: AppOpacity.solid)
+        : (warning != null
+              ? Colors.orange.withValues(alpha: AppOpacity.border)
+              : Colors.grey.withValues(alpha: AppOpacity.solid)),
+  );
 
   return Focus(
     onFocusChange: (hasFocus) {
@@ -152,16 +157,10 @@ Widget buildTextField({
       readOnly: readOnly,
       onTap: onTap,
       inputFormatters: inputFormatters,
-      style: const TextStyle(
-        fontSize: 16,
-        color: Colors.black87,
-      ),
+      style: const TextStyle(fontSize: 16, color: Colors.black87),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: const TextStyle(
-          color: Colors.grey,
-          fontSize: 16,
-        ),
+        hintStyle: const TextStyle(color: Colors.grey, fontSize: 16),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.lg,
           vertical: AppSpacing.lg,
@@ -188,11 +187,7 @@ Widget buildTextField({
           ),
         ),
         errorText: error,
-        errorStyle: const TextStyle(
-          color: Colors.red,
-          fontSize: 12,
-          height: 1,
-        ),
+        errorStyle: const TextStyle(color: Colors.red, fontSize: 12, height: 1),
         errorMaxLines: 3,
         helperText: (error == null) ? warning : null,
         helperStyle: const TextStyle(
@@ -214,10 +209,7 @@ Widget buildTextField({
   );
 }
 
-Widget buildInputRow({
-  required String label,
-  required Widget inputWidget,
-}) {
+Widget buildInputRow({required String label, required Widget inputWidget}) {
   return Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [

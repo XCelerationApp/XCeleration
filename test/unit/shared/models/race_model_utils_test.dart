@@ -59,26 +59,26 @@ void main() {
 
     setUp(() {
       testRunners = List.generate(
-          10,
-          (i) => RaceRunner(
-                raceId: 1,
-                runner: Runner(
-                  runnerId: i + 1,
-                  name: 'Runner ${i + 1}',
-                  grade: 10,
-                  bibNumber: (i + 1).toString(),
-                ),
-                team: Team(
-                  teamId: 1,
-                  name: 'Team',
-                  abbreviation: 'T',
-                ),
-              ));
+        10,
+        (i) => RaceRunner(
+          raceId: 1,
+          runner: Runner(
+            runnerId: i + 1,
+            name: 'Runner ${i + 1}',
+            grade: 10,
+            bibNumber: (i + 1).toString(),
+          ),
+          team: Team(teamId: 1, name: 'Team', abbreviation: 'T'),
+        ),
+      );
     });
 
     test('inserts TBD and removes first TBD when clicking on actual time', () {
-      final timingData =
-          ['1.0', '2.0', '4.0'].map((time) => TimingDatum(time: time)).toList();
+      final timingData = [
+        '1.0',
+        '2.0',
+        '4.0',
+      ].map((time) => TimingDatum(time: time)).toList();
       final conflictRecord = TimingDatum(
         time: '4.0',
         conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
@@ -92,13 +92,18 @@ void main() {
 
       controller.insertTbdAt(0, 1);
 
-      expect(controller.uiChunks.first.times,
-          equals(['1.0', 'TBD', '2.0', '4.0']));
+      expect(
+        controller.uiChunks.first.times,
+        equals(['1.0', 'TBD', '2.0', '4.0']),
+      );
     });
 
     test('handles multiple TBD entries correctly', () {
-      final timingData =
-          ['1.0', '3.0', '5.0'].map((time) => TimingDatum(time: time)).toList();
+      final timingData = [
+        '1.0',
+        '3.0',
+        '5.0',
+      ].map((time) => TimingDatum(time: time)).toList();
       final conflictRecord = TimingDatum(
         time: '5.0',
         conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
@@ -113,13 +118,18 @@ void main() {
 
       controller.insertTbdAt(1, 1);
 
-      expect(controller.uiChunks.first.times,
-          equals(['1.0', 'TBD', '3.0', '5.0', 'TBD']));
+      expect(
+        controller.uiChunks.first.times,
+        equals(['1.0', 'TBD', '3.0', '5.0', 'TBD']),
+      );
     });
 
     test('handles case where clicking on first time entry', () {
-      final timingData =
-          ['1.0', '2.0', '3.0'].map((time) => TimingDatum(time: time)).toList();
+      final timingData = [
+        '1.0',
+        '2.0',
+        '3.0',
+      ].map((time) => TimingDatum(time: time)).toList();
       final conflictRecord = TimingDatum(
         time: '3.0',
         conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
@@ -134,14 +144,19 @@ void main() {
 
       controller.insertTbdAt(2, 0);
 
-      expect(controller.uiChunks.first.times,
-          equals(['TBD', '1.0', '2.0', '3.0']));
+      expect(
+        controller.uiChunks.first.times,
+        equals(['TBD', '1.0', '2.0', '3.0']),
+      );
     });
 
     test('works with offBy > 1', () {
-      final timingData = ['1.0', '2.0', '4.0', '6.0']
-          .map((time) => TimingDatum(time: time))
-          .toList();
+      final timingData = [
+        '1.0',
+        '2.0',
+        '4.0',
+        '6.0',
+      ].map((time) => TimingDatum(time: time)).toList();
       final conflictRecord = TimingDatum(
         time: '6.0',
         conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
@@ -156,14 +171,19 @@ void main() {
 
       controller.insertTbdAt(3, 1);
 
-      expect(controller.uiChunks.first.times,
-          equals(['1.0', 'TBD', '2.0', '4.0', '6.0', 'TBD']));
+      expect(
+        controller.uiChunks.first.times,
+        equals(['1.0', 'TBD', '2.0', '4.0', '6.0', 'TBD']),
+      );
     });
 
     test('does nothing when the conflict is confirmRunner', () {
-      final timingData = ['1.0', '2.0', '3.0', '4.0']
-          .map((time) => TimingDatum(time: time))
-          .toList();
+      final timingData = [
+        '1.0',
+        '2.0',
+        '3.0',
+        '4.0',
+      ].map((time) => TimingDatum(time: time)).toList();
       final conflictRecord = TimingDatum(
         time: '4.0',
         conflict: Conflict(type: ConflictType.confirmRunner, offBy: 0),
@@ -180,8 +200,10 @@ void main() {
 
       // A confirmed chunk has no missing times: a TBD there would add a
       // finisher the timing data does not have.
-      expect(controller.uiChunks.first.times,
-          equals(['1.0', '2.0', '3.0', '4.0']));
+      expect(
+        controller.uiChunks.first.times,
+        equals(['1.0', '2.0', '3.0', '4.0']),
+      );
     });
   });
 
@@ -191,17 +213,18 @@ void main() {
   group('UIChunk.convertToUIChunks', () {
     test('converts timing chunks to UI chunks correctly', () {
       final runners = List.generate(
-          3,
-          (i) => RaceRunner(
-                raceId: 1,
-                runner: Runner(
-                  runnerId: i + 1,
-                  name: 'Runner ${i + 1}',
-                  grade: 10,
-                  bibNumber: (i + 1).toString(),
-                ),
-                team: Team(teamId: 1, name: 'Team', abbreviation: 'T'),
-              ));
+        3,
+        (i) => RaceRunner(
+          raceId: 1,
+          runner: Runner(
+            runnerId: i + 1,
+            name: 'Runner ${i + 1}',
+            grade: 10,
+            bibNumber: (i + 1).toString(),
+          ),
+          team: Team(teamId: 1, name: 'Team', abbreviation: 'T'),
+        ),
+      );
 
       final timingChunks = [
         TimingChunk(
@@ -214,8 +237,10 @@ void main() {
         ),
       ];
 
-      final uiChunks =
-          CoachTimingDataConverter.convertToUIChunks(timingChunks, runners);
+      final uiChunks = CoachTimingDataConverter.convertToUIChunks(
+        timingChunks,
+        runners,
+      );
 
       expect(uiChunks.length, equals(1));
       expect(uiChunks.first.chunkId, equals(10));
@@ -250,8 +275,11 @@ void main() {
           place: 2,
           runner: Runner(name: 'Bob', bibNumber: '101', grade: 12),
           team: team,
-          finishTime:
-              const Duration(minutes: 18, seconds: 45, milliseconds: 10),
+          finishTime: const Duration(
+            minutes: 18,
+            seconds: 45,
+            milliseconds: 10,
+          ),
         ),
       ];
 
@@ -310,22 +338,25 @@ void main() {
     });
 
     test('decodeToResultsData returns Failure for invalid payload', () {
-      final result =
-          RaceShareDecoder.decodeToResultsData('not-valid-base64!!!');
+      final result = RaceShareDecoder.decodeToResultsData(
+        'not-valid-base64!!!',
+      );
       expect(result, isA<Failure<RaceShareDecodedData>>());
       final error = (result as Failure<RaceShareDecodedData>).error;
       expect(error.userMessage, isNotEmpty);
       expect(error.originalException, isNotNull);
     });
 
-    test('decodeToResultsData returns Failure for unsupported payload type',
-        () {
-      final json = jsonEncode({'type': 'RACE_SHARE_V1', 'race': {}, 'r': []});
-      final encoded = base64Encode(gzip.encode(utf8.encode(json)));
+    test(
+      'decodeToResultsData returns Failure for unsupported payload type',
+      () {
+        final json = jsonEncode({'type': 'RACE_SHARE_V1', 'race': {}, 'r': []});
+        final encoded = base64Encode(gzip.encode(utf8.encode(json)));
 
-      final result = RaceShareDecoder.decodeToResultsData(encoded);
-      expect(result, isA<Failure<RaceShareDecodedData>>());
-    });
+        final result = RaceShareDecoder.decodeToResultsData(encoded);
+        expect(result, isA<Failure<RaceShareDecodedData>>());
+      },
+    );
 
     test('decodeWithRaw returns Success with rawEncoded preserved', () {
       final race = Race(
@@ -386,15 +417,21 @@ void main() {
       final List<RaceResult> results = [];
       for (int i = 0; i < 75; i++) {
         final team = teams[i % teams.length];
-        results.add(RaceResult(
-          place: i + 1,
-          runner: Runner(
+        results.add(
+          RaceResult(
+            place: i + 1,
+            runner: Runner(
               name: 'Runner ${i + 1}',
               bibNumber: 'B${i + 1}',
-              grade: 9 + (i % 4)),
-          team: team,
-          finishTime: Duration(minutes: 18 + (i ~/ 10), seconds: (i * 3) % 60),
-        ));
+              grade: 9 + (i % 4),
+            ),
+            team: team,
+            finishTime: Duration(
+              minutes: 18 + (i ~/ 10),
+              seconds: (i * 3) % 60,
+            ),
+          ),
+        );
       }
 
       final encoded = RaceShareService.preparePayloadFromData(
@@ -408,10 +445,12 @@ void main() {
       expect(decoded.results.individualResults.length, 75);
 
       final compressedLen = encoded.length;
-      final plainJsonLen =
-          utf8.decode(gzip.decode(base64Decode(encoded))).length;
+      final plainJsonLen = utf8
+          .decode(gzip.decode(base64Decode(encoded)))
+          .length;
       Logger.d(
-          'RaceShare lengths — compressed(base64): $compressedLen chars, json: $plainJsonLen chars');
+        'RaceShare lengths — compressed(base64): $compressedLen chars, json: $plainJsonLen chars',
+      );
     });
   });
 
@@ -426,19 +465,53 @@ void main() {
 
     const raceId = 1;
 
-    final testRace =
-        Race(raceId: raceId, raceName: 'State Meet', flowState: Race.FLOW_PRE_RACE);
-    final finishedRace =
-        Race(raceId: raceId, raceName: 'State Meet', flowState: Race.FLOW_FINISHED);
+    final testRace = Race(
+      raceId: raceId,
+      raceName: 'State Meet',
+      flowState: Race.FLOW_PRE_RACE,
+    );
+    final finishedRace = Race(
+      raceId: raceId,
+      raceName: 'State Meet',
+      flowState: Race.FLOW_FINISHED,
+    );
 
-    final teamA = Team(teamId: 1, name: 'Team A', abbreviation: 'TA', color: const Color(0xFF2196F3));
-    final teamB = Team(teamId: 2, name: 'Team B', abbreviation: 'TB', color: const Color(0xFF4CAF50));
+    final teamA = Team(
+      teamId: 1,
+      name: 'Team A',
+      abbreviation: 'TA',
+      color: const Color(0xFF2196F3),
+    );
+    final teamB = Team(
+      teamId: 2,
+      name: 'Team B',
+      abbreviation: 'TB',
+      color: const Color(0xFF4CAF50),
+    );
 
-    final runnerAlice = Runner(runnerId: 10, name: 'Alice', bibNumber: '101', grade: 10);
-    final runnerBob = Runner(runnerId: 11, name: 'Bob', bibNumber: '102', grade: 11);
+    final runnerAlice = Runner(
+      runnerId: 10,
+      name: 'Alice',
+      bibNumber: '101',
+      grade: 10,
+    );
+    final runnerBob = Runner(
+      runnerId: 11,
+      name: 'Bob',
+      bibNumber: '102',
+      grade: 11,
+    );
 
-    final participantAlice = RaceParticipant(raceId: raceId, runnerId: 10, teamId: 1);
-    final participantBob = RaceParticipant(raceId: raceId, runnerId: 11, teamId: 2);
+    final participantAlice = RaceParticipant(
+      raceId: raceId,
+      runnerId: 10,
+      teamId: 1,
+    );
+    final participantBob = RaceParticipant(
+      raceId: raceId,
+      runnerId: 11,
+      teamId: 2,
+    );
 
     setUp(() {
       mockRaceRepo = MockIRaceRepository();
@@ -520,15 +593,18 @@ void main() {
         verify(mockRaceRepo.getRace(raceId)).called(1);
       });
 
-      test('returns cached value without hitting the repository again', () async {
-        when(mockRaceRepo.getRace(raceId)).thenAnswer((_) async => testRace);
-        final masterRace = MasterRace.getInstance(raceId);
+      test(
+        'returns cached value without hitting the repository again',
+        () async {
+          when(mockRaceRepo.getRace(raceId)).thenAnswer((_) async => testRace);
+          final masterRace = MasterRace.getInstance(raceId);
 
-        await masterRace.race;
-        await masterRace.race;
+          await masterRace.race;
+          await masterRace.race;
 
-        verify(mockRaceRepo.getRace(raceId)).called(1);
-      });
+          verify(mockRaceRepo.getRace(raceId)).called(1);
+        },
+      );
 
       test('throws when repository returns null', () async {
         when(mockRaceRepo.getRace(raceId)).thenAnswer((_) async => null);
@@ -540,8 +616,9 @@ void main() {
 
     group('raceParticipants getter', () {
       test('fetches from repository on first access', () async {
-        when(mockRaceRepo.getRaceParticipants(raceId))
-            .thenAnswer((_) async => [participantAlice]);
+        when(
+          mockRaceRepo.getRaceParticipants(raceId),
+        ).thenAnswer((_) async => [participantAlice]);
         final masterRace = MasterRace.getInstance(raceId);
 
         final result = await masterRace.raceParticipants;
@@ -550,22 +627,27 @@ void main() {
         verify(mockRaceRepo.getRaceParticipants(raceId)).called(1);
       });
 
-      test('returns cached value without hitting the repository again', () async {
-        when(mockRaceRepo.getRaceParticipants(raceId))
-            .thenAnswer((_) async => [participantAlice]);
-        final masterRace = MasterRace.getInstance(raceId);
+      test(
+        'returns cached value without hitting the repository again',
+        () async {
+          when(
+            mockRaceRepo.getRaceParticipants(raceId),
+          ).thenAnswer((_) async => [participantAlice]);
+          final masterRace = MasterRace.getInstance(raceId);
 
-        await masterRace.raceParticipants;
-        await masterRace.raceParticipants;
+          await masterRace.raceParticipants;
+          await masterRace.raceParticipants;
 
-        verify(mockRaceRepo.getRaceParticipants(raceId)).called(1);
-      });
+          verify(mockRaceRepo.getRaceParticipants(raceId)).called(1);
+        },
+      );
     });
 
     group('teams getter', () {
       test('fetches from repository on first access', () async {
-        when(mockRaceRepo.getRaceTeams(raceId))
-            .thenAnswer((_) async => [teamA, teamB]);
+        when(
+          mockRaceRepo.getRaceTeams(raceId),
+        ).thenAnswer((_) async => [teamA, teamB]);
         final masterRace = MasterRace.getInstance(raceId);
 
         final result = await masterRace.teams;
@@ -574,22 +656,27 @@ void main() {
         verify(mockRaceRepo.getRaceTeams(raceId)).called(1);
       });
 
-      test('returns cached value without hitting the repository again', () async {
-        when(mockRaceRepo.getRaceTeams(raceId))
-            .thenAnswer((_) async => [teamA, teamB]);
-        final masterRace = MasterRace.getInstance(raceId);
+      test(
+        'returns cached value without hitting the repository again',
+        () async {
+          when(
+            mockRaceRepo.getRaceTeams(raceId),
+          ).thenAnswer((_) async => [teamA, teamB]);
+          final masterRace = MasterRace.getInstance(raceId);
 
-        await masterRace.teams;
-        await masterRace.teams;
+          await masterRace.teams;
+          await masterRace.teams;
 
-        verify(mockRaceRepo.getRaceTeams(raceId)).called(1);
-      });
+          verify(mockRaceRepo.getRaceTeams(raceId)).called(1);
+        },
+      );
     });
 
     group('raceRunners getter', () {
       setUp(() {
-        when(mockRaceRepo.getRaceParticipants(raceId))
-            .thenAnswer((_) async => [participantAlice, participantBob]);
+        when(
+          mockRaceRepo.getRaceParticipants(raceId),
+        ).thenAnswer((_) async => [participantAlice, participantBob]);
         when(mockRunnerRepo.getRunner(10)).thenAnswer((_) async => runnerAlice);
         when(mockRunnerRepo.getRunner(11)).thenAnswer((_) async => runnerBob);
         when(mockTeamRepo.getTeam(1)).thenAnswer((_) async => teamA);
@@ -605,18 +692,22 @@ void main() {
         expect(result.map((r) => r.runner.runnerId), containsAll([10, 11]));
       });
 
-      test('returns cached value without hitting the repository again', () async {
-        final masterRace = MasterRace.getInstance(raceId);
+      test(
+        'returns cached value without hitting the repository again',
+        () async {
+          final masterRace = MasterRace.getInstance(raceId);
 
-        await masterRace.raceRunners;
-        await masterRace.raceRunners;
+          await masterRace.raceRunners;
+          await masterRace.raceRunners;
 
-        verify(mockRaceRepo.getRaceParticipants(raceId)).called(1);
-      });
+          verify(mockRaceRepo.getRaceParticipants(raceId)).called(1);
+        },
+      );
 
       test('returns empty list when race has no participants', () async {
-        when(mockRaceRepo.getRaceParticipants(raceId))
-            .thenAnswer((_) async => []);
+        when(
+          mockRaceRepo.getRaceParticipants(raceId),
+        ).thenAnswer((_) async => []);
         final masterRace = MasterRace.getInstance(raceId);
 
         final result = await masterRace.raceRunners;
@@ -627,9 +718,12 @@ void main() {
 
     group('teamtoRaceRunnersMap', () {
       test('groups runners under their correct team', () async {
-        when(mockRaceRepo.getRaceTeams(raceId)).thenAnswer((_) async => [teamA]);
-        when(mockRaceRepo.getRaceParticipants(raceId))
-            .thenAnswer((_) async => [participantAlice]);
+        when(
+          mockRaceRepo.getRaceTeams(raceId),
+        ).thenAnswer((_) async => [teamA]);
+        when(
+          mockRaceRepo.getRaceParticipants(raceId),
+        ).thenAnswer((_) async => [participantAlice]);
         when(mockRunnerRepo.getRunner(10)).thenAnswer((_) async => runnerAlice);
         when(mockTeamRepo.getTeam(1)).thenAnswer((_) async => teamA);
 
@@ -642,10 +736,12 @@ void main() {
       });
 
       test('includes teams with zero runners', () async {
-        when(mockRaceRepo.getRaceTeams(raceId))
-            .thenAnswer((_) async => [teamA, teamB]);
-        when(mockRaceRepo.getRaceParticipants(raceId))
-            .thenAnswer((_) async => [participantAlice]);
+        when(
+          mockRaceRepo.getRaceTeams(raceId),
+        ).thenAnswer((_) async => [teamA, teamB]);
+        when(
+          mockRaceRepo.getRaceParticipants(raceId),
+        ).thenAnswer((_) async => [participantAlice]);
         when(mockRunnerRepo.getRunner(10)).thenAnswer((_) async => runnerAlice);
         when(mockTeamRepo.getTeam(1)).thenAnswer((_) async => teamA);
 
@@ -664,9 +760,12 @@ void main() {
           color: const Color(0xFF2196F3),
         );
 
-        when(mockRaceRepo.getRaceTeams(raceId)).thenAnswer((_) async => [teamA]);
-        when(mockRaceRepo.getRaceParticipants(raceId))
-            .thenAnswer((_) async => [participantAlice]);
+        when(
+          mockRaceRepo.getRaceTeams(raceId),
+        ).thenAnswer((_) async => [teamA]);
+        when(
+          mockRaceRepo.getRaceParticipants(raceId),
+        ).thenAnswer((_) async => [participantAlice]);
         when(mockRunnerRepo.getRunner(10)).thenAnswer((_) async => runnerAlice);
         when(mockTeamRepo.getTeam(1)).thenAnswer((_) async => teamAFromRepo);
 
@@ -677,9 +776,12 @@ void main() {
       });
 
       test('returns cached map without rebuilding on second access', () async {
-        when(mockRaceRepo.getRaceTeams(raceId)).thenAnswer((_) async => [teamA]);
-        when(mockRaceRepo.getRaceParticipants(raceId))
-            .thenAnswer((_) async => [participantAlice]);
+        when(
+          mockRaceRepo.getRaceTeams(raceId),
+        ).thenAnswer((_) async => [teamA]);
+        when(
+          mockRaceRepo.getRaceParticipants(raceId),
+        ).thenAnswer((_) async => [participantAlice]);
         when(mockRunnerRepo.getRunner(10)).thenAnswer((_) async => runnerAlice);
         when(mockTeamRepo.getTeam(1)).thenAnswer((_) async => teamA);
 
@@ -693,9 +795,12 @@ void main() {
 
     group('filteredSearchResults', () {
       setUp(() {
-        when(mockRaceRepo.getRaceTeams(raceId)).thenAnswer((_) async => [teamA]);
-        when(mockRaceRepo.getRaceParticipants(raceId))
-            .thenAnswer((_) async => [participantAlice]);
+        when(
+          mockRaceRepo.getRaceTeams(raceId),
+        ).thenAnswer((_) async => [teamA]);
+        when(
+          mockRaceRepo.getRaceParticipants(raceId),
+        ).thenAnswer((_) async => [participantAlice]);
         when(mockRunnerRepo.getRunner(10)).thenAnswer((_) async => runnerAlice);
         when(mockTeamRepo.getTeam(1)).thenAnswer((_) async => teamA);
       });
@@ -718,15 +823,18 @@ void main() {
         expect(filtered.values.expand((v) => v), isEmpty);
       });
 
-      test('returns all runners after an empty query resets the filter', () async {
-        final masterRace = MasterRace.getInstance(raceId);
+      test(
+        'returns all runners after an empty query resets the filter',
+        () async {
+          final masterRace = MasterRace.getInstance(raceId);
 
-        await masterRace.searchRaceRunners('Bob');
-        await masterRace.searchRaceRunners('');
+          await masterRace.searchRaceRunners('Bob');
+          await masterRace.searchRaceRunners('');
 
-        final filtered = await masterRace.filteredSearchResults;
-        expect(filtered.values.expand((v) => v).length, 1);
-      });
+          final filtered = await masterRace.filteredSearchResults;
+          expect(filtered.values.expand((v) => v).length, 1);
+        },
+      );
 
       test('returns matching runner when query matches by name', () async {
         final masterRace = MasterRace.getInstance(raceId);
@@ -735,10 +843,7 @@ void main() {
 
         final filtered = await masterRace.filteredSearchResults;
         expect(filtered.values.expand((v) => v).length, 1);
-        expect(
-          filtered.values.expand((v) => v).first.runner.name,
-          'Alice',
-        );
+        expect(filtered.values.expand((v) => v).first.runner.name, 'Alice');
       });
     });
 
@@ -754,9 +859,12 @@ void main() {
         final r1 = RaceResult(raceId: raceId, place: 1);
         final r2 = RaceResult(raceId: raceId, place: 2);
 
-        when(mockRaceRepo.getRace(raceId)).thenAnswer((_) async => finishedRace);
-        when(mockResultsRepo.getRaceResults(raceId))
-            .thenAnswer((_) async => [r1, r2]);
+        when(
+          mockRaceRepo.getRace(raceId),
+        ).thenAnswer((_) async => finishedRace);
+        when(
+          mockResultsRepo.getRaceResults(raceId),
+        ).thenAnswer((_) async => [r1, r2]);
 
         final masterRace = MasterRace.getInstance(raceId);
         final results = await masterRace.results;
@@ -767,9 +875,12 @@ void main() {
       test('fetches results from repository only once', () async {
         final r1 = RaceResult(raceId: raceId, place: 1);
 
-        when(mockRaceRepo.getRace(raceId)).thenAnswer((_) async => finishedRace);
-        when(mockResultsRepo.getRaceResults(raceId))
-            .thenAnswer((_) async => [r1]);
+        when(
+          mockRaceRepo.getRace(raceId),
+        ).thenAnswer((_) async => finishedRace);
+        when(
+          mockResultsRepo.getRaceResults(raceId),
+        ).thenAnswer((_) async => [r1]);
 
         final masterRace = MasterRace.getInstance(raceId);
         await masterRace.results;
@@ -781,10 +892,17 @@ void main() {
 
     group('saveResults', () {
       test('saves the whole list in one replace call', () async {
-        when(mockResultsRepo.saveRaceResults(any, any)).thenAnswer((_) async {});
+        when(
+          mockResultsRepo.saveRaceResults(any, any),
+        ).thenAnswer((_) async {});
         final race = MasterRace.getInstance(raceId);
         final results = [
-          RaceResult(raceId: raceId, runner: runnerAlice, team: teamA, place: 1),
+          RaceResult(
+            raceId: raceId,
+            runner: runnerAlice,
+            team: teamA,
+            place: 1,
+          ),
           RaceResult(raceId: raceId, runner: runnerBob, team: teamB, place: 2),
         ];
 
@@ -795,15 +913,20 @@ void main() {
       });
 
       test('fills in the race id on results that lack one', () async {
-        when(mockResultsRepo.saveRaceResults(any, any)).thenAnswer((_) async {});
+        when(
+          mockResultsRepo.saveRaceResults(any, any),
+        ).thenAnswer((_) async {});
         final race = MasterRace.getInstance(raceId);
 
-        await race.saveResults(
-            [RaceResult(runner: runnerAlice, team: teamA, place: 1)]);
+        await race.saveResults([
+          RaceResult(runner: runnerAlice, team: teamA, place: 1),
+        ]);
 
-        final saved = verify(mockResultsRepo.saveRaceResults(raceId, captureAny))
-            .captured
-            .single as List<RaceResult>;
+        final saved =
+            verify(
+                  mockResultsRepo.saveRaceResults(raceId, captureAny),
+                ).captured.single
+                as List<RaceResult>;
         expect(saved.single.raceId, raceId);
       });
 
@@ -812,7 +935,12 @@ void main() {
 
         expect(
           () => race.saveResults([
-            RaceResult(raceId: raceId + 1, runner: runnerAlice, team: teamA, place: 1)
+            RaceResult(
+              raceId: raceId + 1,
+              runner: runnerAlice,
+              team: teamA,
+              place: 1,
+            ),
           ]),
           throwsException,
         );
@@ -825,7 +953,9 @@ void main() {
         when(mockTeamRepo.getTeam(1)).thenAnswer((_) async => teamA);
 
         final masterRace = MasterRace.getInstance(raceId);
-        final result = await masterRace.getRaceRunnerFromRaceParticipant(participantAlice);
+        final result = await masterRace.getRaceRunnerFromRaceParticipant(
+          participantAlice,
+        );
 
         expect(result, isNotNull);
         expect(result!.runner.runnerId, 10);
@@ -833,18 +963,22 @@ void main() {
         expect(result.raceId, raceId);
       });
 
-      test('returns cached value without hitting repositories on second call',
-          () async {
-        when(mockRunnerRepo.getRunner(10)).thenAnswer((_) async => runnerAlice);
-        when(mockTeamRepo.getTeam(1)).thenAnswer((_) async => teamA);
+      test(
+        'returns cached value without hitting repositories on second call',
+        () async {
+          when(
+            mockRunnerRepo.getRunner(10),
+          ).thenAnswer((_) async => runnerAlice);
+          when(mockTeamRepo.getTeam(1)).thenAnswer((_) async => teamA);
 
-        final masterRace = MasterRace.getInstance(raceId);
-        await masterRace.getRaceRunnerFromRaceParticipant(participantAlice);
-        await masterRace.getRaceRunnerFromRaceParticipant(participantAlice);
+          final masterRace = MasterRace.getInstance(raceId);
+          await masterRace.getRaceRunnerFromRaceParticipant(participantAlice);
+          await masterRace.getRaceRunnerFromRaceParticipant(participantAlice);
 
-        verify(mockRunnerRepo.getRunner(10)).called(1);
-        verify(mockTeamRepo.getTeam(1)).called(1);
-      });
+          verify(mockRunnerRepo.getRunner(10)).called(1);
+          verify(mockTeamRepo.getTeam(1)).called(1);
+        },
+      );
 
       test('throws when runner is not found in repository', () async {
         when(mockRunnerRepo.getRunner(10)).thenAnswer((_) async => null);
@@ -876,10 +1010,12 @@ void main() {
         when(mockTeamRepo.getTeam(2)).thenAnswer((_) async => teamB);
 
         final masterRace = MasterRace.getInstance(raceId);
-        final resultA =
-            await masterRace.getRaceRunnerFromRaceParticipant(participantAlice);
-        final resultB =
-            await masterRace.getRaceRunnerFromRaceParticipant(participantBob);
+        final resultA = await masterRace.getRaceRunnerFromRaceParticipant(
+          participantAlice,
+        );
+        final resultB = await masterRace.getRaceRunnerFromRaceParticipant(
+          participantBob,
+        );
 
         expect(resultA!.runner.runnerId, 10);
         expect(resultB!.runner.runnerId, 11);

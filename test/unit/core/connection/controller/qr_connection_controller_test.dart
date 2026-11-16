@@ -10,8 +10,11 @@ import 'package:xceleration/core/utils/barcode_scanner_interface.dart';
 import 'package:xceleration/core/utils/enums.dart';
 import 'package:xceleration/core/utils/platform_checker.dart';
 
-@GenerateMocks(
-    [DevicesManager, PlatformCheckerInterface, BarcodeScannerInterface])
+@GenerateMocks([
+  DevicesManager,
+  PlatformCheckerInterface,
+  BarcodeScannerInterface,
+])
 import 'qr_connection_controller_test.mocks.dart';
 
 class _RecordingNavigatorObserver extends NavigatorObserver {
@@ -44,11 +47,11 @@ void main() {
   });
 
   QRConnectionController buildController() => QRConnectionController(
-        devices: mockDevices,
-        platformChecker: mockPlatformChecker,
-        barcodeScanner: mockBarcodeScanner,
-        callback: () => callbackInvoked = true,
-      );
+    devices: mockDevices,
+    platformChecker: mockPlatformChecker,
+    barcodeScanner: mockBarcodeScanner,
+    callback: () => callbackInvoked = true,
+  );
 
   /// Pumps a minimal widget tree and returns a valid BuildContext.
   Future<BuildContext> pumpContext(WidgetTester tester) async {
@@ -58,8 +61,9 @@ void main() {
 
   group('QRConnectionController', () {
     group('handleTap — browser device on non-mobile platform', () {
-      testWidgets('sets hasError with platform-unavailable message',
-          (tester) async {
+      testWidgets('sets hasError with platform-unavailable message', (
+        tester,
+      ) async {
         final ctx = await pumpContext(tester);
         final controller = buildController();
 
@@ -90,17 +94,20 @@ void main() {
         when(mockPlatformChecker.isIOS).thenReturn(false);
       });
 
-      testWidgets('updates device status and data on valid QR scan',
-          (tester) async {
+      testWidgets('updates device status and data on valid QR scan', (
+        tester,
+      ) async {
         final ctx = await pumpContext(tester);
         final device = ConnectedDevice(DeviceName.coach);
         when(mockDevices.getDevice(DeviceName.coach)).thenReturn(device);
         when(mockDevices.allDevicesFinished()).thenReturn(false);
-        when(mockBarcodeScanner.scan()).thenAnswer((_) async => ScanResult(
-              type: ResultType.Barcode,
-              rawContent: 'Coach:somedata:extra',
-              format: BarcodeFormat.qr,
-            ));
+        when(mockBarcodeScanner.scan()).thenAnswer(
+          (_) async => ScanResult(
+            type: ResultType.Barcode,
+            rawContent: 'Coach:somedata:extra',
+            format: BarcodeFormat.qr,
+          ),
+        );
 
         final controller = buildController();
         await controller.handleTap(ctx);
@@ -115,11 +122,13 @@ void main() {
         final device = ConnectedDevice(DeviceName.coach);
         when(mockDevices.getDevice(DeviceName.coach)).thenReturn(device);
         when(mockDevices.allDevicesFinished()).thenReturn(true);
-        when(mockBarcodeScanner.scan()).thenAnswer((_) async => ScanResult(
-              type: ResultType.Barcode,
-              rawContent: 'Coach:payload',
-              format: BarcodeFormat.qr,
-            ));
+        when(mockBarcodeScanner.scan()).thenAnswer(
+          (_) async => ScanResult(
+            type: ResultType.Barcode,
+            rawContent: 'Coach:payload',
+            format: BarcodeFormat.qr,
+          ),
+        );
 
         final controller = buildController();
         await controller.handleTap(ctx);
@@ -127,17 +136,20 @@ void main() {
         expect(callbackInvoked, isTrue);
       });
 
-      testWidgets('does not invoke callback when not all devices finished',
-          (tester) async {
+      testWidgets('does not invoke callback when not all devices finished', (
+        tester,
+      ) async {
         final ctx = await pumpContext(tester);
         final device = ConnectedDevice(DeviceName.coach);
         when(mockDevices.getDevice(DeviceName.coach)).thenReturn(device);
         when(mockDevices.allDevicesFinished()).thenReturn(false);
-        when(mockBarcodeScanner.scan()).thenAnswer((_) async => ScanResult(
-              type: ResultType.Barcode,
-              rawContent: 'Coach:payload',
-              format: BarcodeFormat.qr,
-            ));
+        when(mockBarcodeScanner.scan()).thenAnswer(
+          (_) async => ScanResult(
+            type: ResultType.Barcode,
+            rawContent: 'Coach:payload',
+            format: BarcodeFormat.qr,
+          ),
+        );
 
         final controller = buildController();
         await controller.handleTap(ctx);
@@ -145,14 +157,17 @@ void main() {
         expect(callbackInvoked, isFalse);
       });
 
-      testWidgets('sets error when QR content has unrecognised device name',
-          (tester) async {
+      testWidgets('sets error when QR content has unrecognised device name', (
+        tester,
+      ) async {
         final ctx = await pumpContext(tester);
-        when(mockBarcodeScanner.scan()).thenAnswer((_) async => ScanResult(
-              type: ResultType.Barcode,
-              rawContent: 'UnknownDevice:data',
-              format: BarcodeFormat.qr,
-            ));
+        when(mockBarcodeScanner.scan()).thenAnswer(
+          (_) async => ScanResult(
+            type: ResultType.Barcode,
+            rawContent: 'UnknownDevice:data',
+            format: BarcodeFormat.qr,
+          ),
+        );
         when(mockDevices.getDevice(any)).thenReturn(null);
 
         final controller = buildController();
@@ -162,25 +177,31 @@ void main() {
         expect(controller.error!.userMessage, 'Incorrect QR Code Scanned');
       });
 
-      testWidgets('sets camera-permission error on PERMISSION_NOT_GRANTED',
-          (tester) async {
+      testWidgets('sets camera-permission error on PERMISSION_NOT_GRANTED', (
+        tester,
+      ) async {
         final ctx = await pumpContext(tester);
-        when(mockBarcodeScanner.scan())
-            .thenThrow(PlatformException(code: 'PERMISSION_NOT_GRANTED'));
+        when(
+          mockBarcodeScanner.scan(),
+        ).thenThrow(PlatformException(code: 'PERMISSION_NOT_GRANTED'));
 
         final controller = buildController();
         await controller.handleTap(ctx);
 
         expect(controller.hasError, isTrue);
-        expect(controller.error!.userMessage,
-            'Camera permission is required to scan QR codes.');
+        expect(
+          controller.error!.userMessage,
+          'Camera permission is required to scan QR codes.',
+        );
       });
 
-      testWidgets('sets plugin-unavailable error on MissingPluginException',
-          (tester) async {
+      testWidgets('sets plugin-unavailable error on MissingPluginException', (
+        tester,
+      ) async {
         final ctx = await pumpContext(tester);
-        when(mockBarcodeScanner.scan())
-            .thenThrow(PlatformException(code: 'MissingPluginException'));
+        when(
+          mockBarcodeScanner.scan(),
+        ).thenThrow(PlatformException(code: 'MissingPluginException'));
 
         final controller = buildController();
         await controller.handleTap(ctx);
@@ -192,11 +213,13 @@ void main() {
         );
       });
 
-      testWidgets('sets generic error on unknown PlatformException',
-          (tester) async {
+      testWidgets('sets generic error on unknown PlatformException', (
+        tester,
+      ) async {
         final ctx = await pumpContext(tester);
-        when(mockBarcodeScanner.scan())
-            .thenThrow(PlatformException(code: 'UNKNOWN'));
+        when(
+          mockBarcodeScanner.scan(),
+        ).thenThrow(PlatformException(code: 'UNKNOWN'));
 
         final controller = buildController();
         await controller.handleTap(ctx);
@@ -219,8 +242,9 @@ void main() {
         );
       });
 
-      testWidgets('clears previous error on subsequent handleTap call',
-          (tester) async {
+      testWidgets('clears previous error on subsequent handleTap call', (
+        tester,
+      ) async {
         // First call on non-mobile → error
         when(mockPlatformChecker.isAndroid).thenReturn(false);
         when(mockPlatformChecker.isIOS).thenReturn(false);
@@ -234,11 +258,13 @@ void main() {
         final device = ConnectedDevice(DeviceName.coach);
         when(mockDevices.getDevice(DeviceName.coach)).thenReturn(device);
         when(mockDevices.allDevicesFinished()).thenReturn(false);
-        when(mockBarcodeScanner.scan()).thenAnswer((_) async => ScanResult(
-              type: ResultType.Barcode,
-              rawContent: 'Coach:data',
-              format: BarcodeFormat.qr,
-            ));
+        when(mockBarcodeScanner.scan()).thenAnswer(
+          (_) async => ScanResult(
+            type: ResultType.Barcode,
+            rawContent: 'Coach:data',
+            format: BarcodeFormat.qr,
+          ),
+        );
 
         await controller.handleTap(ctx);
 
@@ -250,90 +276,100 @@ void main() {
       late ConnectedDevice advertiserDevice;
 
       setUp(() {
-        when(mockDevices.currentDeviceType)
-            .thenReturn(DeviceType.advertiserDevice);
+        when(
+          mockDevices.currentDeviceType,
+        ).thenReturn(DeviceType.advertiserDevice);
         when(mockDevices.currentDeviceName).thenReturn(DeviceName.bibRecorder);
         advertiserDevice = ConnectedDevice(DeviceName.coach)..data = 'rawdata';
         when(mockDevices.otherDevices).thenReturn([advertiserDevice]);
-        when(mockDevices.getDevice(DeviceName.coach))
-            .thenReturn(advertiserDevice);
+        when(
+          mockDevices.getDevice(DeviceName.coach),
+        ).thenReturn(advertiserDevice);
       });
 
       testWidgets(
-          'pops current route before showing QR sheet when inSheet is true',
-          (tester) async {
-        final observer = _RecordingNavigatorObserver();
-        final controller = QRConnectionController(
-          devices: mockDevices,
-          platformChecker: mockPlatformChecker,
-          barcodeScanner: mockBarcodeScanner,
-          callback: () {},
-          inSheet: true,
-        );
+        'pops current route before showing QR sheet when inSheet is true',
+        (tester) async {
+          final observer = _RecordingNavigatorObserver();
+          final controller = QRConnectionController(
+            devices: mockDevices,
+            platformChecker: mockPlatformChecker,
+            barcodeScanner: mockBarcodeScanner,
+            callback: () {},
+            inSheet: true,
+          );
 
-        final navigatorKey = GlobalKey<NavigatorState>();
-        await tester.pumpWidget(MaterialApp(
-          navigatorKey: navigatorKey,
-          navigatorObservers: [observer],
-          home: const Scaffold(body: SizedBox.shrink()),
-        ));
+          final navigatorKey = GlobalKey<NavigatorState>();
+          await tester.pumpWidget(
+            MaterialApp(
+              navigatorKey: navigatorKey,
+              navigatorObservers: [observer],
+              home: const Scaffold(body: SizedBox.shrink()),
+            ),
+          );
 
-        // Push a route to simulate DeviceConnectionWidget being inside a sheet.
-        BuildContext? pushedCtx;
-        navigatorKey.currentState!.push(
-          MaterialPageRoute(
-            builder: (ctx) {
-              pushedCtx = ctx;
-              return const Scaffold(body: SizedBox.shrink());
-            },
-          ),
-        );
-        await tester.pumpAndSettle();
+          // Push a route to simulate DeviceConnectionWidget being inside a sheet.
+          BuildContext? pushedCtx;
+          navigatorKey.currentState!.push(
+            MaterialPageRoute(
+              builder: (ctx) {
+                pushedCtx = ctx;
+                return const Scaffold(body: SizedBox.shrink());
+              },
+            ),
+          );
+          await tester.pumpAndSettle();
 
-        // Clear the initial push events (home + simulated sheet route).
-        observer.events.clear();
+          // Clear the initial push events (home + simulated sheet route).
+          observer.events.clear();
 
-        // Trigger handleTap without awaiting — the QR sheet stays open.
-        // ignore: unawaited_futures
-        controller.handleTap(pushedCtx!);
-        await tester.pumpAndSettle();
+          // Trigger handleTap without awaiting — the QR sheet stays open.
+          // ignore: unawaited_futures
+          controller.handleTap(pushedCtx!);
+          await tester.pumpAndSettle();
 
-        // pop must occur before the QR sheet push.
-        expect(observer.events.first, 'pop');
-        expect(observer.events, contains('push'));
-      });
+          // pop must occur before the QR sheet push.
+          expect(observer.events.first, 'pop');
+          expect(observer.events, contains('push'));
+        },
+      );
 
       testWidgets(
-          'does not pop before showing QR sheet when inSheet is false',
-          (tester) async {
-        final observer = _RecordingNavigatorObserver();
-        final controller = QRConnectionController(
-          devices: mockDevices,
-          platformChecker: mockPlatformChecker,
-          barcodeScanner: mockBarcodeScanner,
-          callback: () {},
-          inSheet: false,
-        );
+        'does not pop before showing QR sheet when inSheet is false',
+        (tester) async {
+          final observer = _RecordingNavigatorObserver();
+          final controller = QRConnectionController(
+            devices: mockDevices,
+            platformChecker: mockPlatformChecker,
+            barcodeScanner: mockBarcodeScanner,
+            callback: () {},
+            inSheet: false,
+          );
 
-        BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          navigatorObservers: [observer],
-          home: Builder(builder: (c) {
-            ctx = c;
-            return const SizedBox.shrink();
-          }),
-        ));
+          BuildContext? ctx;
+          await tester.pumpWidget(
+            MaterialApp(
+              navigatorObservers: [observer],
+              home: Builder(
+                builder: (c) {
+                  ctx = c;
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+          );
 
-        observer.events.clear();
+          observer.events.clear();
 
-        // ignore: unawaited_futures
-        controller.handleTap(ctx!);
-        await tester.pumpAndSettle();
+          // ignore: unawaited_futures
+          controller.handleTap(ctx!);
+          await tester.pumpAndSettle();
 
-        // No pop should have occurred — only a push (the QR sheet).
-        expect(observer.events.where((e) => e == 'pop'), isEmpty);
-        expect(observer.events, contains('push'));
-      });
+          // No pop should have occurred — only a push (the QR sheet).
+          expect(observer.events.where((e) => e == 'pop'), isEmpty);
+          expect(observer.events, contains('push'));
+        },
+      );
     });
   });
 }

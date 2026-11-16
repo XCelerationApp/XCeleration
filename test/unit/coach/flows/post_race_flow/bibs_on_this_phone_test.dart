@@ -30,16 +30,19 @@ void main() {
   late LoadResultsController controller;
 
   final sent = RaceRecord(
-          raceId: 5, date: DateTime(2026, 9, 12), name: 'Invitational',
-          type: 'race')
-      .encode();
+    raceId: 5,
+    date: DateTime(2026, 9, 12),
+    name: 'Invitational',
+    type: 'race',
+  ).encode();
 
   setUpAll(() async {
     TestWidgetsFlutterBinding.ensureInitialized();
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     await databaseFactory.setDatabasesPath(
-        Directory.systemTemp.createTempSync('bibs_on_this_phone').path);
+      Directory.systemTemp.createTempSync('bibs_on_this_phone').path,
+    );
   });
 
   setUp(() async {
@@ -49,10 +52,13 @@ void main() {
     }
     masterRace = MockMasterRace();
     when(masterRace.raceId).thenReturn(5);
-    when(masterRace.race)
-        .thenAnswer((_) async => Race(raceId: 5, raceName: 'Invitational'));
+    when(
+      masterRace.race,
+    ).thenAnswer((_) async => Race(raceId: 5, raceName: 'Invitational'));
     devices = DeviceConnectionService.createDevices(
-        DeviceName.coach, DeviceType.browserDevice);
+      DeviceName.coach,
+      DeviceType.browserDevice,
+    );
     controller = LoadResultsController(
       masterRace: masterRace,
       devices: devices,
@@ -65,16 +71,18 @@ void main() {
     final roster = await BibEncodeUtils.getEncodedBibData([
       BibDatum(bib: '101', name: 'Ava', teamAbbreviation: 'NHS', grade: '11'),
     ]);
-    final stored = (await storeRaceFromCoach(storage, '$sent---$roster')
-            as Success<StoredRaceFromCoach>)
-        .value;
+    final stored =
+        (await storeRaceFromCoach(storage, '$sent---$roster')
+                as Success<StoredRaceFromCoach>)
+            .value;
     await storage.saveBibRecords(stored.race.raceId, [
       for (final (i, bib) in bibs.indexed)
         BibRecord(
-            raceId: stored.race.raceId,
-            bibId: i,
-            bibNumber: bib,
-            createdAt: DateTime(2026, 9, 12)),
+          raceId: stored.race.raceId,
+          bibId: i,
+          bibNumber: bib,
+          createdAt: DateTime(2026, 9, 12),
+        ),
     ]);
   }
 
@@ -86,17 +94,19 @@ void main() {
     await recordOnThisPhone(['101', '999', '101']);
 
     final encoded = await controller.bibsFromThisPhone();
-    final bibs = (await BibDecodeUtils.decodeEncodedRunners(encoded!)
-            as Success<List<BibDatum>>)
-        .value;
+    final bibs =
+        (await BibDecodeUtils.decodeEncodedRunners(encoded!)
+                as Success<List<BibDatum>>)
+            .value;
 
     expect(bibs.map((b) => b.bib), ['101', '999', '101']);
   });
 
   test('ignores another race\'s bibs', () async {
     await recordOnThisPhone(['101']);
-    when(masterRace.race)
-        .thenAnswer((_) async => Race(raceId: 5, raceName: 'Conference'));
+    when(
+      masterRace.race,
+    ).thenAnswer((_) async => Race(raceId: 5, raceName: 'Conference'));
 
     expect(await controller.bibsFromThisPhone(), isNull);
   });
@@ -109,8 +119,11 @@ void main() {
 
     expect(devices.bibRecorder!.isFinished, isTrue);
     expect(devices.bibRecorder!.data, encoded);
-    expect(controller.resultsLoaded, isFalse,
-        reason: 'the Timer has not sent its times yet');
+    expect(
+      controller.resultsLoaded,
+      isFalse,
+      reason: 'the Timer has not sent its times yet',
+    );
   });
 }
 

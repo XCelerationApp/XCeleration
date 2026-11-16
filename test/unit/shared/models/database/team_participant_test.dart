@@ -20,9 +20,18 @@ void main() {
         expect(participant.raceId, 1);
         expect(participant.teamId, 2);
         expect(participant.colorOverride, 0xFF2196F3);
-        expect(participant.createdAt, DateTime.parse('2024-01-01T00:00:00.000'));
-        expect(participant.updatedAt, DateTime.parse('2024-01-02T00:00:00.000'));
-        expect(participant.deletedAt, DateTime.parse('2024-01-03T00:00:00.000'));
+        expect(
+          participant.createdAt,
+          DateTime.parse('2024-01-01T00:00:00.000'),
+        );
+        expect(
+          participant.updatedAt,
+          DateTime.parse('2024-01-02T00:00:00.000'),
+        );
+        expect(
+          participant.deletedAt,
+          DateTime.parse('2024-01-03T00:00:00.000'),
+        );
         expect(participant.isDirty, 1);
       });
 
@@ -87,7 +96,10 @@ void main() {
         final map = participant.toMap();
 
         expect(map['updated_at'], isNotNull);
-        expect(() => DateTime.parse(map['updated_at'] as String), returnsNormally);
+        expect(
+          () => DateTime.parse(map['updated_at'] as String),
+          returnsNormally,
+        );
       });
     });
 
@@ -146,7 +158,11 @@ void main() {
       });
 
       test('preserves unchanged fields', () {
-        const original = TeamParticipant(raceId: 1, teamId: 2, colorOverride: 0xFFFF0000);
+        const original = TeamParticipant(
+          raceId: 1,
+          teamId: 2,
+          colorOverride: 0xFFFF0000,
+        );
 
         final copy = original.copyWith(raceId: 5);
 
@@ -156,11 +172,22 @@ void main() {
     });
 
     group('equality', () {
-      test('two instances with same raceId, teamId, colorOverride are equal', () {
-        const a = TeamParticipant(raceId: 1, teamId: 2, colorOverride: 0xFF0000FF);
-        const b = TeamParticipant(raceId: 1, teamId: 2, colorOverride: 0xFF0000FF);
-        expect(a, equals(b));
-      });
+      test(
+        'two instances with same raceId, teamId, colorOverride are equal',
+        () {
+          const a = TeamParticipant(
+            raceId: 1,
+            teamId: 2,
+            colorOverride: 0xFF0000FF,
+          );
+          const b = TeamParticipant(
+            raceId: 1,
+            teamId: 2,
+            colorOverride: 0xFF0000FF,
+          );
+          expect(a, equals(b));
+        },
+      );
 
       test('instances with different raceId are not equal', () {
         const a = TeamParticipant(raceId: 1, teamId: 2);

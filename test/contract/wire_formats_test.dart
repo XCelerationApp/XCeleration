@@ -32,12 +32,13 @@ import 'wire_samples.dart';
 const _wireDir = 'test/fixtures/wire';
 
 /// Saved releases, oldest first.
-List<String> _versions() => Directory(_wireDir)
-    .listSync()
-    .whereType<Directory>()
-    .map((d) => d.uri.pathSegments.where((s) => s.isNotEmpty).last)
-    .toList()
-  ..sort(_compareVersions);
+List<String> _versions() =>
+    Directory(_wireDir)
+        .listSync()
+        .whereType<Directory>()
+        .map((d) => d.uri.pathSegments.where((s) => s.isNotEmpty).last)
+        .toList()
+      ..sort(_compareVersions);
 
 /// Orders "1.9.0" before "1.10.0", which comparing text does not.
 int _compareVersions(String a, String b) {
@@ -61,9 +62,10 @@ String _unpacked(String payload) {
   }
 }
 
-String _currentVersion() => RegExp(r'^version:\s*([0-9.]+)', multiLine: true)
-    .firstMatch(File('pubspec.yaml').readAsStringSync())!
-    .group(1)!;
+String _currentVersion() => RegExp(
+  r'^version:\s*([0-9.]+)',
+  multiLine: true,
+).firstMatch(File('pubspec.yaml').readAsStringSync())!.group(1)!;
 
 class _NoHaptics implements IHapticFeedback {
   @override
@@ -88,15 +90,25 @@ class _Phone implements PlatformCheckerInterface {
 
 /// Scans [qrText] on a phone that is [me], receiving, and returns what it
 /// took as sent by [from], or null if it refused the code.
-Future<String?> _scan(WidgetTester tester, String qrText,
-    {required DeviceName me, required DeviceName from}) async {
-  final devices =
-      DeviceConnectionService.createDevices(me, DeviceType.browserDevice);
+Future<String?> _scan(
+  WidgetTester tester,
+  String qrText, {
+  required DeviceName me,
+  required DeviceName from,
+}) async {
+  final devices = DeviceConnectionService.createDevices(
+    me,
+    DeviceType.browserDevice,
+  );
   late BuildContext context;
-  await tester.pumpWidget(Builder(builder: (c) {
-    context = c;
-    return const SizedBox();
-  }));
+  await tester.pumpWidget(
+    Builder(
+      builder: (c) {
+        context = c;
+        return const SizedBox();
+      },
+    ),
+  );
   final controller = QRConnectionController(
     devices: devices,
     platformChecker: const _Phone(),
@@ -116,7 +128,8 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     await databaseFactory.setDatabasesPath(
-        Directory.systemTemp.createTempSync('wire_formats').path);
+      Directory.systemTemp.createTempSync('wire_formats').path,
+    );
   });
 
   test('releases are saved to test against', () {
@@ -137,16 +150,21 @@ void main() {
       test('the Timer opens the race the coach sent', () async {
         final db = await storage.database;
         await db.delete('race_history');
-        final timer =
-            TimingController(storage: storage, hapticFeedback: _NoHaptics());
+        final timer = TimingController(
+          storage: storage,
+          hapticFeedback: _NoHaptics(),
+        );
         await timer.initialLoad;
         // Wirelessly the Timer gets the race alone; by QR code, the Bib
         // Recorder's race and roster.
         for (final file in ['race_to_timer.txt', 'race_to_bib_recorder.txt']) {
           await timer.loadRaceFromCoach(_read(version, file));
           expect(timer.currentRace?.name, sampleRace.name, reason: file);
-          expect(timer.currentRace?.date.millisecondsSinceEpoch,
-              sampleRace.date.millisecondsSinceEpoch, reason: file);
+          expect(
+            timer.currentRace?.date.millisecondsSinceEpoch,
+            sampleRace.date.millisecondsSinceEpoch,
+            reason: file,
+          );
         }
         timer.dispose();
       });
@@ -158,31 +176,58 @@ void main() {
         expect(race.name, sampleRace.name);
         final roster = await BibDecodeUtils.decodeEncodedRunners(parts[1]);
         final runners = (roster as Success).value as List;
-        expect([for (final r in runners) (r.bib, r.name, r.teamAbbreviation, r.grade)],
-            [for (final r in sampleRoster) (r.bib, r.name, r.teamAbbreviation, r.grade)]);
+        expect(
+          [
+            for (final r in runners)
+              (r.bib, r.name, r.teamAbbreviation, r.grade),
+          ],
+          [
+            for (final r in sampleRoster)
+              (r.bib, r.name, r.teamAbbreviation, r.grade),
+          ],
+        );
       });
 
       test('the coach reads the Timer\'s times, every one', () async {
         final times = await TimingDecodeUtils.decodeEncodedTimingData(
-            _read(version, 'times_to_coach.txt'),
-            strict: true);
-        expect([for (final t in times) (t.time, t.conflict?.type, t.conflict?.offBy)],
-            [for (final t in sampleTimes) (t.time, t.conflict?.type, t.conflict?.offBy)]);
+          _read(version, 'times_to_coach.txt'),
+          strict: true,
+        );
+        expect(
+          [
+            for (final t in times)
+              (t.time, t.conflict?.type, t.conflict?.offBy),
+          ],
+          [
+            for (final t in sampleTimes)
+              (t.time, t.conflict?.type, t.conflict?.offBy),
+          ],
+        );
       });
 
       test('the coach reads the Bib Recorder\'s bibs in order', () async {
         final bibs = await BibDecodeUtils.decodeEncodedRunners(
-            _read(version, 'bibs_to_coach.txt'));
+          _read(version, 'bibs_to_coach.txt'),
+        );
         final list = (bibs as Success).value as List;
         expect([for (final b in list) b.bib], ['102', '101', '007']);
       });
 
       test('spectators read the results', () {
         final decoded = RaceShareDecoder.decodeWithRaw(
-            _read(version, 'results_to_spectators.txt'));
+          _read(version, 'results_to_spectators.txt'),
+        );
         final results = (decoded as Success).value.results;
-        expect([for (final r in results.individualResults) (r.place, r.name, r.finishTime)],
-            [for (final r in sampleResults) (r.place, r.runner!.name, r.finishTime)]);
+        expect(
+          [
+            for (final r in results.individualResults)
+              (r.place, r.name, r.finishTime),
+          ],
+          [
+            for (final r in sampleResults)
+              (r.place, r.runner!.name, r.finishTime),
+          ],
+        );
       });
 
       test('the transfer packets are read', () {
@@ -190,8 +235,10 @@ void main() {
           for (final line in _read(version, 'packets.txt').split('\n'))
             Package.fromString(line),
         ];
-        expect([for (final p in packets) (p.number, p.type, p.data)],
-            [(1, 'DATA', 'first chunk'), (1, 'ACK', null), (2, 'FIN', null)]);
+        expect(
+          [for (final p in packets) (p.number, p.type, p.data)],
+          [(1, 'DATA', 'first chunk'), (1, 'ACK', null), (2, 'FIN', null)],
+        );
         expect(packets.first.checksumsMatch(), isTrue);
       });
 
@@ -200,20 +247,45 @@ void main() {
         final times = _read(version, 'times_to_coach.txt');
         final bibs = _read(version, 'bibs_to_coach.txt');
 
-        expect(await _scan(tester, 'Coach:$raceAndRoster',
-                me: DeviceName.raceTimer, from: DeviceName.coach),
-            raceAndRoster);
-        expect(await _scan(tester, 'Coach:$raceAndRoster',
-                me: DeviceName.bibRecorder, from: DeviceName.coach),
-            raceAndRoster);
+        expect(
+          await _scan(
+            tester,
+            'Coach:$raceAndRoster',
+            me: DeviceName.raceTimer,
+            from: DeviceName.coach,
+          ),
+          raceAndRoster,
+        );
+        expect(
+          await _scan(
+            tester,
+            'Coach:$raceAndRoster',
+            me: DeviceName.bibRecorder,
+            from: DeviceName.coach,
+          ),
+          raceAndRoster,
+        );
         for (final timerName in ['Race Timer', 'Timer']) {
-          expect(await _scan(tester, '$timerName:$times',
-                  me: DeviceName.coach, from: DeviceName.raceTimer),
-              times, reason: '$timerName QR code');
+          expect(
+            await _scan(
+              tester,
+              '$timerName:$times',
+              me: DeviceName.coach,
+              from: DeviceName.raceTimer,
+            ),
+            times,
+            reason: '$timerName QR code',
+          );
         }
-        expect(await _scan(tester, 'Bib Recorder:$bibs',
-                me: DeviceName.coach, from: DeviceName.bibRecorder),
-            bibs);
+        expect(
+          await _scan(
+            tester,
+            'Bib Recorder:$bibs',
+            me: DeviceName.coach,
+            from: DeviceName.bibRecorder,
+          ),
+          bibs,
+        );
       });
     });
   }
@@ -232,9 +304,13 @@ void main() {
         expect(a[0], b[0], reason: entry.key);
         expect(_unpacked(a[1]), _unpacked(b[1]), reason: entry.key);
       } else {
-        expect(_unpacked(entry.value), _unpacked(saved),
-            reason: '${entry.key} is not what $latest sent. If you meant '
-                'to change it, see test/fixtures/wire/README.md.');
+        expect(
+          _unpacked(entry.value),
+          _unpacked(saved),
+          reason:
+              '${entry.key} is not what $latest sent. If you meant '
+              'to change it, see test/fixtures/wire/README.md.',
+        );
       }
     }
     expect(_compareVersions(_currentVersion(), latest) >= 0, isTrue);

@@ -83,17 +83,13 @@ class DropupButton<T> extends StatelessWidget {
         offset.dy, // Bottom of menu at top of button
       ),
       elevation: elevation,
-      shape: menuShape ??
-          RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+      shape:
+          menuShape ??
+          RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       color: menuColor ?? Colors.white,
       // Force the menu width to match the button width exactly
-      constraints: menuConstraints ??
-          BoxConstraints(
-            minWidth: width,
-            maxWidth: width,
-          ),
+      constraints:
+          menuConstraints ?? BoxConstraints(minWidth: width, maxWidth: width),
       items: items,
     ).then((T? value) {
       // Check if the context is still mounted before calling onSelected

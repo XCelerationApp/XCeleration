@@ -112,42 +112,36 @@ class _RecentSpreadsheetsSheetState extends State<RecentSpreadsheetsSheet> {
           _EmptyState()
         else ...[
           if (_driveFiles.isNotEmpty) ...[
-            _SectionHeader(
-              icon: Icons.cloud_outlined,
-              label: 'Google Drive',
-            ),
+            _SectionHeader(icon: Icons.cloud_outlined, label: 'Google Drive'),
             ..._driveFiles.asMap().entries.map(
-                  (e) => _AnimatedEntry(
-                    index: e.key,
-                    child: _FileRow(
-                      name: e.value.name,
-                      subtitle: _selectionSubtitle(e.value.selectedAt),
-                      icon: _driveIcon(e.value.mimeType),
-                      iconColor: AppColors.primaryColor,
-                      onTap: () => _onDriveFileTap(e.value),
-                    ),
-                  ),
+              (e) => _AnimatedEntry(
+                index: e.key,
+                child: _FileRow(
+                  name: e.value.name,
+                  subtitle: _selectionSubtitle(e.value.selectedAt),
+                  icon: _driveIcon(e.value.mimeType),
+                  iconColor: AppColors.primaryColor,
+                  onTap: () => _onDriveFileTap(e.value),
                 ),
+              ),
+            ),
           ],
           if (_localFiles.isNotEmpty) ...[
             if (_driveFiles.isNotEmpty)
               const Divider(height: AppSpacing.lg, indent: AppSpacing.lg),
-            _SectionHeader(
-              icon: Icons.folder_outlined,
-              label: 'Local Files',
-            ),
+            _SectionHeader(icon: Icons.folder_outlined, label: 'Local Files'),
             ..._localFiles.asMap().entries.map(
-                  (e) => _AnimatedEntry(
-                    index: _driveFiles.length + e.key,
-                    child: _FileRow(
-                      name: e.value.name,
-                      subtitle: _selectionSubtitle(e.value.lastUsed),
-                      icon: Icons.insert_drive_file_outlined,
-                      iconColor: AppColors.mediumColor,
-                      onTap: () => _onLocalFileTap(e.value),
-                    ),
-                  ),
+              (e) => _AnimatedEntry(
+                index: _driveFiles.length + e.key,
+                child: _FileRow(
+                  name: e.value.name,
+                  subtitle: _selectionSubtitle(e.value.lastUsed),
+                  icon: Icons.insert_drive_file_outlined,
+                  iconColor: AppColors.mediumColor,
+                  onTap: () => _onLocalFileTap(e.value),
                 ),
+              ),
+            ),
           ],
         ],
         const SizedBox(height: AppSpacing.md),
@@ -179,14 +173,16 @@ class _EmptyState extends StatelessWidget {
             const SizedBox(height: AppSpacing.md),
             Text(
               'No previously selected spreadsheets',
-              style:
-                  AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
+              style: AppTypography.bodyRegular.copyWith(
+                color: AppColors.mediumColor,
+              ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
               'Files you import will appear here.',
-              style:
-                  AppTypography.caption.copyWith(color: AppColors.mediumColor),
+              style: AppTypography.caption.copyWith(
+                color: AppColors.mediumColor,
+              ),
               textAlign: TextAlign.center,
             ),
           ],
@@ -297,8 +293,9 @@ class _FileRowState extends State<_FileRow> {
                   const SizedBox(height: 2),
                   Text(
                     widget.subtitle,
-                    style: AppTypography.caption
-                        .copyWith(color: AppColors.mediumColor),
+                    style: AppTypography.caption.copyWith(
+                      color: AppColors.mediumColor,
+                    ),
                   ),
                 ],
               ),

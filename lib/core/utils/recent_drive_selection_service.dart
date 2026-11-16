@@ -19,19 +19,20 @@ class RecentDriveSelection {
   });
 
   Map<String, dynamic> toJson() => {
-        'fileId': fileId,
-        'name': name,
-        'mimeType': mimeType,
-        'selectedAt': selectedAt.millisecondsSinceEpoch,
-      };
+    'fileId': fileId,
+    'name': name,
+    'mimeType': mimeType,
+    'selectedAt': selectedAt.millisecondsSinceEpoch,
+  };
 
   factory RecentDriveSelection.fromJson(Map<String, dynamic> json) =>
       RecentDriveSelection(
         fileId: json['fileId'] as String,
         name: json['name'] as String,
         mimeType: (json['mimeType'] as String?) ?? '',
-        selectedAt:
-            DateTime.fromMillisecondsSinceEpoch(json['selectedAt'] as int),
+        selectedAt: DateTime.fromMillisecondsSinceEpoch(
+          json['selectedAt'] as int,
+        ),
       );
 }
 
@@ -90,8 +91,7 @@ class RecentDriveSelectionService {
     if (raw == null) return [];
     final list = jsonDecode(raw) as List<dynamic>;
     return list
-        .map((e) =>
-            RecentDriveSelection.fromJson(e as Map<String, dynamic>))
+        .map((e) => RecentDriveSelection.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 }

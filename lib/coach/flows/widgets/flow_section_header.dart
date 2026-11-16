@@ -42,14 +42,11 @@ class FlowSectionHeader extends StatelessWidget {
               color: (count ?? 0) > 0
                   ? AppColors.selectedRoleColor
                   : AppColors.lightColor,
-              borderRadius:
-                  BorderRadius.circular(AppBorderRadius.full),
+              borderRadius: BorderRadius.circular(AppBorderRadius.full),
             ),
             child: Text(
               '$count',
-              style: (count ?? 0) > 0
-                  ? _countStyleActive
-                  : _countStyleInactive,
+              style: (count ?? 0) > 0 ? _countStyleActive : _countStyleInactive,
             ),
           ),
         ],

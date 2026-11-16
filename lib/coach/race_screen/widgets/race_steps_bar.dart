@@ -42,17 +42,20 @@ class RaceStepsBar extends StatelessWidget {
         // One line naming where the race is, rather than a label under each
         // segment that wraps on a narrow phone or at a large text size.
         Text.rich(
-          TextSpan(children: [
-            TextSpan(
-              text: 'Step $current of $total  ',
-              style: AppTypography.captionBold
-                  .copyWith(color: AppColors.mediumColor),
-            ),
-            TextSpan(
-              text: stage.label,
-              style: AppTypography.bodySemibold.copyWith(color: textColor),
-            ),
-          ]),
+          TextSpan(
+            children: [
+              TextSpan(
+                text: 'Step $current of $total  ',
+                style: AppTypography.captionBold.copyWith(
+                  color: AppColors.mediumColor,
+                ),
+              ),
+              TextSpan(
+                text: stage.label,
+                style: AppTypography.bodySemibold.copyWith(color: textColor),
+              ),
+            ],
+          ),
         ),
       ],
     );

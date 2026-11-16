@@ -34,8 +34,13 @@ void main() {
     });
 
     test('speaks of one runner in the singular', () {
-      expect(RosterChanges.between(before, [...before, runner('4', 'Lily')])
-          .describe(), '1 runner: 1 added');
+      expect(
+        RosterChanges.between(before, [
+          ...before,
+          runner('4', 'Lily'),
+        ]).describe(),
+        '1 runner: 1 added',
+      );
     });
   });
 }

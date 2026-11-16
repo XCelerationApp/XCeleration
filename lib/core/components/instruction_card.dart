@@ -93,7 +93,11 @@ class _InstructionCardState extends State<InstructionCard> {
             child: _isExpanded
                 ? Padding(
                     padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg, 0, AppSpacing.lg, AppSpacing.lg),
+                      AppSpacing.lg,
+                      0,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: widget.instructions,
@@ -143,9 +147,7 @@ class InstructionItem extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Expanded(
-            child: Text(text, style: AppTypography.smallBodyRegular),
-          ),
+          Expanded(child: Text(text, style: AppTypography.smallBodyRegular)),
         ],
       ),
     );

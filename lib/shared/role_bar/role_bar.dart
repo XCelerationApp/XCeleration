@@ -29,10 +29,7 @@ class RoleBar extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 10, left: 5, right: 0),
       decoration: BoxDecoration(
         border: Border(
-          bottom: BorderSide(
-            width: 1,
-            color: AppColors.darkColor,
-          ),
+          bottom: BorderSide(width: 1, color: AppColors.darkColor),
         ),
       ),
       child: Column(
@@ -69,8 +66,11 @@ class RoleBar extends StatelessWidget {
               const SizedBox(width: 12),
               // Settings button
               IconButton(
-                icon: const Icon(Icons.settings,
-                    size: 28, color: AppColors.darkColor),
+                icon: const Icon(
+                  Icons.settings,
+                  size: 28,
+                  color: AppColors.darkColor,
+                ),
                 onPressed: () {
                   Navigator.of(context).push(
                     MaterialPageRoute(
@@ -96,12 +96,16 @@ class RoleBar extends StatelessWidget {
   }
 
   static Future<void> showInstructionsSheet(
-      BuildContext context, Role role) async {
+    BuildContext context,
+    Role role,
+  ) async {
     await InstructionsBanner.showInstructionsSheet(context, role);
   }
 
   static Future<void> showInstructionsSheetManual(
-      BuildContext context, Role role) async {
+    BuildContext context,
+    Role role,
+  ) async {
     await InstructionsBanner.showInstructionsSheetManual(context, role);
   }
 }

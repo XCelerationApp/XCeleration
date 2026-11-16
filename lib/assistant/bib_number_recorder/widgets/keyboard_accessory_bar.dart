@@ -37,7 +37,11 @@ class KeyboardAccessoryBar extends StatelessWidget {
       },
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.sm),
+          AppSpacing.lg,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.sm,
+        ),
         child: Row(
           children: [
             Expanded(
