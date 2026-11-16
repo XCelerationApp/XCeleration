@@ -6,12 +6,7 @@ import '../theme/app_spacing.dart';
 import 'package:xceleration/core/utils/color_utils.dart';
 
 /// Size presets for buttons
-enum ButtonSize {
-  small,
-  medium,
-  large,
-  fullWidth,
-}
+enum ButtonSize { small, medium, large, fullWidth }
 
 /// Base class for all action buttons
 class ActionButton extends StatelessWidget {
@@ -89,11 +84,19 @@ class ActionButton extends StatelessWidget {
     final Widget buttonContent = size == ButtonSize.fullWidth
         ? SizedBox(
             width: double.infinity,
-            child: _buildButtonContent(effectiveTextColor, effectiveIconSize,
-                effectiveFontSize, effectiveFontWeight),
+            child: _buildButtonContent(
+              effectiveTextColor,
+              effectiveIconSize,
+              effectiveFontSize,
+              effectiveFontWeight,
+            ),
           )
-        : _buildButtonContent(effectiveTextColor, effectiveIconSize,
-            effectiveFontSize, effectiveFontWeight);
+        : _buildButtonContent(
+            effectiveTextColor,
+            effectiveIconSize,
+            effectiveFontSize,
+            effectiveFontWeight,
+          );
 
     return SizedBox(
       width: size == ButtonSize.fullWidth ? double.infinity : buttonSize.width,
@@ -105,7 +108,9 @@ class ActionButton extends StatelessWidget {
               ? [
                   BoxShadow(
                     color: ColorUtils.withOpacity(
-                        effectiveBackgroundColor, AppOpacity.strong),
+                      effectiveBackgroundColor,
+                      AppOpacity.strong,
+                    ),
                     spreadRadius: 0,
                     blurRadius: elevation * 2,
                     offset: Offset(0, elevation),
@@ -128,9 +133,12 @@ class ActionButton extends StatelessWidget {
               side: isPrimary
                   ? BorderSide.none
                   : BorderSide(
-                      color: effectiveBorderColor ??
+                      color:
+                          effectiveBorderColor ??
                           ColorUtils.withOpacity(
-                              AppColors.primaryColor, AppOpacity.strong),
+                            AppColors.primaryColor,
+                            AppOpacity.strong,
+                          ),
                       width: 1,
                     ),
             ),
@@ -141,8 +149,12 @@ class ActionButton extends StatelessWidget {
     );
   }
 
-  Widget _buildButtonContent(Color textColor, double iconSize, double fontSize,
-      FontWeight fontWeight) {
+  Widget _buildButtonContent(
+    Color textColor,
+    double iconSize,
+    double fontSize,
+    FontWeight fontWeight,
+  ) {
     if (icon != null) {
       return Row(
         mainAxisSize: MainAxisSize.min,
@@ -203,13 +215,20 @@ class ActionButton extends StatelessWidget {
     switch (size) {
       case ButtonSize.small:
         return const EdgeInsets.symmetric(
-            horizontal: AppSpacing.sm, vertical: AppSpacing.xs);
+          horizontal: AppSpacing.sm,
+          vertical: AppSpacing.xs,
+        );
       case ButtonSize.medium:
-        return const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: 10);
+        return const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md,
+          vertical: 10,
+        );
       case ButtonSize.large:
       case ButtonSize.fullWidth:
         return const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.lg);
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.lg,
+        );
     }
   }
 

@@ -149,15 +149,19 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
           if (_lastAdded != null) ...[
             Row(
               children: [
-                const Icon(Icons.check_circle,
-                    size: 18, color: AppColors.statusFinished),
+                const Icon(
+                  Icons.check_circle,
+                  size: 18,
+                  color: AppColors.statusFinished,
+                ),
                 const SizedBox(width: AppSpacing.xs),
                 Expanded(
                   child: Text(
                     'Added $_lastAdded. Next runner:',
                     key: const ValueKey('last_added'),
-                    style: AppTypography.smallBodySemibold
-                        .copyWith(color: AppColors.mediumColor),
+                    style: AppTypography.smallBodySemibold.copyWith(
+                      color: AppColors.mediumColor,
+                    ),
                   ),
                 ),
               ],
@@ -188,25 +192,24 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
           if (_gradeMissing)
             Padding(
               padding: const EdgeInsets.only(
-                  top: AppSpacing.xs, left: AppSpacing.md),
+                top: AppSpacing.xs,
+                left: AppSpacing.md,
+              ),
               child: Text(
                 'Please pick a grade',
-                style: AppTypography.caption
-                    .copyWith(color: AppColors.redColor),
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.redColor,
+                ),
               ),
             ),
           const SizedBox(height: AppSpacing.xl),
-          _SubmitButton(
-            isSubmitting: _isSubmitting,
-            onPressed: _submit,
-          ),
+          _SubmitButton(isSubmitting: _isSubmitting, onPressed: _submit),
           const SizedBox(height: AppSpacing.sm),
           // Three taps per runner, and the sheet closed after each one:
           // this keeps it open for the next.
           OutlinedButton(
             key: const ValueKey('add_and_next'),
-            onPressed:
-                _isSubmitting ? null : () => _submit(addAnother: true),
+            onPressed: _isSubmitting ? null : () => _submit(addAnother: true),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primaryColor,
               side: const BorderSide(color: AppColors.primaryColor),
@@ -215,9 +218,12 @@ class _AddRunnersToTeamSheetState extends State<AddRunnersToTeamSheet> {
                 borderRadius: BorderRadius.circular(AppBorderRadius.lg),
               ),
             ),
-            child: Text('Add & Next',
-                style: AppTypography.bodySemibold
-                    .copyWith(color: AppColors.primaryColor)),
+            child: Text(
+              'Add & Next',
+              style: AppTypography.bodySemibold.copyWith(
+                color: AppColors.primaryColor,
+              ),
+            ),
           ),
         ],
       ),
@@ -234,9 +240,7 @@ class _FieldLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: AppTypography.captionBold.copyWith(
-        color: AppColors.mediumColor,
-      ),
+      style: AppTypography.captionBold.copyWith(color: AppColors.mediumColor),
     );
   }
 }
@@ -262,15 +266,24 @@ class _NameField extends StatelessWidget {
         fillColor: AppColors.surfaceColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.borderColor,
+            width: 1.5,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.borderColor,
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.primaryColor, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.primaryColor,
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
@@ -320,15 +333,24 @@ class _BibField extends StatelessWidget {
         fillColor: AppColors.surfaceColor,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.borderColor,
+            width: 1.5,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.borderColor, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.borderColor,
+            width: 1.5,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
-          borderSide: const BorderSide(color: AppColors.primaryColor, width: 1.5),
+          borderSide: const BorderSide(
+            color: AppColors.primaryColor,
+            width: 1.5,
+          ),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppBorderRadius.md),
@@ -352,10 +374,7 @@ class _BibField extends StatelessWidget {
 }
 
 class _SubmitButton extends StatelessWidget {
-  const _SubmitButton({
-    required this.isSubmitting,
-    required this.onPressed,
-  });
+  const _SubmitButton({required this.isSubmitting, required this.onPressed});
 
   final bool isSubmitting;
   final VoidCallback onPressed;
@@ -373,7 +392,10 @@ class _SubmitButton extends StatelessWidget {
                 : const LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [AppColors.primaryColor, AppColors.primaryGradientEnd],
+                    colors: [
+                      AppColors.primaryColor,
+                      AppColors.primaryGradientEnd,
+                    ],
                   ),
             color: isSubmitting ? AppColors.lightColor : null,
             borderRadius: BorderRadius.circular(AppBorderRadius.lg),
@@ -381,7 +403,9 @@ class _SubmitButton extends StatelessWidget {
                 ? null
                 : [
                     BoxShadow(
-                      color: AppColors.primaryColor.withValues(alpha: AppOpacity.strong),
+                      color: AppColors.primaryColor.withValues(
+                        alpha: AppOpacity.strong,
+                      ),
                       blurRadius: 14,
                       offset: const Offset(0, 4),
                     ),

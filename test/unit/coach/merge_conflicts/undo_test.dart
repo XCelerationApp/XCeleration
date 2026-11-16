@@ -25,35 +25,40 @@ class _NoopScheduler implements IPostFrameCallbackScheduler {
 const _team = Team(teamId: 1, name: 'Eagles');
 
 RaceRunner _runner(int n) => RaceRunner(
-      raceId: 1,
-      runner: Runner(runnerId: n, name: 'Runner $n', bibNumber: '$n', grade: 11),
-      team: _team,
-    );
+  raceId: 1,
+  runner: Runner(runnerId: n, name: 'Runner $n', bibNumber: '$n', grade: 11),
+  team: _team,
+);
 
 List<RaceRunner> _runners(int n) => List.generate(n, (i) => _runner(i + 1));
 
 String _t(int seconds) =>
     '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}.00';
 
-TimingChunk _chunk(int id, List<int> seconds, ConflictType type,
-        {int offBy = 1, required int end}) =>
-    TimingChunk(
-      id: id,
-      timingData: seconds.map((s) => TimingDatum(time: _t(s))).toList(),
-      conflictRecord: TimingDatum(
-        time: _t(end),
-        conflict: Conflict(type: type, offBy: offBy),
-      ),
-    );
+TimingChunk _chunk(
+  int id,
+  List<int> seconds,
+  ConflictType type, {
+  int offBy = 1,
+  required int end,
+}) => TimingChunk(
+  id: id,
+  timingData: seconds.map((s) => TimingDatum(time: _t(s))).toList(),
+  conflictRecord: TimingDatum(
+    time: _t(end),
+    conflict: Conflict(type: type, offBy: offBy),
+  ),
+);
 
 MergeConflictsController _controller(
-        List<TimingChunk> chunks, List<RaceRunner> runners) =>
-    MergeConflictsController(
-      masterRace: MasterRace.getInstance(1),
-      timingChunks: chunks,
-      raceRunners: runners,
-      scheduler: _NoopScheduler(),
-    );
+  List<TimingChunk> chunks,
+  List<RaceRunner> runners,
+) => MergeConflictsController(
+  masterRace: MasterRace.getInstance(1),
+  timingChunks: chunks,
+  raceRunners: runners,
+  scheduler: _NoopScheduler(),
+);
 
 UIChunk _ui(MergeConflictsController c, int chunkId) =>
     c.uiChunks.firstWhere((u) => u.chunkId == chunkId);
@@ -68,20 +73,18 @@ void main() {
 
   group('undoing a removed extra time', () {
     test('nothing to undo before anything is touched', () {
-      final c = _controller(
-        [_chunk(0, [10, 11, 12], ConflictType.extraTime, end: 13)],
-        _runners(2),
-      );
+      final c = _controller([
+        _chunk(0, [10, 11, 12], ConflictType.extraTime, end: 13),
+      ], _runners(2));
 
       expect(c.canUndo(0), isFalse);
       expect(c.undoLabel(0), isNull);
     });
 
     test('puts the time back where it was', () {
-      final c = _controller(
-        [_chunk(0, [10, 11, 12], ConflictType.extraTime, end: 13)],
-        _runners(2),
-      );
+      final c = _controller([
+        _chunk(0, [10, 11, 12], ConflictType.extraTime, end: 13),
+      ], _runners(2));
 
       c.removeExtraTimeRecord(0, 1);
       expect(_times(c, 0), [_t(10), _t(12)]);
@@ -90,18 +93,23 @@ void main() {
       c.undo(0);
 
       expect(_times(c, 0), [_t(10), _t(11), _t(12)]);
-      expect(_ui(c, 0).conflict.offBy, 1,
-          reason: 'the batch is one time over again');
-      expect(_ui(c, 0).records[2].runner, isNull,
-          reason: 'the last time is extra again');
+      expect(
+        _ui(c, 0).conflict.offBy,
+        1,
+        reason: 'the batch is one time over again',
+      );
+      expect(
+        _ui(c, 0).records[2].runner,
+        isNull,
+        reason: 'the last time is extra again',
+      );
       expect(c.canUndo(0), isFalse, reason: 'nothing left to undo');
     });
 
     test('says which time it will put back', () {
-      final c = _controller(
-        [_chunk(0, [10, 11, 12], ConflictType.extraTime, end: 13)],
-        _runners(2),
-      );
+      final c = _controller([
+        _chunk(0, [10, 11, 12], ConflictType.extraTime, end: 13),
+      ], _runners(2));
 
       c.removeExtraTimeRecord(0, 1);
 
@@ -109,10 +117,9 @@ void main() {
     });
 
     test('steps back through several removals one at a time', () {
-      final c = _controller(
-        [_chunk(0, [10, 11, 12, 13], ConflictType.extraTime, offBy: 2, end: 14)],
-        _runners(2),
-      );
+      final c = _controller([
+        _chunk(0, [10, 11, 12, 13], ConflictType.extraTime, offBy: 2, end: 14),
+      ], _runners(2));
 
       c.removeExtraTimeRecord(0, 1);
       c.removeExtraTimeRecord(0, 1);
@@ -127,28 +134,29 @@ void main() {
     });
 
     test('turns "Resolve Conflict" back off', () {
-      final c = _controller(
-        [_chunk(0, [10, 11], ConflictType.extraTime, end: 12)],
-        _runners(1),
-      );
+      final c = _controller([
+        _chunk(0, [10, 11], ConflictType.extraTime, end: 12),
+      ], _runners(1));
 
       c.removeExtraTimeRecord(0, 1);
       expect(_ui(c, 0).isResolvedLocally, isTrue);
 
       c.undo(0);
 
-      expect(_ui(c, 0).isResolvedLocally, isFalse,
-          reason: 'the conflict is unresolved again');
+      expect(
+        _ui(c, 0).isResolvedLocally,
+        isFalse,
+        reason: 'the conflict is unresolved again',
+      );
     });
   });
 
   group('undoing a placed missing time', () {
     test('puts the TBD back where it was', () {
       // Two runners, one time: the coach must say who is missing.
-      final c = _controller(
-        [_chunk(0, [10], ConflictType.missingTime, end: 12)],
-        _runners(2),
-      );
+      final c = _controller([
+        _chunk(0, [10], ConflictType.missingTime, end: 12),
+      ], _runners(2));
       expect(_times(c, 0), [_t(10), 'TBD']);
 
       // The missed runner came in first, not second.
@@ -164,10 +172,9 @@ void main() {
 
     test('keeps a time typed before the TBD was moved', () {
       // One recorded time and two runners the Timer missed.
-      final c = _controller(
-        [_chunk(0, [10], ConflictType.missingTime, offBy: 2, end: 14)],
-        _runners(3),
-      );
+      final c = _controller([
+        _chunk(0, [10], ConflictType.missingTime, offBy: 2, end: 14),
+      ], _runners(3));
 
       c.updateMissingTimeRecord(0, 2, _t(13));
       expect(_times(c, 0), [_t(10), 'TBD', _t(13)]);
@@ -177,41 +184,51 @@ void main() {
 
       c.undo(0);
 
-      expect(_times(c, 0), [_t(10), 'TBD', _t(13)],
-          reason: 'undo puts the slot back without losing what was typed');
+      expect(
+        _times(c, 0),
+        [_t(10), 'TBD', _t(13)],
+        reason: 'undo puts the slot back without losing what was typed',
+      );
     });
 
     test('a typed missing time can still be moved to another runner', () {
       // The coach typed the missing time into the slot the app offered, then
       // saw it was the first runner who was missed, not the second.
-      final c = _controller(
-        [_chunk(0, [10], ConflictType.missingTime, end: 14)],
-        _runners(2),
-      );
+      final c = _controller([
+        _chunk(0, [10], ConflictType.missingTime, end: 14),
+      ], _runners(2));
       c.updateMissingTimeRecord(0, 1, _t(12));
-      expect(_ui(c, 0).shouldShowPlusButton(0), isTrue,
-          reason: 'the + stays, so the slot can still be moved');
+      expect(
+        _ui(c, 0).shouldShowPlusButton(0),
+        isTrue,
+        reason: 'the + stays, so the slot can still be moved',
+      );
 
       c.insertTbdAt(0, 0);
 
-      expect(_times(c, 0), ['TBD', _t(10)],
-          reason: 'the slot moves, and the time typed for the wrong runner '
-              'is cleared');
+      expect(
+        _times(c, 0),
+        ['TBD', _t(10)],
+        reason:
+            'the slot moves, and the time typed for the wrong runner '
+            'is cleared',
+      );
       expect(c.canUndo(0), isTrue);
 
       c.undo(0);
 
-      expect(_times(c, 0), [_t(10), _t(12)],
-          reason: 'undo brings back the slot and what was typed in it');
+      expect(_times(c, 0), [
+        _t(10),
+        _t(12),
+      ], reason: 'undo brings back the slot and what was typed in it');
     });
 
     test('a typed time is not itself undone', () {
       // Typing is its own correction — the coach can retype. Undo is for the
       // + and X buttons, which move other rows around.
-      final c = _controller(
-        [_chunk(0, [10], ConflictType.missingTime, end: 14)],
-        _runners(2),
-      );
+      final c = _controller([
+        _chunk(0, [10], ConflictType.missingTime, end: 14),
+      ], _runners(2));
 
       c.updateMissingTimeRecord(0, 1, _t(12));
 
@@ -221,28 +238,27 @@ void main() {
 
   group('what undo does not reach', () {
     test('resolving the batch clears its history', () async {
-      final c = _controller(
-        [_chunk(0, [10, 11], ConflictType.extraTime, end: 12)],
-        _runners(1),
-      );
+      final c = _controller([
+        _chunk(0, [10, 11], ConflictType.extraTime, end: 12),
+      ], _runners(1));
 
       c.removeExtraTimeRecord(0, 1);
       expect(c.canUndo(0), isTrue);
 
       await c.resolveExtraTimeConflict(0);
 
-      expect(c.canUndo(0), isFalse,
-          reason: 'the coach committed the batch on purpose');
+      expect(
+        c.canUndo(0),
+        isFalse,
+        reason: 'the coach committed the batch on purpose',
+      );
     });
 
     test('each batch keeps its own history', () {
-      final c = _controller(
-        [
-          _chunk(0, [10, 11], ConflictType.extraTime, end: 12),
-          _chunk(1, [20, 21], ConflictType.extraTime, end: 22),
-        ],
-        _runners(2),
-      );
+      final c = _controller([
+        _chunk(0, [10, 11], ConflictType.extraTime, end: 12),
+        _chunk(1, [20, 21], ConflictType.extraTime, end: 22),
+      ], _runners(2));
 
       c.removeExtraTimeRecord(0, 1);
       c.removeExtraTimeRecord(1, 1);
@@ -255,10 +271,9 @@ void main() {
     });
 
     test('undoing an unknown batch does nothing', () {
-      final c = _controller(
-        [_chunk(0, [10, 11], ConflictType.extraTime, end: 12)],
-        _runners(1),
-      );
+      final c = _controller([
+        _chunk(0, [10, 11], ConflictType.extraTime, end: 12),
+      ], _runners(1));
 
       c.undo(99);
 

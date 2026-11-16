@@ -4,10 +4,7 @@ class Conflict {
   final ConflictType type;
   int offBy;
 
-  Conflict({
-    required this.type,
-    this.offBy = 1,
-  });
+  Conflict({required this.type, this.offBy = 1});
 
   @override
   String toString() {
@@ -21,7 +18,8 @@ class Conflict {
   factory Conflict.decode(String encoded) {
     final parts = encoded.split(',');
     return Conflict(
-        type: ConflictType.values[int.parse(parts[0])],
-        offBy: int.parse(parts[1]));
+      type: ConflictType.values[int.parse(parts[0])],
+      offBy: int.parse(parts[1]),
+    );
   }
 }

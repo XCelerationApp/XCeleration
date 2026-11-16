@@ -27,12 +27,8 @@ void main() {
   final storage = AssistantStorageService.instance;
   late TimingController timer;
 
-  String encoded(String name, DateTime date) => RaceRecord(
-        raceId: 3,
-        date: date,
-        name: name,
-        type: 'race',
-      ).encode();
+  String encoded(String name, DateTime date) =>
+      RaceRecord(raceId: 3, date: date, name: name, type: 'race').encode();
 
   final invitational = encoded('Invitational', DateTime(2026, 9, 12));
 
@@ -41,7 +37,8 @@ void main() {
     sqfliteFfiInit();
     databaseFactory = databaseFactoryFfi;
     await databaseFactory.setDatabasesPath(
-        Directory.systemTemp.createTempSync('timing_controller_load').path);
+      Directory.systemTemp.createTempSync('timing_controller_load').path,
+    );
   });
 
   setUp(() async {
@@ -59,9 +56,9 @@ void main() {
   final asked = <RaceAlreadyHere>[];
   setUp(asked.clear);
   AskAboutRace answer(ReceivedRaceChoice choice) => (here) async {
-        asked.add(here);
-        return choice;
-      };
+    asked.add(here);
+    return choice;
+  };
 
   Future<List<String>> savedTimes(int raceId) async {
     await timer.pendingWrites;
@@ -78,17 +75,29 @@ void main() {
 
   // The coach's QR code is the Bib Recorder's: the race, '---', the roster.
   // Read whole it failed to parse, and the Timer never got the race.
-  test('opens a race from the coach\'s QR code, which carries the roster too',
-      () async {
-    final roster = await BibEncodeUtils.getEncodedBibData([
-      BibDatum(bib: '101', name: 'Ava Lee', teamAbbreviation: 'NHS', grade: '11'),
-      BibDatum(bib: '102', name: 'Mia Chen', teamAbbreviation: 'NHS', grade: '9'),
-    ]);
+  test(
+    'opens a race from the coach\'s QR code, which carries the roster too',
+    () async {
+      final roster = await BibEncodeUtils.getEncodedBibData([
+        BibDatum(
+          bib: '101',
+          name: 'Ava Lee',
+          teamAbbreviation: 'NHS',
+          grade: '11',
+        ),
+        BibDatum(
+          bib: '102',
+          name: 'Mia Chen',
+          teamAbbreviation: 'NHS',
+          grade: '9',
+        ),
+      ]);
 
-    await timer.loadRaceFromCoach('$invitational---$roster');
+      await timer.loadRaceFromCoach('$invitational---$roster');
 
-    expect(timer.currentRace?.name, 'Invitational');
-  });
+      expect(timer.currentRace?.name, 'Invitational');
+    },
+  );
 
   // A race that cannot be read used to be dropped without a word, and the
   // sheet dinged and closed as if it had worked.
@@ -108,20 +117,24 @@ void main() {
     expect(timer.loadingRace, isFalse);
   });
 
-  test('deleting the practice race, with nothing else, makes it again',
-      () async {
-    expect(timer.currentRace?.name, 'Demo Race');
+  test(
+    'deleting the practice race, with nothing else, makes it again',
+    () async {
+      expect(timer.currentRace?.name, 'Demo Race');
 
-    await timer.deleteCurrentRace();
+      await timer.deleteCurrentRace();
 
-    expect(timer.currentRace?.name, 'Demo Race');
-  });
+      expect(timer.currentRace?.name, 'Demo Race');
+    },
+  );
 
   test('the same race sent again, nothing recorded, opens unasked', () async {
     await timer.loadRaceFromCoach(invitational);
 
-    await timer.loadRaceFromCoach(invitational,
-        ask: answer(ReceivedRaceChoice.update));
+    await timer.loadRaceFromCoach(
+      invitational,
+      ask: answer(ReceivedRaceChoice.update),
+    );
 
     expect(asked, isEmpty);
     expect(timer.currentRace?.name, 'Invitational');
@@ -132,8 +145,10 @@ void main() {
     timer.addRunnerTimeRecord(TimingDatum(time: '5:01.00'));
     await timer.pendingWrites;
 
-    await timer.loadRaceFromCoach(invitational,
-        ask: answer(ReceivedRaceChoice.update));
+    await timer.loadRaceFromCoach(
+      invitational,
+      ask: answer(ReceivedRaceChoice.update),
+    );
 
     expect(asked.single.renamed, isFalse);
     expect(asked.single.recorded, 1);
@@ -145,18 +160,22 @@ void main() {
     timer.addRunnerTimeRecord(TimingDatum(time: '5:02.00'));
     await timer.pendingWrites;
 
-    await timer.loadRaceFromCoach(invitational,
-        ask: answer(ReceivedRaceChoice.update));
+    await timer.loadRaceFromCoach(
+      invitational,
+      ask: answer(ReceivedRaceChoice.update),
+    );
 
     expect(await savedTimes(3), ['5:01.00', '5:02.00']);
-    expect(timer.uiRecords, hasLength(2),
-        reason: 'the reopened race shows what was recorded');
+    expect(
+      timer.uiRecords,
+      hasLength(2),
+      reason: 'the reopened race shows what was recorded',
+    );
   });
 
   // Sent again while the race is running, straight after finishes are
   // logged: the clock keeps going and no finish is lost.
-  test('the same race sent again mid-race keeps the clock and times',
-      () async {
+  test('the same race sent again mid-race keeps the clock and times', () async {
     await timer.loadRaceFromCoach(invitational);
     timer.startRace();
     final started = timer.startTime;
@@ -166,8 +185,10 @@ void main() {
     await timer.loadRaceFromCoach(invitational);
 
     expect(timer.raceStopped, isFalse);
-    expect(timer.startTime?.millisecondsSinceEpoch,
-        started?.millisecondsSinceEpoch);
+    expect(
+      timer.startTime?.millisecondsSinceEpoch,
+      started?.millisecondsSinceEpoch,
+    );
     expect(timer.uiRecords, hasLength(2));
     expect(await savedTimes(3), hasLength(2));
   });
@@ -177,8 +198,10 @@ void main() {
     timer.addRunnerTimeRecord(TimingDatum(time: '5:01.00'));
     await timer.pendingWrites;
 
-    await timer.loadRaceFromCoach(invitational,
-        ask: answer(ReceivedRaceChoice.keepSeparate));
+    await timer.loadRaceFromCoach(
+      invitational,
+      ask: answer(ReceivedRaceChoice.keepSeparate),
+    );
 
     expect(timer.currentRace?.name, 'Invitational (copy)');
     expect(timer.uiRecords, isEmpty);
@@ -192,8 +215,9 @@ void main() {
     await timer.pendingWrites;
 
     await timer.loadRaceFromCoach(
-        encoded('Saturday Invitational', DateTime(2026, 9, 12)),
-        ask: answer(ReceivedRaceChoice.update));
+      encoded('Saturday Invitational', DateTime(2026, 9, 12)),
+      ask: answer(ReceivedRaceChoice.update),
+    );
 
     expect(asked.single.renamed, isTrue);
     expect(timer.currentRace?.name, 'Saturday Invitational');
@@ -208,8 +232,9 @@ void main() {
     await timer.pendingWrites;
 
     await timer.loadRaceFromCoach(
-        encoded('Conference Finals', DateTime(2026, 9, 19)),
-        ask: answer(ReceivedRaceChoice.keepSeparate));
+      encoded('Conference Finals', DateTime(2026, 9, 19)),
+      ask: answer(ReceivedRaceChoice.keepSeparate),
+    );
 
     expect(timer.currentRace?.name, 'Conference Finals');
     expect(timer.uiRecords, isEmpty);
@@ -227,8 +252,11 @@ void main() {
     // Reopened, as when the app is restarted.
     await timer.loadRaceFromCoach(invitational);
 
-    expect(timer.startTime, isNull,
-        reason: 'the Timer offers Start Race, not Resume of the old clock');
+    expect(
+      timer.startTime,
+      isNull,
+      reason: 'the Timer offers Start Race, not Resume of the old clock',
+    );
     expect(timer.raceDuration, isNull);
     expect(await savedTimes(3), isEmpty);
   });

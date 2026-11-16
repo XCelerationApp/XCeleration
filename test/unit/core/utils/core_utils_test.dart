@@ -87,8 +87,20 @@ void main() {
         final csv = CsvUtils.generateCsvContent(
           isHeadToHead: false,
           teamResults: [
-            {'place': 1, 'team': 'Eagles', 'score': 25, 'scorers': 'A,B', 'times': '16:00'},
-            {'place': 2, 'team': 'Hawks', 'score': 40, 'scorers': 'C,D', 'times': '16:30'},
+            {
+              'place': 1,
+              'team': 'Eagles',
+              'score': 25,
+              'scorers': 'A,B',
+              'times': '16:00',
+            },
+            {
+              'place': 2,
+              'team': 'Hawks',
+              'score': 40,
+              'scorers': 'C,D',
+              'times': '16:30',
+            },
           ],
           individualResults: [],
         );
@@ -133,8 +145,14 @@ void main() {
           individualResults: [],
         );
         final rows = _parseCsv(csv);
-        expect(rows.first,
-            ['Team 1', 'Score', 'Time', 'Team 2', 'Score', 'Time']);
+        expect(rows.first, [
+          'Team 1',
+          'Score',
+          'Time',
+          'Team 2',
+          'Score',
+          'Time',
+        ]);
       });
 
       test('produces one row per matchup', () {
@@ -149,8 +167,7 @@ void main() {
           individualResults: [],
         );
         final rows = _parseCsv(csv);
-        expect(rows[1],
-            ['Eagles', 15, '16:00', 'Hawks', 40, '17:00']);
+        expect(rows[1], ['Eagles', 15, '16:00', 'Hawks', 40, '17:00']);
       });
 
       test('defaults null team1 and team2 to Unknown Team', () {
@@ -194,8 +211,14 @@ void main() {
         );
         final rows = _parseCsv(csv);
         expect(rows[2], ['Individual Results']);
-        expect(rows[3],
-            ['Place', 'Name', 'Grade', 'Team', 'Time', 'Bib Number']);
+        expect(rows[3], [
+          'Place',
+          'Name',
+          'Grade',
+          'Team',
+          'Time',
+          'Bib Number',
+        ]);
       });
 
       test('numbers individual results starting from 1', () {
@@ -203,8 +226,20 @@ void main() {
           isHeadToHead: false,
           teamResults: [],
           individualResults: [
-            {'name': 'Alice', 'grade': 10, 'team': 'Eagles', 'finish_time': '16:00', 'bib_number': '42'},
-            {'name': 'Bob', 'grade': 11, 'team': 'Hawks', 'finish_time': '16:05', 'bib_number': '7'},
+            {
+              'name': 'Alice',
+              'grade': 10,
+              'team': 'Eagles',
+              'finish_time': '16:00',
+              'bib_number': '42',
+            },
+            {
+              'name': 'Bob',
+              'grade': 11,
+              'team': 'Hawks',
+              'finish_time': '16:05',
+              'bib_number': '7',
+            },
           ],
         );
         final rows = _parseCsv(csv);
@@ -217,7 +252,13 @@ void main() {
           isHeadToHead: false,
           teamResults: [],
           individualResults: [
-            {'name': 'Alice', 'grade': 10, 'team': 'Eagles', 'finish_time': '16:00', 'bib_number': '42'},
+            {
+              'name': 'Alice',
+              'grade': 10,
+              'team': 'Eagles',
+              'finish_time': '16:00',
+              'bib_number': '42',
+            },
           ],
         );
         final rows = _parseCsv(csv);
@@ -234,7 +275,12 @@ void main() {
           isHeadToHead: false,
           teamResults: [],
           individualResults: [
-            {'grade': 10, 'team': 'Eagles', 'finish_time': '16:00', 'bib_number': '42'},
+            {
+              'grade': 10,
+              'team': 'Eagles',
+              'finish_time': '16:00',
+              'bib_number': '42',
+            },
           ],
         );
         final rows = _parseCsv(csv);
@@ -272,7 +318,13 @@ void main() {
           isHeadToHead: true,
           teamResults: [],
           individualResults: [
-            {'name': 'Alice', 'grade': 10, 'team': 'Eagles', 'finish_time': '16:00', 'bib_number': '42'},
+            {
+              'name': 'Alice',
+              'grade': 10,
+              'team': 'Eagles',
+              'finish_time': '16:00',
+              'bib_number': '42',
+            },
           ],
         );
         final rows = _parseCsv(csv);
@@ -294,54 +346,67 @@ void main() {
 
     group('isOnline', () {
       test('returns true when results contain wifi', () async {
-        when(mockConnectivity.checkConnectivity())
-            .thenAnswer((_) async => [ConnectivityResult.wifi]);
+        when(
+          mockConnectivity.checkConnectivity(),
+        ).thenAnswer((_) async => [ConnectivityResult.wifi]);
 
-        final result =
-            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
+        final result = await ConnectivityUtils.isOnline(
+          connectivity: mockConnectivity,
+        );
 
         expect(result, isTrue);
       });
 
       test('returns true when results contain mobile', () async {
-        when(mockConnectivity.checkConnectivity())
-            .thenAnswer((_) async => [ConnectivityResult.mobile]);
+        when(
+          mockConnectivity.checkConnectivity(),
+        ).thenAnswer((_) async => [ConnectivityResult.mobile]);
 
-        final result =
-            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
+        final result = await ConnectivityUtils.isOnline(
+          connectivity: mockConnectivity,
+        );
 
         expect(result, isTrue);
       });
 
       test('returns true when results contain multiple connections', () async {
         when(mockConnectivity.checkConnectivity()).thenAnswer(
-            (_) async => [ConnectivityResult.wifi, ConnectivityResult.mobile]);
+          (_) async => [ConnectivityResult.wifi, ConnectivityResult.mobile],
+        );
 
-        final result =
-            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
+        final result = await ConnectivityUtils.isOnline(
+          connectivity: mockConnectivity,
+        );
 
         expect(result, isTrue);
       });
 
       test('returns false when results contain only none', () async {
-        when(mockConnectivity.checkConnectivity())
-            .thenAnswer((_) async => [ConnectivityResult.none]);
+        when(
+          mockConnectivity.checkConnectivity(),
+        ).thenAnswer((_) async => [ConnectivityResult.none]);
 
-        final result =
-            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
-
-        expect(result, isFalse);
-      });
-
-      test('returns false and does not throw when connectivity throws', () async {
-        when(mockConnectivity.checkConnectivity())
-            .thenThrow(Exception('platform error'));
-
-        final result =
-            await ConnectivityUtils.isOnline(connectivity: mockConnectivity);
+        final result = await ConnectivityUtils.isOnline(
+          connectivity: mockConnectivity,
+        );
 
         expect(result, isFalse);
       });
+
+      test(
+        'returns false and does not throw when connectivity throws',
+        () async {
+          when(
+            mockConnectivity.checkConnectivity(),
+          ).thenThrow(Exception('platform error'));
+
+          final result = await ConnectivityUtils.isOnline(
+            connectivity: mockConnectivity,
+          );
+
+          expect(result, isFalse);
+        },
+      );
     });
   });
 }

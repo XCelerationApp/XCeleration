@@ -5,10 +5,7 @@ import '../controller/timing_controller.dart';
 
 class TimerDisplayWidget extends StatelessWidget {
   final TimingController controller;
-  const TimerDisplayWidget({
-    super.key,
-    required this.controller,
-  });
+  const TimerDisplayWidget({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {

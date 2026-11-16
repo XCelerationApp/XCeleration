@@ -20,8 +20,10 @@ class RaceDateField extends StatelessWidget {
           hint: 'YYYY-MM-DD',
           error: controller.dateError,
           suffixIcon: IconButton(
-            icon:
-                const Icon(Icons.calendar_today, color: AppColors.primaryColor),
+            icon: const Icon(
+              Icons.calendar_today,
+              color: AppColors.primaryColor,
+            ),
             onPressed: () => controller.selectDate(context),
           ),
           onChanged: (_) =>

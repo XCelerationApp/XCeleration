@@ -32,21 +32,27 @@ const _teams = [
 ];
 
 List<RaceRunner> _roster(int n) => [
-      for (var i = 1; i <= n; i++)
-        RaceRunner(
-          raceId: 1,
-          runner: Runner(
-              runnerId: i, name: 'Runner $i', bibNumber: '${100 + i}', grade: 10),
-          team: _teams[i % 3],
-        )
-    ];
+  for (var i = 1; i <= n; i++)
+    RaceRunner(
+      raceId: 1,
+      runner: Runner(
+        runnerId: i,
+        name: 'Runner $i',
+        bibNumber: '${100 + i}',
+        grade: 10,
+      ),
+      team: _teams[i % 3],
+    ),
+];
 
 UIChunk _ui(MergeConflictsController c, int id) =>
     c.uiChunks.firstWhere((u) => u.chunkId == id);
 
 /// Resolves every timing conflict as a coach would, knowing the true times.
 Future<void> _resolveTiming(
-    MergeConflictsController c, List<String> truth) async {
+  MergeConflictsController c,
+  List<String> truth,
+) async {
   final truthSet = truth.toSet();
   // Resolving a chunk can reveal its next conflict, so keep going until none
   // are left (with a bound, so a loop that makes no progress fails).
@@ -91,20 +97,25 @@ void main() {
 
   Future<BuildContext> pumpContext(WidgetTester tester) async {
     late BuildContext ctx;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(builder: (c) {
-        ctx = c;
-        return const SizedBox();
-      }),
-    ));
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (c) {
+            ctx = c;
+            return const SizedBox();
+          },
+        ),
+      ),
+    );
     return ctx;
   }
 
   for (final scenario in SimulatedScenario.values) {
     for (final size in [8, 13, 30]) {
       for (final seed in [1, 2, 3, 4, 5, 6]) {
-        testWidgets('${scenario.name}: $size runners, seed $seed',
-            (tester) async {
+        testWidgets('${scenario.name}: $size runners, seed $seed', (
+          tester,
+        ) async {
           final ctx = await pumpContext(tester);
           final roster = _roster(size);
           final byBib = {for (final r in roster) r.runner.bibNumber!: r};
@@ -112,7 +123,8 @@ void main() {
           when(masterRace.raceId).thenReturn(1);
           when(masterRace.raceRunners).thenAnswer((_) async => roster);
           when(masterRace.getRaceRunnerByBib(any)).thenAnswer(
-              (i) async => byBib[i.positionalArguments.first as String]);
+            (i) async => byBib[i.positionalArguments.first as String],
+          );
           when(masterRace.saveResults(any)).thenAnswer((_) async {});
           final controller = LoadResultsController(
             masterRace: masterRace,
@@ -120,8 +132,11 @@ void main() {
             scheduler: _NoopScheduler(),
           );
 
-          final race = (await controller.loadSimulatedResults(ctx, scenario,
-              simulator: RaceSimulator(random: Random(seed))))!;
+          final race = (await controller.loadSimulatedResults(
+            ctx,
+            scenario,
+            simulator: RaceSimulator(random: Random(seed)),
+          ))!;
           expect(controller.error, isNull, reason: race.notes.join('\n'));
 
           // Bibs: the coach names the real runner behind a mistyped bib, and
@@ -149,18 +164,23 @@ void main() {
           expect(merge.hasConflicts, isFalse, reason: race.notes.join('\n'));
           controller.hasTimingConflicts = controller.containsTimingConflicts();
 
-          expect(await controller.saveCurrentResults(), isNull,
-              reason: race.notes.join('\n'));
-          final saved = verify(masterRace.saveResults(captureAny))
-              .captured
-              .single as List<RaceResult>;
+          expect(
+            await controller.saveCurrentResults(),
+            isNull,
+            reason: race.notes.join('\n'),
+          );
+          final saved =
+              verify(masterRace.saveResults(captureAny)).captured.single
+                  as List<RaceResult>;
           expect(saved, hasLength(size));
           for (final f in race.answerKey) {
             final result = saved[f.place - 1];
             expect(result.place, f.place);
             expect(result.runner!.runnerId, f.runner.runner.runnerId);
-            expect(result.finishTime,
-                TimeFormatter.loadDurationFromString(f.time));
+            expect(
+              result.finishTime,
+              TimeFormatter.loadDurationFromString(f.time),
+            );
           }
         });
       }

@@ -12,30 +12,29 @@ import 'package:xceleration/shared/services/race_results_service.dart';
 // ---------------------------------------------------------------------------
 
 RaceResultsData _emptyData() => const RaceResultsData(
-      resultsTitle: 'Test Race',
-      individualResults: [],
-      overallTeamResults: [],
-      headToHeadTeamResults: [],
-    );
+  resultsTitle: 'Test Race',
+  individualResults: [],
+  overallTeamResults: [],
+  headToHeadTeamResults: [],
+);
 
 ResultsRecord _individualRunner({
   required int place,
   required String name,
   required String abbrev,
   Duration? pace,
-}) =>
-    ResultsRecord(
-      place: place,
-      name: name,
-      team: 'Team',
-      teamAbbreviation: abbrev,
-      grade: 11,
-      bib: '$place',
-      raceId: 1,
-      runnerId: place,
-      finishTime: Duration(minutes: 15 + place, seconds: place * 5 % 60),
-      pacePerMile: pace,
-    );
+}) => ResultsRecord(
+  place: place,
+  name: name,
+  team: 'Team',
+  teamAbbreviation: abbrev,
+  grade: 11,
+  bib: '$place',
+  raceId: 1,
+  runnerId: place,
+  finishTime: Duration(minutes: 15 + place, seconds: place * 5 % 60),
+  pacePerMile: pace,
+);
 
 RaceResult _raceResult({
   required int id,
@@ -43,14 +42,13 @@ RaceResult _raceResult({
   required Team team,
   required int place,
   required Duration finishTime,
-}) =>
-    RaceResult(
-      raceId: 1,
-      runner: Runner(runnerId: id, name: name),
-      team: team,
-      place: place,
-      finishTime: finishTime,
-    );
+}) => RaceResult(
+  raceId: 1,
+  runner: Runner(runnerId: id, name: name),
+  team: team,
+  place: place,
+  finishTime: finishTime,
+);
 
 /// Builds a [TeamRecord] with [count] runners. Runners have sequential places
 /// starting from [startPlace] and finish times starting at [baseMinutes].
@@ -87,8 +85,9 @@ void main() {
     // -----------------------------------------------------------------------
     group('formattedResultsText', () {
       test('individual results section is always present', () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final text = await controller.formattedResultsText;
 
@@ -96,8 +95,9 @@ void main() {
       });
 
       test('individual results header row is present', () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final text = await controller.formattedResultsText;
 
@@ -125,8 +125,9 @@ void main() {
       });
 
       test('head-to-head section absent when no matchups', () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final text = await controller.formattedResultsText;
 
@@ -141,7 +142,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -160,7 +161,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -183,7 +184,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -193,35 +194,38 @@ void main() {
         // Both teams have score = 0 → both should show N/A
         expect(text, contains('N/A'));
         // The score line should not contain a bare '0'
-        final scoreLine =
-            text.split('\n').firstWhere((l) => l.startsWith('Score:'));
+        final scoreLine = text
+            .split('\n')
+            .firstWhere((l) => l.startsWith('Score:'));
         expect(scoreLine, isNot(matches(RegExp(r'Score:\s*\t\d'))));
         expect(scoreLine, contains('N/A'));
       });
 
-      test('positive score is rendered as a number in head-to-head text',
-          () async {
-        final team1 = _teamRecord(team: _eagles, count: 5, startPlace: 1);
-        final team2 = _teamRecord(team: _falcons, count: 5, startPlace: 6);
+      test(
+        'positive score is rendered as a number in head-to-head text',
+        () async {
+          final team1 = _teamRecord(team: _eagles, count: 5, startPlace: 1);
+          final team2 = _teamRecord(team: _falcons, count: 5, startPlace: 6);
 
-        // score = sum of places for top 5 runners
-        expect(team1.score, equals(1 + 2 + 3 + 4 + 5));
+          // score = sum of places for top 5 runners
+          expect(team1.score, equals(1 + 2 + 3 + 4 + 5));
 
-        final data = RaceResultsData(
-          resultsTitle: 'Full Meet',
-          individualResults: [],
-          overallTeamResults: [],
-          headToHeadTeamResults: [
-            [team1, team2]
-          ],
-        );
-        final controller = FormattedResultsController(raceResultsData: data);
+          final data = RaceResultsData(
+            resultsTitle: 'Full Meet',
+            individualResults: [],
+            overallTeamResults: [],
+            headToHeadTeamResults: [
+              [team1, team2],
+            ],
+          );
+          final controller = FormattedResultsController(raceResultsData: data);
 
-        final text = await controller.formattedResultsText;
+          final text = await controller.formattedResultsText;
 
-        expect(text, contains('15')); // eagles score
-        expect(text, isNot(contains('N/A')));
-      });
+          expect(text, contains('15')); // eagles score
+          expect(text, isNot(contains('N/A')));
+        },
+      );
     });
 
     // -----------------------------------------------------------------------
@@ -229,31 +233,37 @@ void main() {
     // -----------------------------------------------------------------------
     group('formattedSheetsData', () {
       test('individual results section header row is present', () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final sheets = await controller.formattedSheetsData;
 
         expect(
-          sheets.any((row) => row.length == 1 && row[0] == 'Individual Results'),
+          sheets.any(
+            (row) => row.length == 1 && row[0] == 'Individual Results',
+          ),
           isTrue,
         );
       });
 
       test('individual results column headers are present', () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final sheets = await controller.formattedSheetsData;
 
         expect(
-          sheets.any((row) =>
-              row.length == 5 &&
-              row[0] == 'Place' &&
-              row[1] == 'Name' &&
-              row[2] == 'Team' &&
-              row[3] == 'Time' &&
-              row[4] == 'Pace/mi'),
+          sheets.any(
+            (row) =>
+                row.length == 5 &&
+                row[0] == 'Place' &&
+                row[1] == 'Name' &&
+                row[2] == 'Team' &&
+                row[3] == 'Time' &&
+                row[4] == 'Pace/mi',
+          ),
           isTrue,
         );
       });
@@ -282,8 +292,9 @@ void main() {
       });
 
       test('no head-to-head rows when matchups list is empty', () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+        final controller = FormattedResultsController(
+          raceResultsData: _emptyData(),
+        );
 
         final sheets = await controller.formattedSheetsData;
 
@@ -302,7 +313,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -325,7 +336,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -351,7 +362,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -376,7 +387,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -402,7 +413,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -427,7 +438,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -436,11 +447,13 @@ void main() {
 
         // There should be 4 runner rows (max of 2 and 4)
         final runnerRows = sheets
-            .where((row) =>
-                row.length == 3 &&
-                row[0] != '' &&
-                row[0] != 'Score' &&
-                (int.tryParse(row[0].toString()) != null))
+            .where(
+              (row) =>
+                  row.length == 3 &&
+                  row[0] != '' &&
+                  row[0] != 'Score' &&
+                  (int.tryParse(row[0].toString()) != null),
+            )
             .toList();
         expect(runnerRows.length, equals(4));
 
@@ -463,7 +476,7 @@ void main() {
           individualResults: [],
           overallTeamResults: [],
           headToHeadTeamResults: [
-            [team1, team2]
+            [team1, team2],
           ],
         );
         final controller = FormattedResultsController(raceResultsData: data);
@@ -479,27 +492,33 @@ void main() {
     // Lazy caching
     // -----------------------------------------------------------------------
     group('lazy caching', () {
-      test('formattedResultsText returns identical cached value on second call',
-          () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+      test(
+        'formattedResultsText returns identical cached value on second call',
+        () async {
+          final controller = FormattedResultsController(
+            raceResultsData: _emptyData(),
+          );
 
-        final first = await controller.formattedResultsText;
-        final second = await controller.formattedResultsText;
+          final first = await controller.formattedResultsText;
+          final second = await controller.formattedResultsText;
 
-        expect(identical(first, second), isTrue);
-      });
+          expect(identical(first, second), isTrue);
+        },
+      );
 
-      test('formattedSheetsData returns identical cached value on second call',
-          () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+      test(
+        'formattedSheetsData returns identical cached value on second call',
+        () async {
+          final controller = FormattedResultsController(
+            raceResultsData: _emptyData(),
+          );
 
-        final first = await controller.formattedSheetsData;
-        final second = await controller.formattedSheetsData;
+          final first = await controller.formattedSheetsData;
+          final second = await controller.formattedSheetsData;
 
-        expect(identical(first, second), isTrue);
-      });
+          expect(identical(first, second), isTrue);
+        },
+      );
     });
 
     // -----------------------------------------------------------------------
@@ -507,35 +526,39 @@ void main() {
     // -----------------------------------------------------------------------
     group('concurrent call deduplication', () {
       test(
-          'two simultaneous formattedResultsText calls both resolve to the same value',
-          () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+        'two simultaneous formattedResultsText calls both resolve to the same value',
+        () async {
+          final controller = FormattedResultsController(
+            raceResultsData: _emptyData(),
+          );
 
-        // Start both calls without awaiting — they run concurrently
-        final future1 = controller.formattedResultsText;
-        final future2 = controller.formattedResultsText;
+          // Start both calls without awaiting — they run concurrently
+          final future1 = controller.formattedResultsText;
+          final future2 = controller.formattedResultsText;
 
-        final results = await Future.wait([future1, future2]);
+          final results = await Future.wait([future1, future2]);
 
-        expect(results[0], equals(results[1]));
-        expect(identical(results[0], results[1]), isTrue);
-      });
+          expect(results[0], equals(results[1]));
+          expect(identical(results[0], results[1]), isTrue);
+        },
+      );
 
       test(
-          'two simultaneous formattedSheetsData calls both resolve to the same value',
-          () async {
-        final controller =
-            FormattedResultsController(raceResultsData: _emptyData());
+        'two simultaneous formattedSheetsData calls both resolve to the same value',
+        () async {
+          final controller = FormattedResultsController(
+            raceResultsData: _emptyData(),
+          );
 
-        final future1 = controller.formattedSheetsData;
-        final future2 = controller.formattedSheetsData;
+          final future1 = controller.formattedSheetsData;
+          final future2 = controller.formattedSheetsData;
 
-        final results = await Future.wait([future1, future2]);
+          final results = await Future.wait([future1, future2]);
 
-        expect(results[0], equals(results[1]));
-        expect(identical(results[0], results[1]), isTrue);
-      });
+          expect(results[0], equals(results[1]));
+          expect(identical(results[0], results[1]), isTrue);
+        },
+      );
     });
   });
 }

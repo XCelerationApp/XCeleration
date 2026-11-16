@@ -4,21 +4,20 @@ import 'package:xceleration/coach/runners_management_screen/widgets/imported_run
 
 void main() {
   Widget build(List<String> skipped) => MaterialApp(
-        home: Scaffold(
-          body: ImportedRunnersSelectionSheet(
-            importedRunners: const [
-              {'name': 'Ann Lee', 'grade': 10, 'bib': '101'},
-            ],
-            skippedRows: skipped,
-          ),
-        ),
-      );
+    home: Scaffold(
+      body: ImportedRunnersSelectionSheet(
+        importedRunners: const [
+          {'name': 'Ann Lee', 'grade': 10, 'bib': '101'},
+        ],
+        skippedRows: skipped,
+      ),
+    ),
+  );
 
   testWidgets('says how many rows were skipped and why', (tester) async {
-    await tester.pumpWidget(build(const [
-      'Row 3 (Bo Park): grade is not 9–12',
-      'Row 4: no name',
-    ]));
+    await tester.pumpWidget(
+      build(const ['Row 3 (Bo Park): grade is not 9–12', 'Row 4: no name']),
+    );
 
     expect(find.text('2 rows were not imported'), findsOneWidget);
 
@@ -28,8 +27,9 @@ void main() {
     expect(find.text('Row 3 (Bo Park): grade is not 9–12'), findsOneWidget);
   });
 
-  testWidgets('shows nothing extra when every row was imported',
-      (tester) async {
+  testWidgets('shows nothing extra when every row was imported', (
+    tester,
+  ) async {
     await tester.pumpWidget(build(const []));
 
     expect(find.textContaining('not imported'), findsNothing);
@@ -37,41 +37,60 @@ void main() {
   });
 
   testWidgets('says which team each runner is going on', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(
-        body: ImportedRunnersSelectionSheet(importedRunners: [
-          {'name': 'Ann Lee', 'grade': 10, 'bib': '101', 'team': 'Eagles'},
-        ]),
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: ImportedRunnersSelectionSheet(
+            importedRunners: [
+              {'name': 'Ann Lee', 'grade': 10, 'bib': '101', 'team': 'Eagles'},
+            ],
+          ),
+        ),
       ),
-    ));
+    );
 
     expect(find.text('Grade 10  •  Bib 101  •  Eagles'), findsOneWidget);
   });
 
-  testWidgets('can split a team into boys\' and girls\' teams',
-      (tester) async {
+  testWidgets('can split a team into boys\' and girls\' teams', (tester) async {
     List<Map<String, dynamic>>? added;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            onPressed: () async {
-              added = await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const Scaffold(
-                  body: ImportedRunnersSelectionSheet(importedRunners: [
-                    {'name': 'Ann Lee', 'grade': 10, 'bib': '101',
-                      'team': 'Archie Williams', 'gender': 'F'},
-                    {'name': 'Bo Park', 'grade': 11, 'bib': '102',
-                      'team': 'Archie Williams', 'gender': 'M'},
-                  ]),
-                ),
-              ));
-            },
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async {
+                added = await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const Scaffold(
+                      body: ImportedRunnersSelectionSheet(
+                        importedRunners: [
+                          {
+                            'name': 'Ann Lee',
+                            'grade': 10,
+                            'bib': '101',
+                            'team': 'Archie Williams',
+                            'gender': 'F',
+                          },
+                          {
+                            'name': 'Bo Park',
+                            'grade': 11,
+                            'bib': '102',
+                            'team': 'Archie Williams',
+                            'gender': 'M',
+                          },
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
@@ -80,46 +99,68 @@ void main() {
     await tester.tap(find.text('Add Selected'));
     await tester.pumpAndSettle();
 
-    expect(added!.map((r) => r['team']),
-        ['Archie Williams - Girls', 'Archie Williams - Boys']);
+    expect(added!.map((r) => r['team']), [
+      'Archie Williams - Girls',
+      'Archie Williams - Boys',
+    ]);
   });
 
   // Split into boys and girls, the coach can race just one of them. Both
   // teams are still imported; the other is marked to stay out of the race.
   testWidgets('can leave the boys\' team out of this race', (tester) async {
     List<Map<String, dynamic>>? added;
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            onPressed: () async {
-              added = await Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => const Scaffold(
-                  body: ImportedRunnersSelectionSheet(importedRunners: [
-                    {'name': 'Ann Lee', 'grade': 10, 'bib': '101',
-                      'team': 'Archie Williams', 'gender': 'F'},
-                    {'name': 'Bo Park', 'grade': 11, 'bib': '102',
-                      'team': 'Archie Williams', 'gender': 'M'},
-                  ]),
-                ),
-              ));
-            },
-            child: const Text('open'),
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () async {
+                added = await Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => const Scaffold(
+                      body: ImportedRunnersSelectionSheet(
+                        importedRunners: [
+                          {
+                            'name': 'Ann Lee',
+                            'grade': 10,
+                            'bib': '101',
+                            'team': 'Archie Williams',
+                            'gender': 'F',
+                          },
+                          {
+                            'name': 'Bo Park',
+                            'grade': 11,
+                            'bib': '102',
+                            'team': 'Archie Williams',
+                            'gender': 'M',
+                          },
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+              child: const Text('open'),
+            ),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('open'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Add to this race'), findsNothing,
-        reason: 'one team, nothing to choose');
+    expect(
+      find.text('Add to this race'),
+      findsNothing,
+      reason: 'one team, nothing to choose',
+    );
     await tester.tap(find.byKey(const ValueKey('split_boys_girls')));
     await tester.pumpAndSettle();
     expect(find.text('Add to this race'), findsOneWidget);
 
     await tester.tap(
-        find.byKey(const ValueKey('race_team_Archie Williams - Boys')));
+      find.byKey(const ValueKey('race_team_Archie Williams - Boys')),
+    );
     await tester.pumpAndSettle();
     await tester.tap(find.text('Add Selected'));
     await tester.pumpAndSettle();
@@ -131,14 +172,18 @@ void main() {
   });
 
   testWidgets('offers no split when the rows name no teams', (tester) async {
-    await tester.pumpWidget(const MaterialApp(
-      home: Scaffold(
-        body: ImportedRunnersSelectionSheet(importedRunners: [
-          {'name': 'Ann Lee', 'grade': 10, 'bib': '101', 'gender': 'F'},
-          {'name': 'Bo Park', 'grade': 11, 'bib': '102', 'gender': 'M'},
-        ]),
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: Scaffold(
+          body: ImportedRunnersSelectionSheet(
+            importedRunners: [
+              {'name': 'Ann Lee', 'grade': 10, 'bib': '101', 'gender': 'F'},
+              {'name': 'Bo Park', 'grade': 11, 'bib': '102', 'gender': 'M'},
+            ],
+          ),
+        ),
       ),
-    ));
+    );
 
     expect(find.byKey(const ValueKey('split_boys_girls')), findsNothing);
   });

@@ -27,10 +27,14 @@ class _SimulateResultsButtonState extends State<SimulateResultsButton> {
           shrinkWrap: true,
           children: [
             const ListTile(
-              title: Text('Simulate devices (debug)',
-                  style: AppTypography.bodySemibold),
-              subtitle: Text('Loads made-up Timer and Bib Recorder data for '
-                  'this race\'s runners.'),
+              title: Text(
+                'Simulate devices (debug)',
+                style: AppTypography.bodySemibold,
+              ),
+              subtitle: Text(
+                'Loads made-up Timer and Bib Recorder data for '
+                'this race\'s runners.',
+              ),
             ),
             for (final s in SimulatedScenario.values)
               ListTile(
@@ -45,8 +49,10 @@ class _SimulateResultsButtonState extends State<SimulateResultsButton> {
     if (scenario == null || !mounted) return;
     await widget.controller.resetDevices();
     if (!mounted) return;
-    final race =
-        await widget.controller.loadSimulatedResults(context, scenario);
+    final race = await widget.controller.loadSimulatedResults(
+      context,
+      scenario,
+    );
     if (race == null || !mounted) return;
     setState(() => _last = race);
     await _showAnswerKey(race);
@@ -72,8 +78,9 @@ class _SimulateResultsButtonState extends State<SimulateResultsButton> {
                 Text(
                   '${f.place}. ${f.runner.runner.name} '
                   '(#${f.runner.runner.bibNumber})  ${f.time}',
-                  style: AppTypography.bodySmall
-                      .copyWith(color: AppColors.darkColor),
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AppColors.darkColor,
+                  ),
                 ),
             ],
           ),

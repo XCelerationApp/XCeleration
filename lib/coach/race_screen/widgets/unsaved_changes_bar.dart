@@ -9,18 +9,15 @@ import '../../../core/theme/app_spacing.dart';
 class UnsavedChangesBar extends StatelessWidget {
   final RaceScreenController controller;
 
-  const UnsavedChangesBar({
-    super.key,
-    required this.controller,
-  });
+  const UnsavedChangesBar({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
     // controller.flowState and controller.form are synchronous — no FutureBuilder needed.
     // The parent Consumer<RaceScreenController> already rebuilds this widget on every notifyListeners().
     final flowState = controller.flowState;
-    final bool isSetupFlow = flowState == Race.FLOW_SETUP ||
-        flowState == Race.FLOW_SETUP_COMPLETED;
+    final bool isSetupFlow =
+        flowState == Race.FLOW_SETUP || flowState == Race.FLOW_SETUP_COMPLETED;
 
     if (!isSetupFlow) return const SizedBox.shrink();
 
@@ -42,7 +39,11 @@ class UnsavedChangesBar extends StatelessWidget {
             const Divider(height: 1, thickness: 1, color: AppColors.lightColor),
           Padding(
             padding: const EdgeInsets.fromLTRB(
-                AppSpacing.lg, AppSpacing.sm, AppSpacing.lg, AppSpacing.lg),
+              AppSpacing.lg,
+              AppSpacing.sm,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [

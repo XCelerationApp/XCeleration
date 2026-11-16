@@ -42,9 +42,12 @@ class RosterUpdatePlan {
 /// name) count, and for a team split into boys and girls, such as
 /// "Archie Williams - Boys", the school's rows of that gender.
 List<Map<String, dynamic>> rowsForTeam(
-    List<Map<String, dynamic>> rows, Team team) {
-  final hasTeamColumn =
-      rows.any((r) => ((r['team'] as String?)?.trim() ?? '').isNotEmpty);
+  List<Map<String, dynamic>> rows,
+  Team team,
+) {
+  final hasTeamColumn = rows.any(
+    (r) => ((r['team'] as String?)?.trim() ?? '').isNotEmpty,
+  );
   if (!hasTeamColumn) return rows;
 
   String key(String? s) => (s ?? '').trim().toLowerCase();
@@ -119,11 +122,7 @@ RosterUpdatePlan planRosterUpdate({
     }
   }
 
-  return RosterUpdatePlan(
-    added: newRows,
-    changed: changed,
-    removed: unmatched,
-  );
+  return RosterUpdatePlan(added: newRows, changed: changed, removed: unmatched);
 }
 
 /// What [RosterUpdater.apply] did.
@@ -152,9 +151,9 @@ class RosterUpdater {
     required IRunnerRepository runners,
     required ITeamRepository teams,
     required IRaceRepository races,
-  })  : _runners = runners,
-        _teams = teams,
-        _races = races;
+  }) : _runners = runners,
+       _teams = teams,
+       _races = races;
 
   final int raceId;
   final IRunnerRepository _runners;
@@ -183,8 +182,10 @@ class RosterUpdater {
     // stay.
     for (final runner in plan.removed) {
       await _runners.removeRunnerFromTeam(teamId, runner.runnerId!);
-      final participant =
-          RaceParticipant(raceId: raceId, runnerId: runner.runnerId);
+      final participant = RaceParticipant(
+        raceId: raceId,
+        runnerId: runner.runnerId,
+      );
       if (await _races.getRaceParticipant(participant) != null) {
         await _races.removeRaceParticipant(participant);
       }
@@ -192,15 +193,15 @@ class RosterUpdater {
 
     // The rows were matched to this team already, so any Team column is
     // dropped to keep them from landing on another.
-    final imported = await RosterImporter(
-      raceId: raceId,
-      runners: _runners,
-      teams: _teams,
-      races: _races,
-    ).importRows(
-      [for (final row in plan.added) {...row}..remove('team')],
-      intoTeam: team,
-    );
+    final imported =
+        await RosterImporter(
+          raceId: raceId,
+          runners: _runners,
+          teams: _teams,
+          races: _races,
+        ).importRows([
+          for (final row in plan.added) {...row}..remove('team'),
+        ], intoTeam: team);
 
     return RosterUpdateResult(
       imported: imported,

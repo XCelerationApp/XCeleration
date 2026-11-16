@@ -14,8 +14,10 @@ BibDatumRecord _bib(String bib, {String name = ''}) =>
 
 void main() {
   test('numbers the bibs in finish order', () {
-    final rows = AssistantExportService.bibRows(
-        [_bib('101', name: 'Alice'), _bib('102', name: 'Bob')]);
+    final rows = AssistantExportService.bibRows([
+      _bib('101', name: 'Alice'),
+      _bib('102', name: 'Bob'),
+    ]);
 
     expect(rows, [
       ['1', '101', 'Alice', 'EAG', '10'],
@@ -24,8 +26,11 @@ void main() {
   });
 
   test('a row left blank takes no place', () {
-    final rows =
-        AssistantExportService.bibRows([_bib('101'), _bib(''), _bib('103')]);
+    final rows = AssistantExportService.bibRows([
+      _bib('101'),
+      _bib(''),
+      _bib('103'),
+    ]);
 
     expect([for (final r in rows) '${r[0]} ${r[1]}'], ['1 101', '2 103']);
   });
@@ -37,8 +42,8 @@ void main() {
     type: DeviceName.raceTimer.toString(),
   );
 
-  UIRecord time(String t, int? place, RecordType type) => UIRecord(
-      time: t, place: place, textColor: Colors.black, type: type);
+  UIRecord time(String t, int? place, RecordType type) =>
+      UIRecord(time: t, place: place, textColor: Colors.black, type: type);
 
   test('the Timer table has only finish times, under a heading row', () {
     final table = AssistantExportService.timerTable([
@@ -55,8 +60,7 @@ void main() {
   });
 
   test('the Bib Recorder table heads its rows', () {
-    final table =
-        AssistantExportService.bibTable([_bib('101', name: 'Alice')]);
+    final table = AssistantExportService.bibTable([_bib('101', name: 'Alice')]);
 
     expect(table.first, ['Place', 'Bib', 'Name', 'Team', 'Grade']);
     expect(table.last, ['1', '101', 'Alice', 'EAG', '10']);
@@ -72,7 +76,9 @@ void main() {
   });
 
   test('a Google Sheet is named for the race, the list and the date', () {
-    expect(AssistantExportService.sheetTitle(race, 'Bib Numbers'),
-        'State Meet — Bib Numbers (9/29/2026)');
+    expect(
+      AssistantExportService.sheetTitle(race, 'Bib Numbers'),
+      'State Meet — Bib Numbers (9/29/2026)',
+    );
   });
 }

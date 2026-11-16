@@ -119,10 +119,7 @@ class _CoachMarkState extends State<CoachMark> {
               child: _buildCoachMark(),
             ),
           ),
-          child: Container(
-            key: _targetKey,
-            child: widget.child,
-          ),
+          child: Container(key: _targetKey, child: widget.child),
         );
 
         // Reset rect and schedule update when becoming visible
@@ -202,8 +199,8 @@ class _CoachMarkState extends State<CoachMark> {
     final double xOffset = widget.config.alignmentX == AlignmentX.left
         ? _arrowEdgeInset + widget.config.arrowSize
         : (widget.config.alignmentX == AlignmentX.right
-            ? -(_arrowEdgeInset + widget.config.arrowSize)
-            : 0);
+              ? -(_arrowEdgeInset + widget.config.arrowSize)
+              : 0);
 
     final double yOffset = widget.config.alignmentY == AlignmentY.top
         ? -AppSpacing.sm
@@ -214,16 +211,19 @@ class _CoachMarkState extends State<CoachMark> {
 
   Widget _buildCoachMark() {
     return SizedBox(
-        width: widget.config.width,
-        child: Column(mainAxisSize: MainAxisSize.min, children: [
+      width: widget.config.width,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
           if (widget.config.type != CoachMarkType.general &&
               widget.config.alignmentY == AlignmentY.bottom) ...[
             buildArrow(
-                widget.config.arrowSize,
-                widget.config.width,
-                widget.config.alignmentX,
-                widget.config.alignmentY,
-                widget.config.backgroundColor),
+              widget.config.arrowSize,
+              widget.config.width,
+              widget.config.alignmentX,
+              widget.config.alignmentY,
+              widget.config.backgroundColor,
+            ),
           ],
           Container(
             padding: widget.config.padding,
@@ -264,8 +264,9 @@ class _CoachMarkState extends State<CoachMark> {
                   Text(
                     widget.config.description!,
                     style: TextStyle(
-                      color: widget.config.textColor
-                          .withValues(alpha: AppOpacity.glass),
+                      color: widget.config.textColor.withValues(
+                        alpha: AppOpacity.glass,
+                      ),
                       fontSize: 12,
                       height: 1.4,
                     ),
@@ -278,21 +279,29 @@ class _CoachMarkState extends State<CoachMark> {
           if (widget.config.type != CoachMarkType.general &&
               widget.config.alignmentY == AlignmentY.top) ...[
             buildArrow(
-                widget.config.arrowSize,
-                widget.config.width,
-                widget.config.alignmentX,
-                widget.config.alignmentY,
-                widget.config.backgroundColor),
+              widget.config.arrowSize,
+              widget.config.width,
+              widget.config.alignmentX,
+              widget.config.alignmentY,
+              widget.config.backgroundColor,
+            ),
           ],
-        ]));
+        ],
+      ),
+    );
   }
 }
 
 // Named constant matching _CoachMarkState._arrowEdgeInset for arrow positioning.
 const double _arrowEdgeInset = 30.0;
 
-Widget buildArrow(double arrowSize, double width, AlignmentX alignmentX,
-    AlignmentY alignmentY, Color backgroundColor) {
+Widget buildArrow(
+  double arrowSize,
+  double width,
+  AlignmentX alignmentX,
+  AlignmentY alignmentY,
+  Color backgroundColor,
+) {
   return SizedBox(
     height: arrowSize,
     width: width,

@@ -151,7 +151,8 @@ Future<List<BibConflict>> detectBibConflicts({
   /// Which places are in dispute, so they can be kept out of the context.
   final disputed = <int>{};
   for (final entry in placesByBib.entries) {
-    final isDuplicate = entry.value.length > 1 && runnersByBib.containsKey(entry.key);
+    final isDuplicate =
+        entry.value.length > 1 && runnersByBib.containsKey(entry.key);
     final isUnknown = !runnersByBib.containsKey(entry.key);
     if (isDuplicate || isUnknown) disputed.addAll(entry.value);
   }
@@ -179,9 +180,11 @@ Future<List<BibConflict>> detectBibConflicts({
       if (found != null) ahead.add(found);
     }
     final behind = <NearbyFinisher>[];
-    for (var i = place + 1;
-        i <= entries.length && behind.length < nearbyWindow;
-        i++) {
+    for (
+      var i = place + 1;
+      i <= entries.length && behind.length < nearbyWindow;
+      i++
+    ) {
       final found = at(i);
       if (found != null) behind.add(found);
     }
@@ -214,15 +217,14 @@ Future<List<BibConflict>> detectBibConflicts({
   }
 
   ConflictOccurrence occurrenceAt(int place) => ConflictOccurrence(
-        place: place,
-        time: timesByPlace[place],
-        after: timesByPlace[place] == null ? knownBefore(place) : null,
-        before: timesByPlace[place] == null ? knownAfter(place) : null,
-        approximate:
-            timesByPlace[place] == null ? approximateTimes[place] : null,
-        nearby: nearbyTo(place),
-        allFinishers: allFinishers,
-      );
+    place: place,
+    time: timesByPlace[place],
+    after: timesByPlace[place] == null ? knownBefore(place) : null,
+    before: timesByPlace[place] == null ? knownAfter(place) : null,
+    approximate: timesByPlace[place] == null ? approximateTimes[place] : null,
+    nearby: nearbyTo(place),
+    allFinishers: allFinishers,
+  );
 
   final conflicts = <BibConflict>[];
   for (final entry in placesByBib.entries) {
@@ -233,17 +235,18 @@ Future<List<BibConflict>> detectBibConflicts({
     if (runner == null) {
       // Nobody has this bib. Each recording of it is its own question.
       for (final place in places) {
-        conflicts.add(UnknownBibConflict(
-          bibNumber: bib,
-          occurrence: occurrenceAt(place),
-        ));
+        conflicts.add(
+          UnknownBibConflict(bibNumber: bib, occurrence: occurrenceAt(place)),
+        );
       }
     } else if (places.length > 1) {
-      conflicts.add(DuplicateBibConflict(
-        bibNumber: bib,
-        runner: runner,
-        occurrences: places.map(occurrenceAt).toList(),
-      ));
+      conflicts.add(
+        DuplicateBibConflict(
+          bibNumber: bib,
+          runner: runner,
+          occurrences: places.map(occurrenceAt).toList(),
+        ),
+      );
     }
   }
 

@@ -27,7 +27,8 @@ class _LinkedCoachesScreenState extends State<LinkedCoachesScreen> {
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final rows = await widget._parentLinkService.listLinkedCoachesWithProfiles();
+    final rows = await widget._parentLinkService
+        .listLinkedCoachesWithProfiles();
     if (!mounted) return;
     setState(() {
       _coaches = rows;
@@ -50,49 +51,49 @@ class _LinkedCoachesScreenState extends State<LinkedCoachesScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _coaches.isEmpty
-              ? Center(
-                  child: Text('No linked coaches',
-                      style: AppTypography.bodyRegular),
-                )
-              : ListView.separated(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _coaches.length,
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, index) {
-                    final coach = _coaches[index];
-                    final email = coach['email']?.toString() ?? '';
-                    final name = coach['display_name']?.toString() ?? '';
-                    final id = coach['coach_user_id']?.toString() ?? '';
-                    return Card(
-                      elevation: 1,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: ListTile(
-                        leading: CircleAvatar(
-                          backgroundColor: AppColors.primaryColor,
-                          foregroundColor: Colors.white,
-                          child: const Icon(Icons.person),
-                        ),
-                        title: Text(
-                          name.isNotEmpty
-                              ? name
-                              : (email.isNotEmpty ? email : id),
-                          style: AppTypography.bodySemibold,
-                        ),
-                        subtitle: email.isNotEmpty && name.isNotEmpty
-                            ? Text(email)
-                            : null,
-                        trailing: IconButton(
-                          icon: const Icon(Icons.link_off),
-                          color: Colors.redAccent,
-                          onPressed: () => _unlink(id),
-                          tooltip: 'Unlink',
-                        ),
-                      ),
-                    );
-                  },
-                ),
+          ? Center(
+              child: Text(
+                'No linked coaches',
+                style: AppTypography.bodyRegular,
+              ),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(16),
+              itemCount: _coaches.length,
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final coach = _coaches[index];
+                final email = coach['email']?.toString() ?? '';
+                final name = coach['display_name']?.toString() ?? '';
+                final id = coach['coach_user_id']?.toString() ?? '';
+                return Card(
+                  elevation: 1,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: AppColors.primaryColor,
+                      foregroundColor: Colors.white,
+                      child: const Icon(Icons.person),
+                    ),
+                    title: Text(
+                      name.isNotEmpty ? name : (email.isNotEmpty ? email : id),
+                      style: AppTypography.bodySemibold,
+                    ),
+                    subtitle: email.isNotEmpty && name.isNotEmpty
+                        ? Text(email)
+                        : null,
+                    trailing: IconButton(
+                      icon: const Icon(Icons.link_off),
+                      color: Colors.redAccent,
+                      onPressed: () => _unlink(id),
+                      tooltip: 'Unlink',
+                    ),
+                  ),
+                );
+              },
+            ),
     );
   }
 }

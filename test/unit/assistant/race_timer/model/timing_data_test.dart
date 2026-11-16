@@ -39,20 +39,27 @@ void main() {
   setUp(() {
     mockStorage = MockIAssistantStorageService();
 
-    when(mockStorage.updateRaceStatus(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.updateRaceStartTime(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.updateRaceDuration(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.addLoggedTimingDatum(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.saveChunkConflict(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.saveChunk(any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.deleteChunk(any, any))
-        .thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.updateRaceStatus(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.updateRaceStartTime(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.updateRaceDuration(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.addLoggedTimingDatum(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.saveChunkConflict(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.saveChunk(any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.deleteChunk(any, any),
+    ).thenAnswer((_) async => const Success(null));
 
     timingData = TimingData(storage: mockStorage);
     timingData.currentRace = testRace;
@@ -84,21 +91,25 @@ void main() {
         expect(() => timingData.addRunnerTimeRecord(record), throwsException);
       });
 
-      test('caches chunk and starts a new one when current chunk has conflict',
-          () {
-        timingData.addConfirmRecord(TimingDatum(
-          time: '0:12.00',
-          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
-        ));
-        expect(timingData.currentChunk.hasConflict, isTrue);
+      test(
+        'caches chunk and starts a new one when current chunk has conflict',
+        () {
+          timingData.addConfirmRecord(
+            TimingDatum(
+              time: '0:12.00',
+              conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+            ),
+          );
+          expect(timingData.currentChunk.hasConflict, isTrue);
 
-        final record = TimingDatum(time: '0:13.00');
-        timingData.addRunnerTimeRecord(record);
+          final record = TimingDatum(time: '0:13.00');
+          timingData.addRunnerTimeRecord(record);
 
-        expect(timingData.currentChunk.hasConflict, isFalse);
-        expect(timingData.currentChunk.timingData, [record]);
-        expect(timingData.hasTimingData, isTrue);
-      });
+          expect(timingData.currentChunk.hasConflict, isFalse);
+          expect(timingData.currentChunk.timingData, [record]);
+          expect(timingData.hasTimingData, isTrue);
+        },
+      );
     });
 
     group('addConfirmRecord', () {
@@ -115,24 +126,30 @@ void main() {
       });
 
       test('updates time when same conflict type already exists', () {
-        timingData.addConfirmRecord(TimingDatum(
-          time: '0:30.00',
-          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
-        ));
+        timingData.addConfirmRecord(
+          TimingDatum(
+            time: '0:30.00',
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ),
+        );
 
-        timingData.addConfirmRecord(TimingDatum(
-          time: '0:31.00',
-          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
-        ));
+        timingData.addConfirmRecord(
+          TimingDatum(
+            time: '0:31.00',
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ),
+        );
 
         expect(timingData.currentChunk.conflictRecord!.time, '0:31.00');
       });
 
       test('caches and replaces when previous conflict type differs', () {
-        timingData.addMissingTimeRecord(TimingDatum(
-          time: '0:32.00',
-          conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
-        ));
+        timingData.addMissingTimeRecord(
+          TimingDatum(
+            time: '0:32.00',
+            conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
+          ),
+        );
 
         final confirm = TimingDatum(
           time: '0:33.00',
@@ -162,33 +179,43 @@ void main() {
       });
 
       test('increments offBy when same conflict type already exists', () {
-        timingData.addMissingTimeRecord(TimingDatum(
-          time: '0:40.00',
-          conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
-        ));
+        timingData.addMissingTimeRecord(
+          TimingDatum(
+            time: '0:40.00',
+            conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
+          ),
+        );
 
-        timingData.addMissingTimeRecord(TimingDatum(
-          time: '0:41.00',
-          conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
-        ));
+        timingData.addMissingTimeRecord(
+          TimingDatum(
+            time: '0:41.00',
+            conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
+          ),
+        );
 
         expect(timingData.currentChunk.conflictRecord!.time, '0:41.00');
         expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 2);
       });
 
       test('closes the extra-time batch and starts a missing-time one', () {
-        timingData.addExtraTimeRecord(TimingDatum(
-          time: '0:42.00',
-          conflict: Conflict(type: ConflictType.extraTime, offBy: 2),
-        ));
+        timingData.addExtraTimeRecord(
+          TimingDatum(
+            time: '0:42.00',
+            conflict: Conflict(type: ConflictType.extraTime, offBy: 2),
+          ),
+        );
 
-        timingData.addMissingTimeRecord(TimingDatum(
-          time: '0:43.00',
-          conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
-        ));
+        timingData.addMissingTimeRecord(
+          TimingDatum(
+            time: '0:43.00',
+            conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
+          ),
+        );
 
-        expect(timingData.currentChunk.conflictRecord!.conflict!.type,
-            ConflictType.missingTime);
+        expect(
+          timingData.currentChunk.conflictRecord!.conflict!.type,
+          ConflictType.missingTime,
+        );
         expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 1);
         expect(timingData.currentChunk.conflictRecord!.time, '0:43.00');
         expect(timingData.currentChunk.timingData, isEmpty);
@@ -213,15 +240,19 @@ void main() {
       });
 
       test('increments offBy when same conflict type already exists', () {
-        timingData.addExtraTimeRecord(TimingDatum(
-          time: '0:50.00',
-          conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
-        ));
+        timingData.addExtraTimeRecord(
+          TimingDatum(
+            time: '0:50.00',
+            conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+          ),
+        );
 
-        timingData.addExtraTimeRecord(TimingDatum(
-          time: '0:51.00',
-          conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
-        ));
+        timingData.addExtraTimeRecord(
+          TimingDatum(
+            time: '0:51.00',
+            conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+          ),
+        );
 
         expect(timingData.currentChunk.conflictRecord!.time, '0:51.00');
         expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 2);
@@ -229,15 +260,19 @@ void main() {
 
       test('leaves a missingTime conflict alone when nothing was recorded '
           'since', () {
-        timingData.addMissingTimeRecord(TimingDatum(
-          time: '0:52.00',
-          conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
-        ));
+        timingData.addMissingTimeRecord(
+          TimingDatum(
+            time: '0:52.00',
+            conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
+          ),
+        );
 
-        timingData.addExtraTimeRecord(TimingDatum(
-          time: '0:53.00',
-          conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
-        ));
+        timingData.addExtraTimeRecord(
+          TimingDatum(
+            time: '0:53.00',
+            conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+          ),
+        );
 
         expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 2);
         expect(timingData.currentChunk.conflictRecord!.time, '0:52.00');
@@ -246,10 +281,12 @@ void main() {
 
     group('reduceCurrentConflictByOne', () {
       test('decrements offBy', () {
-        timingData.addExtraTimeRecord(TimingDatum(
-          time: '1:00.00',
-          conflict: Conflict(type: ConflictType.extraTime, offBy: 2),
-        ));
+        timingData.addExtraTimeRecord(
+          TimingDatum(
+            time: '1:00.00',
+            conflict: Conflict(type: ConflictType.extraTime, offBy: 2),
+          ),
+        );
 
         timingData.reduceCurrentConflictByOne();
 
@@ -257,10 +294,12 @@ void main() {
       });
 
       test('clears conflict when offBy reaches zero', () {
-        timingData.addExtraTimeRecord(TimingDatum(
-          time: '1:00.00',
-          conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
-        ));
+        timingData.addExtraTimeRecord(
+          TimingDatum(
+            time: '1:00.00',
+            conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+          ),
+        );
 
         timingData.reduceCurrentConflictByOne();
 
@@ -268,10 +307,12 @@ void main() {
       });
 
       test('updates time when newTime is provided', () {
-        timingData.addMissingTimeRecord(TimingDatum(
-          time: '1:10.00',
-          conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
-        ));
+        timingData.addMissingTimeRecord(
+          TimingDatum(
+            time: '1:10.00',
+            conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
+          ),
+        );
 
         timingData.reduceCurrentConflictByOne(newTime: '1:11.00');
 
@@ -292,19 +333,23 @@ void main() {
       });
 
       test('is true when currentChunk has a conflict record', () {
-        timingData.addConfirmRecord(TimingDatum(
-          time: '0:01.00',
-          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
-        ));
+        timingData.addConfirmRecord(
+          TimingDatum(
+            time: '0:01.00',
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ),
+        );
 
         expect(timingData.hasTimingData, isTrue);
       });
 
       test('is true when there are cached chunks', () {
-        timingData.addConfirmRecord(TimingDatum(
-          time: '0:10.00',
-          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
-        ));
+        timingData.addConfirmRecord(
+          TimingDatum(
+            time: '0:10.00',
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ),
+        );
         timingData.cacheCurrentChunk();
         timingData.currentChunk = TimingChunk(id: 1, timingData: []);
 
@@ -327,29 +372,42 @@ void main() {
         for (final t in ['5:01.00', '5:02.00', '5:03.00']) {
           timingData.addRunnerTimeRecord(TimingDatum(time: t));
         }
-        timingData.addConfirmRecord(TimingDatum(
+        timingData.addConfirmRecord(
+          TimingDatum(
             time: '5:04.00',
-            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1)));
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ),
+        );
         for (final t in ['5:05.00', '5:06.00']) {
           timingData.addRunnerTimeRecord(TimingDatum(time: t));
         }
-        timingData.addConfirmRecord(TimingDatum(
+        timingData.addConfirmRecord(
+          TimingDatum(
             time: '5:07.00',
-            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1)));
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ),
+        );
         for (final t in ['5:08.00', '5:09.00']) {
           timingData.addRunnerTimeRecord(TimingDatum(time: t));
         }
       }
 
-      List<String> decode(String encoded) => decodeAndDecompress(encoded).split(',');
+      List<String> decode(String encoded) =>
+          decodeAndDecompress(encoded).split(',');
 
       test('encodes every record in finish order', () async {
         logRace();
 
         expect(decode(await timingData.encodedRecords()), [
-          '5:01.00', '5:02.00', '5:03.00', 'CR 1 5:04.00',
-          '5:05.00', '5:06.00', 'CR 1 5:07.00',
-          '5:08.00', '5:09.00',
+          '5:01.00',
+          '5:02.00',
+          '5:03.00',
+          'CR 1 5:04.00',
+          '5:05.00',
+          '5:06.00',
+          'CR 1 5:07.00',
+          '5:08.00',
+          '5:09.00',
         ]);
       });
 
@@ -371,39 +429,50 @@ void main() {
         expect(timingData.runnerCount, before);
       });
 
-      test('appends a closing confirm with the race duration once stopped',
-          () async {
-        logRace();
-        timingData.raceDuration =
-            const Duration(minutes: 5, seconds: 10, milliseconds: 560);
+      test(
+        'appends a closing confirm with the race duration once stopped',
+        () async {
+          logRace();
+          timingData.raceDuration = const Duration(
+            minutes: 5,
+            seconds: 10,
+            milliseconds: 560,
+          );
 
-        final records = decode(await timingData.encodedRecords());
+          final records = decode(await timingData.encodedRecords());
 
-        expect(records.last, startsWith('CR '));
-        // Same format as the logged times, so the coach reads it correctly.
-        final time = records.last.split(' ').last;
-        expect(TimeFormatter.loadDurationFromString(time),
-            const Duration(minutes: 5, seconds: 10, milliseconds: 560));
-      });
+          expect(records.last, startsWith('CR '));
+          // Same format as the logged times, so the coach reads it correctly.
+          final time = records.last.split(' ').last;
+          expect(
+            TimeFormatter.loadDurationFromString(time),
+            const Duration(minutes: 5, seconds: 10, milliseconds: 560),
+          );
+        },
+      );
 
-      test('does not add the closing confirm to the live current chunk',
-          () async {
-        logRace();
-        timingData.raceDuration = const Duration(minutes: 5, seconds: 10);
+      test(
+        'does not add the closing confirm to the live current chunk',
+        () async {
+          logRace();
+          timingData.raceDuration = const Duration(minutes: 5, seconds: 10);
 
-        await timingData.encodedRecords();
+          await timingData.encodedRecords();
 
-        expect(timingData.currentChunk.hasConflict, isFalse);
-      });
+          expect(timingData.currentChunk.hasConflict, isFalse);
+        },
+      );
     });
 
     group('cacheCurrentChunk and deleteCurrentChunk', () {
       test('deleteCurrentChunk restores the cached chunk', () {
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:05.00'));
-        timingData.addConfirmRecord(TimingDatum(
-          time: '0:06.00',
-          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
-        ));
+        timingData.addConfirmRecord(
+          TimingDatum(
+            time: '0:06.00',
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ),
+        );
         expect(timingData.currentChunk.hasConflict, isTrue);
         timingData.cacheCurrentChunk();
         timingData.currentChunk = TimingChunk(id: 1, timingData: []);
@@ -428,54 +497,80 @@ void main() {
     });
 
     group('storage stays in step with the chunks', () {
-      test('deleteCurrentChunk deletes the removed chunk, not the restored one',
-          () async {
-        timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
-        timingData.addConfirmRecord(TimingDatum(
-            time: '0:11.00',
-            conflict: Conflict(type: ConflictType.confirmRunner)));
-        timingData.addRunnerTimeRecord(TimingDatum(time: '0:12.00'));
-        final removedId = timingData.currentChunk.id;
+      test(
+        'deleteCurrentChunk deletes the removed chunk, not the restored one',
+        () async {
+          timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
+          timingData.addConfirmRecord(
+            TimingDatum(
+              time: '0:11.00',
+              conflict: Conflict(type: ConflictType.confirmRunner),
+            ),
+          );
+          timingData.addRunnerTimeRecord(TimingDatum(time: '0:12.00'));
+          final removedId = timingData.currentChunk.id;
 
-        timingData.deleteCurrentChunk();
-        await timingData.pendingWrites;
+          timingData.deleteCurrentChunk();
+          await timingData.pendingWrites;
 
-        verify(mockStorage.deleteChunk(1, removedId)).called(1);
-        verifyNever(mockStorage.deleteChunk(1, timingData.currentChunk.id));
-      });
+          verify(mockStorage.deleteChunk(1, removedId)).called(1);
+          verifyNever(mockStorage.deleteChunk(1, timingData.currentChunk.id));
+        },
+      );
 
       test('a missing time after an extra time keeps both', () async {
         // A stray tap marked as extra, and then a missed runner: two things
         // that happened, not one cancelling the other.
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
-        timingData.addExtraTimeRecord(TimingDatum(
-            time: '0:11.00', conflict: Conflict(type: ConflictType.extraTime)));
+        timingData.addExtraTimeRecord(
+          TimingDatum(
+            time: '0:11.00',
+            conflict: Conflict(type: ConflictType.extraTime),
+          ),
+        );
 
-        timingData.addMissingTimeRecord(TimingDatum(
-            time: '0:12.00', conflict: Conflict(type: ConflictType.missingTime)));
+        timingData.addMissingTimeRecord(
+          TimingDatum(
+            time: '0:12.00',
+            conflict: Conflict(type: ConflictType.missingTime),
+          ),
+        );
 
         // The extra-time chunk is closed; the missing time starts a new one.
-        expect(timingData.currentChunk.conflictRecord!.conflict!.type,
-            ConflictType.missingTime);
+        expect(
+          timingData.currentChunk.conflictRecord!.conflict!.type,
+          ConflictType.missingTime,
+        );
         expect(timingData.currentChunk.timingData, isEmpty);
-        final shared =
-            decodeAndDecompress(await timingData.encodedRecords()).split(',');
+        final shared = decodeAndDecompress(
+          await timingData.encodedRecords(),
+        ).split(',');
         expect(shared, ['0:10.00', 'ET 1 0:11.00', 'MT 1 0:12.00']);
       });
 
       test('an extra time with nothing recorded since a missing time is '
           'ignored', () {
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:10.00'));
-        timingData.addMissingTimeRecord(TimingDatum(
-            time: '0:11.00', conflict: Conflict(type: ConflictType.missingTime)));
+        timingData.addMissingTimeRecord(
+          TimingDatum(
+            time: '0:11.00',
+            conflict: Conflict(type: ConflictType.missingTime),
+          ),
+        );
 
-        timingData.addExtraTimeRecord(TimingDatum(
-            time: '0:12.00', conflict: Conflict(type: ConflictType.extraTime)));
+        timingData.addExtraTimeRecord(
+          TimingDatum(
+            time: '0:12.00',
+            conflict: Conflict(type: ConflictType.extraTime),
+          ),
+        );
 
         // The missing time stands: the press is ignored rather than
         // cancelling it (TimingController refuses it with a message).
-        expect(timingData.currentChunk.conflictRecord!.conflict!.type,
-            ConflictType.missingTime);
+        expect(
+          timingData.currentChunk.conflictRecord!.conflict!.type,
+          ConflictType.missingTime,
+        );
         expect(timingData.currentChunk.conflictRecord!.conflict!.offBy, 1);
       });
     });
@@ -483,10 +578,12 @@ void main() {
     group('clearRecords', () {
       test('resets chunk, cache, and start/end times', () {
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:01.00'));
-        timingData.addConfirmRecord(TimingDatum(
-          time: '0:01.00',
-          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
-        ));
+        timingData.addConfirmRecord(
+          TimingDatum(
+            time: '0:01.00',
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ),
+        );
         timingData.cacheCurrentChunk();
         expect(timingData.hasTimingData, isTrue);
 
@@ -501,26 +598,30 @@ void main() {
     });
 
     group('uiRecords', () {
-      test('returns runner records from currentChunk with sequential places',
-          () {
-        timingData.addRunnerTimeRecord(TimingDatum(time: '0:01.00'));
-        timingData.addRunnerTimeRecord(TimingDatum(time: '0:02.00'));
+      test(
+        'returns runner records from currentChunk with sequential places',
+        () {
+          timingData.addRunnerTimeRecord(TimingDatum(time: '0:01.00'));
+          timingData.addRunnerTimeRecord(TimingDatum(time: '0:02.00'));
 
-        final records = timingData.uiRecords;
+          final records = timingData.uiRecords;
 
-        expect(records.length, 2);
-        expect(records[0].time, '0:01.00');
-        expect(records[0].place, 1);
-        expect(records[1].time, '0:02.00');
-        expect(records[1].place, 2);
-      });
+          expect(records.length, 2);
+          expect(records[0].time, '0:01.00');
+          expect(records[0].place, 1);
+          expect(records[1].time, '0:02.00');
+          expect(records[1].place, 2);
+        },
+      );
 
       test('includes TBD entries for missingTime conflicts', () {
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:01.00'));
-        timingData.addMissingTimeRecord(TimingDatum(
-          time: '0:02.00',
-          conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
-        ));
+        timingData.addMissingTimeRecord(
+          TimingDatum(
+            time: '0:02.00',
+            conflict: Conflict(type: ConflictType.missingTime, offBy: 2),
+          ),
+        );
 
         final records = timingData.uiRecords;
 
@@ -535,10 +636,12 @@ void main() {
         // First chunk: 2 runners + confirm
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:01.00'));
         timingData.addRunnerTimeRecord(TimingDatum(time: '0:02.00'));
-        timingData.addConfirmRecord(TimingDatum(
-          time: '0:02.00',
-          conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
-        ));
+        timingData.addConfirmRecord(
+          TimingDatum(
+            time: '0:02.00',
+            conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+          ),
+        );
         timingData.cacheCurrentChunk();
 
         // New current chunk: 1 runner

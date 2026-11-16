@@ -11,14 +11,15 @@ import '../steps/review_results/review_results_step.dart';
 
 /// Function type that matches the [showFlow] top-level function signature,
 /// used to allow injection in tests.
-typedef ShowFlowFn = Future<bool> Function({
-  required BuildContext context,
-  required List<FlowStep> steps,
-  bool showProgressIndicator,
-  int initialIndex,
-  StepChangedCallback? onStepChanged,
-  void Function(int lastIndex)? onDismiss,
-});
+typedef ShowFlowFn =
+    Future<bool> Function({
+      required BuildContext context,
+      required List<FlowStep> steps,
+      bool showProgressIndicator,
+      int initialIndex,
+      StepChangedCallback? onStepChanged,
+      void Function(int lastIndex)? onDismiss,
+    });
 
 /// Controller for managing the post-race flow
 class PostRaceController {
@@ -54,24 +55,20 @@ class PostRaceController {
     LoadResultsController? loadResultsController,
   }) {
     // Create controllers first so they can be shared between steps
-    final resolvedDevices = devices ??
+    final resolvedDevices =
+        devices ??
         DeviceConnectionService.createDevices(
           DeviceName.coach,
           DeviceType.browserDevice,
         );
-    _loadResultsController = loadResultsController ??
-        LoadResultsController(
-          masterRace: masterRace,
-          devices: resolvedDevices,
-        );
+    _loadResultsController =
+        loadResultsController ??
+        LoadResultsController(masterRace: masterRace, devices: resolvedDevices);
     _loadResultsController.initialize();
 
     // Create steps with the controllers
-    _loadResultsStep = LoadResultsStep(
-      controller: _loadResultsController,
-    );
-    _reviewResultsStep =
-        ReviewResultsStep(controller: _loadResultsController);
+    _loadResultsStep = LoadResultsStep(controller: _loadResultsController);
+    _reviewResultsStep = ReviewResultsStep(controller: _loadResultsController);
   }
 
   /// Show the post-race flow
@@ -96,10 +93,7 @@ class PostRaceController {
   List<FlowStep> _getSteps() {
     // No instruction page first: the coach confirmed, before this opened,
     // that every runner had finished and the volunteers were beside them.
-    return [
-      _loadResultsStep,
-      _reviewResultsStep,
-    ];
+    return [_loadResultsStep, _reviewResultsStep];
   }
 
   @visibleForTesting

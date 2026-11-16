@@ -32,8 +32,8 @@ class RaceService implements IRaceService {
   /// Returns true if every team in the race has at least one runner.
   @override
   Future<bool> checkMinimumRunnersLoaded(
-          IMasterRaceResolver masterRace) async =>
-      await whyRunnersNotReady(masterRace) == null;
+    IMasterRaceResolver masterRace,
+  ) async => await whyRunnersNotReady(masterRace) == null;
 
   @override
   Future<String?> whyRunnersNotReady(IMasterRaceResolver masterRace) async {
@@ -47,8 +47,9 @@ class RaceService implements IRaceService {
     // it: races that came from another phone before those links synced lack
     // them. Only a team linked to the race with nobody on it holds it up.
     final teamsList = await masterRace.teams;
-    final teamsWithRunners =
-        raceRunnersList.map((rr) => rr.team.teamId).toSet();
+    final teamsWithRunners = raceRunnersList
+        .map((rr) => rr.team.teamId)
+        .toSet();
     final empty = [
       for (final team in teamsList)
         if (!teamsWithRunners.contains(team.teamId)) team.name ?? 'A team',
@@ -83,7 +84,8 @@ class RaceService implements IRaceService {
     final hasTeams = teams.isNotEmpty;
 
     // Check if essential race fields are filled
-    final fieldsComplete = name.isNotEmpty &&
+    final fieldsComplete =
+        name.isNotEmpty &&
         location.isNotEmpty &&
         date.isNotEmpty &&
         distance.isNotEmpty &&

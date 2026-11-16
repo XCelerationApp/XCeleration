@@ -22,17 +22,19 @@ final sampleRace = RaceRecord(
 
 final sampleRoster = [
   BibDatum(
-      bib: '101',
-      name: 'Ava Lee',
-      teamAbbreviation: 'NHS',
-      grade: '11',
-      teamColor: const Color(0xFF1976D2)),
+    bib: '101',
+    name: 'Ava Lee',
+    teamAbbreviation: 'NHS',
+    grade: '11',
+    teamColor: const Color(0xFF1976D2),
+  ),
   BibDatum(
-      bib: '102',
-      name: 'Mia Chen',
-      teamAbbreviation: 'RHS',
-      grade: '9',
-      teamColor: const Color(0xFFD32F2F)),
+    bib: '102',
+    name: 'Mia Chen',
+    teamAbbreviation: 'RHS',
+    grade: '9',
+    teamColor: const Color(0xFFD32F2F),
+  ),
   // A bib that starts with 0 must stay "007", not become 7.
   BibDatum(bib: '007', name: 'Zoe Park', teamAbbreviation: 'NHS', grade: '12'),
 ];
@@ -44,16 +46,19 @@ final sampleTimes = [
   TimingDatum(time: '15:05.36'),
   TimingDatum(time: '15:05.90'),
   TimingDatum(
-      time: '15:05.90',
-      conflict: Conflict(type: ConflictType.extraTime, offBy: 1)),
+    time: '15:05.90',
+    conflict: Conflict(type: ConflictType.extraTime, offBy: 1),
+  ),
   TimingDatum(time: '15:30.02'),
   TimingDatum(
-      time: '15:30.02',
-      conflict: Conflict(type: ConflictType.missingTime, offBy: 1)),
+    time: '15:30.02',
+    conflict: Conflict(type: ConflictType.missingTime, offBy: 1),
+  ),
   TimingDatum(time: '16:02.50'),
   TimingDatum(
-      time: '16:10.00',
-      conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1)),
+    time: '16:10.00',
+    conflict: Conflict(type: ConflictType.confirmRunner, offBy: 1),
+  ),
 ];
 
 /// What a Bib Recorder sends back: bibs in finish order.
@@ -78,20 +83,23 @@ final _rhs = Team(name: 'Redwood', abbreviation: 'RHS');
 
 final sampleResults = [
   RaceResult(
-      place: 1,
-      runner: Runner(name: 'Mia Chen', bibNumber: '102', grade: 9),
-      team: _rhs,
-      finishTime: const Duration(minutes: 15, seconds: 4, milliseconds: 110)),
+    place: 1,
+    runner: Runner(name: 'Mia Chen', bibNumber: '102', grade: 9),
+    team: _rhs,
+    finishTime: const Duration(minutes: 15, seconds: 4, milliseconds: 110),
+  ),
   RaceResult(
-      place: 2,
-      runner: Runner(name: 'Ava Lee', bibNumber: '101', grade: 11),
-      team: _nhs,
-      finishTime: const Duration(minutes: 15, seconds: 5, milliseconds: 360)),
+    place: 2,
+    runner: Runner(name: 'Ava Lee', bibNumber: '101', grade: 11),
+    team: _nhs,
+    finishTime: const Duration(minutes: 15, seconds: 5, milliseconds: 360),
+  ),
   RaceResult(
-      place: 3,
-      runner: Runner(name: 'Zoe Park', bibNumber: '007', grade: 12),
-      team: _nhs,
-      finishTime: const Duration(minutes: 16, seconds: 2, milliseconds: 500)),
+    place: 3,
+    runner: Runner(name: 'Zoe Park', bibNumber: '007', grade: 12),
+    team: _nhs,
+    finishTime: const Duration(minutes: 16, seconds: 2, milliseconds: 500),
+  ),
 ];
 
 final samplePackets = [
@@ -111,7 +119,9 @@ Future<Map<String, String>> currentWireFormats() async {
     'times_to_coach.txt': times,
     'bibs_to_coach.txt': await BibEncodeUtils.getEncodedBibData(sampleBibsBack),
     'results_to_spectators.txt': RaceShareService.preparePayloadFromData(
-        race: sampleResultsRace, results: sampleResults),
+      race: sampleResultsRace,
+      results: sampleResults,
+    ),
     'packets.txt': samplePackets.map((p) => p.toString()).join('\n'),
   };
 }

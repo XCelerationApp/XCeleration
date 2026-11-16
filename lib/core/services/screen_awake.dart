@@ -35,8 +35,10 @@ class ScreenAwake {
     } on MissingPluginException {
       // Tests and platforms without the native side: nothing to keep awake.
     } catch (e) {
-      Logger.e('[ScreenAwake] Could not ${wanted ? 'keep' : 'stop keeping'} '
-          'the screen on: $e');
+      Logger.e(
+        '[ScreenAwake] Could not ${wanted ? 'keep' : 'stop keeping'} '
+        'the screen on: $e',
+      );
     }
   }
 }

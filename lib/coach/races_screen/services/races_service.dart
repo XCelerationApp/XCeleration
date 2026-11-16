@@ -26,12 +26,10 @@ class RacesService implements IRacesService {
   final IRaceRepository _db;
   final String? Function() _currentUserId;
 
-  RacesService({
-    IRaceRepository? db,
-    String? Function()? currentUserId,
-  })  : _db = db ?? ServiceLocator.get<IRaceRepository>(),
-        _currentUserId =
-            currentUserId ?? (() => AuthService.instance.currentUserId);
+  RacesService({IRaceRepository? db, String? Function()? currentUserId})
+    : _db = db ?? ServiceLocator.get<IRaceRepository>(),
+      _currentUserId =
+          currentUserId ?? (() => AuthService.instance.currentUserId);
 
   /// Loads all races from the database.
   @override

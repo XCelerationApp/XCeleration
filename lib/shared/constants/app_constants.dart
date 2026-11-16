@@ -100,6 +100,7 @@ class ValidationPatterns {
   static final RegExp bibNumber = RegExp(r'^\d{1,5}$');
   static final RegExp time = RegExp(r'^\d{1,2}:\d{2}:\d{2}$');
   static final RegExp name = RegExp(r'^[a-zA-Z .-]{1,50}$');
-  static final RegExp email =
-      RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+  static final RegExp email = RegExp(
+    r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+  );
 }

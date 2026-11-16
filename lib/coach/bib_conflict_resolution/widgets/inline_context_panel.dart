@@ -31,13 +31,11 @@ class InlineContextPanel extends StatelessWidget {
   /// Null when the Timer has not settled that place.
   final String? conflictTime;
 
-  NearbyFinisher? get _ahead => surroundingFinishers
-      .where((e) => e.place < contextPosition)
-      .lastOrNull;
+  NearbyFinisher? get _ahead =>
+      surroundingFinishers.where((e) => e.place < contextPosition).lastOrNull;
 
-  NearbyFinisher? get _behind => surroundingFinishers
-      .where((e) => e.place > contextPosition)
-      .firstOrNull;
+  NearbyFinisher? get _behind =>
+      surroundingFinishers.where((e) => e.place > contextPosition).firstOrNull;
 
   @override
   Widget build(BuildContext context) {
@@ -130,8 +128,9 @@ class _Row extends StatelessWidget {
           child: Text(
             ordinal(place),
             style: highlighted
-                ? AppTypography.captionBold
-                    .copyWith(color: AppColors.primaryColor)
+                ? AppTypography.captionBold.copyWith(
+                    color: AppColors.primaryColor,
+                  )
                 : muted,
           ),
         ),
@@ -141,8 +140,9 @@ class _Row extends StatelessWidget {
           child: Text(
             name,
             style: highlighted
-                ? AppTypography.smallBodySemibold
-                    .copyWith(color: AppColors.primaryColor)
+                ? AppTypography.smallBodySemibold.copyWith(
+                    color: AppColors.primaryColor,
+                  )
                 : AppTypography.smallBodyRegular,
             overflow: TextOverflow.ellipsis,
           ),

@@ -91,11 +91,7 @@ class _ChoiceTile extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            Icon(
-              Icons.chevron_right,
-              color: AppColors.mediumColor,
-              size: 20,
-            ),
+            Icon(Icons.chevron_right, color: AppColors.mediumColor, size: 20),
           ],
         ),
       ),
