@@ -105,7 +105,8 @@ class AssistantStorageService implements IAssistantStorageService {
       );
       if (existing.isNotEmpty) {
         Logger.e(
-            'Race already exists in database: ${race.raceId} (${race.type})');
+          'Race already exists in database: ${race.raceId} (${race.type})',
+        );
         return Failure(const AppError(userMessage: 'Race is already loaded.'));
       }
       await db.insert(
@@ -115,10 +116,12 @@ class AssistantStorageService implements IAssistantStorageService {
       );
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not save the race. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save the race. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -163,24 +166,29 @@ class AssistantStorageService implements IAssistantStorageService {
             startedAt: race.startedAt,
             duration: race.duration,
           );
-          Logger.d('Race ${race.raceId} is taken by "${stored.name}"; '
-              'storing "${race.name}" as ${toStore.raceId}');
+          Logger.d(
+            'Race ${race.raceId} is taken by "${stored.name}"; '
+            'storing "${race.name}" as ${toStore.raceId}',
+          );
         }
         await txn.insert('race_history', toStore.toMap());
         return Success(ReceivedRace(race: toStore, isNew: true));
       });
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not save the race. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save the race. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   /// A race number of this phone's own, above any a coach hands out.
   Future<int> _nextOwnRaceId(Transaction txn) async {
-    final highest =
-        await txn.rawQuery('SELECT MAX(race_id) AS highest FROM race_history');
+    final highest = await txn.rawQuery(
+      'SELECT MAX(race_id) AS highest FROM race_history',
+    );
     final next = (highest.first['highest'] as int? ?? 0) + 1;
     return next < _ownRaceIdStart ? _ownRaceIdStart : next;
   }
@@ -201,10 +209,12 @@ class AssistantStorageService implements IAssistantStorageService {
         return Success(stored);
       });
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not save the race. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save the race. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -220,16 +230,21 @@ class AssistantStorageService implements IAssistantStorageService {
       );
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not update the race. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not update the race. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   @override
   Future<Result<void>> updateRaceDuration(
-      int raceId, String type, Duration? time) async {
+    int raceId,
+    String type,
+    Duration? time,
+  ) async {
     try {
       final db = await database;
       await db.update(
@@ -240,16 +255,21 @@ class AssistantStorageService implements IAssistantStorageService {
       );
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not update the race duration.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not update the race duration.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   @override
   Future<Result<void>> updateRaceStartTime(
-      int raceId, String type, DateTime? startedAt) async {
+    int raceId,
+    String type,
+    DateTime? startedAt,
+  ) async {
     try {
       final db = await database;
       await db.update(
@@ -260,16 +280,21 @@ class AssistantStorageService implements IAssistantStorageService {
       );
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not update the race start time.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not update the race start time.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   @override
   Future<Result<void>> updateRaceStatus(
-      int raceId, String type, bool stopped) async {
+    int raceId,
+    String type,
+    bool stopped,
+  ) async {
     try {
       final db = await database;
       await db.update(
@@ -280,16 +305,20 @@ class AssistantStorageService implements IAssistantStorageService {
       );
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not update the race status.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not update the race status.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   @override
-  Future<Result<List<RaceRecord>>> getRecentRaces(String type,
-      {Duration? since}) async {
+  Future<Result<List<RaceRecord>>> getRecentRaces(
+    String type, {
+    Duration? since,
+  }) async {
     try {
       final db = await database;
       final cutoff = DateTime.now()
@@ -305,10 +334,12 @@ class AssistantStorageService implements IAssistantStorageService {
 
       return Success(races.map((race) => RaceRecord.fromMap(race)).toList());
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not load recent races. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load recent races. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -326,10 +357,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return Success(races.map((race) => RaceRecord.fromMap(race)).toList());
     } catch (e) {
       Logger.e('Failed to get races: $e');
-      return Failure(AppError(
-        userMessage: 'Could not load races. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load races. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -347,10 +380,12 @@ class AssistantStorageService implements IAssistantStorageService {
       if (races.isEmpty) return const Success(null);
       return Success(RaceRecord.fromMap(races.first));
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not load the race. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load the race. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -373,10 +408,12 @@ class AssistantStorageService implements IAssistantStorageService {
       );
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not delete the race. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not delete the race. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -389,8 +426,9 @@ class AssistantStorageService implements IAssistantStorageService {
       final data = {
         'race_id': raceId,
         'chunk_id': chunk.id,
-        'timing_data':
-            chunk.timingData.map((record) => record.encode()).join(','),
+        'timing_data': chunk.timingData
+            .map((record) => record.encode())
+            .join(','),
         'conflict_record': chunk.conflictRecord?.encode(),
         'created_at': DateTime.now().millisecondsSinceEpoch,
       };
@@ -403,10 +441,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to save chunk ID: ${chunk.id} for race ID: $raceId: $e');
-      return Failure(AppError(
-        userMessage: 'Could not save timing data. Please try again.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save timing data. Please try again.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -426,22 +466,27 @@ class AssistantStorageService implements IAssistantStorageService {
       final chunk = chunks.first;
       final records = chunk['timing_data'] != null
           ? await TimingDecodeUtils.decodeEncodedTimingData(
-              chunk['timing_data'] as String)
+              chunk['timing_data'] as String,
+            )
           : [] as List<TimingDatum>;
       final conflictRecord = chunk['conflict_record'] != null
           ? TimingDatum.fromEncodedString(chunk['conflict_record'] as String)
           : null;
 
-      return Success(TimingChunk(
-        id: chunkId,
-        timingData: records,
-        conflictRecord: conflictRecord,
-      ));
+      return Success(
+        TimingChunk(
+          id: chunkId,
+          timingData: records,
+          conflictRecord: conflictRecord,
+        ),
+      );
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not load timing chunk.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load timing chunk.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -457,12 +502,15 @@ class AssistantStorageService implements IAssistantStorageService {
         limit: 1,
       );
       return Success(
-          chunk.isEmpty ? null : chunk.first['timing_data'] as String?);
+        chunk.isEmpty ? null : chunk.first['timing_data'] as String?,
+      );
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not load timing data.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load timing data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -484,25 +532,30 @@ class AssistantStorageService implements IAssistantStorageService {
         final timingData = chunk['timing_data'] != null
             ? await TimingDecodeUtils.decodeEncodedTimingData(
                 chunk['timing_data'] as String,
-                isFromDatabase: true)
+                isFromDatabase: true,
+              )
             : [] as List<TimingDatum>;
         final conflictRecord = chunk['conflict_record'] != null
             ? TimingDatum.fromEncodedString(chunk['conflict_record'] as String)
             : null;
 
-        result.add(TimingChunk(
-          id: chunkId,
-          timingData: timingData,
-          conflictRecord: conflictRecord,
-        ));
+        result.add(
+          TimingChunk(
+            id: chunkId,
+            timingData: timingData,
+            conflictRecord: conflictRecord,
+          ),
+        );
       }
 
       return Success(result);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not load timing chunks.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load timing chunks.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -517,10 +570,12 @@ class AssistantStorageService implements IAssistantStorageService {
       );
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not delete timing chunk.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not delete timing chunk.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -535,10 +590,12 @@ class AssistantStorageService implements IAssistantStorageService {
       );
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not delete timing data.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not delete timing data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -546,7 +603,10 @@ class AssistantStorageService implements IAssistantStorageService {
 
   @override
   Future<Result<void>> saveChunkConflict(
-      int raceId, int chunkId, TimingDatum conflictRecord) async {
+    int raceId,
+    int chunkId,
+    TimingDatum conflictRecord,
+  ) async {
     try {
       final db = await database;
       await db.update(
@@ -558,17 +618,22 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e(
-          'Failed to save chunk conflict for chunk ID: $chunkId in race ID: $raceId: $e');
-      return Failure(AppError(
-        userMessage: 'Could not save conflict record.',
-        originalException: e,
-      ));
+        'Failed to save chunk conflict for chunk ID: $chunkId in race ID: $raceId: $e',
+      );
+      return Failure(
+        AppError(
+          userMessage: 'Could not save conflict record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   @override
   Future<Result<void>> updateChunkConflict(
-      String chunkId, TimingDatum? conflictRecord) async {
+    String chunkId,
+    TimingDatum? conflictRecord,
+  ) async {
     try {
       final db = await database;
       if (conflictRecord == null) {
@@ -587,10 +652,12 @@ class AssistantStorageService implements IAssistantStorageService {
       }
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not update conflict record.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not update conflict record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -606,14 +673,16 @@ class AssistantStorageService implements IAssistantStorageService {
         limit: 1,
       );
 
-      return Success(conflicts.isEmpty
-          ? null
-          : conflicts.first['conflict_data'] as String?);
+      return Success(
+        conflicts.isEmpty ? null : conflicts.first['conflict_data'] as String?,
+      );
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not load conflict record.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load conflict record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -621,31 +690,35 @@ class AssistantStorageService implements IAssistantStorageService {
 
   @override
   Future<Result<void>> saveChunkTimingData(
-      String chunkId, List<String> encodedRecords) async {
+    String chunkId,
+    List<String> encodedRecords,
+  ) async {
     try {
       final db = await database;
       for (final record in encodedRecords) {
-        await db.insert(
-          'chunk_timing_data',
-          {
-            'chunk_id': chunkId,
-            'record_data': record,
-            'created_at': DateTime.now().millisecondsSinceEpoch,
-          },
-        );
+        await db.insert('chunk_timing_data', {
+          'chunk_id': chunkId,
+          'record_data': record,
+          'created_at': DateTime.now().millisecondsSinceEpoch,
+        });
       }
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not save timing records.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save timing records.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   @override
   Future<Result<void>> updateChunkTimingData(
-      int raceId, int chunkId, List<TimingDatum> timingData) async {
+    int raceId,
+    int chunkId,
+    List<TimingDatum> timingData,
+  ) async {
     try {
       final db = await database;
       await db.update(
@@ -657,17 +730,23 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e(
-          'Failed to update chunk timing data for chunk ID: $chunkId in race ID: $raceId: $e');
-      return Failure(AppError(
-        userMessage: 'Could not update timing data.',
-        originalException: e,
-      ));
+        'Failed to update chunk timing data for chunk ID: $chunkId in race ID: $raceId: $e',
+      );
+      return Failure(
+        AppError(
+          userMessage: 'Could not update timing data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   @override
   Future<Result<void>> addLoggedTimingDatum(
-      int raceId, int chunkId, TimingDatum datum) async {
+    int raceId,
+    int chunkId,
+    TimingDatum datum,
+  ) async {
     try {
       final db = await database;
       final chunkTimingResult = await getChunkTimingData(raceId, chunkId);
@@ -694,11 +773,14 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e(
-          'Failed to add logged timing datum to chunk ID: $chunkId in race ID: $raceId: $e');
-      return Failure(AppError(
-        userMessage: 'Could not log timing record.',
-        originalException: e,
-      ));
+        'Failed to add logged timing datum to chunk ID: $chunkId in race ID: $raceId: $e',
+      );
+      return Failure(
+        AppError(
+          userMessage: 'Could not log timing record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -710,17 +792,15 @@ class AssistantStorageService implements IAssistantStorageService {
           .subtract(olderThan ?? const Duration(days: 7))
           .millisecondsSinceEpoch;
 
-      await db.delete(
-        'race_history',
-        where: 'date < ?',
-        whereArgs: [cutoff],
-      );
+      await db.delete('race_history', where: 'date < ?', whereArgs: [cutoff]);
       return const Success(null);
     } catch (e) {
-      return Failure(AppError(
-        userMessage: 'Could not delete old races.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not delete old races.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -739,10 +819,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to save runner: $e');
-      return Failure(AppError(
-        userMessage: 'Could not save runner data.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save runner data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -752,11 +834,7 @@ class AssistantStorageService implements IAssistantStorageService {
       final db = await database;
       await db.transaction((txn) async {
         // Clear existing runners for this race
-        await txn.delete(
-          'runners',
-          where: 'race_id = ?',
-          whereArgs: [raceId],
-        );
+        await txn.delete('runners', where: 'race_id = ?', whereArgs: [raceId]);
 
         // Insert new runners
         for (final runner in runners) {
@@ -770,10 +848,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to save runners: $e');
-      return Failure(AppError(
-        userMessage: 'Could not save runner data.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save runner data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -792,10 +872,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return Success(Runner.fromMap(records.first));
     } catch (e) {
       Logger.e('Failed to get runner: $e');
-      return Failure(AppError(
-        userMessage: 'Could not load runner data.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load runner data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -813,10 +895,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return Success(records.map((record) => Runner.fromMap(record)).toList());
     } catch (e) {
       Logger.e('Failed to get runners: $e');
-      return Failure(AppError(
-        userMessage: 'Could not load runner data.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load runner data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -833,10 +917,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to update runner: $e');
-      return Failure(AppError(
-        userMessage: 'Could not update runner data.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not update runner data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -852,10 +938,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to delete runner: $e');
-      return Failure(AppError(
-        userMessage: 'Could not delete runner data.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not delete runner data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -863,18 +951,16 @@ class AssistantStorageService implements IAssistantStorageService {
   Future<Result<void>> deleteRunners(int raceId) async {
     try {
       final db = await database;
-      await db.delete(
-        'runners',
-        where: 'race_id = ?',
-        whereArgs: [raceId],
-      );
+      await db.delete('runners', where: 'race_id = ?', whereArgs: [raceId]);
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to delete runners: $e');
-      return Failure(AppError(
-        userMessage: 'Could not delete runner data.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not delete runner data.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -893,16 +979,20 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to save bib record: $e');
-      return Failure(AppError(
-        userMessage: 'Could not save bib record.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save bib record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   @override
   Future<Result<void>> saveBibRecords(
-      int raceId, List<BibRecord> bibRecords) async {
+    int raceId,
+    List<BibRecord> bibRecords,
+  ) async {
     try {
       final db = await database;
       await db.transaction((txn) async {
@@ -925,17 +1015,22 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to save bib records: $e');
-      return Failure(AppError(
-        userMessage: 'Could not save bib records.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not save bib records.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   /// Adds a single bib record to the database
   @override
   Future<Result<void>> addBibRecord(
-      int raceId, int bibId, String bibNumber) async {
+    int raceId,
+    int bibId,
+    String bibNumber,
+  ) async {
     try {
       final db = await database;
       final record = BibRecord(
@@ -952,10 +1047,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to add bib record: $e');
-      return Failure(AppError(
-        userMessage: 'Could not add bib record.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not add bib record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -972,17 +1069,22 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to remove bib record: $e');
-      return Failure(AppError(
-        userMessage: 'Could not remove bib record.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not remove bib record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
   /// Updates a single bib record in the database
   @override
   Future<Result<void>> updateBibRecordValue(
-      int raceId, int bibId, String bibNumber) async {
+    int raceId,
+    int bibId,
+    String bibNumber,
+  ) async {
     try {
       final db = await database;
       await db.update(
@@ -997,10 +1099,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to update bib record: $e');
-      return Failure(AppError(
-        userMessage: 'Could not update bib record.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not update bib record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -1019,10 +1123,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return Success(BibRecord.fromMap(records.first));
     } catch (e) {
       Logger.e('Failed to get bib record: $e');
-      return Failure(AppError(
-        userMessage: 'Could not load bib record.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load bib record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -1038,13 +1144,16 @@ class AssistantStorageService implements IAssistantStorageService {
       );
 
       return Success(
-          records.map((record) => BibRecord.fromMap(record)).toList());
+        records.map((record) => BibRecord.fromMap(record)).toList(),
+      );
     } catch (e) {
       Logger.e('Failed to get bib records: $e');
-      return Failure(AppError(
-        userMessage: 'Could not load bib records.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not load bib records.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -1061,10 +1170,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to update bib record: $e');
-      return Failure(AppError(
-        userMessage: 'Could not update bib record.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not update bib record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -1080,10 +1191,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to delete bib record: $e');
-      return Failure(AppError(
-        userMessage: 'Could not delete bib record.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not delete bib record.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -1091,18 +1204,16 @@ class AssistantStorageService implements IAssistantStorageService {
   Future<Result<void>> deleteBibRecords(int raceId) async {
     try {
       final db = await database;
-      await db.delete(
-        'bib_records',
-        where: 'race_id = ?',
-        whereArgs: [raceId],
-      );
+      await db.delete('bib_records', where: 'race_id = ?', whereArgs: [raceId]);
       return const Success(null);
     } catch (e) {
       Logger.e('Failed to delete bib records: $e');
-      return Failure(AppError(
-        userMessage: 'Could not delete bib records.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not delete bib records.',
+          originalException: e,
+        ),
+      );
     }
   }
 
@@ -1119,10 +1230,12 @@ class AssistantStorageService implements IAssistantStorageService {
       return Success((maxId ?? 0) + 1);
     } catch (e) {
       Logger.e('Failed to get next bib ID: $e');
-      return Failure(AppError(
-        userMessage: 'Could not determine next bib ID.',
-        originalException: e,
-      ));
+      return Failure(
+        AppError(
+          userMessage: 'Could not determine next bib ID.',
+          originalException: e,
+        ),
+      );
     }
   }
 }

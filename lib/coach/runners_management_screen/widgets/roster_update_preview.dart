@@ -51,7 +51,8 @@ class RosterUpdatePreview extends StatelessWidget {
                     icon: Icons.person_remove_outlined,
                     color: AppColors.redColor,
                     title: 'Not on the sheet (${plan.removed.length})',
-                    note: 'They come off this team and this race. Their '
+                    note:
+                        'They come off this team and this race. Their '
                         'results from past races are kept.',
                     lines: [
                       for (final runner in plan.removed)
@@ -77,8 +78,7 @@ class RosterUpdatePreview extends StatelessWidget {
       if (before.name != after.name) '${before.name} → ${after.name}',
       if (before.bibNumber != after.bibNumber)
         'Bib ${before.bibNumber} → ${after.bibNumber}',
-      if (before.grade != after.grade)
-        'Grade ${before.grade} → ${after.grade}',
+      if (before.grade != after.grade) 'Grade ${before.grade} → ${after.grade}',
     ];
     final who = before.name == after.name ? '${after.name}: ' : '';
     return '$who${parts.join(', ')}';
@@ -111,16 +111,21 @@ class _Section extends StatelessWidget {
             children: [
               Icon(icon, color: color, size: 20),
               const SizedBox(width: AppSpacing.sm),
-              Text(title,
-                  style: AppTypography.bodySemibold.copyWith(color: color)),
+              Text(
+                title,
+                style: AppTypography.bodySemibold.copyWith(color: color),
+              ),
             ],
           ),
           if (note != null)
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.xs),
-              child: Text(note!,
-                  style: AppTypography.caption
-                      .copyWith(color: AppColors.mediumColor)),
+              child: Text(
+                note!,
+                style: AppTypography.caption.copyWith(
+                  color: AppColors.mediumColor,
+                ),
+              ),
             ),
           const SizedBox(height: AppSpacing.xs),
           for (final line in lines)

@@ -51,29 +51,42 @@ void main() {
     // Stub the getRaces call made during constructor (_loadLastRace)
     when(mockStorage.getRaces(any)).thenAnswer((_) async => const Success([]));
     // Stub all storage writes used by TimingController and TimingData
-    when(mockStorage.updateRaceStatus(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.updateRaceStartTime(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.updateRaceDuration(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.addLoggedTimingDatum(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.saveChunkConflict(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.saveChunk(any, any))
-        .thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.updateRaceStatus(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.updateRaceStartTime(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.updateRaceDuration(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.addLoggedTimingDatum(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.saveChunkConflict(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.saveChunk(any, any),
+    ).thenAnswer((_) async => const Success(null));
     when(mockStorage.getChunks(any)).thenAnswer((_) async => const Success([]));
-    when(mockStorage.deleteChunks(any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.deleteChunk(any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.updateChunkTimingData(any, any, any))
-        .thenAnswer((_) async => const Success(null));
-    when(mockStorage.deleteRace(any, any))
-        .thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.deleteChunks(any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.deleteChunk(any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.updateChunkTimingData(any, any, any),
+    ).thenAnswer((_) async => const Success(null));
+    when(
+      mockStorage.deleteRace(any, any),
+    ).thenAnswer((_) async => const Success(null));
 
-    controller = TimingController(storage: mockStorage, hapticFeedback: mockHaptic);
+    controller = TimingController(
+      storage: mockStorage,
+      hapticFeedback: mockHaptic,
+    );
   });
 
   tearDown(() {
@@ -206,27 +219,30 @@ void main() {
       });
 
       test(
-          'returns RemoveExtraTimeConfirmRequired when offBy equals runner count',
-          () async {
-        loadAndStartRace();
-        controller.logTime(); // 1 runner record
+        'returns RemoveExtraTimeConfirmRequired when offBy equals runner count',
+        () async {
+          loadAndStartRace();
+          controller.logTime(); // 1 runner record
 
-        final result =
-            await controller.removeExtraTime(); // offBy 1 == 1 record
+          final result = await controller
+              .removeExtraTime(); // offBy 1 == 1 record
 
-        expect(result, isA<RemoveExtraTimeConfirmRequired>());
-      });
+          expect(result, isA<RemoveExtraTimeConfirmRequired>());
+        },
+      );
 
-      test('returns RemoveExtraTimeOk when runner count exceeds offBy',
-          () async {
-        loadAndStartRace();
-        controller.logTime();
-        controller.logTime(); // 2 runner records, offBy will be 1
+      test(
+        'returns RemoveExtraTimeOk when runner count exceeds offBy',
+        () async {
+          loadAndStartRace();
+          controller.logTime();
+          controller.logTime(); // 2 runner records, offBy will be 1
 
-        final result = await controller.removeExtraTime();
+          final result = await controller.removeExtraTime();
 
-        expect(result, isA<RemoveExtraTimeOk>());
-      });
+          expect(result, isA<RemoveExtraTimeOk>());
+        },
+      );
 
       test('is refused right after a confirmation', () async {
         loadAndStartRace();
@@ -237,26 +253,32 @@ void main() {
         final result = await controller.removeExtraTime();
 
         expect(result, isA<RemoveExtraTimeError>());
-        expect(controller.currentChunk.conflictRecord!.conflict!.type,
-            ConflictType.confirmRunner);
+        expect(
+          controller.currentChunk.conflictRecord!.conflict!.type,
+          ConflictType.confirmRunner,
+        );
         expect(controller.currentChunk.timingData, hasLength(2));
       });
 
-      test('is refused when nothing was recorded since a missing time',
-          () async {
-        loadAndStartRace();
-        controller.logTime(); // one recorded time
-        await controller.addMissingTime();
+      test(
+        'is refused when nothing was recorded since a missing time',
+        () async {
+          loadAndStartRace();
+          controller.logTime(); // one recorded time
+          await controller.addMissingTime();
 
-        final result = await controller.removeExtraTime();
+          final result = await controller.removeExtraTime();
 
-        // Cancelling the missing time here threw away both the missed
-        // runner and the stray tap.
-        expect(result, isA<RemoveExtraTimeError>());
-        expect(controller.currentChunk.timingData, hasLength(1));
-        expect(controller.currentChunk.conflictRecord!.conflict!.type,
-            ConflictType.missingTime);
-      });
+          // Cancelling the missing time here threw away both the missed
+          // runner and the stray tap.
+          expect(result, isA<RemoveExtraTimeError>());
+          expect(controller.currentChunk.timingData, hasLength(1));
+          expect(
+            controller.currentChunk.conflictRecord!.conflict!.type,
+            ConflictType.missingTime,
+          );
+        },
+      );
 
       test('marks a stray tap logged after a missing time', () async {
         loadAndStartRace();
@@ -280,8 +302,10 @@ void main() {
         expect(controller.currentChunk.conflictRecord!.conflict!.offBy, 2);
         expect(controller.runnerCount, 1);
         // A third would mean every time is extra: that asks to delete them.
-        expect(await controller.removeExtraTime(),
-            isA<RemoveExtraTimeConfirmRequired>());
+        expect(
+          await controller.removeExtraTime(),
+          isA<RemoveExtraTimeConfirmRequired>(),
+        );
       });
     });
 
@@ -305,7 +329,9 @@ void main() {
 
         expect(controller.undoDialogTitle, 'Undo Conflict');
         expect(
-            controller.undoDialogContent, contains('undo the last conflict'));
+          controller.undoDialogContent,
+          contains('undo the last conflict'),
+        );
       });
 
       test('reflect confirmation strings for confirmRunner conflicts', () {
@@ -342,9 +368,11 @@ void main() {
         controller.doUndoLastConflict();
         await controller.pendingWrites;
 
-        final saved = verify(mockStorage.saveChunk(testRace.raceId, captureAny))
-            .captured
-            .last as TimingChunk;
+        final saved =
+            verify(
+                  mockStorage.saveChunk(testRace.raceId, captureAny),
+                ).captured.last
+                as TimingChunk;
         expect(saved.conflictRecord, isNull);
         expect(saved.timingData, hasLength(1));
       });
@@ -367,8 +395,9 @@ void main() {
       });
 
       test('a race whose times cannot be read is not opened', () async {
-        when(mockStorage.getChunks(any)).thenAnswer((_) async =>
-            const Failure(AppError(userMessage: 'Could not load')));
+        when(mockStorage.getChunks(any)).thenAnswer(
+          (_) async => const Failure(AppError(userMessage: 'Could not load')),
+        );
         final race = RaceRecord(
           raceId: 3,
           date: DateTime(2024, 6, 1),
@@ -386,8 +415,9 @@ void main() {
       test('closes the open race when another race fails to load', () async {
         loadAndStartRace();
         controller.logTime();
-        when(mockStorage.getChunks(any)).thenAnswer((_) async =>
-            const Failure(AppError(userMessage: 'Could not load')));
+        when(mockStorage.getChunks(any)).thenAnswer(
+          (_) async => const Failure(AppError(userMessage: 'Could not load')),
+        );
         final other = RaceRecord(
           raceId: 3,
           date: DateTime(2024, 6, 1),
@@ -405,8 +435,9 @@ void main() {
       });
 
       test('retryLoad opens the race once its times can be read', () async {
-        when(mockStorage.getChunks(any)).thenAnswer((_) async =>
-            const Failure(AppError(userMessage: 'Could not load')));
+        when(mockStorage.getChunks(any)).thenAnswer(
+          (_) async => const Failure(AppError(userMessage: 'Could not load')),
+        );
         final race = RaceRecord(
           raceId: 3,
           date: DateTime(2024, 6, 1),
@@ -417,8 +448,9 @@ void main() {
         await controller.loadOtherRace(race);
         expect(controller.currentRace, isNull);
 
-        when(mockStorage.getChunks(any))
-            .thenAnswer((_) async => const Success([]));
+        when(
+          mockStorage.getChunks(any),
+        ).thenAnswer((_) async => const Success([]));
         await controller.retryLoad();
 
         expect(controller.currentRace, race);
@@ -448,18 +480,20 @@ void main() {
         verifyNever(mockStorage.deleteRace(any, any));
       });
 
-      test('returns null and clears timing records when a race is loaded',
-          () async {
-        controller.currentRace = testRace;
-        controller.startRace();
-        controller.logTime();
-        expect(controller.currentChunk.timingData, hasLength(1));
+      test(
+        'returns null and clears timing records when a race is loaded',
+        () async {
+          controller.currentRace = testRace;
+          controller.startRace();
+          controller.logTime();
+          expect(controller.currentChunk.timingData, hasLength(1));
 
-        final error = await controller.deleteCurrentRace();
+          final error = await controller.deleteCurrentRace();
 
-        expect(error, isNull);
-        expect(controller.currentChunk.timingData, isEmpty);
-      });
+          expect(error, isNull);
+          expect(controller.currentChunk.timingData, isEmpty);
+        },
+      );
 
       test('calls deleteChunks and deleteRace on storage', () async {
         controller.currentRace = testRace;
@@ -467,8 +501,9 @@ void main() {
         await controller.deleteCurrentRace();
 
         verify(mockStorage.deleteChunks(testRace.raceId)).called(1);
-        verify(mockStorage.deleteRace(testRace.raceId, testRace.type))
-            .called(1);
+        verify(
+          mockStorage.deleteRace(testRace.raceId, testRace.type),
+        ).called(1);
       });
     });
 
@@ -548,18 +583,19 @@ void main() {
       });
 
       RaceRecord practice(DateTime startedAt) => RaceRecord(
-            raceId: -1,
-            date: DateTime(2024, 6, 1),
-            name: 'Demo Race',
-            type: DeviceName.raceTimer.toString(),
-            startedAt: startedAt,
-            stopped: true,
-          );
+        raceId: -1,
+        date: DateTime(2024, 6, 1),
+        name: 'Demo Race',
+        type: DeviceName.raceTimer.toString(),
+        startedAt: startedAt,
+        stopped: true,
+      );
 
       test('starts a practice race from another day fresh', () async {
         // Left from yesterday, its clock read 13 hours.
-        await controller.loadOtherRace(practice(
-            DateTime.now().subtract(const Duration(hours: 13))));
+        await controller.loadOtherRace(
+          practice(DateTime.now().subtract(const Duration(hours: 13))),
+        );
 
         expect(controller.startTime, isNull);
         expect(controller.raceStopped, isTrue);

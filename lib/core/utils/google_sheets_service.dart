@@ -27,9 +27,9 @@ class GoogleSheetsService implements IGoogleSheetsService {
     GoogleDriveService? driveService,
     ConnectivityService? connectivity,
     http.Client? httpClient,
-  })  : _authService = authService ?? GoogleAuthService.instance,
-        _connectivity = connectivity ?? const ConnectivityService(),
-        _http = httpClient {
+  }) : _authService = authService ?? GoogleAuthService.instance,
+       _connectivity = connectivity ?? const ConnectivityService(),
+       _http = httpClient {
     _driveService = driveService;
   }
 
@@ -46,8 +46,9 @@ class GoogleSheetsService implements IGoogleSheetsService {
   Future<List<String>?> sheetTabs(String fileId, String token) async {
     try {
       final response = await _get(
-        Uri.https('sheets.googleapis.com', '/v4/spreadsheets/$fileId',
-            {'fields': 'sheets.properties(title,hidden)'}),
+        Uri.https('sheets.googleapis.com', '/v4/spreadsheets/$fileId', {
+          'fields': 'sheets.properties(title,hidden)',
+        }),
         token,
       );
       if (response.statusCode != 200) {
@@ -69,14 +70,19 @@ class GoogleSheetsService implements IGoogleSheetsService {
   /// A tab's cells as shown in the sheet, so bib 007 stays 007.
   @visibleForTesting
   Future<List<List<dynamic>>?> tabRows(
-      String fileId, String tab, String token) async {
+    String fileId,
+    String tab,
+    String token,
+  ) async {
     try {
       // A tab's name is quoted in a range, with any quote in it doubled.
       final range = "'${tab.replaceAll("'", "''")}'";
       final response = await _get(
-        Uri.https('sheets.googleapis.com',
-            '/v4/spreadsheets/$fileId/values/$range',
-            {'valueRenderOption': 'FORMATTED_VALUE'}),
+        Uri.https(
+          'sheets.googleapis.com',
+          '/v4/spreadsheets/$fileId/values/$range',
+          {'valueRenderOption': 'FORMATTED_VALUE'},
+        ),
         token,
       );
       if (response.statusCode != 200) {
@@ -115,9 +121,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
   /// Create a Google Sheet with the given title.
   /// Returns the spreadsheet ID if successful.
   @override
-  Future<String?> createSheet({
-    required String title,
-  }) async {
+  Future<String?> createSheet({required String title}) async {
     try {
       if (!await _connectivity.isOnline()) {
         Logger.d('No internet connection — skipping spreadsheet creation');
@@ -185,10 +189,7 @@ class GoogleSheetsService implements IGoogleSheetsService {
         requests: [
           sheets.Request(
             updateSheetProperties: sheets.UpdateSheetPropertiesRequest(
-              properties: sheets.SheetProperties(
-                sheetId: 0,
-                title: 'Results',
-              ),
+              properties: sheets.SheetProperties(sheetId: 0, title: 'Results'),
               fields: 'title',
             ),
           ),
@@ -197,24 +198,25 @@ class GoogleSheetsService implements IGoogleSheetsService {
               sheetId: 0,
               fields: '*',
               rows: data
-                  .map((row) => sheets.RowData(values: [
+                  .map(
+                    (row) => sheets.RowData(
+                      values: [
                         for (var cell in row)
                           sheets.CellData(
                             userEnteredValue: sheets.ExtendedValue(
                               stringValue: cell.toString(),
                             ),
                           ),
-                      ]))
+                      ],
+                    ),
+                  )
                   .toList(),
             ),
           ),
         ],
       );
 
-      await sheetsApi.spreadsheets.batchUpdate(
-        batchUpdate,
-        spreadsheetId,
-      );
+      await sheetsApi.spreadsheets.batchUpdate(batchUpdate, spreadsheetId);
 
       Logger.d('Spreadsheet updated: $spreadsheetId');
       return true;
@@ -299,7 +301,8 @@ class GoogleSheetsService implements IGoogleSheetsService {
         final safe = fileName.replaceAll(RegExp(r'[/\\:*?"<>|]'), '-');
         final file = File('${directory.path}/$safe (tabs).csv');
         await file.writeAsString(
-            const ListToCsvConverter().convert(combined.rows));
+          const ListToCsvConverter().convert(combined.rows),
+        );
         return file;
       }
 
@@ -312,9 +315,11 @@ class GoogleSheetsService implements IGoogleSheetsService {
 
       if (response.statusCode != 200) {
         Logger.d(
-            'Export failed with status ${response.statusCode}: ${response.body}');
+          'Export failed with status ${response.statusCode}: ${response.body}',
+        );
         throw Exception(
-            'Failed to export file: ${response.statusCode} ${response.body}');
+          'Failed to export file: ${response.statusCode} ${response.body}',
+        );
       }
 
       // Save the CSV content to a file
@@ -323,8 +328,9 @@ class GoogleSheetsService implements IGoogleSheetsService {
       final file = File('${directory.path}/$safeFileName.csv');
       // The body as UTF-8: without a charset Google's CSV was read as
       // Latin-1, turning "José" into "JosÃ©".
-      await file.writeAsString(utf8.decode(response.bodyBytes,
-          allowMalformed: true));
+      await file.writeAsString(
+        utf8.decode(response.bodyBytes, allowMalformed: true),
+      );
 
       Logger.d('Google Sheet successfully exported to CSV: ${file.path}');
       return file;

@@ -54,9 +54,7 @@ void main() {
 
   Widget buildWidget() {
     return MaterialApp(
-      home: Scaffold(
-        body: LoadResultsWidget(controller: mockController),
-      ),
+      home: Scaffold(body: LoadResultsWidget(controller: mockController)),
     );
   }
 
@@ -72,7 +70,8 @@ void main() {
 
     testWidgets('shows why the last load failed', (tester) async {
       when(mockController.error).thenReturn(
-          const AppError(userMessage: 'No finish times were received.'));
+        const AppError(userMessage: 'No finish times were received.'),
+      );
 
       await tester.pumpWidget(buildWidget());
       await tester.pump();
@@ -133,8 +132,9 @@ void main() {
     });
 
     // -----------------------------------------------------------------------
-    testWidgets('shows ConflictButton when hasBibConflicts is true',
-        (tester) async {
+    testWidgets('shows ConflictButton when hasBibConflicts is true', (
+      tester,
+    ) async {
       stubController(resultsLoaded: true, hasBibConflicts: true);
 
       await tester.pumpWidget(buildWidget());
@@ -144,8 +144,9 @@ void main() {
       expect(find.byType(SuccessMessage), findsNothing);
     });
 
-    testWidgets('shows ConflictButton when hasTimingConflicts is true',
-        (tester) async {
+    testWidgets('shows ConflictButton when hasTimingConflicts is true', (
+      tester,
+    ) async {
       stubController(resultsLoaded: true, hasTimingConflicts: true);
 
       await tester.pumpWidget(buildWidget());
@@ -155,8 +156,9 @@ void main() {
       expect(find.byType(SuccessMessage), findsNothing);
     });
 
-    testWidgets('shows ReloadButton when resultsLoaded is true',
-        (tester) async {
+    testWidgets('shows ReloadButton when resultsLoaded is true', (
+      tester,
+    ) async {
       stubController(resultsLoaded: true);
 
       await tester.pumpWidget(buildWidget());
@@ -165,8 +167,9 @@ void main() {
       expect(find.byType(ReloadButton), findsOneWidget);
     });
 
-    testWidgets('does not show ReloadButton when resultsLoaded is false',
-        (tester) async {
+    testWidgets('does not show ReloadButton when resultsLoaded is false', (
+      tester,
+    ) async {
       stubController(resultsLoaded: false);
 
       await tester.pumpWidget(buildWidget());

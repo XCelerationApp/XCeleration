@@ -34,10 +34,8 @@ class QRConnectionButton extends StatefulWidget {
 class _QRConnectionButtonState extends State<QRConnectionButton> {
   @override
   Widget build(BuildContext context) {
-    final iconColor =
-        widget.isDisabled ? Colors.black26 : Colors.black54;
-    final textColor =
-        widget.isDisabled ? Colors.black26 : Colors.black87;
+    final iconColor = widget.isDisabled ? Colors.black26 : Colors.black54;
+    final textColor = widget.isDisabled ? Colors.black26 : Colors.black87;
     return ConnectionButtonContainer(
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -47,25 +45,18 @@ class _QRConnectionButtonState extends State<QRConnectionButton> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    Icons.qr_code,
-                    color: iconColor,
-                    size: 24,
-                  ),
+                  Icon(Icons.qr_code, color: iconColor, size: 24),
                   const SizedBox(width: AppSpacing.lg),
                   Text(
                     widget.deviceType == DeviceType.advertiserDevice
                         ? 'Show QR Code'
                         : 'Scan QR Code',
-                    style: TextStyle(
-                      fontSize: 17,
-                      color: textColor,
-                    ),
-                  )
+                    style: TextStyle(fontSize: 17, color: textColor),
+                  ),
                 ],
               ),
             ),
-          )
+          ),
         ],
       ),
     );
@@ -133,7 +124,8 @@ class _QRConnectionState extends State<QRConnectionWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final isDisabled = widget.devices.allDevicesFinished() || _controller.hasError;
+    final isDisabled =
+        widget.devices.allDevicesFinished() || _controller.hasError;
     return GestureDetector(
       onTap: isDisabled ? null : () => _controller.handleTap(context),
       child: QRConnectionButton(

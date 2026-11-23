@@ -55,10 +55,12 @@ MockISyncService _stubSyncService() {
 
 MockIAuthService _stubAuthService() {
   final mock = MockIAuthService();
-  when(mock.signInWithEmailPassword(any, any))
-      .thenAnswer((_) async => gotrue.AuthResponse());
-  when(mock.signUpWithEmailPassword(any, any))
-      .thenAnswer((_) async => gotrue.AuthResponse());
+  when(
+    mock.signInWithEmailPassword(any, any),
+  ).thenAnswer((_) async => gotrue.AuthResponse());
+  when(
+    mock.signUpWithEmailPassword(any, any),
+  ).thenAnswer((_) async => gotrue.AuthResponse());
   when(mock.sendPasswordResetEmail(any)).thenAnswer((_) => Future.value());
   return mock;
 }
@@ -97,40 +99,64 @@ void main() {
 
   group('initial UI state', () {
     testWidgets('shows Sign in title by default', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       expect(find.textContaining('Sign in'), findsWidgets);
     });
 
     testWidgets('shows email and password TextFields', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       expect(find.byType(TextField), findsNWidgets(2));
     });
 
     testWidgets('shows Forgot password button in sign-in mode', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       expect(find.text('Forgot password?'), findsOneWidget);
     });
 
     testWidgets('shows submit button', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       expect(find.text('Sign In'), findsOneWidget);
@@ -142,12 +168,19 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('mode toggle', () {
-    testWidgets('tapping toggle switches to Create account mode',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+    testWidgets('tapping toggle switches to Create account mode', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       await tester.tap(find.text('Create one'));
@@ -158,10 +191,16 @@ void main() {
     });
 
     testWidgets('tapping toggle back returns to Sign in mode', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       await tester.tap(find.text('Create one'));
@@ -180,10 +219,16 @@ void main() {
 
   group('form validation', () {
     testWidgets('shows error when email is empty on submit', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       // Only fill password, leave email empty
@@ -195,12 +240,19 @@ void main() {
       verifyNever(mockAuth.signInWithEmailPassword(any, any));
     });
 
-    testWidgets('shows error when password is shorter than 6 characters',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+    testWidgets('shows error when password is shorter than 6 characters', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       await tester.enterText(find.byType(TextField).first, 'test@test.com');
@@ -219,63 +271,87 @@ void main() {
 
   group('XCE-189 connectivity pre-check', () {
     testWidgets(
-        'when offline: shows inline no-internet error and does not call auth service',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _offline, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
-      await tester.pump();
+      'when offline: shows inline no-internet error and does not call auth service',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            SignInScreen(
+              authService: mockAuth,
+              connectivityService: _offline,
+              profileService: _FakeProfileService(),
+            ),
+            syncService: mockSync,
+          ),
+        );
+        await tester.pump();
 
-      await _fillAndSubmit(tester);
+        await _fillAndSubmit(tester);
 
-      expect(
-        find.text(
-            'No internet connection. Please check your connection and try again.'),
-        findsOneWidget,
+        expect(
+          find.text(
+            'No internet connection. Please check your connection and try again.',
+          ),
+          findsOneWidget,
+        );
+        verifyNever(mockAuth.signInWithEmailPassword(any, any));
+      },
+    );
+
+    testWidgets('when online: calls auth service with entered credentials', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
       );
-      verifyNever(mockAuth.signInWithEmailPassword(any, any));
-    });
-
-    testWidgets('when online: calls auth service with entered credentials',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
       await tester.pump();
 
-      await _fillAndSubmit(tester,
-          email: 'user@example.com', password: 'secret123');
+      await _fillAndSubmit(
+        tester,
+        email: 'user@example.com',
+        password: 'secret123',
+      );
 
-      verify(mockAuth.signInWithEmailPassword('user@example.com', 'secret123'))
-          .called(1);
+      verify(
+        mockAuth.signInWithEmailPassword('user@example.com', 'secret123'),
+      ).called(1);
     });
 
     testWidgets(
-        'when offline in create account mode: shows inline error without calling sign-up',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _offline, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
-      await tester.pump();
+      'when offline in create account mode: shows inline error without calling sign-up',
+      (tester) async {
+        await tester.pumpWidget(
+          _wrap(
+            SignInScreen(
+              authService: mockAuth,
+              connectivityService: _offline,
+              profileService: _FakeProfileService(),
+            ),
+            syncService: mockSync,
+          ),
+        );
+        await tester.pump();
 
-      await tester.tap(find.text('Create one'));
-      await tester.pump();
+        await tester.tap(find.text('Create one'));
+        await tester.pump();
 
-      await _fillAndSubmit(tester, isLogin: false);
+        await _fillAndSubmit(tester, isLogin: false);
 
-      expect(
-        find.text(
-            'No internet connection. Please check your connection and try again.'),
-        findsOneWidget,
-      );
-      verifyNever(mockAuth.signUpWithEmailPassword(any, any));
-    });
+        expect(
+          find.text(
+            'No internet connection. Please check your connection and try again.',
+          ),
+          findsOneWidget,
+        );
+        verifyNever(mockAuth.signUpWithEmailPassword(any, any));
+      },
+    );
   });
 
   // -------------------------------------------------------------------------
@@ -284,66 +360,90 @@ void main() {
 
   group('XCE-187 auth error formatting', () {
     testWidgets(
-        'AuthException with SocketException in message shows inline friendly error',
-        (tester) async {
-      when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
-        gotrue.AuthException(
-            'ClientException: SocketException: Connection refused'),
-      );
+      'AuthException with SocketException in message shows inline friendly error',
+      (tester) async {
+        when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
+          gotrue.AuthException(
+            'ClientException: SocketException: Connection refused',
+          ),
+        );
 
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
-      await tester.pump();
+        await tester.pumpWidget(
+          _wrap(
+            SignInScreen(
+              authService: mockAuth,
+              connectivityService: _online,
+              profileService: _FakeProfileService(),
+            ),
+            syncService: mockSync,
+          ),
+        );
+        await tester.pump();
 
-      await _fillAndSubmit(tester);
+        await _fillAndSubmit(tester);
 
-      expect(find.text('Error'), findsNothing);
-      expect(
-        find.text(
-            'No internet connection. Please check your connection and try again.'),
-        findsOneWidget,
-      );
-    });
+        expect(find.text('Error'), findsNothing);
+        expect(
+          find.text(
+            'No internet connection. Please check your connection and try again.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
 
     testWidgets(
-        'AuthException with ClientException in message shows inline friendly error',
-        (tester) async {
+      'AuthException with ClientException in message shows inline friendly error',
+      (tester) async {
+        when(
+          mockAuth.signInWithEmailPassword(any, any),
+        ).thenThrow(gotrue.AuthException('ClientException: failed to connect'));
+
+        await tester.pumpWidget(
+          _wrap(
+            SignInScreen(
+              authService: mockAuth,
+              connectivityService: _online,
+              profileService: _FakeProfileService(),
+            ),
+            syncService: mockSync,
+          ),
+        );
+        await tester.pump();
+
+        await _fillAndSubmit(tester);
+
+        expect(find.text('Error'), findsNothing);
+        expect(
+          find.text(
+            'No internet connection. Please check your connection and try again.',
+          ),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('invalid_credentials error shows inline error message', (
+      tester,
+    ) async {
       when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
-        gotrue.AuthException('ClientException: failed to connect'),
+        gotrue.AuthApiException(
+          'Invalid credentials',
+          statusCode: '400',
+          code: 'invalid_credentials',
+        ),
       );
 
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
-      await tester.pump();
-
-      await _fillAndSubmit(tester);
-
-      expect(find.text('Error'), findsNothing);
-      expect(
-        find.text(
-            'No internet connection. Please check your connection and try again.'),
-        findsOneWidget,
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
       );
-    });
-
-    testWidgets('invalid_credentials error shows inline error message',
-        (tester) async {
-      when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
-        gotrue.AuthApiException('Invalid credentials',
-            statusCode: '400', code: 'invalid_credentials'),
-      );
-
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
       await tester.pump();
 
       await _fillAndSubmit(tester);
@@ -356,75 +456,99 @@ void main() {
     });
 
     testWidgets(
-        'user_already_exists error shows inline message and switches to sign-in mode',
-        (tester) async {
-      when(mockAuth.signUpWithEmailPassword(any, any)).thenThrow(
-        gotrue.AuthApiException('User already registered',
-            statusCode: '422', code: 'user_already_exists'),
-      );
+      'user_already_exists error shows inline message and switches to sign-in mode',
+      (tester) async {
+        when(mockAuth.signUpWithEmailPassword(any, any)).thenThrow(
+          gotrue.AuthApiException(
+            'User already registered',
+            statusCode: '422',
+            code: 'user_already_exists',
+          ),
+        );
 
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
-      await tester.pump();
+        await tester.pumpWidget(
+          _wrap(
+            SignInScreen(
+              authService: mockAuth,
+              connectivityService: _online,
+              profileService: _FakeProfileService(),
+            ),
+            syncService: mockSync,
+          ),
+        );
+        await tester.pump();
 
-      // Switch to create account mode
-      await tester.tap(find.text('Create one'));
-      await tester.pump();
+        // Switch to create account mode
+        await tester.tap(find.text('Create one'));
+        await tester.pump();
 
-      await _fillAndSubmit(tester, isLogin: false);
+        await _fillAndSubmit(tester, isLogin: false);
 
-      expect(find.text('Error'), findsNothing);
-      expect(
-        find.text(
-            'An account with this email already exists. Please sign in instead.'),
-        findsOneWidget,
-      );
-      // Mode should have switched back to sign-in immediately (no dialog to dismiss)
-      expect(find.text('Forgot password?'), findsOneWidget);
-    });
+        expect(find.text('Error'), findsNothing);
+        expect(
+          find.text(
+            'An account with this email already exists. Please sign in instead.',
+          ),
+          findsOneWidget,
+        );
+        // Mode should have switched back to sign-in immediately (no dialog to dismiss)
+        expect(find.text('Forgot password?'), findsOneWidget);
+      },
+    );
 
-    testWidgets('AuthWeakPasswordException shows inline weak password message',
-        (tester) async {
-      when(mockAuth.signUpWithEmailPassword(any, any)).thenThrow(
-        gotrue.AuthWeakPasswordException(
-          message: 'Weak password',
-          statusCode: '422',
-          reasons: ['too short', 'no uppercase'],
+    testWidgets(
+      'AuthWeakPasswordException shows inline weak password message',
+      (tester) async {
+        when(mockAuth.signUpWithEmailPassword(any, any)).thenThrow(
+          gotrue.AuthWeakPasswordException(
+            message: 'Weak password',
+            statusCode: '422',
+            reasons: ['too short', 'no uppercase'],
+          ),
+        );
+
+        await tester.pumpWidget(
+          _wrap(
+            SignInScreen(
+              authService: mockAuth,
+              connectivityService: _online,
+              profileService: _FakeProfileService(),
+            ),
+            syncService: mockSync,
+          ),
+        );
+        await tester.pump();
+
+        await tester.tap(find.text('Create one'));
+        await tester.pump();
+
+        await _fillAndSubmit(tester, isLogin: false);
+
+        expect(find.text('Error'), findsNothing);
+        expect(
+          find.text('Password too weak: too short, no uppercase'),
+          findsOneWidget,
+        );
+      },
+    );
+
+    testWidgets('unknown error shows inline generic fallback message', (
+      tester,
+    ) async {
+      when(
+        mockAuth.signInWithEmailPassword(any, any),
+      ).thenThrow(Exception('Unexpected failure'));
+
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
         ),
       );
-
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
-      await tester.pump();
-
-      await tester.tap(find.text('Create one'));
-      await tester.pump();
-
-      await _fillAndSubmit(tester, isLogin: false);
-
-      expect(find.text('Error'), findsNothing);
-      expect(
-        find.text('Password too weak: too short, no uppercase'),
-        findsOneWidget,
-      );
-    });
-
-    testWidgets('unknown error shows inline generic fallback message',
-        (tester) async {
-      when(mockAuth.signInWithEmailPassword(any, any))
-          .thenThrow(Exception('Unexpected failure'));
-
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
       await tester.pump();
 
       await _fillAndSubmit(tester);
@@ -444,46 +568,76 @@ void main() {
   group('XCE-511 inline auth error clears on input', () {
     testWidgets('error clears when user types in email field', (tester) async {
       when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
-        gotrue.AuthApiException('Invalid credentials',
-            statusCode: '400', code: 'invalid_credentials'),
+        gotrue.AuthApiException(
+          'Invalid credentials',
+          statusCode: '400',
+          code: 'invalid_credentials',
+        ),
       );
 
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       await _fillAndSubmit(tester);
-      expect(find.text('Incorrect email or password. Please try again.'), findsOneWidget);
+      expect(
+        find.text('Incorrect email or password. Please try again.'),
+        findsOneWidget,
+      );
 
       await tester.enterText(find.byType(TextField).first, 'new@test.com');
       await tester.pump();
 
-      expect(find.text('Incorrect email or password. Please try again.'), findsNothing);
+      expect(
+        find.text('Incorrect email or password. Please try again.'),
+        findsNothing,
+      );
     });
 
-    testWidgets('error clears when user types in password field', (tester) async {
+    testWidgets('error clears when user types in password field', (
+      tester,
+    ) async {
       when(mockAuth.signInWithEmailPassword(any, any)).thenThrow(
-        gotrue.AuthApiException('Invalid credentials',
-            statusCode: '400', code: 'invalid_credentials'),
+        gotrue.AuthApiException(
+          'Invalid credentials',
+          statusCode: '400',
+          code: 'invalid_credentials',
+        ),
       );
 
-      await tester.pumpWidget(_wrap(
-        SignInScreen(
-            authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       await _fillAndSubmit(tester);
-      expect(find.text('Incorrect email or password. Please try again.'), findsOneWidget);
+      expect(
+        find.text('Incorrect email or password. Please try again.'),
+        findsOneWidget,
+      );
 
       await tester.enterText(find.byType(TextField).last, 'newpassword');
       await tester.pump();
 
-      expect(find.text('Incorrect email or password. Please try again.'), findsNothing);
+      expect(
+        find.text('Incorrect email or password. Please try again.'),
+        findsNothing,
+      );
     });
   });
 
@@ -492,33 +646,57 @@ void main() {
   // -------------------------------------------------------------------------
 
   group('XCE-234 long-press selection safety', () {
-    testWidgets('email field has interactive selection enabled', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+    testWidgets('email field has interactive selection enabled', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       final emailField = tester.widget<TextField>(find.byType(TextField).first);
       expect(emailField.enableInteractiveSelection, isTrue);
     });
 
-    testWidgets('password field has interactive selection disabled', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+    testWidgets('password field has interactive selection disabled', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
-      final passwordField = tester.widget<TextField>(find.byType(TextField).last);
+      final passwordField = tester.widget<TextField>(
+        find.byType(TextField).last,
+      );
       expect(passwordField.enableInteractiveSelection, isFalse);
     });
 
     testWidgets('long-pressing email field does not throw', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       await tester.enterText(find.byType(TextField).first, 'test@test.com');
@@ -529,10 +707,16 @@ void main() {
     });
 
     testWidgets('long-pressing password field does not throw', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       await tester.enterText(find.byType(TextField).last, 'password123');
@@ -549,10 +733,16 @@ void main() {
 
   group('forgot password', () {
     testWidgets('tapping with empty email shows info dialog', (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
       await tester.tap(find.text('Forgot password?'));
@@ -560,20 +750,29 @@ void main() {
       await tester.pump();
 
       expect(find.text('Email required'), findsOneWidget);
-      expect(find.text('Enter your email address above, then tap Forgot Password.'), findsOneWidget);
+      expect(
+        find.text('Enter your email address above, then tap Forgot Password.'),
+        findsOneWidget,
+      );
       verifyNever(mockAuth.sendPasswordResetEmail(any));
     });
 
-    testWidgets('tapping with filled email sends the code and asks for it',
-        (tester) async {
-      await tester.pumpWidget(_wrap(
-        SignInScreen(authService: mockAuth, connectivityService: _online, profileService: _FakeProfileService()),
-        syncService: mockSync,
-      ));
+    testWidgets('tapping with filled email sends the code and asks for it', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _wrap(
+          SignInScreen(
+            authService: mockAuth,
+            connectivityService: _online,
+            profileService: _FakeProfileService(),
+          ),
+          syncService: mockSync,
+        ),
+      );
       await tester.pump();
 
-      await tester.enterText(
-          find.byType(TextField).first, 'reset@test.com');
+      await tester.enterText(find.byType(TextField).first, 'reset@test.com');
       await tester.tap(find.text('Forgot password?'));
       await _settle(tester);
 

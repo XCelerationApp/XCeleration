@@ -10,10 +10,7 @@ import '../widgets/record_list_item.dart';
 
 class RecordsListWidget extends StatelessWidget {
   final TimingController controller;
-  const RecordsListWidget({
-    super.key,
-    required this.controller,
-  });
+  const RecordsListWidget({super.key, required this.controller});
 
   @override
   Widget build(BuildContext context) {
@@ -32,8 +29,9 @@ class RecordsListWidget extends StatelessWidget {
           child: Text(
             hint,
             textAlign: TextAlign.center,
-            style: AppTypography.bodyRegular
-                .copyWith(color: AppColors.mediumColor),
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.mediumColor,
+            ),
           ),
         ),
       );
@@ -41,28 +39,42 @@ class RecordsListWidget extends StatelessWidget {
 
     final uiRecords = controller.uiRecords;
 
-    return Column(children: [
-      Expanded(
+    return Column(
+      children: [
+        Expanded(
           child: ListView.separated(
-        controller: controller.scrollController,
-        // The screen already clears the notch; without this the list adds
-        // the safe-area gap again above the first row.
-        padding: EdgeInsets.zero,
-        physics: const BouncingScrollPhysics(),
-        itemCount: uiRecords.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 1),
-        itemBuilder: (context, index) {
-          final uiRecord = uiRecords[index];
-          return _buildRecordItem(uiRecord, index, context, uiRecords.length);
-        },
-      ))
-    ]);
+            controller: controller.scrollController,
+            // The screen already clears the notch; without this the list adds
+            // the safe-area gap again above the first row.
+            padding: EdgeInsets.zero,
+            physics: const BouncingScrollPhysics(),
+            itemCount: uiRecords.length,
+            separatorBuilder: (context, index) => const SizedBox(height: 1),
+            itemBuilder: (context, index) {
+              final uiRecord = uiRecords[index];
+              return _buildRecordItem(
+                uiRecord,
+                index,
+                context,
+                uiRecords.length,
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 
-  Widget _buildRecordItem(UIRecord uiRecord, int index, BuildContext context, int totalCount) {
+  Widget _buildRecordItem(
+    UIRecord uiRecord,
+    int index,
+    BuildContext context,
+    int totalCount,
+  ) {
     final item = RecordListItem(uiRecord: uiRecord, index: index);
 
-    final bool canSwipe = (uiRecord.textColor == Colors.black) || // unconfirmed
+    final bool canSwipe =
+        (uiRecord.textColor == Colors.black) || // unconfirmed
         (uiRecord.type != RecordType.runnerTime &&
             index == totalCount - 1); // conflict and last
 
@@ -83,7 +95,9 @@ class RecordsListWidget extends StatelessWidget {
   }
 
   Future<bool> _confirmRecordDeletion(
-      BuildContext context, UIRecord uiRecord) async {
+    BuildContext context,
+    UIRecord uiRecord,
+  ) async {
     final error = controller.validateDeleteRecord(uiRecord);
     if (error != null) {
       if (context.mounted) {

@@ -13,8 +13,8 @@ class RunnerRepository implements IRunnerRepository {
   RunnerRepository({
     required IDatabaseConnectionProvider conn,
     DatabaseWriteBus? writeBus,
-  })  : _conn = conn,
-        _writeBus = writeBus;
+  }) : _conn = conn,
+       _writeBus = writeBus;
 
   Future<Database> get _db async => _conn.database;
 
@@ -27,7 +27,8 @@ class RunnerRepository implements IRunnerRepository {
     if (!runner.isValid) throw Exception('Runner is not valid');
     if (await getRunnerByBib(runner.bibNumber!) != null) {
       throw Exception(
-          'Runner with bib number ${runner.bibNumber} already exists');
+        'Runner with bib number ${runner.bibNumber} already exists',
+      );
     }
     final db = await _db;
     final id = await db.insert('runners', {
@@ -66,8 +67,11 @@ class RunnerRepository implements IRunnerRepository {
   @override
   Future<List<Runner>> getAllRunners() async {
     final db = await _db;
-    final rows =
-        await db.query('runners', where: 'deleted_at IS NULL', orderBy: 'name');
+    final rows = await db.query(
+      'runners',
+      where: 'deleted_at IS NULL',
+      orderBy: 'name',
+    );
     return rows.map((m) => Runner.fromMap(m)).toList();
   }
 
@@ -90,8 +94,12 @@ class RunnerRepository implements IRunnerRepository {
     final db = await _db;
     final map = runner.toMap();
     map['is_dirty'] = 1;
-    await db.update('runners', map,
-        where: 'runner_id = ?', whereArgs: [runner.runnerId]);
+    await db.update(
+      'runners',
+      map,
+      where: 'runner_id = ?',
+      whereArgs: [runner.runnerId],
+    );
     _writeBus?.notify();
   }
 
@@ -99,9 +107,10 @@ class RunnerRepository implements IRunnerRepository {
   Future<int> countRaceResults(int runnerId) async {
     final db = await _db;
     final rows = await db.rawQuery(
-        'SELECT COUNT(*) AS n FROM race_results '
-        'WHERE runner_id = ? AND deleted_at IS NULL',
-        [runnerId]);
+      'SELECT COUNT(*) AS n FROM race_results '
+      'WHERE runner_id = ? AND deleted_at IS NULL',
+      [runnerId],
+    );
     return (rows.first['n'] as int?) ?? 0;
   }
 
@@ -109,7 +118,8 @@ class RunnerRepository implements IRunnerRepository {
   Future<void> _ensureNoRaceResults(int runnerId) async {
     if (await countRaceResults(runnerId) > 0) {
       throw const DataInUseException(
-          'This runner has saved race results, so they cannot be deleted.');
+        'This runner has saved race results, so they cannot be deleted.',
+      );
     }
   }
 
@@ -183,16 +193,12 @@ class RunnerRepository implements IRunnerRepository {
     final db = await _db;
     // Replace, not ignore: putting a runner back on a team they were removed
     // from has to clear the tombstone, which ignore would leave in place.
-    await db.insert(
-      'team_rosters',
-      {
-        'team_id': teamId,
-        'runner_id': runnerId,
-        'is_dirty': 1,
-        'updated_at': SyncTimestamp.now(),
-      },
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
+    await db.insert('team_rosters', {
+      'team_id': teamId,
+      'runner_id': runnerId,
+      'is_dirty': 1,
+      'updated_at': SyncTimestamp.now(),
+    }, conflictAlgorithm: ConflictAlgorithm.replace);
     _writeBus?.notify();
   }
 
@@ -225,11 +231,12 @@ class RunnerRepository implements IRunnerRepository {
     }
     // Validate team existence via raw SQL (avoids cross-repo dep)
     final db = await _db;
-    final teamRows = await db
-        .query('teams',
-            where: 'team_id = ? AND deleted_at IS NULL',
-            whereArgs: [newTeamId],
-            limit: 1);
+    final teamRows = await db.query(
+      'teams',
+      where: 'team_id = ? AND deleted_at IS NULL',
+      whereArgs: [newTeamId],
+      limit: 1,
+    );
     if (teamRows.isEmpty) throw Exception('Team with id $newTeamId not found');
     final now = SyncTimestamp.now();
     await db.transaction((txn) async {
@@ -239,16 +246,12 @@ class RunnerRepository implements IRunnerRepository {
         where: 'runner_id = ? AND deleted_at IS NULL',
         whereArgs: [runnerId],
       );
-      await txn.insert(
-        'team_rosters',
-        {
-          'team_id': newTeamId,
-          'runner_id': runnerId,
-          'is_dirty': 1,
-          'updated_at': now,
-        },
-        conflictAlgorithm: ConflictAlgorithm.replace,
-      );
+      await txn.insert('team_rosters', {
+        'team_id': newTeamId,
+        'runner_id': runnerId,
+        'is_dirty': 1,
+        'updated_at': now,
+      }, conflictAlgorithm: ConflictAlgorithm.replace);
     });
     _writeBus?.notify();
   }
@@ -256,24 +259,30 @@ class RunnerRepository implements IRunnerRepository {
   @override
   Future<Runner?> getTeamRunner(int teamId, int runnerId) async {
     final db = await _db;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT r.* FROM runners r
       JOIN team_rosters tr ON r.runner_id = tr.runner_id
       WHERE tr.team_id = ? AND tr.runner_id = ?
         AND tr.deleted_at IS NULL AND r.deleted_at IS NULL
-    ''', [teamId, runnerId]);
+    ''',
+      [teamId, runnerId],
+    );
     return rows.isNotEmpty ? Runner.fromMap(rows.first) : null;
   }
 
   @override
   Future<List<Runner>> getTeamRunners(int teamId) async {
     final db = await _db;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT r.* FROM runners r
       JOIN team_rosters tr ON r.runner_id = tr.runner_id
       WHERE tr.team_id = ? AND tr.deleted_at IS NULL AND r.deleted_at IS NULL
       ORDER BY r.name
-    ''', [teamId]);
+    ''',
+      [teamId],
+    );
     return rows.map((m) => Runner.fromMap(m)).toList();
   }
 
@@ -283,12 +292,15 @@ class RunnerRepository implements IRunnerRepository {
       throw Exception('Runner with id $runnerId not found');
     }
     final db = await _db;
-    final rows = await db.rawQuery('''
+    final rows = await db.rawQuery(
+      '''
       SELECT t.* FROM teams t
       JOIN team_rosters tr ON t.team_id = tr.team_id
       WHERE tr.runner_id = ? AND tr.deleted_at IS NULL AND t.deleted_at IS NULL
       ORDER BY t.name
-    ''', [runnerId]);
+    ''',
+      [runnerId],
+    );
     return rows.map((m) => Team.fromMap(m)).toList();
   }
 }

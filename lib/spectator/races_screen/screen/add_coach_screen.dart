@@ -97,7 +97,7 @@ class _AddCoachScreenState extends State<AddCoachScreen> {
             if (_message != null) ...[
               const SizedBox(height: 12),
               Text(_message!, textAlign: TextAlign.center),
-            ]
+            ],
           ],
         ),
       ),

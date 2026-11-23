@@ -54,8 +54,9 @@ void main() {
         ],
       });
 
-      expect(combined.skipped,
-          ['Drake, row 2 (Kid Tooyoung): grade is not 9–12']);
+      expect(combined.skipped, [
+        'Drake, row 2 (Kid Tooyoung): grade is not 9–12',
+      ]);
     });
 
     test('reads back through the import unchanged', () {
@@ -72,10 +73,20 @@ void main() {
 
       expect(back.skipped, isEmpty);
       expect(back.runners, [
-        {'name': 'José "JJ" Núñez', 'grade': 9, 'bib': '007', 'gender': 'M',
-            'team': 'Tamalpais'},
-        {'name': 'Lee, Cy', 'grade': 11, 'bib': '102', 'gender': 'F',
-            'team': 'Tamalpais'},
+        {
+          'name': 'José "JJ" Núñez',
+          'grade': 9,
+          'bib': '007',
+          'gender': 'M',
+          'team': 'Tamalpais',
+        },
+        {
+          'name': 'Lee, Cy',
+          'grade': 11,
+          'bib': '102',
+          'gender': 'F',
+          'team': 'Tamalpais',
+        },
       ]);
     });
   });
@@ -83,8 +94,7 @@ void main() {
   group('reading tabs from Google', () {
     late List<http.Request> requests;
 
-    GoogleSheetsService service(
-            http.Response Function(http.Request) respond) =>
+    GoogleSheetsService service(http.Response Function(http.Request) respond) =>
         GoogleSheetsService(
           httpClient: MockClient((request) async {
             requests.add(request);
@@ -95,15 +105,24 @@ void main() {
     setUp(() => requests = []);
 
     test('lists the visible tabs in order', () async {
-      final sheets = service((_) => http.Response(
+      final sheets = service(
+        (_) => http.Response(
           jsonEncode({
             'sheets': [
-              {'properties': {'title': 'Tamalpais'}},
-              {'properties': {'title': 'Old roster', 'hidden': true}},
-              {'properties': {'title': 'Drake'}},
-            ]
+              {
+                'properties': {'title': 'Tamalpais'},
+              },
+              {
+                'properties': {'title': 'Old roster', 'hidden': true},
+              },
+              {
+                'properties': {'title': 'Drake'},
+              },
+            ],
           }),
-          200));
+          200,
+        ),
+      );
 
       final tabs = await sheets.sheetTabs('file1', 'token');
 
@@ -118,14 +137,19 @@ void main() {
     });
 
     test('reads a tab\'s cells as shown, quoting its name', () async {
-      final sheets = service((_) => http.Response.bytes(
-          utf8.encode(jsonEncode({
-            'values': [
-              ['Bib', 'Name', 'Grade'],
-              ['007', 'José Núñez', '9'],
-            ]
-          })),
-          200));
+      final sheets = service(
+        (_) => http.Response.bytes(
+          utf8.encode(
+            jsonEncode({
+              'values': [
+                ['Bib', 'Name', 'Grade'],
+                ['007', 'José Núñez', '9'],
+              ],
+            }),
+          ),
+          200,
+        ),
+      );
 
       final rows = await sheets.tabRows('file1', "St. Mary's", 'token');
 
@@ -133,10 +157,14 @@ void main() {
         ['Bib', 'Name', 'Grade'],
         ['007', 'José Núñez', '9'],
       ]);
-      expect(Uri.decodeFull(requests.single.url.path),
-          "/v4/spreadsheets/file1/values/'St. Mary''s'");
-      expect(requests.single.url.queryParameters['valueRenderOption'],
-          'FORMATTED_VALUE');
+      expect(
+        Uri.decodeFull(requests.single.url.path),
+        "/v4/spreadsheets/file1/values/'St. Mary''s'",
+      );
+      expect(
+        requests.single.url.queryParameters['valueRenderOption'],
+        'FORMATTED_VALUE',
+      );
     });
   });
 }

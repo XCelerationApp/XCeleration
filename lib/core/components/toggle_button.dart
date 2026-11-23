@@ -21,8 +21,8 @@ class ToggleButton extends ActionButton {
     super.fontSize,
     super.fontWeight,
   }) : super(
-          isPrimary: isSelected,
-          backgroundColor: isSelected ? AppColors.primaryColor : Colors.white,
-          textColor: isSelected ? Colors.white : AppColors.primaryColor,
-        );
+         isPrimary: isSelected,
+         backgroundColor: isSelected ? AppColors.primaryColor : Colors.white,
+         textColor: isSelected ? Colors.white : AppColors.primaryColor,
+       );
 }

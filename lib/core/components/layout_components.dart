@@ -66,8 +66,9 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
       ),
       child: TextField(
         focusNode: _focusNode,
-        controller:
-            widget.value != null ? TextEditingController(text: widget.value) : null,
+        controller: widget.value != null
+            ? TextEditingController(text: widget.value)
+            : null,
         onChanged: widget.onChanged,
         decoration: InputDecoration(
           hintText: widget.hintText ?? 'Search...',
@@ -127,8 +128,9 @@ class SectionHeaderWidget extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     subtitle!,
-                    style: AppTypography.bodyRegular
-                        .copyWith(color: AppColors.mediumColor),
+                    style: AppTypography.bodyRegular.copyWith(
+                      color: AppColors.mediumColor,
+                    ),
                   ),
                 ],
               ],

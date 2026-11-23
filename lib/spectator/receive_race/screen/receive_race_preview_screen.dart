@@ -17,8 +17,11 @@ import 'package:xceleration/core/components/dialog_utils.dart';
 class ReceiveRacePreviewScreen extends StatefulWidget {
   final RaceResultsData data;
   final String? encodedPayload;
-  const ReceiveRacePreviewScreen(
-      {super.key, required this.data, this.encodedPayload});
+  const ReceiveRacePreviewScreen({
+    super.key,
+    required this.data,
+    this.encodedPayload,
+  });
 
   @override
   State<ReceiveRacePreviewScreen> createState() =>
@@ -44,8 +47,7 @@ class _ReceiveRacePreviewScreenState extends State<ReceiveRacePreviewScreen> {
 
     try {
       // Decode the payload off the UI thread to extract race metadata
-      final raceMap =
-          await compute(decodeRaceMap, widget.encodedPayload!);
+      final raceMap = await compute(decodeRaceMap, widget.encodedPayload!);
 
       if (!mounted) return;
 
@@ -72,8 +74,10 @@ class _ReceiveRacePreviewScreenState extends State<ReceiveRacePreviewScreen> {
         setState(() {
           _isSaving = false;
         });
-        DialogUtils.showErrorDialog(context,
-            message: 'Failed to save race locally');
+        DialogUtils.showErrorDialog(
+          context,
+          message: 'Failed to save race locally',
+        );
       }
     }
   }
@@ -113,7 +117,9 @@ class _ReceiveRacePreviewScreenState extends State<ReceiveRacePreviewScreen> {
           children: [
             TeamResultsWidget(raceResultsData: widget.data),
             IndividualResultsWidget(
-                raceResultsData: widget.data, initialVisibleCount: 10),
+              raceResultsData: widget.data,
+              initialVisibleCount: 10,
+            ),
             const SizedBox(height: 40),
           ],
         ),

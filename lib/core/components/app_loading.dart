@@ -23,7 +23,7 @@ enum LoadingType {
   pulse,
 
   /// Three bounce
-  threeBounce
+  threeBounce,
 }
 
 /// Custom loading indicator widget
@@ -58,46 +58,25 @@ class AppLoading extends StatelessWidget {
 
     switch (type) {
       case LoadingType.circle:
-        loadingWidget = SpinKitCircle(
-          color: loadingColor,
-          size: size,
-        );
+        loadingWidget = SpinKitCircle(color: loadingColor, size: size);
         break;
       case LoadingType.doubleBounce:
-        loadingWidget = SpinKitDoubleBounce(
-          color: loadingColor,
-          size: size,
-        );
+        loadingWidget = SpinKitDoubleBounce(color: loadingColor, size: size);
         break;
       case LoadingType.wave:
-        loadingWidget = SpinKitWave(
-          color: loadingColor,
-          size: size,
-        );
+        loadingWidget = SpinKitWave(color: loadingColor, size: size);
         break;
       case LoadingType.fadingCircle:
-        loadingWidget = SpinKitFadingCircle(
-          color: loadingColor,
-          size: size,
-        );
+        loadingWidget = SpinKitFadingCircle(color: loadingColor, size: size);
         break;
       case LoadingType.fadingCube:
-        loadingWidget = SpinKitFadingCube(
-          color: loadingColor,
-          size: size,
-        );
+        loadingWidget = SpinKitFadingCube(color: loadingColor, size: size);
         break;
       case LoadingType.pulse:
-        loadingWidget = SpinKitPulse(
-          color: loadingColor,
-          size: size,
-        );
+        loadingWidget = SpinKitPulse(color: loadingColor, size: size);
         break;
       case LoadingType.threeBounce:
-        loadingWidget = SpinKitThreeBounce(
-          color: loadingColor,
-          size: size,
-        );
+        loadingWidget = SpinKitThreeBounce(color: loadingColor, size: size);
         break;
     }
 
@@ -167,11 +146,7 @@ class AppLoadingOverlay extends StatelessWidget {
           Container(
             color: backgroundColor ?? theme.colorScheme.surface.withAlpha(180),
             child: Center(
-              child: AppLoading(
-                type: type,
-                color: color,
-                size: size,
-              ),
+              child: AppLoading(type: type, color: color, size: size),
             ),
           ),
       ],

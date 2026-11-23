@@ -39,8 +39,13 @@ Future<void> saveRaceCopy(
     case DownloadFormat.text:
       await _copyAsText(context, race, table);
     case DownloadFormat.sheets:
-      await _makeGoogleSheet(context, race, what, table,
-          sheets ?? GoogleSheetsService.instance);
+      await _makeGoogleSheet(
+        context,
+        race,
+        what,
+        table,
+        sheets ?? GoogleSheetsService.instance,
+      );
     case DownloadFormat.csv:
     case DownloadFormat.pdf:
       await _shareFile(context, race, () => exportFile(format));
@@ -54,7 +59,8 @@ Future<void> _copyAsText(
 ) async {
   try {
     await Clipboard.setData(
-        ClipboardData(text: AssistantExportService.asText(race, table)));
+      ClipboardData(text: AssistantExportService.asText(race, table)),
+    );
     if (context.mounted) {
       DialogUtils.showSuccessDialog(context, message: 'Copied');
     }
@@ -96,23 +102,30 @@ Future<void> _makeGoogleSheet(
   }
   if (!context.mounted) return;
   if (failed) {
-    DialogUtils.showErrorDialog(context,
-        message: 'Could not make a Google Sheet. Check you are online and '
-            'signed in to Google.');
+    DialogUtils.showErrorDialog(
+      context,
+      message:
+          'Could not make a Google Sheet. Check you are online and '
+          'signed in to Google.',
+    );
     return;
   }
   // Cancelled from the loading dialog: nothing to say.
   if (uri == null) return;
 
-  final action =
-      await showGoogleSheetOptionsDialog(context, title: title, sheetUri: uri);
+  final action = await showGoogleSheetOptionsDialog(
+    context,
+    title: title,
+    sheetUri: uri,
+  );
   if (!context.mounted) return;
   switch (action) {
     case GoogleSheetAction.openSheet:
       await UrlLauncherHelper.launchSheetUrl(context, uri);
     case GoogleSheetAction.share:
-      await SharePlus.instance
-          .share(ShareParams(text: uri.toString(), subject: title));
+      await SharePlus.instance.share(
+        ShareParams(text: uri.toString(), subject: title),
+      );
     case GoogleSheetAction.copyLink:
     case null:
       break;

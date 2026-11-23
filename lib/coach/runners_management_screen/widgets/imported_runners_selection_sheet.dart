@@ -5,7 +5,7 @@ import '../services/roster_importer.dart';
 
 class ImportedRunnersSelectionSheet extends StatefulWidget {
   final List<Map<String, dynamic>>
-      importedRunners; // expects keys: name, grade, bib
+  importedRunners; // expects keys: name, grade, bib
 
   /// Spreadsheet rows that could not be imported, with the reason.
   final List<String> skippedRows;
@@ -36,9 +36,13 @@ class _ImportedRunnersSelectionSheetState
   final Set<String> _leftOutOfRace = {};
 
   /// Offered when the rows name their teams and have both boys and girls.
-  late final bool _canSplit = widget.importedRunners.any(
-          (r) => ((r['team'] as String?)?.trim() ?? '').isNotEmpty) &&
-      widget.importedRunners.any((r) => '${r['gender']}'.toUpperCase() == 'M') &&
+  late final bool _canSplit =
+      widget.importedRunners.any(
+        (r) => ((r['team'] as String?)?.trim() ?? '').isNotEmpty,
+      ) &&
+      widget.importedRunners.any(
+        (r) => '${r['gender']}'.toUpperCase() == 'M',
+      ) &&
       widget.importedRunners.any((r) => '${r['gender']}'.toUpperCase() == 'F');
 
   @override
@@ -83,11 +87,11 @@ class _ImportedRunnersSelectionSheetState
 
   /// The teams the chosen rows go on, in the order they first appear.
   List<String> _teams(List<Map<String, dynamic>> rows) => [
-        ...{
-          for (final row in rows)
-            if (_teamOf(row).isNotEmpty) _teamOf(row),
-        },
-      ];
+    ...{
+      for (final row in rows)
+        if (_teamOf(row).isNotEmpty) _teamOf(row),
+    },
+  ];
 
   /// Lets the coach add only some of the teams to this race, such as just
   /// the girls. Every team is saved, ready for another race.
@@ -101,8 +105,9 @@ class _ImportedRunnersSelectionSheetState
           const SizedBox(height: 2),
           Text(
             'Every team is saved. Only the ticked teams join this race.',
-            style: AppTypography.smallBodyRegular
-                .copyWith(color: AppColors.mediumColor),
+            style: AppTypography.smallBodyRegular.copyWith(
+              color: AppColors.mediumColor,
+            ),
           ),
           const SizedBox(height: 8),
           // Many teams scroll here, so the runner list keeps its room.
@@ -120,9 +125,11 @@ class _ImportedRunnersSelectionSheetState
                       visualDensity: VisualDensity.compact,
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       selected: !_leftOutOfRace.contains(team),
-                      onSelected: (inRace) => setState(() => inRace
-                          ? _leftOutOfRace.remove(team)
-                          : _leftOutOfRace.add(team)),
+                      onSelected: (inRace) => setState(
+                        () => inRace
+                            ? _leftOutOfRace.remove(team)
+                            : _leftOutOfRace.add(team),
+                      ),
                     ),
                 ],
               ),
@@ -148,8 +155,10 @@ class _ImportedRunnersSelectionSheetState
     final count = widget.skippedRows.length;
     return ExpansionTile(
       tilePadding: EdgeInsets.zero,
-      leading: const Icon(Icons.warning_amber_rounded,
-          color: AppColors.primaryColor),
+      leading: const Icon(
+        Icons.warning_amber_rounded,
+        color: AppColors.primaryColor,
+      ),
       title: Text(
         '$count ${count == 1 ? 'row was' : 'rows were'} not imported',
         style: AppTypography.bodyMedium,
@@ -164,9 +173,12 @@ class _ImportedRunnersSelectionSheetState
               for (final row in widget.skippedRows)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 2),
-                  child: Text(row,
-                      style: AppTypography.bodyRegular
-                          .copyWith(color: AppColors.mediumColor)),
+                  child: Text(
+                    row,
+                    style: AppTypography.bodyRegular.copyWith(
+                      color: AppColors.mediumColor,
+                    ),
+                  ),
                 ),
             ],
           ),
@@ -190,14 +202,17 @@ class _ImportedRunnersSelectionSheetState
               Checkbox(value: _selectAll, onChanged: _toggleAll),
               const Text('Select All', style: AppTypography.bodyMedium),
               const Spacer(),
-              Builder(builder: (_) {
-                final selectedVisible =
-                    visible.where((i) => _selected[i]).length;
-                return Text(
-                  '$selectedVisible selected',
-                  style: const TextStyle(color: Colors.black54),
-                );
-              }),
+              Builder(
+                builder: (_) {
+                  final selectedVisible = visible
+                      .where((i) => _selected[i])
+                      .length;
+                  return Text(
+                    '$selectedVisible selected',
+                    style: const TextStyle(color: Colors.black54),
+                  );
+                },
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -227,10 +242,14 @@ class _ImportedRunnersSelectionSheetState
                 // The team names change, so start with every team ticked.
                 _leftOutOfRace.clear();
               }),
-              title: const Text('Separate boys\' and girls\' teams',
-                  style: AppTypography.bodyMedium),
-              subtitle: const Text('e.g. "Archie Williams - Boys" and '
-                  '"Archie Williams - Girls"'),
+              title: const Text(
+                'Separate boys\' and girls\' teams',
+                style: AppTypography.bodyMedium,
+              ),
+              subtitle: const Text(
+                'e.g. "Archie Williams - Boys" and '
+                '"Archie Williams - Girls"',
+              ),
             ),
           if (teams.length > 1) _buildRaceTeams(teams),
           const SizedBox(height: 8),
@@ -258,12 +277,14 @@ class _ImportedRunnersSelectionSheetState
                       _selectAll = visible.every((i) => _selected[i]);
                     }),
                     title: Text(name, style: AppTypography.bodyMedium),
-                    subtitle: Text([
-                      'Grade $grade',
-                      'Bib $bib',
-                      if (gender.isNotEmpty) gender,
-                      if (team.isNotEmpty) team,
-                    ].join('  •  ')),
+                    subtitle: Text(
+                      [
+                        'Grade $grade',
+                        'Bib $bib',
+                        if (gender.isNotEmpty) gender,
+                        if (team.isNotEmpty) team,
+                      ].join('  •  '),
+                    ),
                     controlAffinity: ListTileControlAffinity.leading,
                   );
                 },

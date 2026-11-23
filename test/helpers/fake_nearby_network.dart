@@ -111,9 +111,11 @@ class FakeNearbyNetwork {
       }
       // Lost: a known phone no longer advertising, never connected.
       final lost = browser._devices.values
-          .where((peer) =>
-              peer.state == SessionState.notConnected &&
-              _advertiserNamed(peer.name, type ?? '') == null)
+          .where(
+            (peer) =>
+                peer.state == SessionState.notConnected &&
+                _advertiserNamed(peer.name, type ?? '') == null,
+          )
           .map((peer) => peer.name)
           .toList();
       if (lost.isNotEmpty) {
@@ -166,8 +168,8 @@ class FakePhone {
 
   /// The phones this phone knows, as "name: state".
   List<String> get knownPeers => [
-        for (final peer in _devices.values) '${peer.name}: ${peer.state.name}',
-      ];
+    for (final peer in _devices.values) '${peer.name}: ${peer.state.name}',
+  ];
 
   /// iOS ends every session in the background and stops advertising and
   /// browsing until the app comes back.
@@ -248,8 +250,7 @@ class FakePhone {
     final remote = network._advertiserNamed(deviceId, _serviceType ?? '');
     if (remote == null) {
       Timer(network.inviteTimeout, () {
-        if (peer.session == session &&
-            peer.state == SessionState.connecting) {
+        if (peer.session == session && peer.state == SessionState.connecting) {
           peer.state = SessionState.notConnected;
           _emit();
         }
@@ -298,8 +299,7 @@ class FakePhone {
     final from = name!;
     Timer(network.messageDelay, () {
       // Lost if the connection ended on the way.
-      if (back.session != session ||
-          back.state != SessionState.connected) {
+      if (back.session != session || back.state != SessionState.connected) {
         return;
       }
       network.delivered.add('$from -> ${remote.name}');
@@ -364,8 +364,10 @@ class FakeNearbyConnections implements NearbyConnectionsInterface {
   }
 
   @override
-  FutureOr<dynamic> invitePeer(
-      {required String deviceID, required String deviceName}) {
+  FutureOr<dynamic> invitePeer({
+    required String deviceID,
+    required String deviceName,
+  }) {
     phone._invite(deviceID);
   }
 
@@ -380,14 +382,14 @@ class FakeNearbyConnections implements NearbyConnectionsInterface {
       phone._send(deviceID, message);
 
   @override
-  StreamSubscription<dynamic> stateChangedSubscription(
-          {required dynamic Function(List<Device>) callback}) =>
-      _state.stream.listen(callback);
+  StreamSubscription<dynamic> stateChangedSubscription({
+    required dynamic Function(List<Device>) callback,
+  }) => _state.stream.listen(callback);
 
   @override
-  StreamSubscription<dynamic> dataReceivedSubscription(
-          {required dynamic Function(dynamic) callback}) =>
-      _data.stream.listen(callback);
+  StreamSubscription<dynamic> dataReceivedSubscription({
+    required dynamic Function(dynamic) callback,
+  }) => _data.stream.listen(callback);
 }
 
 class _IOS implements PlatformCheckerInterface {

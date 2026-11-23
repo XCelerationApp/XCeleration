@@ -65,9 +65,7 @@ class ConfirmedRunnerTimeCell extends StatelessWidget {
       alignment: Alignment.center,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          TimeDisplay(time: time),
-        ],
+        children: [TimeDisplay(time: time)],
       ),
     );
   }
@@ -112,6 +110,7 @@ class TimeWithNote extends StatelessWidget {
 
 class ExtraTimeCell extends StatelessWidget {
   final String time;
+
   /// Null once every extra time is removed: the rest belong to runners.
   final void Function()? onRemoveExtraTime;
   final String? note;
@@ -220,7 +219,8 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
         return AnimatedBuilder(
           animation: widget.record,
           builder: (context, child) {
-            final hasError = widget.record.validationError != null &&
+            final hasError =
+                widget.record.validationError != null &&
                 widget.record.validationError!.isNotEmpty;
 
             // Centred in the row's height, level with the runner's name.
@@ -251,8 +251,8 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                       border: const OutlineInputBorder(),
                       enabledBorder: OutlineInputBorder(
                         borderSide: BorderSide(
-                            color: AppColors.mediumColor
-                                .withValues(alpha: 0.4)),
+                          color: AppColors.mediumColor.withValues(alpha: 0.4),
+                        ),
                       ),
                       focusedBorder: const OutlineInputBorder(),
                       errorBorder: const OutlineInputBorder(
@@ -261,8 +261,9 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                       focusedErrorBorder: const OutlineInputBorder(
                         borderSide: BorderSide(color: Colors.red, width: 2),
                       ),
-                      errorText:
-                          hasError ? widget.record.validationError : null,
+                      errorText: hasError
+                          ? widget.record.validationError
+                          : null,
                       // The reason, such as "Must be after 15:28.46",
                       // needs two lines in the narrow time column.
                       errorMaxLines: 2,
@@ -309,8 +310,9 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                                 time: widget.controller.text,
                                 note: widget.note,
                                 highlight: widget.highlight,
-                                color:
-                                    hasError ? Colors.red : AppColors.darkColor,
+                                color: hasError
+                                    ? Colors.red
+                                    : AppColors.darkColor,
                               ),
                             ),
                           ),
@@ -322,8 +324,9 @@ class _MissingTimeCellState extends State<MissingTimeCell> {
                                 : Icons.add_circle_outline,
                             tooltip: 'The missing runner finished here',
                             onPressed: widget.onAddTime,
-                            color:
-                                widget.highlight ? AppColors.primaryColor : null,
+                            color: widget.highlight
+                                ? AppColors.primaryColor
+                                : null,
                           ),
                         ],
                       ),

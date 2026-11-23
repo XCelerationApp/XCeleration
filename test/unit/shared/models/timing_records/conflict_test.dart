@@ -28,15 +28,24 @@ void main() {
 
     group('encode', () {
       test('encodes confirmRunner as index 0', () {
-        expect(Conflict(type: ConflictType.confirmRunner, offBy: 1).encode(), '0,1');
+        expect(
+          Conflict(type: ConflictType.confirmRunner, offBy: 1).encode(),
+          '0,1',
+        );
       });
 
       test('encodes missingTime as index 1', () {
-        expect(Conflict(type: ConflictType.missingTime, offBy: 3).encode(), '1,3');
+        expect(
+          Conflict(type: ConflictType.missingTime, offBy: 3).encode(),
+          '1,3',
+        );
       });
 
       test('encodes extraTime as index 2', () {
-        expect(Conflict(type: ConflictType.extraTime, offBy: 5).encode(), '2,5');
+        expect(
+          Conflict(type: ConflictType.extraTime, offBy: 5).encode(),
+          '2,5',
+        );
       });
     });
 

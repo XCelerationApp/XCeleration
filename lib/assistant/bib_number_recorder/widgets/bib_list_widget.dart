@@ -10,10 +10,7 @@ import '../../../core/components/dialog_utils.dart';
 class BibListWidget extends StatefulWidget {
   final BibNumberController controller;
 
-  const BibListWidget({
-    super.key,
-    required this.controller,
-  });
+  const BibListWidget({super.key, required this.controller});
 
   @override
   State<BibListWidget> createState() => _BibListWidgetState();
@@ -47,7 +44,8 @@ class _BibListWidgetState extends State<BibListWidget>
   void _onControllerChanged() {
     final newCount = widget.controller.bibRecords.length;
     final newRaceStopped = widget.controller.raceStopped;
-    if (newCount != _lastKnownCount || newRaceStopped != _lastKnownRaceStopped) {
+    if (newCount != _lastKnownCount ||
+        newRaceStopped != _lastKnownRaceStopped) {
       setState(() {
         _lastKnownCount = newCount;
         _lastKnownRaceStopped = newRaceStopped;
@@ -134,7 +132,7 @@ class _BibListWidgetState extends State<BibListWidget>
               },
             ),
           ),
-          const SizedBox(height: 4)
+          const SizedBox(height: 4),
         ],
       ),
     );
@@ -166,9 +164,12 @@ class _SwipeAction extends StatelessWidget {
         children: [
           Icon(icon, color: Colors.white),
           const SizedBox(width: AppSpacing.sm),
-          Text(label,
-              style: AppTypography.smallBodySemibold
-                  .copyWith(color: Colors.white)),
+          Text(
+            label,
+            style: AppTypography.smallBodySemibold.copyWith(
+              color: Colors.white,
+            ),
+          ),
         ],
       ),
     );

@@ -53,12 +53,16 @@ RacesController _buildController({
 
 Future<BuildContext> _buildContext(WidgetTester tester) async {
   BuildContext? ctx;
-  await tester.pumpWidget(MaterialApp(
-    home: Builder(builder: (context) {
-      ctx = context;
-      return const SizedBox();
-    }),
-  ));
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Builder(
+        builder: (context) {
+          ctx = context;
+          return const SizedBox();
+        },
+      ),
+    ),
+  );
   return ctx!;
 }
 
@@ -84,8 +88,9 @@ void main() {
     mockColorPickerService = MockIColorPickerDialogService();
 
     when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
-    when(mockEventBus.on(any, any))
-        .thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
+    when(
+      mockEventBus.on(any, any),
+    ).thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
 
     controller = _buildController(
       racesService: mockRacesService,
@@ -103,7 +108,10 @@ void main() {
   group('RacesController', () {
     group('loadRaces', () {
       test('populates races from service', () async {
-        final races = [Race(raceName: 'State Meet'), Race(raceName: 'Regional')];
+        final races = [
+          Race(raceName: 'State Meet'),
+          Race(raceName: 'Regional'),
+        ];
         when(mockRacesService.loadRaces()).thenAnswer((_) async => races);
 
         await controller.loadRaces();
@@ -173,7 +181,9 @@ void main() {
       });
 
       test('sets nameError on invalid input', () {
-        when(mockRacesService.validateName('')).thenReturn('Please enter a race name');
+        when(
+          mockRacesService.validateName(''),
+        ).thenReturn('Please enter a race name');
 
         controller.validateName('');
 
@@ -202,7 +212,9 @@ void main() {
       });
 
       test('sets locationError on invalid input', () {
-        when(mockRacesService.validateLocation('')).thenReturn('Please enter a location');
+        when(
+          mockRacesService.validateLocation(''),
+        ).thenReturn('Please enter a location');
 
         controller.validateLocation('');
 
@@ -231,7 +243,9 @@ void main() {
       });
 
       test('sets dateError on invalid input', () {
-        when(mockRacesService.validateDate('')).thenReturn('Please select a date');
+        when(
+          mockRacesService.validateDate(''),
+        ).thenReturn('Please select a date');
 
         controller.validateDate('');
 
@@ -260,7 +274,9 @@ void main() {
       });
 
       test('sets distanceError on invalid input', () {
-        when(mockRacesService.validateDistance('')).thenReturn('Please enter a race distance');
+        when(
+          mockRacesService.validateDistance(''),
+        ).thenReturn('Please enter a race distance');
 
         controller.validateDistance('');
 
@@ -290,7 +306,6 @@ void main() {
         expect(controller.teamColors.last, Colors.white);
       });
     });
-
 
     group('resetControllers', () {
       test('clears all text fields and errors', () {
@@ -327,12 +342,14 @@ void main() {
     });
 
     group('selectDate', () {
-      testWidgets('updates dateController when a date is picked',
-          (tester) async {
+      testWidgets('updates dateController when a date is picked', (
+        tester,
+      ) async {
         final context = await _buildContext(tester);
         final picked = DateTime(2024, 6, 15);
-        when(mockDatePickerService.pickDate(any))
-            .thenAnswer((_) async => picked);
+        when(
+          mockDatePickerService.pickDate(any),
+        ).thenAnswer((_) async => picked);
 
         await controller.selectDate(context);
 
@@ -360,11 +377,13 @@ void main() {
 
         controller.showColorPicker(context, (fn) => fn(), teamController);
 
-        verify(mockColorPickerService.showColorPicker(
-          context,
-          currentColor: Colors.red,
-          onColorChanged: anyNamed('onColorChanged'),
-        )).called(1);
+        verify(
+          mockColorPickerService.showColorPicker(
+            context,
+            currentColor: Colors.red,
+            onColorChanged: anyNamed('onColorChanged'),
+          ),
+        ).called(1);
       });
     });
 
@@ -420,18 +439,19 @@ void main() {
         final context = await _buildContext(tester);
         final race = Race(raceName: 'No ID Race');
 
-        expect(
-          () => controller.editRace(race, context),
-          throwsException,
-        );
+        expect(() => controller.editRace(race, context), throwsException);
       });
 
-      testWidgets('returns early without navigating when user is not owner',
-          (tester) async {
+      testWidgets('returns early without navigating when user is not owner', (
+        tester,
+      ) async {
         final context = await _buildContext(tester);
         when(mockAuthService.currentUserId).thenReturn('user-1');
-        final race =
-            Race(raceName: 'Owned Race', raceId: 1, ownerUserId: 'user-2');
+        final race = Race(
+          raceName: 'Owned Race',
+          raceId: 1,
+          ownerUserId: 'user-2',
+        );
 
         await controller.editRace(race, context);
         // Drain the 3-second overlay notification timer
@@ -447,18 +467,19 @@ void main() {
         final context = await _buildContext(tester);
         final race = Race(raceName: 'No ID Race');
 
-        expect(
-          () => controller.deleteRace(race, context),
-          throwsException,
-        );
+        expect(() => controller.deleteRace(race, context), throwsException);
       });
 
-      testWidgets('returns early without deleting when user is not owner',
-          (tester) async {
+      testWidgets('returns early without deleting when user is not owner', (
+        tester,
+      ) async {
         final context = await _buildContext(tester);
         when(mockAuthService.currentUserId).thenReturn('user-1');
-        final race =
-            Race(raceName: 'Owned Race', raceId: 1, ownerUserId: 'user-2');
+        final race = Race(
+          raceName: 'Owned Race',
+          raceId: 1,
+          ownerUserId: 'user-2',
+        );
 
         await controller.deleteRace(race, context);
         // Drain the 3-second overlay notification timer
@@ -468,50 +489,108 @@ void main() {
       });
     });
 
-
     group('sync stream', () {
-      testWidgets('reloads races when syncEvents emits an event containing races',
-          (tester) async {
-        final syncController = StreamController<SyncEvent>.broadcast();
-        controller.dispose();
-        controller = RacesController(
-          racesService: mockRacesService,
-          authService: mockAuthService,
-          eventBus: mockEventBus,
-          postFrameCallbackScheduler: mockPostFrameScheduler,
-          tutorialManager: mockTutorialManager,
-          datePickerService: mockDatePickerService,
-          colorPickerDialogService: mockColorPickerService,
-          syncStream: syncController.stream,
-        );
-        when(mockPostFrameScheduler.addPostFrameCallback(any)).thenAnswer((_) {});
-        when(mockEventBus.on(any, any))
-            .thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
+      testWidgets(
+        'reloads races when syncEvents emits an event containing races',
+        (tester) async {
+          final syncController = StreamController<SyncEvent>.broadcast();
+          controller.dispose();
+          controller = RacesController(
+            racesService: mockRacesService,
+            authService: mockAuthService,
+            eventBus: mockEventBus,
+            postFrameCallbackScheduler: mockPostFrameScheduler,
+            tutorialManager: mockTutorialManager,
+            datePickerService: mockDatePickerService,
+            colorPickerDialogService: mockColorPickerService,
+            syncStream: syncController.stream,
+          );
+          when(
+            mockPostFrameScheduler.addPostFrameCallback(any),
+          ).thenAnswer((_) {});
+          when(
+            mockEventBus.on(any, any),
+          ).thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
 
-        await tester.pumpWidget(MaterialApp(home: Builder(builder: (ctx) {
-          controller.initState(ctx);
-          return const SizedBox();
-        })));
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Builder(
+                builder: (ctx) {
+                  controller.initState(ctx);
+                  return const SizedBox();
+                },
+              ),
+            ),
+          );
 
-        clearInteractions(mockRacesService);
-        final reloaded = [Race(raceName: 'Synced Race')];
-        when(mockRacesService.loadRaces()).thenAnswer((_) async => reloaded);
+          clearInteractions(mockRacesService);
+          final reloaded = [Race(raceName: 'Synced Race')];
+          when(mockRacesService.loadRaces()).thenAnswer((_) async => reloaded);
 
-        syncController.add(SyncEvent(
-          timestamp: DateTime.now(),
-          changedTables: {'races'},
-        ));
-        await tester.pump(const Duration(milliseconds: 300));
+          syncController.add(
+            SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}),
+          );
+          await tester.pump(const Duration(milliseconds: 300));
 
-        verify(mockRacesService.loadRaces()).called(1);
-        expect(controller.races, equals(reloaded));
+          verify(mockRacesService.loadRaces()).called(1);
+          expect(controller.races, equals(reloaded));
 
-        await syncController.close();
-      });
+          await syncController.close();
+        },
+      );
 
       testWidgets(
-          'does not reload races when syncEvents emits without races table',
-          (tester) async {
+        'does not reload races when syncEvents emits without races table',
+        (tester) async {
+          final syncController = StreamController<SyncEvent>.broadcast();
+          controller.dispose();
+          controller = RacesController(
+            racesService: mockRacesService,
+            authService: mockAuthService,
+            eventBus: mockEventBus,
+            postFrameCallbackScheduler: mockPostFrameScheduler,
+            tutorialManager: mockTutorialManager,
+            datePickerService: mockDatePickerService,
+            colorPickerDialogService: mockColorPickerService,
+            syncStream: syncController.stream,
+          );
+          when(
+            mockPostFrameScheduler.addPostFrameCallback(any),
+          ).thenAnswer((_) {});
+          when(
+            mockEventBus.on(any, any),
+          ).thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Builder(
+                builder: (ctx) {
+                  controller.initState(ctx);
+                  return const SizedBox();
+                },
+              ),
+            ),
+          );
+
+          clearInteractions(mockRacesService);
+
+          syncController.add(
+            SyncEvent(
+              timestamp: DateTime.now(),
+              changedTables: {'runners', 'teams'},
+            ),
+          );
+          await tester.pump(const Duration(milliseconds: 300));
+
+          verifyNever(mockRacesService.loadRaces());
+
+          await syncController.close();
+        },
+      );
+
+      testWidgets('collapses rapid sync events into a single loadRaces call', (
+        tester,
+      ) async {
         final syncController = StreamController<SyncEvent>.broadcast();
         controller.dispose();
         controller = RacesController(
@@ -524,60 +603,39 @@ void main() {
           colorPickerDialogService: mockColorPickerService,
           syncStream: syncController.stream,
         );
-        when(mockPostFrameScheduler.addPostFrameCallback(any)).thenAnswer((_) {});
-        when(mockEventBus.on(any, any))
-            .thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
+        when(
+          mockPostFrameScheduler.addPostFrameCallback(any),
+        ).thenAnswer((_) {});
+        when(
+          mockEventBus.on(any, any),
+        ).thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
 
-        await tester.pumpWidget(MaterialApp(home: Builder(builder: (ctx) {
-          controller.initState(ctx);
-          return const SizedBox();
-        })));
-
-        clearInteractions(mockRacesService);
-
-        syncController.add(SyncEvent(
-          timestamp: DateTime.now(),
-          changedTables: {'runners', 'teams'},
-        ));
-        await tester.pump(const Duration(milliseconds: 300));
-
-        verifyNever(mockRacesService.loadRaces());
-
-        await syncController.close();
-      });
-
-      testWidgets('collapses rapid sync events into a single loadRaces call',
-          (tester) async {
-        final syncController = StreamController<SyncEvent>.broadcast();
-        controller.dispose();
-        controller = RacesController(
-          racesService: mockRacesService,
-          authService: mockAuthService,
-          eventBus: mockEventBus,
-          postFrameCallbackScheduler: mockPostFrameScheduler,
-          tutorialManager: mockTutorialManager,
-          datePickerService: mockDatePickerService,
-          colorPickerDialogService: mockColorPickerService,
-          syncStream: syncController.stream,
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Builder(
+              builder: (ctx) {
+                controller.initState(ctx);
+                return const SizedBox();
+              },
+            ),
+          ),
         );
-        when(mockPostFrameScheduler.addPostFrameCallback(any)).thenAnswer((_) {});
-        when(mockEventBus.on(any, any))
-            .thenAnswer((_) => Stream<Event>.empty().listen((_) {}));
-
-        await tester.pumpWidget(MaterialApp(home: Builder(builder: (ctx) {
-          controller.initState(ctx);
-          return const SizedBox();
-        })));
 
         clearInteractions(mockRacesService);
         when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
 
         // Fire three rapid events before the debounce window elapses
-        syncController.add(SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}));
+        syncController.add(
+          SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}),
+        );
         await tester.pump(const Duration(milliseconds: 100));
-        syncController.add(SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}));
+        syncController.add(
+          SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}),
+        );
         await tester.pump(const Duration(milliseconds: 100));
-        syncController.add(SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}));
+        syncController.add(
+          SyncEvent(timestamp: DateTime.now(), changedTables: {'races'}),
+        );
 
         // Advance past the debounce window
         await tester.pump(const Duration(milliseconds: 300));
@@ -589,8 +647,9 @@ void main() {
     });
 
     group('event bus', () {
-      testWidgets('reloads races when raceFlowStateChanged event fires',
-          (tester) async {
+      testWidgets('reloads races when raceFlowStateChanged event fires', (
+        tester,
+      ) async {
         final context = await _buildContext(tester);
 
         void Function(Event)? capturedHandler;
@@ -606,23 +665,25 @@ void main() {
           racesService: mockRacesService,
           authService: mockAuthService,
           eventBus: mockEventBus,
-              postFrameScheduler: mockPostFrameScheduler,
+          postFrameScheduler: mockPostFrameScheduler,
           tutorialManager: mockTutorialManager,
           datePickerService: mockDatePickerService,
           colorPickerService: mockColorPickerService,
         );
 
         when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
-        when(mockPostFrameScheduler.addPostFrameCallback(any))
-            .thenAnswer((_) {});
+        when(
+          mockPostFrameScheduler.addPostFrameCallback(any),
+        ).thenAnswer((_) {});
 
         controller.initState(context);
         expect(capturedHandler, isNotNull);
 
         // Clear loadRaces interactions from initState
         clearInteractions(mockRacesService);
-        when(mockRacesService.loadRaces())
-            .thenAnswer((_) async => [Race(raceName: 'Reloaded')]);
+        when(
+          mockRacesService.loadRaces(),
+        ).thenAnswer((_) async => [Race(raceName: 'Reloaded')]);
 
         capturedHandler!(Event(EventTypes.raceFlowStateChanged));
         await tester.pump(const Duration(milliseconds: 300));
@@ -631,47 +692,51 @@ void main() {
         expect(controller.races.first.raceName, 'Reloaded');
       });
 
-      testWidgets('collapses rapid raceFlowStateChanged events into a single loadRaces call',
-          (tester) async {
-        final context = await _buildContext(tester);
+      testWidgets(
+        'collapses rapid raceFlowStateChanged events into a single loadRaces call',
+        (tester) async {
+          final context = await _buildContext(tester);
 
-        void Function(Event)? capturedHandler;
-        when(mockEventBus.on(any, any)).thenAnswer((invocation) {
-          capturedHandler =
-              invocation.positionalArguments[1] as void Function(Event);
-          return Stream<Event>.empty().listen((_) {});
-        });
+          void Function(Event)? capturedHandler;
+          when(mockEventBus.on(any, any)).thenAnswer((invocation) {
+            capturedHandler =
+                invocation.positionalArguments[1] as void Function(Event);
+            return Stream<Event>.empty().listen((_) {});
+          });
 
-        controller.dispose();
-        controller = _buildController(
-          racesService: mockRacesService,
-          authService: mockAuthService,
-          eventBus: mockEventBus,
-              postFrameScheduler: mockPostFrameScheduler,
-          tutorialManager: mockTutorialManager,
-          datePickerService: mockDatePickerService,
-          colorPickerService: mockColorPickerService,
-        );
+          controller.dispose();
+          controller = _buildController(
+            racesService: mockRacesService,
+            authService: mockAuthService,
+            eventBus: mockEventBus,
+            postFrameScheduler: mockPostFrameScheduler,
+            tutorialManager: mockTutorialManager,
+            datePickerService: mockDatePickerService,
+            colorPickerService: mockColorPickerService,
+          );
 
-        when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
-        when(mockPostFrameScheduler.addPostFrameCallback(any)).thenAnswer((_) {});
+          when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
+          when(
+            mockPostFrameScheduler.addPostFrameCallback(any),
+          ).thenAnswer((_) {});
 
-        controller.initState(context);
-        clearInteractions(mockRacesService);
-        when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
+          controller.initState(context);
+          clearInteractions(mockRacesService);
+          when(mockRacesService.loadRaces()).thenAnswer((_) async => []);
 
-        // Fire three rapid events before the debounce window elapses
-        capturedHandler!(Event(EventTypes.raceFlowStateChanged));
-        await tester.pump(const Duration(milliseconds: 100));
-        capturedHandler!(Event(EventTypes.raceFlowStateChanged));
-        await tester.pump(const Duration(milliseconds: 100));
-        capturedHandler!(Event(EventTypes.raceFlowStateChanged));
+          // Fire three rapid events before the debounce window elapses
+          capturedHandler!(Event(EventTypes.raceFlowStateChanged));
+          await tester.pump(const Duration(milliseconds: 100));
+          capturedHandler!(Event(EventTypes.raceFlowStateChanged));
+          await tester.pump(const Duration(milliseconds: 100));
+          capturedHandler!(Event(EventTypes.raceFlowStateChanged));
 
-        // Advance past the debounce window
-        await tester.pump(const Duration(milliseconds: 300));
+          // Advance past the debounce window
+          await tester.pump(const Duration(milliseconds: 300));
 
-        verify(mockRacesService.loadRaces()).called(1);
-      });
+          verify(mockRacesService.loadRaces()).called(1);
+        },
+      );
     });
   });
 }

@@ -14,16 +14,15 @@ import 'package:xceleration/shared/models/database/team.dart';
 const _eagles = Team(teamId: 1, name: 'Eagles', abbreviation: 'EAG');
 
 RaceRunner _runner(int id, String bib) => RaceRunner(
-      raceId: 1,
-      runner:
-          Runner(runnerId: id, name: 'Runner $id', bibNumber: bib, grade: 10),
-      team: _eagles,
-    );
+  raceId: 1,
+  runner: Runner(runnerId: id, name: 'Runner $id', bibNumber: bib, grade: 10),
+  team: _eagles,
+);
 
 List<String> _bibs(List<dynamic> entries) => [
-      for (final entry in entries)
-        entry is RaceRunner ? (entry.runner.bibNumber ?? '?') : '<$entry>',
-    ];
+  for (final entry in entries)
+    entry is RaceRunner ? (entry.runner.bibNumber ?? '?') : '<$entry>',
+];
 
 void main() {
   group('assigning runners to finishes', () {
