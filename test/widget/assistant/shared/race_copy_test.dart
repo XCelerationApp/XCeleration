@@ -66,31 +66,33 @@ void main() {
   Future<void> open(WidgetTester tester) async {
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
         .setMockMethodCallHandler(SystemChannels.platform, (call) async {
-      if (call.method == 'Clipboard.setData') {
-        clipboard = (call.arguments as Map)['text'] as String;
-      }
-      return null;
-    });
-    await tester.pumpWidget(MaterialApp(
-      home: Builder(
-        builder: (context) => Scaffold(
-          body: TextButton(
-            onPressed: () => saveRaceCopy(
-              context,
-              race: _race,
-              what: 'Bib Numbers',
-              table: _table,
-              sheets: sheets,
-              exportFile: (format) async {
-                filesAsked.add(format);
-                return Success(XFile('/tmp/none'));
-              },
+          if (call.method == 'Clipboard.setData') {
+            clipboard = (call.arguments as Map)['text'] as String;
+          }
+          return null;
+        });
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Builder(
+          builder: (context) => Scaffold(
+            body: TextButton(
+              onPressed: () => saveRaceCopy(
+                context,
+                race: _race,
+                what: 'Bib Numbers',
+                table: _table,
+                sheets: sheets,
+                exportFile: (format) async {
+                  filesAsked.add(format);
+                  return Success(XFile('/tmp/none'));
+                },
+              ),
+              child: const Text('Download'),
             ),
-            child: const Text('Download'),
           ),
         ),
       ),
-    ));
+    );
     await tester.tap(find.text('Download'));
     await tester.pumpAndSettle();
   }
@@ -101,8 +103,7 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('offers text and Google Sheets beside the files',
-      (tester) async {
+  testWidgets('offers text and Google Sheets beside the files', (tester) async {
     await open(tester);
 
     expect(find.text('Copy as Text'), findsOneWidget);
@@ -123,8 +124,9 @@ void main() {
     await settleToast(tester);
   });
 
-  testWidgets('makes a Google Sheet of the list, named for the race',
-      (tester) async {
+  testWidgets('makes a Google Sheet of the list, named for the race', (
+    tester,
+  ) async {
     await open(tester);
 
     await tester.tap(find.text('Google Sheets'));
@@ -136,8 +138,9 @@ void main() {
     expect(find.text('Open'), findsOneWidget);
   });
 
-  testWidgets('says so when Google sign-in does not go through',
-      (tester) async {
+  testWidgets('says so when Google sign-in does not go through', (
+    tester,
+  ) async {
     sheets.signedIn = false;
     await open(tester);
 
@@ -145,8 +148,10 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(sheets.createdTitle, isNull);
-    expect(find.textContaining('Could not make a Google Sheet'),
-        findsOneWidget);
+    expect(
+      find.textContaining('Could not make a Google Sheet'),
+      findsOneWidget,
+    );
     await settleToast(tester);
   });
 }

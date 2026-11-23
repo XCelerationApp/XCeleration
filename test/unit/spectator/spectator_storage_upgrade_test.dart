@@ -54,9 +54,12 @@ void main() {
 
     final races = await SpectatorStorageService.instance.getAllRaces();
 
-    expect(races.map((r) => r['race_name']),
-        unorderedEquals(['Invitational', 'League Meet', 'No id', 'No id either']),
-        reason: 'the newest copy of a race is kept, and races without an id '
-            'are left alone');
+    expect(
+      races.map((r) => r['race_name']),
+      unorderedEquals(['Invitational', 'League Meet', 'No id', 'No id either']),
+      reason:
+          'the newest copy of a race is kept, and races without an id '
+          'are left alone',
+    );
   });
 }

@@ -80,7 +80,9 @@ class _ReceiveRaceScreenState extends State<ReceiveRaceScreen> {
   }
 
   Future<void> _saveRaceToLocalStorage(
-      String encodedPayload, RaceResultsData resultsData) async {
+    String encodedPayload,
+    RaceResultsData resultsData,
+  ) async {
     try {
       // Decode the payload off the UI thread to extract race metadata
       final raceMap = await compute(decodeRaceMap, encodedPayload);

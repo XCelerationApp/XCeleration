@@ -14,10 +14,7 @@ import '../controller/timing_controller.dart';
 class BottomControlsWidget extends StatefulWidget {
   final TimingController controller;
 
-  const BottomControlsWidget({
-    super.key,
-    required this.controller,
-  });
+  const BottomControlsWidget({super.key, required this.controller});
 
   @override
   State<BottomControlsWidget> createState() => _BottomControlsWidgetState();
@@ -149,4 +146,3 @@ class _BottomControlsWidgetState extends State<BottomControlsWidget> {
     }
   }
 }
-

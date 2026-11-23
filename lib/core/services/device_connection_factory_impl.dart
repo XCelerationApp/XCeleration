@@ -13,11 +13,10 @@ class DeviceConnectionFactoryImpl implements IDeviceConnectionFactory {
     DeviceType deviceType, {
     String? data,
     bool toSpectator = false,
-  }) =>
-      DeviceConnectionService.createDevices(
-        deviceName,
-        deviceType,
-        data: data,
-        toSpectator: toSpectator,
-      );
+  }) => DeviceConnectionService.createDevices(
+    deviceName,
+    deviceType,
+    data: data,
+    toSpectator: toSpectator,
+  );
 }

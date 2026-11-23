@@ -52,11 +52,8 @@ class TimingChunk {
           _listEquals(timingData, other.timingData);
 
   @override
-  int get hashCode => Object.hash(
-        id,
-        conflictRecord,
-        Object.hashAll(timingData),
-      );
+  int get hashCode =>
+      Object.hash(id, conflictRecord, Object.hashAll(timingData));
 
   // Helper for list equality
   bool _listEquals(List<TimingDatum> a, List<TimingDatum> b) {
@@ -92,10 +89,10 @@ class TimingChunk {
     final List<TimingDatum> timingData = timesPart.isEmpty
         ? []
         : timesPart
-            .split(',')
-            .where((s) => s.isNotEmpty)
-            .map((datum) => TimingDatum.fromEncodedString(datum))
-            .toList();
+              .split(',')
+              .where((s) => s.isNotEmpty)
+              .map((datum) => TimingDatum.fromEncodedString(datum))
+              .toList();
 
     final TimingDatum? conflictRecord = conflictPart == null
         ? null
@@ -121,11 +118,13 @@ List<TimingChunk> timingChunksFromTimingData(List<TimingDatum> timingData) {
   for (final timingDatum in timingData) {
     if (timingDatum.conflict != null) {
       // When a conflict is found, create a chunk with the current timing data and this conflict
-      chunks.add(TimingChunk(
-        id: currentId,
-        timingData: List<TimingDatum>.from(currentTimingData),
-        conflictRecord: timingDatum,
-      ));
+      chunks.add(
+        TimingChunk(
+          id: currentId,
+          timingData: List<TimingDatum>.from(currentTimingData),
+          conflictRecord: timingDatum,
+        ),
+      );
       currentTimingData.clear();
       currentId++;
     } else {
@@ -135,11 +134,13 @@ List<TimingChunk> timingChunksFromTimingData(List<TimingDatum> timingData) {
 
   // If there is any remaining timing data without a conflict, add it as a chunk
   if (currentTimingData.isNotEmpty) {
-    chunks.add(TimingChunk(
-      id: currentId,
-      timingData: List<TimingDatum>.from(currentTimingData),
-      conflictRecord: null,
-    ));
+    chunks.add(
+      TimingChunk(
+        id: currentId,
+        timingData: List<TimingDatum>.from(currentTimingData),
+        conflictRecord: null,
+      ),
+    );
   }
 
   return chunks;

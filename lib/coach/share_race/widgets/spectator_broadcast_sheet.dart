@@ -56,7 +56,9 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
       children: [
         Container(
           padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+            horizontal: AppSpacing.lg,
+            vertical: AppSpacing.md,
+          ),
           decoration: BoxDecoration(
             color: AppColors.backgroundColor,
             borderRadius: BorderRadius.circular(AppBorderRadius.md),
@@ -77,7 +79,7 @@ class _SpectatorBroadcastSheetState extends State<SpectatorBroadcastSheet> {
                 onPressed: () => Navigator.of(context).maybePop(),
                 icon: const Icon(Icons.stop_circle_outlined),
                 label: const Text('Stop'),
-              )
+              ),
             ],
           ),
         ),

@@ -60,8 +60,9 @@ class _RaceCardState extends State<RaceCard> {
             onTapUp: (_) => setState(() => _pressed = false),
             onTapCancel: () => setState(() => _pressed = false),
             onTap: () async {
-              final masterRace =
-                  MasterRace.getInstance(widget.race.raceId ?? 0);
+              final masterRace = MasterRace.getInstance(
+                widget.race.raceId ?? 0,
+              );
               if (!context.mounted) return;
               await sheet(
                 context: context,
@@ -98,7 +99,11 @@ class _RaceCardState extends State<RaceCard> {
                   : Colors.transparent,
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(
-                    AppSpacing.xl, AppSpacing.lg, AppSpacing.xl, AppSpacing.lg),
+                  AppSpacing.xl,
+                  AppSpacing.lg,
+                  AppSpacing.xl,
+                  AppSpacing.lg,
+                ),
                 child: _buildCardContent(context),
               ),
             ),
@@ -127,9 +132,10 @@ class _RaceCardState extends State<RaceCard> {
               children: [
                 const Icon(Icons.edit_outlined, color: Colors.white, size: 24),
                 const SizedBox(height: AppSpacing.xs),
-                Text('Edit',
-                    style:
-                        AppTypography.bodySmall.copyWith(color: Colors.white)),
+                Text(
+                  'Edit',
+                  style: AppTypography.bodySmall.copyWith(color: Colors.white),
+                ),
               ],
             ),
           ),
@@ -146,9 +152,10 @@ class _RaceCardState extends State<RaceCard> {
               children: [
                 const Icon(Icons.delete_outline, size: 24, color: Colors.white),
                 const SizedBox(height: AppSpacing.xs),
-                Text('Delete',
-                    style:
-                        AppTypography.bodySmall.copyWith(color: Colors.white)),
+                Text(
+                  'Delete',
+                  style: AppTypography.bodySmall.copyWith(color: Colors.white),
+                ),
               ],
             ),
           ),
@@ -167,8 +174,10 @@ class _RaceCardState extends State<RaceCard> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(race.raceName ?? 'Unnamed Race',
-                  style: AppTypography.headerSemibold),
+              Text(
+                race.raceName ?? 'Unnamed Race',
+                style: AppTypography.headerSemibold,
+              ),
               const SizedBox(height: AppSpacing.xs),
               StatusBadge(flowState: widget.flowState),
             ],
@@ -177,10 +186,12 @@ class _RaceCardState extends State<RaceCard> {
           Row(
             children: [
               Expanded(
-                child: Text(race.raceName ?? 'Unnamed Race',
-                    style: AppTypography.headerSemibold,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
+                child: Text(
+                  race.raceName ?? 'Unnamed Race',
+                  style: AppTypography.headerSemibold,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
               const SizedBox(width: AppSpacing.sm),
               StatusBadge(flowState: widget.flowState),
@@ -197,7 +208,9 @@ class _RaceCardState extends State<RaceCard> {
         if (race.distance != null && race.distance! > 0) ...[
           const SizedBox(height: AppSpacing.sm),
           _RaceCardDistance(
-              distance: race.distance!, unit: race.distanceUnit ?? ''),
+            distance: race.distance!,
+            unit: race.distanceUnit ?? '',
+          ),
         ],
       ],
     );
@@ -218,8 +231,9 @@ class _RaceCardLocation extends StatelessWidget {
         Expanded(
           child: Text(
             location,
-            style:
-                AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
+            style: AppTypography.bodyRegular.copyWith(
+              color: AppColors.mediumColor,
+            ),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
           ),
@@ -238,13 +252,17 @@ class _RaceCardDate extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(Icons.calendar_today,
-            size: 20, color: AppColors.primaryColor),
+        const Icon(
+          Icons.calendar_today,
+          size: 20,
+          color: AppColors.primaryColor,
+        ),
         const SizedBox(width: AppSpacing.sm),
         Text(
           DateFormat('MMM d, y').format(date),
-          style:
-              AppTypography.bodyRegular.copyWith(color: AppColors.mediumColor),
+          style: AppTypography.bodyRegular.copyWith(
+            color: AppColors.mediumColor,
+          ),
         ),
       ],
     );
@@ -261,13 +279,17 @@ class _RaceCardDistance extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Icon(Icons.straighten_rounded,
-            size: 20, color: AppColors.primaryColor),
+        const Icon(
+          Icons.straighten_rounded,
+          size: 20,
+          color: AppColors.primaryColor,
+        ),
         const SizedBox(width: AppSpacing.sm),
         Text(
           '$distance $unit',
-          style: AppTypography.headerSemibold
-              .copyWith(color: AppColors.primaryColor),
+          style: AppTypography.headerSemibold.copyWith(
+            color: AppColors.primaryColor,
+          ),
         ),
       ],
     );

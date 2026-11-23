@@ -15,17 +15,16 @@ class RecentLocalFile {
   });
 
   Map<String, dynamic> toJson() => {
-        'name': name,
-        'path': path,
-        'lastUsed': lastUsed.millisecondsSinceEpoch,
-      };
+    'name': name,
+    'path': path,
+    'lastUsed': lastUsed.millisecondsSinceEpoch,
+  };
 
   factory RecentLocalFile.fromJson(Map<String, dynamic> json) =>
       RecentLocalFile(
         name: json['name'] as String,
         path: json['path'] as String,
-        lastUsed:
-            DateTime.fromMillisecondsSinceEpoch(json['lastUsed'] as int),
+        lastUsed: DateTime.fromMillisecondsSinceEpoch(json['lastUsed'] as int),
       );
 }
 

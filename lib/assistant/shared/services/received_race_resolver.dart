@@ -148,7 +148,9 @@ Future<Result<ReceivedRace>> resolveReceivedRace({
       );
       return switch (await storage.saveRaceAsNew(copy)) {
         Failure(:final error) => Failure(error),
-        Success(:final value) => Success(ReceivedRace(race: value, isNew: true)),
+        Success(:final value) => Success(
+          ReceivedRace(race: value, isNew: true),
+        ),
       };
   }
 }

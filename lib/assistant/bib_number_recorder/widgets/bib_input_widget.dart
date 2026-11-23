@@ -32,13 +32,10 @@ class BibInputWidget extends StatelessWidget {
           color: record.hasErrors
               ? AppColors.redColor.withValues(alpha: AppOpacity.light)
               : index % 2 == 0
-                  ? Colors.white
-                  : Colors.grey.shade50,
+              ? Colors.white
+              : Colors.grey.shade50,
           border: Border(
-            bottom: BorderSide(
-              color: Colors.grey.shade300,
-              width: 1,
-            ),
+            bottom: BorderSide(color: Colors.grey.shade300, width: 1),
           ),
         ),
         child: Row(
@@ -53,10 +50,7 @@ class BibInputWidget extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 18),
-            SizedBox(
-              width: 96,
-              child: _buildBibTextField(context),
-            ),
+            SizedBox(width: 96, child: _buildBibTextField(context)),
             const SizedBox(width: AppSpacing.sm),
             Expanded(
               child: Row(
@@ -87,17 +81,13 @@ class BibInputWidget extends StatelessWidget {
       focusNode: controller.focusNodes[index],
       keyboardType: TextInputType.number,
       textInputAction: TextInputAction.next,
-      style: AppTypography.titleRegular.copyWith(
-        fontWeight: FontWeight.bold,
-      ),
+      style: AppTypography.titleRegular.copyWith(fontWeight: FontWeight.bold),
       onChanged: (value) {
         controller.handleBibNumber(value, index: index);
       },
       decoration: InputDecoration(
         // labelText: 'Bib #',
-        labelStyle: AppTypography.caption.copyWith(
-          color: Colors.grey.shade700,
-        ),
+        labelStyle: AppTypography.caption.copyWith(color: Colors.grey.shade700),
         hintText: 'Bib #',
         hintStyle: AppTypography.bodyRegular.copyWith(
           color: Colors.grey.shade700,
@@ -163,14 +153,18 @@ class BibInputWidget extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline,
-                color: AppColors.redColor, size: 16),
+            const Icon(
+              Icons.error_outline,
+              color: AppColors.redColor,
+              size: 16,
+            ),
             const SizedBox(width: AppSpacing.xs),
             Flexible(
               child: Text(
                 label,
-                style: AppTypography.smallBodySemibold
-                    .copyWith(color: AppColors.redColor),
+                style: AppTypography.smallBodySemibold.copyWith(
+                  color: AppColors.redColor,
+                ),
               ),
             ),
           ],
@@ -200,9 +194,7 @@ class BibInputWidget extends StatelessWidget {
         Flexible(
           child: Text(
             errors.join(' • '),
-            style: AppTypography.smallBodySemibold.copyWith(
-              color: Colors.red,
-            ),
+            style: AppTypography.smallBodySemibold.copyWith(color: Colors.red),
           ),
         ),
       ],

@@ -32,7 +32,8 @@ void main() {
     // Test files run in parallel: a directory of our own keeps this file's
     // database apart from the other storage tests'.
     await databaseFactory.setDatabasesPath(
-        Directory.systemTemp.createTempSync('timing_persistence').path);
+      Directory.systemTemp.createTempSync('timing_persistence').path,
+    );
   });
 
   setUp(() async {
@@ -70,17 +71,33 @@ void main() {
   test('taps across confirmations and conflicts come back exactly', () async {
     timing.addRunnerTimeRecord(TimingDatum(time: t(1)));
     timing.addRunnerTimeRecord(TimingDatum(time: t(2)));
-    timing.addConfirmRecord(TimingDatum(
-        time: t(3), conflict: Conflict(type: ConflictType.confirmRunner)));
+    timing.addConfirmRecord(
+      TimingDatum(
+        time: t(3),
+        conflict: Conflict(type: ConflictType.confirmRunner),
+      ),
+    );
     timing.addRunnerTimeRecord(TimingDatum(time: t(4)));
     timing.addRunnerTimeRecord(TimingDatum(time: t(5)));
-    timing.addExtraTimeRecord(TimingDatum(
-        time: t(6), conflict: Conflict(type: ConflictType.extraTime)));
+    timing.addExtraTimeRecord(
+      TimingDatum(
+        time: t(6),
+        conflict: Conflict(type: ConflictType.extraTime),
+      ),
+    );
     timing.addRunnerTimeRecord(TimingDatum(time: t(7)));
-    timing.addMissingTimeRecord(TimingDatum(
-        time: t(8), conflict: Conflict(type: ConflictType.missingTime)));
-    timing.addMissingTimeRecord(TimingDatum(
-        time: t(9), conflict: Conflict(type: ConflictType.missingTime)));
+    timing.addMissingTimeRecord(
+      TimingDatum(
+        time: t(8),
+        conflict: Conflict(type: ConflictType.missingTime),
+      ),
+    );
+    timing.addMissingTimeRecord(
+      TimingDatum(
+        time: t(9),
+        conflict: Conflict(type: ConflictType.missingTime),
+      ),
+    );
 
     final chunks = await reload();
     expect(chunks.map((c) => c.encode()), [
@@ -92,13 +109,16 @@ void main() {
 
   test('times logged after clearing the race are saved', () async {
     timing.addRunnerTimeRecord(TimingDatum(time: t(1)));
-    timing.addConfirmRecord(TimingDatum(
-        time: t(2), conflict: Conflict(type: ConflictType.confirmRunner)));
+    timing.addConfirmRecord(
+      TimingDatum(
+        time: t(2),
+        conflict: Conflict(type: ConflictType.confirmRunner),
+      ),
+    );
     timing.addRunnerTimeRecord(TimingDatum(time: t(3)));
     // What "Clear race times" does.
     timing.clearRecords();
-    await timing.enqueueWrite(
-        () => storage.deleteChunks(race.raceId), 'clear');
+    await timing.enqueueWrite(() => storage.deleteChunks(race.raceId), 'clear');
 
     timing.addRunnerTimeRecord(TimingDatum(time: t(10)));
     timing.addRunnerTimeRecord(TimingDatum(time: t(11)));
@@ -106,15 +126,19 @@ void main() {
     expect(times(await reload()), [t(10), t(11)]);
   });
 
-  test('clearing waits for saves still queued, so no times come back',
-      () async {
-    for (var i = 1; i <= 5; i++) {
-      timing.addRunnerTimeRecord(TimingDatum(time: t(i)));
-    }
-    timing.clearRecords();
-    await timing.enqueueWrite(
-        () => storage.deleteChunks(race.raceId), 'clear');
+  test(
+    'clearing waits for saves still queued, so no times come back',
+    () async {
+      for (var i = 1; i <= 5; i++) {
+        timing.addRunnerTimeRecord(TimingDatum(time: t(i)));
+      }
+      timing.clearRecords();
+      await timing.enqueueWrite(
+        () => storage.deleteChunks(race.raceId),
+        'clear',
+      );
 
-    expect(await reload(), isEmpty);
-  });
+      expect(await reload(), isEmpty);
+    },
+  );
 }

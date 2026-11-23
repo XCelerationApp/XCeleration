@@ -34,7 +34,8 @@ void main() {
     when(mockService.isActive).thenReturn(true);
   });
 
-  WirelessConnectionController buildController() => WirelessConnectionController(
+  WirelessConnectionController buildController() =>
+      WirelessConnectionController(
         deviceConnectionService: mockService,
         protocol: mockProtocol,
         devices: mockDevices,
@@ -50,60 +51,77 @@ void main() {
         expect(controller.wirelessConnectionError, isNull);
       });
 
-      test('sets unavailable error when nearby connections not available',
-          () async {
-        when(mockService.checkIfNearbyConnectionsWorks())
-            .thenAnswer((_) async => const Success(false));
+      test(
+        'sets unavailable error when nearby connections not available',
+        () async {
+          when(
+            mockService.checkIfNearbyConnectionsWorks(),
+          ).thenAnswer((_) async => const Success(false));
 
-        final controller = buildController();
-        await controller.initialize();
+          final controller = buildController();
+          await controller.initialize();
 
-        expect(controller.isLoading, isFalse);
-        expect(controller.hasError, isTrue);
-        expect(controller.wirelessConnectionError,
-            WirelessConnectionError.unavailable);
-      });
+          expect(controller.isLoading, isFalse);
+          expect(controller.hasError, isTrue);
+          expect(
+            controller.wirelessConnectionError,
+            WirelessConnectionError.unavailable,
+          );
+        },
+      );
 
-      test('sets unavailable error when checkIfNearbyConnectionsWorks fails',
-          () async {
-        when(mockService.checkIfNearbyConnectionsWorks()).thenAnswer((_) async =>
-            Failure(AppError(userMessage: 'Failed', originalException: null)));
+      test(
+        'sets unavailable error when checkIfNearbyConnectionsWorks fails',
+        () async {
+          when(mockService.checkIfNearbyConnectionsWorks()).thenAnswer(
+            (_) async => Failure(
+              AppError(userMessage: 'Failed', originalException: null),
+            ),
+          );
 
-        final controller = buildController();
-        await controller.initialize();
+          final controller = buildController();
+          await controller.initialize();
 
-        expect(controller.isLoading, isFalse);
-        expect(controller.hasError, isTrue);
-        expect(controller.wirelessConnectionError,
-            WirelessConnectionError.unavailable);
-      });
+          expect(controller.isLoading, isFalse);
+          expect(controller.hasError, isTrue);
+          expect(
+            controller.wirelessConnectionError,
+            WirelessConnectionError.unavailable,
+          );
+        },
+      );
 
       test('sets unknown error when init fails', () async {
-        when(mockService.checkIfNearbyConnectionsWorks())
-            .thenAnswer((_) async => const Success(true));
-        when(mockService.init())
-            .thenAnswer((_) async => const Success(false));
+        when(
+          mockService.checkIfNearbyConnectionsWorks(),
+        ).thenAnswer((_) async => const Success(true));
+        when(mockService.init()).thenAnswer((_) async => const Success(false));
 
         final controller = buildController();
         await controller.initialize();
 
         expect(controller.isLoading, isFalse);
         expect(controller.hasError, isTrue);
-        expect(controller.wirelessConnectionError,
-            WirelessConnectionError.unknown);
+        expect(
+          controller.wirelessConnectionError,
+          WirelessConnectionError.unknown,
+        );
       });
 
       test('clears loading and starts monitoring on successful init', () async {
-        when(mockService.checkIfNearbyConnectionsWorks())
-            .thenAnswer((_) async => const Success(true));
+        when(
+          mockService.checkIfNearbyConnectionsWorks(),
+        ).thenAnswer((_) async => const Success(true));
         when(mockService.init()).thenAnswer((_) async => const Success(true));
-        when(mockService.monitorDevicesConnectionStatus(
-          deviceFoundCallback: anyNamed('deviceFoundCallback'),
-          deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
-          deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
-          timeout: anyNamed('timeout'),
-          timeoutCallback: anyNamed('timeoutCallback'),
-        )).thenAnswer((_) async {});
+        when(
+          mockService.monitorDevicesConnectionStatus(
+            deviceFoundCallback: anyNamed('deviceFoundCallback'),
+            deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
+            deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
+            timeout: anyNamed('timeout'),
+            timeoutCallback: anyNamed('timeoutCallback'),
+          ),
+        ).thenAnswer((_) async {});
 
         final controller = buildController();
         await controller.initialize();
@@ -113,8 +131,9 @@ void main() {
       });
 
       test('notifies listeners when loading completes', () async {
-        when(mockService.checkIfNearbyConnectionsWorks())
-            .thenAnswer((_) async => const Success(false));
+        when(
+          mockService.checkIfNearbyConnectionsWorks(),
+        ).thenAnswer((_) async => const Success(false));
 
         final controller = buildController();
         var notified = false;
@@ -126,8 +145,9 @@ void main() {
       });
 
       test('does nothing when called after dispose', () async {
-        when(mockService.checkIfNearbyConnectionsWorks())
-            .thenAnswer((_) async => const Success(false));
+        when(
+          mockService.checkIfNearbyConnectionsWorks(),
+        ).thenAnswer((_) async => const Success(false));
 
         final controller = buildController();
         controller.dispose();
@@ -141,8 +161,9 @@ void main() {
 
     group('retry', () {
       test('resets error and loading state then re-initializes', () async {
-        when(mockService.checkIfNearbyConnectionsWorks())
-            .thenAnswer((_) async => const Success(false));
+        when(
+          mockService.checkIfNearbyConnectionsWorks(),
+        ).thenAnswer((_) async => const Success(false));
 
         final controller = buildController();
         await controller.initialize();
@@ -156,13 +177,16 @@ void main() {
 
         // First notification: isLoading=true (reset); second: isLoading=false (error set)
         expect(states, containsAllInOrder([true, false]));
-        expect(controller.wirelessConnectionError,
-            WirelessConnectionError.unavailable);
+        expect(
+          controller.wirelessConnectionError,
+          WirelessConnectionError.unavailable,
+        );
       });
 
       test('clears previous error before re-initializing', () async {
-        when(mockService.checkIfNearbyConnectionsWorks())
-            .thenAnswer((_) async => const Success(false));
+        when(
+          mockService.checkIfNearbyConnectionsWorks(),
+        ).thenAnswer((_) async => const Success(false));
 
         final controller = buildController();
         await controller.initialize();
@@ -171,7 +195,8 @@ void main() {
         // On retry, error is cleared before initialize runs
         bool seenClear = false;
         controller.addListener(() {
-          if (controller.wirelessConnectionError == null && controller.isLoading) {
+          if (controller.wirelessConnectionError == null &&
+              controller.isLoading) {
             seenClear = true;
           }
         });
@@ -212,18 +237,22 @@ void main() {
 
       setUp(() {
         monitorCompleter = Completer<void>();
-        when(mockService.checkIfNearbyConnectionsWorks())
-            .thenAnswer((_) async => const Success(true));
+        when(
+          mockService.checkIfNearbyConnectionsWorks(),
+        ).thenAnswer((_) async => const Success(true));
         when(mockService.init()).thenAnswer((_) async => const Success(true));
-        when(mockService.monitorDevicesConnectionStatus(
-          deviceFoundCallback: anyNamed('deviceFoundCallback'),
-          deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
-          deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
-          timeout: anyNamed('timeout'),
-          timeoutCallback: anyNamed('timeoutCallback'),
-        )).thenAnswer((invocation) async {
-          capturedFoundCallback = invocation.namedArguments[#deviceFoundCallback]
-              as Future<void> Function(Device);
+        when(
+          mockService.monitorDevicesConnectionStatus(
+            deviceFoundCallback: anyNamed('deviceFoundCallback'),
+            deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
+            deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
+            timeout: anyNamed('timeout'),
+            timeoutCallback: anyNamed('timeoutCallback'),
+          ),
+        ).thenAnswer((invocation) async {
+          capturedFoundCallback =
+              invocation.namedArguments[#deviceFoundCallback]
+                  as Future<void> Function(Device);
           await monitorCompleter.future;
         });
       });
@@ -243,11 +272,13 @@ void main() {
       });
 
       test('skips invite when current device is advertiser', () async {
-        when(mockDevices.currentDeviceType)
-            .thenReturn(DeviceType.advertiserDevice);
+        when(
+          mockDevices.currentDeviceType,
+        ).thenReturn(DeviceType.advertiserDevice);
         when(mockDevices.hasDevice(DeviceName.coach)).thenReturn(true);
-        when(mockDevices.getDevice(DeviceName.coach))
-            .thenReturn(ConnectedDevice(DeviceName.coach));
+        when(
+          mockDevices.getDevice(DeviceName.coach),
+        ).thenReturn(ConnectedDevice(DeviceName.coach));
         final controller = buildController();
         await controller.initialize();
 
@@ -265,70 +296,84 @@ void main() {
       setUp(() {
         monitorCompleter = Completer<void>();
         connectedDevice = ConnectedDevice(DeviceName.coach);
-        when(mockService.checkIfNearbyConnectionsWorks())
-            .thenAnswer((_) async => const Success(true));
+        when(
+          mockService.checkIfNearbyConnectionsWorks(),
+        ).thenAnswer((_) async => const Success(true));
         when(mockService.init()).thenAnswer((_) async => const Success(true));
-        when(mockService.monitorDevicesConnectionStatus(
-          deviceFoundCallback: anyNamed('deviceFoundCallback'),
-          deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
-          deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
-          timeout: anyNamed('timeout'),
-          timeoutCallback: anyNamed('timeoutCallback'),
-        )).thenAnswer((invocation) async {
+        when(
+          mockService.monitorDevicesConnectionStatus(
+            deviceFoundCallback: anyNamed('deviceFoundCallback'),
+            deviceConnectingCallback: anyNamed('deviceConnectingCallback'),
+            deviceConnectedCallback: anyNamed('deviceConnectedCallback'),
+            timeout: anyNamed('timeout'),
+            timeoutCallback: anyNamed('timeoutCallback'),
+          ),
+        ).thenAnswer((invocation) async {
           capturedConnectedCallback =
               invocation.namedArguments[#deviceConnectedCallback]
                   as Future<void> Function(Device);
           await monitorCompleter.future;
         });
         when(mockDevices.hasDevice(DeviceName.coach)).thenReturn(true);
-        when(mockDevices.getDevice(DeviceName.coach)).thenReturn(connectedDevice);
-        when(mockService.monitorMessageReceives(
-          any,
-          messageReceivedCallback: anyNamed('messageReceivedCallback'),
-        )).thenAnswer((_) async => 'token');
+        when(
+          mockDevices.getDevice(DeviceName.coach),
+        ).thenReturn(connectedDevice);
+        when(
+          mockService.monitorMessageReceives(
+            any,
+            messageReceivedCallback: anyNamed('messageReceivedCallback'),
+          ),
+        ).thenAnswer((_) async => 'token');
       });
 
       tearDown(() {
         if (!monitorCompleter.isCompleted) monitorCompleter.complete();
       });
 
-      test('sets status to finished and fires callback when all devices done',
-          () async {
-        bool callbackFired = false;
-        final controller = WirelessConnectionController(
-          deviceConnectionService: mockService,
-          protocol: mockProtocol,
-          devices: mockDevices,
-          callback: () => callbackFired = true,
-        );
-        when(mockProtocol.handleDataTransfer(
-          deviceId: anyNamed('deviceId'),
-          isReceiving: anyNamed('isReceiving'),
-          dataToSend: anyNamed('dataToSend'),
-          shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
-        )).thenAnswer((_) async => const Success('received data'));
-        when(mockDevices.allDevicesFinished()).thenReturn(true);
+      test(
+        'sets status to finished and fires callback when all devices done',
+        () async {
+          bool callbackFired = false;
+          final controller = WirelessConnectionController(
+            deviceConnectionService: mockService,
+            protocol: mockProtocol,
+            devices: mockDevices,
+            callback: () => callbackFired = true,
+          );
+          when(
+            mockProtocol.handleDataTransfer(
+              deviceId: anyNamed('deviceId'),
+              isReceiving: anyNamed('isReceiving'),
+              dataToSend: anyNamed('dataToSend'),
+              shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
+            ),
+          ).thenAnswer((_) async => const Success('received data'));
+          when(mockDevices.allDevicesFinished()).thenReturn(true);
 
-        await controller.initialize();
-        await capturedConnectedCallback(Device('coach-id', 'Coach', 2));
+          await controller.initialize();
+          await capturedConnectedCallback(Device('coach-id', 'Coach', 2));
 
-        expect(connectedDevice.status, ConnectionStatus.finished);
-        expect(callbackFired, isTrue);
-      });
+          expect(connectedDevice.status, ConnectionStatus.finished);
+          expect(callbackFired, isTrue);
+        },
+      );
 
       // A failed transfer used to leave the phone on an error with no way to
       // retry but closing the screen. Now it drops the connection and looks
       // again, and shows the error only after several failures in a row.
       test('a failed transfer drops the connection and looks again', () async {
-        when(mockProtocol.handleDataTransfer(
-          deviceId: anyNamed('deviceId'),
-          isReceiving: anyNamed('isReceiving'),
-          dataToSend: anyNamed('dataToSend'),
-          shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
-        )).thenAnswer((_) async => Failure(AppError(
-              userMessage: 'Transfer failed',
-              originalException: null,
-            )));
+        when(
+          mockProtocol.handleDataTransfer(
+            deviceId: anyNamed('deviceId'),
+            isReceiving: anyNamed('isReceiving'),
+            dataToSend: anyNamed('dataToSend'),
+            shouldContinueTransfer: anyNamed('shouldContinueTransfer'),
+          ),
+        ).thenAnswer(
+          (_) async => Failure(
+            AppError(userMessage: 'Transfer failed', originalException: null),
+          ),
+        );
         when(mockService.disconnectDevice(any)).thenAnswer((_) async => true);
 
         final controller = buildController();
@@ -339,8 +384,11 @@ void main() {
         expect(connectedDevice.status, ConnectionStatus.searching);
         verify(mockService.disconnectDevice(coach)).called(1);
 
-        for (var i = 1; i < WirelessConnectionController.maxFailedTransfers;
-            i++) {
+        for (
+          var i = 1;
+          i < WirelessConnectionController.maxFailedTransfers;
+          i++
+        ) {
           await capturedConnectedCallback(coach);
         }
         expect(connectedDevice.status, ConnectionStatus.error);

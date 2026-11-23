@@ -5,8 +5,8 @@ class ParentLinkService {
   ParentLinkService({
     required IRemoteApiClient remoteApi,
     required IAuthService auth,
-  })  : _remoteApi = remoteApi,
-        _auth = auth;
+  }) : _remoteApi = remoteApi,
+       _auth = auth;
 
   final IRemoteApiClient _remoteApi;
   final IAuthService _auth;
@@ -50,15 +50,17 @@ class ParentLinkService {
         for (final p in profiles)
           (p as Map)['user_id'] as String: {
             'email': p['email'],
-            'display_name': p['display_name']
-          }
+            'display_name': p['display_name'],
+          },
       };
       return coachIds
-          .map((id) => {
-                'coach_user_id': id,
-                'email': profileMap[id]?['email'] ?? '',
-                'display_name': profileMap[id]?['display_name'] ?? ''
-              })
+          .map(
+            (id) => {
+              'coach_user_id': id,
+              'email': profileMap[id]?['email'] ?? '',
+              'display_name': profileMap[id]?['display_name'] ?? '',
+            },
+          )
           .toList();
     } catch (_) {
       // Fallback to ids only
@@ -91,10 +93,10 @@ class ParentLinkService {
     final viewerId = _auth.currentUserId;
     if (viewerId == null) return;
     try {
-      await _remoteApi.client
-          .from('coach_links')
-          .delete()
-          .match({'coach_user_id': coachUserId, 'viewer_user_id': viewerId});
+      await _remoteApi.client.from('coach_links').delete().match({
+        'coach_user_id': coachUserId,
+        'viewer_user_id': viewerId,
+      });
     } catch (_) {}
   }
 }

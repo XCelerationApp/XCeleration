@@ -32,14 +32,16 @@ import 'race_screen_controller_test.mocks.dart';
 /// Builds a minimal widget tree and returns a live [BuildContext].
 Future<BuildContext> _buildContext(WidgetTester tester) async {
   BuildContext? ctx;
-  await tester.pumpWidget(MaterialApp(
-    home: Builder(
-      builder: (context) {
-        ctx = context;
-        return const SizedBox();
-      },
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Builder(
+        builder: (context) {
+          ctx = context;
+          return const SizedBox();
+        },
+      ),
     ),
-  ));
+  );
   return ctx!;
 }
 
@@ -82,11 +84,13 @@ void main() {
     when(mockMasterRace.teams).thenAnswer((_) async => []);
     when(mockMasterRace.teamtoRaceRunnersMap).thenAnswer((_) async => {});
     when(mockMasterRace.updateRace(any)).thenAnswer((_) async {});
-    when(mockFlowController.handleFlowNavigation(any, any))
-        .thenAnswer((_) async => true);
+    when(
+      mockFlowController.handleFlowNavigation(any, any),
+    ).thenAnswer((_) async => true);
     when(mockFlowController.continueRaceFlow(any)).thenAnswer((_) async {});
-    when(mockFlowController.markCurrentFlowCompleted(any))
-        .thenAnswer((_) async {});
+    when(
+      mockFlowController.markCurrentFlowCompleted(any),
+    ).thenAnswer((_) async {});
     when(mockFlowController.beginNextFlow(any)).thenAnswer((_) async {});
 
     controller = RaceScreenController(
@@ -108,15 +112,19 @@ void main() {
   group('RaceScreenController', () {
     // -------------------------------------------------------------------------
     group('selectDate', () {
-      testWidgets('updates dateController when a date is picked',
-          (tester) async {
+      testWidgets('updates dateController when a date is picked', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         final picked = DateTime(2025, 8, 20);
-        when(mockDatePickerService.pickDate(any,
-                initialDate: anyNamed('initialDate'),
-                firstDate: anyNamed('firstDate'),
-                lastDate: anyNamed('lastDate')))
-            .thenAnswer((_) async => picked);
+        when(
+          mockDatePickerService.pickDate(
+            any,
+            initialDate: anyNamed('initialDate'),
+            firstDate: anyNamed('firstDate'),
+            lastDate: anyNamed('lastDate'),
+          ),
+        ).thenAnswer((_) async => picked);
 
         await controller.selectDate(ctx);
 
@@ -125,11 +133,14 @@ void main() {
 
       testWidgets('does nothing when picker is cancelled', (tester) async {
         final ctx = await _buildContext(tester);
-        when(mockDatePickerService.pickDate(any,
-                initialDate: anyNamed('initialDate'),
-                firstDate: anyNamed('firstDate'),
-                lastDate: anyNamed('lastDate')))
-            .thenAnswer((_) async => null);
+        when(
+          mockDatePickerService.pickDate(
+            any,
+            initialDate: anyNamed('initialDate'),
+            firstDate: anyNamed('firstDate'),
+            lastDate: anyNamed('lastDate'),
+          ),
+        ).thenAnswer((_) async => null);
         controller.form.dateController.text = 'existing';
 
         await controller.selectDate(ctx);
@@ -242,8 +253,9 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('navigateToRaceDetails', () {
-      testWidgets('sets showingRunnersManagement to false and refreshes data',
-          (tester) async {
+      testWidgets('sets showingRunnersManagement to false and refreshes data', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         controller.navigateToRunnersManagement(); // start in runners mode
 
@@ -257,22 +269,28 @@ void main() {
     // -------------------------------------------------------------------------
     group('deleteRace', () {
       Future<(BuildContext, BuildContext)> openRaceSheet(
-          WidgetTester tester) async {
+        WidgetTester tester,
+      ) async {
         final home = await _buildContext(tester);
         await controller.loadAllData(home);
         BuildContext? sheetCtx;
-        Navigator.of(home).push(MaterialPageRoute<void>(builder: (context) {
-          sheetCtx = context;
-          return const Text('race sheet');
-        }));
+        Navigator.of(home).push(
+          MaterialPageRoute<void>(
+            builder: (context) {
+              sheetCtx = context;
+              return const Text('race sheet');
+            },
+          ),
+        );
         await tester.pumpAndSettle();
         return (home, sheetCtx!);
       }
 
       testWidgets('closes the race once it is deleted', (tester) async {
         final (_, sheetCtx) = await openRaceSheet(tester);
-        when(mockParentController.deleteRace(any, any))
-            .thenAnswer((_) async => true);
+        when(
+          mockParentController.deleteRace(any, any),
+        ).thenAnswer((_) async => true);
 
         await controller.deleteRace(sheetCtx);
         await tester.pumpAndSettle();
@@ -283,8 +301,9 @@ void main() {
 
       testWidgets('stays open when the coach says no', (tester) async {
         final (_, sheetCtx) = await openRaceSheet(tester);
-        when(mockParentController.deleteRace(any, any))
-            .thenAnswer((_) async => false);
+        when(
+          mockParentController.deleteRace(any, any),
+        ).thenAnswer((_) async => false);
 
         await controller.deleteRace(sheetCtx);
         await tester.pumpAndSettle();
@@ -295,102 +314,116 @@ void main() {
 
     group('loadAllData', () {
       testWidgets(
-          'happy path: isLoading transitions true→false, race data is populated',
-          (tester) async {
-        final ctx = await _buildContext(tester);
-        final loadingStates = <bool>[];
-        controller.addListener(() => loadingStates.add(controller.isLoading));
+        'happy path: isLoading transitions true→false, race data is populated',
+        (tester) async {
+          final ctx = await _buildContext(tester);
+          final loadingStates = <bool>[];
+          controller.addListener(() => loadingStates.add(controller.isLoading));
 
-        await controller.loadAllData(ctx);
+          await controller.loadAllData(ctx);
 
-        expect(loadingStates.first, isTrue);
-        expect(loadingStates.last, isFalse);
-        expect(controller.isLoading, isFalse);
-        expect(controller.hasError, isFalse);
-        expect(controller.race, equals(testRace));
-        expect(controller.raceRunners, isEmpty);
-        expect(controller.teams, isEmpty);
-      });
+          expect(loadingStates.first, isTrue);
+          expect(loadingStates.last, isFalse);
+          expect(controller.isLoading, isFalse);
+          expect(controller.hasError, isFalse);
+          expect(controller.race, equals(testRace));
+          expect(controller.raceRunners, isEmpty);
+          expect(controller.teams, isEmpty);
+        },
+      );
 
       testWidgets(
-          'error path: hasError is true and isLoading is false after failure',
-          (tester) async {
-        final ctx = await _buildContext(tester);
-        when(mockMasterRace.race)
-            .thenAnswer((_) async => throw Exception('db error'));
+        'error path: hasError is true and isLoading is false after failure',
+        (tester) async {
+          final ctx = await _buildContext(tester);
+          when(
+            mockMasterRace.race,
+          ).thenAnswer((_) async => throw Exception('db error'));
 
-        try {
-          await controller.loadAllData(ctx);
-        } catch (_) {}
+          try {
+            await controller.loadAllData(ctx);
+          } catch (_) {}
 
-        expect(controller.hasError, isTrue);
-        expect(controller.isLoading, isFalse);
-        expect(controller.error, contains('db error'));
-      });
+          expect(controller.hasError, isTrue);
+          expect(controller.isLoading, isFalse);
+          expect(controller.error, contains('db error'));
+        },
+      );
     });
 
     // -------------------------------------------------------------------------
     group('refreshRaceData', () {
-      testWidgets('isRefreshing cycles true→false and data is updated',
-          (tester) async {
+      testWidgets('isRefreshing cycles true→false and data is updated', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
         final refreshingStates = <bool>[];
-        controller
-            .addListener(() => refreshingStates.add(controller.isRefreshing));
+        controller.addListener(
+          () => refreshingStates.add(controller.isRefreshing),
+        );
 
         await controller.refreshRaceData(ctx);
 
         expect(refreshingStates.first, isTrue);
         expect(refreshingStates.last, isFalse);
-        verify(mockMasterRace.invalidateCache())
-            .called(greaterThanOrEqualTo(1));
+        verify(
+          mockMasterRace.invalidateCache(),
+        ).called(greaterThanOrEqualTo(1));
       });
 
       testWidgets(
-          'context not mounted: returns early without invalidating cache',
-          (tester) async {
-        BuildContext? ctx;
-        await tester.pumpWidget(MaterialApp(
-          home: Builder(builder: (context) {
-            ctx = context;
-            return const SizedBox();
-          }),
-        ));
-        await tester.pumpWidget(const SizedBox());
+        'context not mounted: returns early without invalidating cache',
+        (tester) async {
+          BuildContext? ctx;
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Builder(
+                builder: (context) {
+                  ctx = context;
+                  return const SizedBox();
+                },
+              ),
+            ),
+          );
+          await tester.pumpWidget(const SizedBox());
 
-        await controller.refreshRaceData(ctx!);
+          await controller.refreshRaceData(ctx!);
 
-        verifyNever(mockMasterRace.invalidateCache());
-      });
+          verifyNever(mockMasterRace.invalidateCache());
+        },
+      );
     });
 
     // -------------------------------------------------------------------------
     group('saveRaceDetails', () {
       testWidgets(
-          'saves via masterRace.updateRace with correct field values and refreshes race',
-          (tester) async {
-        final ctx = await _buildContext(tester);
-        await controller.loadAllData(ctx);
+        'saves via masterRace.updateRace with correct field values and refreshes race',
+        (tester) async {
+          final ctx = await _buildContext(tester);
+          await controller.loadAllData(ctx);
 
-        controller.form.nameController.text = 'New Name';
-        controller.form.locationController.text = 'New Location';
-        controller.form.dateController.text = '2024-06-15';
-        controller.form.distanceController.text = '5.0';
-        controller.form.unitController.text = 'mi';
+          controller.form.nameController.text = 'New Name';
+          controller.form.locationController.text = 'New Location';
+          controller.form.dateController.text = '2024-06-15';
+          controller.form.distanceController.text = '5.0';
+          controller.form.unitController.text = 'mi';
 
-        await controller.saveRaceDetails(ctx);
+          await controller.saveRaceDetails(ctx);
 
-        verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
-      });
+          verify(
+            mockMasterRace.updateRace(any),
+          ).called(greaterThanOrEqualTo(1));
+        },
+      );
     });
 
     // -------------------------------------------------------------------------
     group('handleFieldFocusLoss', () {
-      testWidgets(
-          'in setup flow: tracks change but does not autosave',
-          (tester) async {
+      testWidgets('in setup flow: tracks change but does not autosave', (
+        tester,
+      ) async {
         final setupRace = Race(
           raceId: 1,
           raceName: 'Test',
@@ -408,9 +441,9 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets(
-          'in setup flow: filling in a blank detail saves it at once',
-          (tester) async {
+      testWidgets('in setup flow: filling in a blank detail saves it at once', (
+        tester,
+      ) async {
         final setupRace = Race(
           raceId: 1,
           raceName: 'Test',
@@ -431,51 +464,58 @@ void main() {
       });
 
       testWidgets(
-          'in setup flow: a blank filled in beside a changed detail waits',
-          (tester) async {
-        final setupRace = Race(
-          raceId: 1,
-          raceName: 'Test',
-          location: '',
-          flowState: Race.FLOW_SETUP,
-        );
-        when(mockMasterRace.race).thenAnswer((_) async => setupRace);
+        'in setup flow: a blank filled in beside a changed detail waits',
+        (tester) async {
+          final setupRace = Race(
+            raceId: 1,
+            raceName: 'Test',
+            location: '',
+            flowState: Race.FLOW_SETUP,
+          );
+          when(mockMasterRace.race).thenAnswer((_) async => setupRace);
 
-        final ctx = await _buildContext(tester);
-        await controller.loadAllData(ctx);
+          final ctx = await _buildContext(tester);
+          await controller.loadAllData(ctx);
 
-        controller.form.nameController.text = 'Renamed';
-        await controller.handleFieldFocusLoss(ctx, RaceField.name);
-        controller.form.locationController.text = 'Crystal Springs';
-        await controller.handleFieldFocusLoss(ctx, RaceField.location);
+          controller.form.nameController.text = 'Renamed';
+          await controller.handleFieldFocusLoss(ctx, RaceField.name);
+          controller.form.locationController.text = 'Crystal Springs';
+          await controller.handleFieldFocusLoss(ctx, RaceField.location);
 
-        verifyNever(mockMasterRace.updateRace(any));
-        expect(controller.form.hasUnsavedChanges, isTrue);
-      });
+          verifyNever(mockMasterRace.updateRace(any));
+          expect(controller.form.hasUnsavedChanges, isTrue);
+        },
+      );
 
       testWidgets(
-          'outside setup flow with unsaved changes: triggers autosave',
-          (tester) async {
-        final ctx = await _buildContext(tester);
-        await controller.loadAllData(ctx);
+        'outside setup flow with unsaved changes: triggers autosave',
+        (tester) async {
+          final ctx = await _buildContext(tester);
+          await controller.loadAllData(ctx);
 
-        controller.form.storeOriginalValue(
-            RaceField.name, Race(raceId: 1, raceName: 'Old Name'));
-        controller.form.nameController.text = 'New Name';
-        controller.form.locationController.text = 'Test Location';
-        controller.form.dateController.text = '2024-06-15';
-        controller.form.distanceController.text = '5.0';
+          controller.form.storeOriginalValue(
+            RaceField.name,
+            Race(raceId: 1, raceName: 'Old Name'),
+          );
+          controller.form.nameController.text = 'New Name';
+          controller.form.locationController.text = 'Test Location';
+          controller.form.dateController.text = '2024-06-15';
+          controller.form.distanceController.text = '5.0';
 
-        await controller.handleFieldFocusLoss(ctx, RaceField.name);
+          await controller.handleFieldFocusLoss(ctx, RaceField.name);
 
-        verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
-      });
+          verify(
+            mockMasterRace.updateRace(any),
+          ).called(greaterThanOrEqualTo(1));
+        },
+      );
     });
 
     // -------------------------------------------------------------------------
     group('saveAllChanges', () {
-      testWidgets('no unsaved changes: returns early without saving',
-          (tester) async {
+      testWidgets('no unsaved changes: returns early without saving', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
@@ -492,7 +532,9 @@ void main() {
 
         controller.form.nameController.text = '';
         controller.form.storeOriginalValue(
-            RaceField.name, Race(raceId: 1, raceName: 'Original'));
+          RaceField.name,
+          Race(raceId: 1, raceName: 'Original'),
+        );
         controller.form.trackChange(RaceField.name);
 
         await controller.saveAllChanges(ctx);
@@ -501,14 +543,17 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('invalid location: sets error and does NOT save',
-          (tester) async {
+      testWidgets('invalid location: sets error and does NOT save', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
         controller.form.locationController.text = '';
-        controller.form.storeOriginalValue(RaceField.location,
-            Race(raceId: 1, location: 'Original Location'));
+        controller.form.storeOriginalValue(
+          RaceField.location,
+          Race(raceId: 1, location: 'Original Location'),
+        );
         controller.form.trackChange(RaceField.location);
 
         await controller.saveAllChanges(ctx);
@@ -523,7 +568,9 @@ void main() {
 
         controller.form.dateController.text = 'not-a-date';
         controller.form.storeOriginalValue(
-            RaceField.date, Race(raceId: 1, raceDate: DateTime(2024)));
+          RaceField.date,
+          Race(raceId: 1, raceDate: DateTime(2024)),
+        );
         controller.form.trackChange(RaceField.date);
 
         await controller.saveAllChanges(ctx);
@@ -532,14 +579,17 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('invalid distance: sets error and does NOT save',
-          (tester) async {
+      testWidgets('invalid distance: sets error and does NOT save', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
         controller.form.distanceController.text = '-1';
         controller.form.storeOriginalValue(
-            RaceField.distance, Race(raceId: 1, distance: 5.0));
+          RaceField.distance,
+          Race(raceId: 1, distance: 5.0),
+        );
         controller.form.trackChange(RaceField.distance);
 
         await controller.saveAllChanges(ctx);
@@ -548,8 +598,9 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('unit field: no validation applied, does not block save',
-          (tester) async {
+      testWidgets('unit field: no validation applied, does not block save', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
@@ -559,7 +610,9 @@ void main() {
         controller.form.distanceController.text = '5.0';
         controller.form.unitController.text = 'km';
         controller.form.storeOriginalValue(
-            RaceField.unit, Race(raceId: 1, distanceUnit: 'mi'));
+          RaceField.unit,
+          Race(raceId: 1, distanceUnit: 'mi'),
+        );
         controller.form.trackChange(RaceField.unit);
 
         await controller.saveAllChanges(ctx);
@@ -568,13 +621,16 @@ void main() {
         verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
       });
 
-      testWidgets('valid fields: saves and clears changedFields',
-          (tester) async {
+      testWidgets('valid fields: saves and clears changedFields', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
         controller.form.storeOriginalValue(
-            RaceField.name, Race(raceId: 1, raceName: 'Old Name'));
+          RaceField.name,
+          Race(raceId: 1, raceName: 'Old Name'),
+        );
         controller.form.nameController.text = 'New Name';
         controller.form.trackChange(RaceField.name);
 
@@ -603,14 +659,17 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('invalid location: sets error and returns false',
-          (tester) async {
+      testWidgets('invalid location: sets error and returns false', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
         controller.form.locationController.text = '';
 
-        final result =
-            await controller.saveFieldIfValid(ctx, RaceField.location);
+        final result = await controller.saveFieldIfValid(
+          ctx,
+          RaceField.location,
+        );
 
         expect(result, isFalse);
         expect(controller.form.errorFor(RaceField.location), isNotNull);
@@ -629,22 +688,26 @@ void main() {
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('invalid distance: sets error and returns false',
-          (tester) async {
+      testWidgets('invalid distance: sets error and returns false', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
         controller.form.distanceController.text = '0';
 
-        final result =
-            await controller.saveFieldIfValid(ctx, RaceField.distance);
+        final result = await controller.saveFieldIfValid(
+          ctx,
+          RaceField.distance,
+        );
 
         expect(result, isFalse);
         expect(controller.form.errorFor(RaceField.distance), isNotNull);
         verifyNever(mockMasterRace.updateRace(any));
       });
 
-      testWidgets('unit field: no validation, saves and returns true',
-          (tester) async {
+      testWidgets('unit field: no validation, saves and returns true', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
         controller.form.nameController.text = 'Test Race';
@@ -662,8 +725,9 @@ void main() {
         verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
       });
 
-      testWidgets('valid name: saves, stops editing, and returns true',
-          (tester) async {
+      testWidgets('valid name: saves, stops editing, and returns true', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
         controller.form.nameController.text = 'Valid Name';
@@ -682,27 +746,31 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('updateRaceFlowState', () {
-      testWidgets('updates race via masterRace and fires event via IEventBus',
-          (tester) async {
+      testWidgets('updates race via masterRace and fires event via IEventBus', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
         await controller.updateRaceFlowState(ctx, Race.FLOW_SETUP_COMPLETED);
 
         verify(mockMasterRace.updateRace(any)).called(greaterThanOrEqualTo(1));
-        verify(mockEventBus.fire(EventTypes.raceFlowStateChanged, any))
-            .called(1);
+        verify(
+          mockEventBus.fire(EventTypes.raceFlowStateChanged, any),
+        ).called(1);
       });
 
-      testWidgets('fires event with correct raceId and newState',
-          (tester) async {
+      testWidgets('fires event with correct raceId and newState', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
         await controller.updateRaceFlowState(ctx, Race.FLOW_POST_RACE);
 
-        final captured =
-            verify(mockEventBus.fire(captureAny, captureAny)).captured;
+        final captured = verify(
+          mockEventBus.fire(captureAny, captureAny),
+        ).captured;
         expect(captured[0], EventTypes.raceFlowStateChanged);
         final data = captured[1] as Map<String, dynamic>;
         expect(data['raceId'], 1);
@@ -710,29 +778,31 @@ void main() {
       });
 
       testWidgets(
-          'setup → setup_completed transition triggers setup-complete dialog',
-          (tester) async {
-        final setupRace = Race(
-          raceId: 1,
-          raceName: 'Test Race',
-          flowState: Race.FLOW_SETUP,
-        );
-        when(mockMasterRace.race).thenAnswer((_) async => setupRace);
+        'setup → setup_completed transition triggers setup-complete dialog',
+        (tester) async {
+          final setupRace = Race(
+            raceId: 1,
+            raceName: 'Test Race',
+            flowState: Race.FLOW_SETUP,
+          );
+          when(mockMasterRace.race).thenAnswer((_) async => setupRace);
 
-        final ctx = await _buildContext(tester);
-        await controller.loadAllData(ctx);
+          final ctx = await _buildContext(tester);
+          await controller.loadAllData(ctx);
 
-        await controller.updateRaceFlowState(ctx, Race.FLOW_SETUP_COMPLETED);
-        await tester.pumpAndSettle();
+          await controller.updateRaceFlowState(ctx, Race.FLOW_SETUP_COMPLETED);
+          await tester.pumpAndSettle();
 
-        expect(find.text('Got it'), findsOneWidget);
-      });
+          expect(find.text('Got it'), findsOneWidget);
+        },
+      );
     });
 
     // -------------------------------------------------------------------------
     group('continueRaceFlow', () {
-      testWidgets('delegates to flowController.continueRaceFlow',
-          (tester) async {
+      testWidgets('delegates to flowController.continueRaceFlow', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
 
         await controller.continueRaceFlow(ctx);
@@ -743,8 +813,9 @@ void main() {
 
     // -------------------------------------------------------------------------
     group('markCurrentFlowCompleted', () {
-      testWidgets('delegates to flowController.markCurrentFlowCompleted',
-          (tester) async {
+      testWidgets('delegates to flowController.markCurrentFlowCompleted', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
 
         await controller.markCurrentFlowCompleted(ctx);
@@ -771,12 +842,14 @@ void main() {
           DeviceName.coach,
           DeviceType.browserDevice,
         );
-        when(mockDevicesFactory.createDevices(
-          any,
-          any,
-          data: anyNamed('data'),
-          toSpectator: anyNamed('toSpectator'),
-        )).thenReturn(fakeDevices);
+        when(
+          mockDevicesFactory.createDevices(
+            any,
+            any,
+            data: anyNamed('data'),
+            toSpectator: anyNamed('toSpectator'),
+          ),
+        ).thenReturn(fakeDevices);
 
         final result = controller.createDevices(
           DeviceType.browserDevice,
@@ -785,11 +858,13 @@ void main() {
         );
 
         expect(result, same(fakeDevices));
-        verify(mockDevicesFactory.createDevices(
-          DeviceName.coach,
-          DeviceType.browserDevice,
-          data: 'test-data',
-        )).called(1);
+        verify(
+          mockDevicesFactory.createDevices(
+            DeviceName.coach,
+            DeviceType.browserDevice,
+            data: 'test-data',
+          ),
+        ).called(1);
       });
     });
 
@@ -815,24 +890,26 @@ void main() {
           flowController: mockFlowController,
           eventBus: mockEventBus,
           devicesFactory: mockDevicesFactory,
-              raceService: RaceService(),
+          raceService: RaceService(),
         );
       });
 
-      testWidgets(
-          'listener triggers a data refresh when not already loading',
-          (tester) async {
+      testWidgets('listener triggers a data refresh when not already loading', (
+        tester,
+      ) async {
         final ctx = await _buildContext(tester);
         await controller.loadAllData(ctx);
 
         // Capture the listener registered with masterRace
-        final captured =
-            verify(mockMasterRace.addListener(captureAny)).captured;
+        final captured = verify(
+          mockMasterRace.addListener(captureAny),
+        ).captured;
         final VoidCallback listener = captured.last as VoidCallback;
 
         final refreshingStates = <bool>[];
-        controller
-            .addListener(() => refreshingStates.add(controller.isRefreshing));
+        controller.addListener(
+          () => refreshingStates.add(controller.isRefreshing),
+        );
 
         listener();
         await tester.pump();
@@ -841,12 +918,13 @@ void main() {
         expect(controller.isRefreshing, isFalse);
       });
 
-      testWidgets(
-          'listener is a no-op while initial load is in progress',
-          (tester) async {
+      testWidgets('listener is a no-op while initial load is in progress', (
+        tester,
+      ) async {
         // Capture listener before any load
-        final captured =
-            verify(mockMasterRace.addListener(captureAny)).captured;
+        final captured = verify(
+          mockMasterRace.addListener(captureAny),
+        ).captured;
         final VoidCallback listener = captured.last as VoidCallback;
 
         // isInitialLoading is true before loadAllData completes
@@ -863,26 +941,28 @@ void main() {
       });
 
       testWidgets(
-          'listener is a no-op while a refresh is already in progress',
-          (tester) async {
-        final ctx = await _buildContext(tester);
-        await controller.loadAllData(ctx);
+        'listener is a no-op while a refresh is already in progress',
+        (tester) async {
+          final ctx = await _buildContext(tester);
+          await controller.loadAllData(ctx);
 
-        final captured =
-            verify(mockMasterRace.addListener(captureAny)).captured;
-        final VoidCallback listener = captured.last as VoidCallback;
+          final captured = verify(
+            mockMasterRace.addListener(captureAny),
+          ).captured;
+          final VoidCallback listener = captured.last as VoidCallback;
 
-        // Manually set refreshing to simulate an in-progress refresh
-        listener(); // starts a refresh (_isRefreshing becomes true)
+          // Manually set refreshing to simulate an in-progress refresh
+          listener(); // starts a refresh (_isRefreshing becomes true)
 
-        int notifyCount = 0;
-        controller.addListener(() => notifyCount++);
+          int notifyCount = 0;
+          controller.addListener(() => notifyCount++);
 
-        // Second call while refresh is in flight must be a no-op
-        listener();
+          // Second call while refresh is in flight must be a no-op
+          listener();
 
-        expect(notifyCount, 0);
-      });
+          expect(notifyCount, 0);
+        },
+      );
     });
   });
 }

@@ -30,9 +30,9 @@ Widget _wrap(Widget child) {
 void main() {
   group('CollapsibleIndividualResultsWidget', () {
     testWidgets('renders no-results text when list is empty', (tester) async {
-      await tester.pumpWidget(_wrap(
-        const CollapsibleIndividualResultsWidget(results: []),
-      ));
+      await tester.pumpWidget(
+        _wrap(const CollapsibleIndividualResultsWidget(results: [])),
+      );
 
       expect(find.text('No results to display'), findsOneWidget);
     });
@@ -40,11 +40,16 @@ void main() {
     testWidgets('displays place, name, and team columns', (tester) async {
       final results = [
         _result(
-            1, 'Alice Smith', 'EA', const Duration(minutes: 18, seconds: 30)),
+          1,
+          'Alice Smith',
+          'EA',
+          const Duration(minutes: 18, seconds: 30),
+        ),
       ];
 
       await tester.pumpWidget(
-          _wrap(CollapsibleIndividualResultsWidget(results: results)));
+        _wrap(CollapsibleIndividualResultsWidget(results: results)),
+      );
 
       expect(find.text('1'), findsOneWidget);
       expect(find.text('Alice Smith'), findsOneWidget);
@@ -52,45 +57,59 @@ void main() {
     });
 
     testWidgets(
-        'shows "See More" button when results exceed initialVisibleCount',
-        (tester) async {
-      final results = List.generate(
-        7,
-        (i) => _result(
-            i + 1, 'Runner ${i + 1}', 'EA', Duration(minutes: 18 + i)),
-      );
+      'shows "See More" button when results exceed initialVisibleCount',
+      (tester) async {
+        final results = List.generate(
+          7,
+          (i) => _result(
+            i + 1,
+            'Runner ${i + 1}',
+            'EA',
+            Duration(minutes: 18 + i),
+          ),
+        );
 
-      await tester.pumpWidget(
-          _wrap(CollapsibleIndividualResultsWidget(results: results)));
+        await tester.pumpWidget(
+          _wrap(CollapsibleIndividualResultsWidget(results: results)),
+        );
 
-      expect(find.text('See More'), findsOneWidget);
-    });
+        expect(find.text('See More'), findsOneWidget);
+      },
+    );
 
     testWidgets(
-        'does not show "See More" when results fit within initialVisibleCount',
-        (tester) async {
-      final results = List.generate(
-        3,
-        (i) => _result(
-            i + 1, 'Runner ${i + 1}', 'EA', Duration(minutes: i + 18)),
-      );
+      'does not show "See More" when results fit within initialVisibleCount',
+      (tester) async {
+        final results = List.generate(
+          3,
+          (i) => _result(
+            i + 1,
+            'Runner ${i + 1}',
+            'EA',
+            Duration(minutes: i + 18),
+          ),
+        );
 
-      await tester.pumpWidget(
-          _wrap(CollapsibleIndividualResultsWidget(results: results)));
+        await tester.pumpWidget(
+          _wrap(CollapsibleIndividualResultsWidget(results: results)),
+        );
 
-      expect(find.text('See More'), findsNothing);
-    });
+        expect(find.text('See More'), findsNothing);
+      },
+    );
 
-    testWidgets('tapping "See More" expands list and shows "See Less"',
-        (tester) async {
+    testWidgets('tapping "See More" expands list and shows "See Less"', (
+      tester,
+    ) async {
       final results = List.generate(
         7,
-        (i) => _result(
-            i + 1, 'Runner ${i + 1}', 'EA', Duration(minutes: 18 + i)),
+        (i) =>
+            _result(i + 1, 'Runner ${i + 1}', 'EA', Duration(minutes: 18 + i)),
       );
 
       await tester.pumpWidget(
-          _wrap(CollapsibleIndividualResultsWidget(results: results)));
+        _wrap(CollapsibleIndividualResultsWidget(results: results)),
+      );
 
       await tester.tap(find.text('See More'));
       await tester.pump();
@@ -102,12 +121,13 @@ void main() {
     testWidgets('tapping "See Less" collapses the list', (tester) async {
       final results = List.generate(
         7,
-        (i) => _result(
-            i + 1, 'Runner ${i + 1}', 'EA', Duration(minutes: 18 + i)),
+        (i) =>
+            _result(i + 1, 'Runner ${i + 1}', 'EA', Duration(minutes: 18 + i)),
       );
 
       await tester.pumpWidget(
-          _wrap(CollapsibleIndividualResultsWidget(results: results)));
+        _wrap(CollapsibleIndividualResultsWidget(results: results)),
+      );
 
       await tester.tap(find.text('See More'));
       await tester.pump();
@@ -117,18 +137,25 @@ void main() {
       expect(find.text('See More'), findsOneWidget);
     });
 
-    testWidgets('fades a long name at the edge instead of widening the table',
-        (tester) async {
+    testWidgets('fades a long name at the edge instead of widening the table', (
+      tester,
+    ) async {
       final results = [
-        _result(1, 'Bartholomew Maximilian McAllister-Worthington', 'EA',
-            const Duration(minutes: 18)),
+        _result(
+          1,
+          'Bartholomew Maximilian McAllister-Worthington',
+          'EA',
+          const Duration(minutes: 18),
+        ),
       ];
 
       await tester.pumpWidget(
-          _wrap(CollapsibleIndividualResultsWidget(results: results)));
+        _wrap(CollapsibleIndividualResultsWidget(results: results)),
+      );
 
       final name = tester.widget<Text>(
-          find.text('Bartholomew Maximilian McAllister-Worthington'));
+        find.text('Bartholomew Maximilian McAllister-Worthington'),
+      );
       expect(name.overflow, TextOverflow.ellipsis);
       expect(name.maxLines, 1);
       expect(tester.takeException(), isNull);
@@ -143,7 +170,8 @@ void main() {
       ];
 
       await tester.pumpWidget(
-          _wrap(CollapsibleIndividualResultsWidget(results: results)));
+        _wrap(CollapsibleIndividualResultsWidget(results: results)),
+      );
 
       expect(find.byType(SingleChildScrollView), findsNothing);
       final time = tester.getRect(find.text('18:00.00'));
@@ -169,8 +197,9 @@ void main() {
     testWidgets('displays team header columns', (tester) async {
       final results = [buildTeamRecord('EA', 1)];
 
-      await tester
-          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+      await tester.pumpWidget(
+        _wrap(CollapsibleTeamResultsWidget(results: results)),
+      );
 
       expect(find.text('Team'), findsOneWidget);
       expect(find.text('Score'), findsOneWidget);
@@ -180,15 +209,19 @@ void main() {
     testWidgets('displays team abbreviation in result row', (tester) async {
       final results = [buildTeamRecord('EA', 1)];
 
-      await tester
-          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+      await tester.pumpWidget(
+        _wrap(CollapsibleTeamResultsWidget(results: results)),
+      );
 
       expect(find.text('EA'), findsWidgets);
     });
 
     testWidgets('names a team in full where it has a name', (tester) async {
-      final runner =
-          RaceResult(raceId: 1, place: 1, finishTime: const Duration(minutes: 18));
+      final runner = RaceResult(
+        raceId: 1,
+        place: 1,
+        finishTime: const Duration(minutes: 18),
+      );
       final results = [
         TeamRecord(
           team: const Team(teamId: 1, name: 'Eagles', abbreviation: 'EAG'),
@@ -197,8 +230,9 @@ void main() {
         ),
       ];
 
-      await tester
-          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+      await tester.pumpWidget(
+        _wrap(CollapsibleTeamResultsWidget(results: results)),
+      );
 
       expect(find.text('Eagles'), findsOneWidget);
     });
@@ -207,18 +241,21 @@ void main() {
       // Same places, so the same score.
       final results = [buildTeamRecord('EA', 1), buildTeamRecord('OW', 1)];
 
-      await tester
-          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+      await tester.pumpWidget(
+        _wrap(CollapsibleTeamResultsWidget(results: results)),
+      );
 
       expect(find.text('Tie broken by the 6th runner'), findsNWidgets(2));
     });
 
-    testWidgets('says nothing of ties when every score differs',
-        (tester) async {
+    testWidgets('says nothing of ties when every score differs', (
+      tester,
+    ) async {
       final results = [buildTeamRecord('EA', 1), buildTeamRecord('OW', 2)];
 
-      await tester
-          .pumpWidget(_wrap(CollapsibleTeamResultsWidget(results: results)));
+      await tester.pumpWidget(
+        _wrap(CollapsibleTeamResultsWidget(results: results)),
+      );
 
       expect(find.textContaining('Tie broken'), findsNothing);
     });

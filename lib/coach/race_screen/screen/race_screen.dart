@@ -40,8 +40,9 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     // No manual controller instantiation; will use Provider
-    WidgetsBinding.instance
-        .addPostFrameCallback((_) => _initializeRaceScreen());
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _initializeRaceScreen(),
+    );
   }
 
   @override
@@ -63,7 +64,10 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
   Future<void> _initializeRaceScreen() async {
     try {
-      final controller = Provider.of<RaceScreenController>(context, listen: false);
+      final controller = Provider.of<RaceScreenController>(
+        context,
+        listen: false,
+      );
       controller.tabController = TabController(length: 2, vsync: this);
       // Navigate to results page if specified
       if (widget.page == RaceScreenPage.results) {
@@ -74,14 +78,16 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
       // via the TabController internally.
       // Controller starts loading automatically when created
       // Subscribe to flow state changes to refresh UI when needed
-      _flowStateSubscription =
-          EventBus.instance.on(EventTypes.raceFlowStateChanged, (event) {
-        // Only handle events for this race
-        if (event.data != null &&
-            event.data['raceId'] == widget.masterRace.raceId) {
-          _refreshRaceData();
-        }
-      });
+      _flowStateSubscription = EventBus.instance.on(
+        EventTypes.raceFlowStateChanged,
+        (event) {
+          // Only handle events for this race
+          if (event.data != null &&
+              event.data['raceId'] == widget.masterRace.raceId) {
+            _refreshRaceData();
+          }
+        },
+      );
     } catch (e) {
       Logger.e('Error initializing race screen: $e');
       // Error handling is now managed by the controller
@@ -90,7 +96,10 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 
   // Refresh race data when flow state changes
   Future<void> _refreshRaceData() async {
-    final controller = Provider.of<RaceScreenController>(context, listen: false);
+    final controller = Provider.of<RaceScreenController>(
+      context,
+      listen: false,
+    );
     // Controller handles its own refresh state
     await controller.refreshRaceData(context);
   }
@@ -99,7 +108,10 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     // Outer Selector: only rebuilds when loading or error state changes.
     // This is the rarest state transition (initial load, retry).
-    return Selector<RaceScreenController, ({bool isLoading, bool hasError, String error})>(
+    return Selector<
+      RaceScreenController,
+      ({bool isLoading, bool hasError, String error})
+    >(
       selector: (_, c) => (
         isLoading: c.isLoading,
         hasError: c.hasError,
@@ -135,9 +147,8 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 16),
                 ElevatedButton(
-                  onPressed: () => context
-                      .read<RaceScreenController>()
-                      .loadAllData(context),
+                  onPressed: () =>
+                      context.read<RaceScreenController>().loadAllData(context),
                   child: const Text('Retry'),
                 ),
               ],
@@ -163,7 +174,10 @@ class RaceScreenState extends State<RaceScreen> with TickerProviderStateMixin {
 class _RaceScreenContent extends StatelessWidget {
   final MasterRace masterRace;
   final RaceScreenController controller;
-  const _RaceScreenContent({required this.masterRace, required this.controller});
+  const _RaceScreenContent({
+    required this.masterRace,
+    required this.controller,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -172,8 +186,10 @@ class _RaceScreenContent extends StatelessWidget {
         // Inner Selector: controls layout structure.
         // Rebuilds only when flowState or navigation state changes —
         // not on keystrokes or form-only updates.
-        Selector<RaceScreenController,
-            ({String flowState, bool showingRunners})>(
+        Selector<
+          RaceScreenController,
+          ({String flowState, bool showingRunners})
+        >(
           selector: (_, c) => (
             flowState: c.flowState,
             showingRunners: c.showingRunnersManagement,
@@ -198,11 +214,12 @@ class _RaceScreenContent extends StatelessWidget {
                     child: SlidingPageView(
                       showSecondPage: state.showingRunners,
                       onBackToFirst: () {
-                        controller
-                            .navigateToRaceDetails(context)
-                            .catchError((error) {
+                        controller.navigateToRaceDetails(context).catchError((
+                          error,
+                        ) {
                           debugPrint(
-                              'Error navigating to race details: $error');
+                            'Error navigating to race details: $error',
+                          );
                         });
                       },
                       firstPage: SingleChildScrollView(
@@ -243,19 +260,27 @@ class _RaceScreenContent extends StatelessWidget {
           left: 0,
           right: 0,
           bottom: 0,
-          child: Selector<RaceScreenController,
-              ({bool hasUnsaved, bool runnersEmpty, String flowState, bool showingRunners})>(
-            selector: (_, c) => (
-              hasUnsaved: c.form.hasUnsavedChanges,
-              runnersEmpty: c.raceRunners.isEmpty,
-              flowState: c.flowState,
-              showingRunners: c.showingRunnersManagement,
-            ),
-            builder: (_, state, _) {
-              if (state.showingRunners) return const SizedBox.shrink();
-              return UnsavedChangesBar(controller: controller);
-            },
-          ),
+          child:
+              Selector<
+                RaceScreenController,
+                ({
+                  bool hasUnsaved,
+                  bool runnersEmpty,
+                  String flowState,
+                  bool showingRunners,
+                })
+              >(
+                selector: (_, c) => (
+                  hasUnsaved: c.form.hasUnsavedChanges,
+                  runnersEmpty: c.raceRunners.isEmpty,
+                  flowState: c.flowState,
+                  showingRunners: c.showingRunnersManagement,
+                ),
+                builder: (_, state, _) {
+                  if (state.showingRunners) return const SizedBox.shrink();
+                  return UnsavedChangesBar(controller: controller);
+                },
+              ),
         ),
       ],
     );

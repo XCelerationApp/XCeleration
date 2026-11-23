@@ -18,14 +18,13 @@ class GoogleDriveService {
   final ConnectivityService _connectivity;
   GooglePickerService? _pickerService;
 
-
   // Note: We don't specify scopes here as GoogleAuthService now handles this centrally
 
   GoogleDriveService({
     GoogleAuthService? authService,
     ConnectivityService? connectivity,
-  })  : _authService = authService ?? GoogleAuthService.instance,
-        _connectivity = connectivity ?? const ConnectivityService();
+  }) : _authService = authService ?? GoogleAuthService.instance,
+       _connectivity = connectivity ?? const ConnectivityService();
 
   /// Get GooglePickerService instance lazily to avoid circular dependency
   GooglePickerService get pickerService {
@@ -98,9 +97,11 @@ class GoogleDriveService {
     try {
       if (!await _connectivity.isOnline()) {
         if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message:
-                  'No internet connection. Please check your connection and try again.');
+          DialogUtils.showErrorDialog(
+            context,
+            message:
+                'No internet connection. Please check your connection and try again.',
+          );
         }
         return null;
       }
@@ -109,9 +110,11 @@ class GoogleDriveService {
       final signedIn = await _authService.signIn(requireWebToken: false);
       if (!signedIn) {
         if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message:
-                  'No internet connection. Please check your connection and try again.');
+          DialogUtils.showErrorDialog(
+            context,
+            message:
+                'No internet connection. Please check your connection and try again.',
+          );
         }
         return null;
       }
@@ -131,9 +134,11 @@ class GoogleDriveService {
     } catch (e) {
       Logger.e('Error picking spreadsheet file: $e');
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message:
-                'File Selection Error: An error occurred while selecting the file. Please try again.');
+        DialogUtils.showErrorDialog(
+          context,
+          message:
+              'File Selection Error: An error occurred while selecting the file. Please try again.',
+        );
       }
       return null;
     }
@@ -142,13 +147,17 @@ class GoogleDriveService {
   /// Creates a new Google Sheet with the given title
   /// Returns the file ID and name of the created sheet
   Future<Map<String, String>?> createGoogleSheet(
-      BuildContext context, String title) async {
+    BuildContext context,
+    String title,
+  ) async {
     try {
       if (!await _connectivity.isOnline()) {
         if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message:
-                  'No internet connection. Please check your connection and try again.');
+          DialogUtils.showErrorDialog(
+            context,
+            message:
+                'No internet connection. Please check your connection and try again.',
+          );
         }
         return null;
       }
@@ -159,9 +168,11 @@ class GoogleDriveService {
 
       if (sheetsApi == null || driveApi == null) {
         if (context.mounted) {
-          DialogUtils.showErrorDialog(context,
-              message:
-                  'Connection Error: Unable to connect to Google Services. Please check your connection and try again.');
+          DialogUtils.showErrorDialog(
+            context,
+            message:
+                'Connection Error: Unable to connect to Google Services. Please check your connection and try again.',
+          );
         }
         return null;
       }
@@ -169,38 +180,45 @@ class GoogleDriveService {
       if (!context.mounted) return null;
 
       return await DialogUtils.executeWithLoadingDialog<Map<String, String>>(
-          context, operation: () async {
-        // Create a new spreadsheet
-        final spreadsheet = sheets.Spreadsheet(
-            properties: sheets.SpreadsheetProperties(title: title));
-        final createdSpreadsheet =
-            await sheetsApi.spreadsheets.create(spreadsheet);
+        context,
+        operation: () async {
+          // Create a new spreadsheet
+          final spreadsheet = sheets.Spreadsheet(
+            properties: sheets.SpreadsheetProperties(title: title),
+          );
+          final createdSpreadsheet = await sheetsApi.spreadsheets.create(
+            spreadsheet,
+          );
 
-        // Get the spreadsheet ID
-        final spreadsheetId = createdSpreadsheet.spreadsheetId;
-        if (spreadsheetId == null) {
-          throw Exception('Failed to create spreadsheet: No ID returned');
-        }
+          // Get the spreadsheet ID
+          final spreadsheetId = createdSpreadsheet.spreadsheetId;
+          if (spreadsheetId == null) {
+            throw Exception('Failed to create spreadsheet: No ID returned');
+          }
 
-        // Make the file accessible via link
-        await driveApi.permissions.create(
-          drive.Permission(
-              type: 'anyone', role: 'reader', allowFileDiscovery: false),
-          spreadsheetId,
-        );
+          // Make the file accessible via link
+          await driveApi.permissions.create(
+            drive.Permission(
+              type: 'anyone',
+              role: 'reader',
+              allowFileDiscovery: false,
+            ),
+            spreadsheetId,
+          );
 
-        return {
-          'id': spreadsheetId,
-          'name': title,
-        };
-      }, loadingMessage: 'Creating new spreadsheet...');
+          return {'id': spreadsheetId, 'name': title};
+        },
+        loadingMessage: 'Creating new spreadsheet...',
+      );
     } catch (e) {
       Logger.e('Error creating spreadsheet: $e');
 
       if (context.mounted) {
-        DialogUtils.showErrorDialog(context,
-            message:
-                'Error Creating Spreadsheet: Failed to create a new spreadsheet. Please try again later.');
+        DialogUtils.showErrorDialog(
+          context,
+          message:
+              'Error Creating Spreadsheet: Failed to create a new spreadsheet. Please try again later.',
+        );
       }
       return null;
     }
@@ -216,10 +234,8 @@ class GoogleDriveService {
     if (api == null) return null;
 
     try {
-      final file = await api.files.get(
-        fileId,
-        $fields: 'webViewLink',
-      ) as drive.File;
+      final file =
+          await api.files.get(fileId, $fields: 'webViewLink') as drive.File;
 
       return file.webViewLink;
     } catch (e) {
@@ -278,14 +294,17 @@ class GoogleDriveService {
         // For regular files, use the standard download method
         final response = await authClient.get(
           Uri.parse(
-              'https://www.googleapis.com/drive/v3/files/$fileId?alt=media'),
+            'https://www.googleapis.com/drive/v3/files/$fileId?alt=media',
+          ),
         );
 
         if (response.statusCode != 200) {
           Logger.d(
-              'Download failed with status ${response.statusCode}: ${response.body}');
+            'Download failed with status ${response.statusCode}: ${response.body}',
+          );
           throw Exception(
-              'Failed to download file: ${response.statusCode} ${response.body}');
+            'Failed to download file: ${response.statusCode} ${response.body}',
+          );
         }
 
         // Create a temporary file
